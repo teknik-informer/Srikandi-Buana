@@ -110,7 +110,50 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
   id TEXT PRIMARY KEY,
   owner TEXT NOT NULL REFERENCES users(id),
   actor_id TEXT NOT NULL REFERENCES users(id),
-  posted_date TEXT NOT NULL CHECK (posted_date ~ '^\d{4}-\d{2}-\d{2}$'),
+  posted_date TEXT NOT NULL CHECK (posted_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}),
+  memo TEXT NOT NULL CHECK (length(memo) BETWEEN 1 AND 500),
+  reference TEXT NOT NULL CHECK (length(reference) BETWEEN 1 AND 80),
+  created TEXT NOT NULL,
+  UNIQUE (id, owner)
+);
+
+CREATE INDEX IF NOT EXISTS ledger_entries_owner_posted
+  ON ledger_entries(owner, posted_date DESC, created DESC);
+
+CREATE TABLE IF NOT EXISTS ledger_lines (
+  id TEXT PRIMARY KEY,
+  owner TEXT NOT NULL REFERENCES users(id),
+  entry_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  debit BIGINT NOT NULL DEFAULT 0 CHECK (debit >= 0 AND debit <= 1000000000000),
+  credit BIGINT NOT NULL DEFAULT 0 CHECK (credit >= 0 AND credit <= 1000000000000),
+  CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0)),
+  FOREIGN KEY (entry_id, owner) REFERENCES ledger_entries(id, owner),
+  FOREIGN KEY (account_id, owner) REFERENCES ledger_accounts(id, owner)
+);
+
+CREATE INDEX IF NOT EXISTS ledger_lines_entry
+  ON ledger_lines(owner, entry_id);
+CREATE INDEX IF NOT EXISTS ledger_lines_account
+  ON ledger_lines(owner, account_id);
+
+CREATE TABLE IF NOT EXISTS ledger_reversals (
+  id TEXT PRIMARY KEY,
+  owner TEXT NOT NULL REFERENCES users(id),
+  original_entry_id TEXT NOT NULL,
+  reversal_entry_id TEXT NOT NULL,
+  actor_id TEXT NOT NULL REFERENCES users(id),
+  created TEXT NOT NULL,
+  CHECK (original_entry_id <> reversal_entry_id),
+  FOREIGN KEY (original_entry_id, owner) REFERENCES ledger_entries(id, owner),
+  FOREIGN KEY (reversal_entry_id, owner) REFERENCES ledger_entries(id, owner),
+  UNIQUE (owner, original_entry_id),
+  UNIQUE (owner, reversal_entry_id)
+);
+
+CREATE INDEX IF NOT EXISTS ledger_reversals_owner_created
+  ON ledger_reversals(owner, created DESC);
+),
   memo TEXT NOT NULL CHECK (length(memo) BETWEEN 1 AND 500),
   reference TEXT NOT NULL CHECK (length(reference) BETWEEN 1 AND 80),
   created TEXT NOT NULL,
