@@ -238,9 +238,9 @@ for (const role of [
       onSaved: async () => {},
     }),
   );
-  assert(html.includes("PUSAT KENDALI"));
-  assert(html.includes('aria-label="Bagian pusat kendali"'));
-  assert(html.includes('aria-label="Cari catatan dalam pusat kendali"'));
+  assert(html.includes("RINGKASAN OPERASIONAL"));
+  assert(html.includes('aria-label="Bagian ringkasan operasional"'));
+  assert(html.includes('aria-label="Cari catatan dalam ringkasan operasional"'));
   if (role === "anggota") {
     assert(!html.includes("Papan tugas"));
     assert(!html.includes("Kualitas data"));
