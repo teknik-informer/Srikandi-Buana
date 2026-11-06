@@ -83,3 +83,32 @@ test("commerce and finance API handlers import their owning feature contracts", 
     assert.ok(!source.includes("@/lib/ecosystem/validation.mjs"));
   }
 });
+
+test("commerce and finance migration defines tenant-safe domain tables", () => {
+  const migration = readFileSync("migrations/005_commerce_finance.sql", "utf8");
+  for (const table of [
+    "commerce_products",
+    "commerce_orders",
+    "commerce_stock_history",
+    "ledger_accounts",
+    "ledger_entries",
+    "ledger_lines",
+    "ledger_reversals",
+  ]) {
+    assert.ok(migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`), table);
+  }
+  assert.ok(migration.includes("UNIQUE (owner, sku)"));
+  assert.ok(migration.includes("UNIQUE (owner, buyer_id, client_request_id)"));
+  assert.ok(migration.includes("FOREIGN KEY (product_id, owner) REFERENCES commerce_products(id, owner)"));
+  assert.ok(migration.includes("FOREIGN KEY (entry_id, owner) REFERENCES ledger_entries(id, owner)"));
+  assert.ok(migration.includes("FOREIGN KEY (account_id, owner) REFERENCES ledger_accounts(id, owner)"));
+  assert.ok(migration.includes("UNIQUE (owner, original_entry_id)"));
+  assert.ok(migration.includes("capture_commerce_stock_change"));
+});
+
+test("ledger write paths carry the authenticated workspace owner into ledger lines", () => {
+  const ledger = readFileSync("src/app/api/ecosystem/ledger/route.ts", "utf8");
+  assert.ok(ledger.includes("INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit)"));
+  assert.ok(ledger.includes("l.owner=e.owner"));
+  assert.ok(ledger.includes("l.owner=a.owner"));
+});
