@@ -1,0 +1,2 @@
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS consent_version TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS consented_at TEXT;

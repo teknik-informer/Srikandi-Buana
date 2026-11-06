@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {readFileSync,existsSync} from 'node:fs';
+import {readLimitedMultipart,MultipartLimitError} from '../src/lib/multipart-limit.ts';
+const file=new File(['file safe'], 'catatan.txt', {type:'text/plain'});
+const form=new FormData();form.set('file',file);form.set('title','Contoh');
+const request=new Request('https://example.test/api/files',{method:'POST',body:form});
+const parsed=await readLimitedMultipart(request,4096);
+assert.equal(parsed.get('title'),'Contoh');
+assert.equal((await parsed.get('file').text()),'file safe');
+console.log('PASS multipart normal (tanpa content-length)');
+const tooLarge=new FormData();tooLarge.set('file',new File([new Uint8Array(5000)],'big.pdf',{type:'application/pdf'}));
+await assert.rejects(()=>readLimitedMultipart(new Request('https://example.test/api/files',{method:'POST',body:tooLarge}),1024), e=>e instanceof MultipartLimitError && e.status===413);
+console.log('PASS stream oversized without content-length');
+const headerCase=new Request('https://example.test/api/files',{method:'POST',body:form,headers:{'content-length':'8192'}});
+await assert.rejects(()=>readLimitedMultipart(headerCase,1024),e=>e.status===413);
+console.log('PASS declared oversized header');
+const invalidType=new Request('https://example.test/api/files',{method:'POST',body:'malformed',headers:{'content-type':'text/plain'}});
+await assert.rejects(()=>readLimitedMultipart(invalidType,1024),e=>e.status===400);
+console.log('PASS rejects non-multipart');
+for(const path of ['src/app/api/files/route.ts','src/app/api/account/avatar/route.ts','src/app/api/operations/proof/route.ts']){
+ const s=readFileSync(path,'utf8');
+ assert(s.includes('readLimitedMultipart('),path+' checks multipart bounds');
+ assert(s.includes('MultipartLimitError'),path+' handles bounds');
+}
+console.log('PASS three endpoints wired');
+const files=readFileSync('src/app/api/files/route.ts','utf8');
+assert(files.includes('SELECT name,mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL'),'deleted files excluded from download');
+assert(files.includes('Content-Security-Policy'),'attachment response isolated');
+console.log('PASS deleted-file access and download response policy');
+const printer=readFileSync('src/app/dashboard/cetak-notulen/[id]/page.tsx','utf8');
+for(const item of ['getAuthenticatedUser','canReadRecord','kind=\'musyawarah\'','notFound','status','@page','ARSIP INTERNAL'])assert(printer.includes(item),item);
+for(const path of ['src/app/_components/workspace.tsx','src/app/_components/access/role-workspace.tsx'])assert(readFileSync(path,'utf8').includes('/dashboard/cetak-notulen/'));
+console.log('PASS print authorized from existing meeting record');
+console.log('PASS integration-security suite');

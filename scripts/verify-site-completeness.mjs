@@ -1,0 +1,23 @@
+import {build} from 'esbuild';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {readFileSync,existsSync} from 'node:fs';
+const require=createRequire(import.meta.url);
+const out=await build({stdin:{contents:"export * from './src/lib/settings-config';export * from './src/lib/navigation-config';export * from './src/lib/uploaded-image';",resolveDir:process.cwd()},bundle:true,write:false,format:'cjs',platform:'node',packages:'external'});
+const m={exports:{}};vm.runInNewContext(out.outputFiles[0].text,{module:m,exports:m.exports,require,Buffer,Uint8Array,URL});
+const {settingFields,settingGroups,siteDefaults,validateSettings,publicMenus,sanitizeUploadedImage}=m.exports;
+const grouped=settingGroups.flatMap(g=>g.keys);assert.equal(new Set(grouped).size,grouped.length);assert.deepEqual(Array.from(grouped).sort(),Array.from(settingFields,f=>f.key).sort());assert.equal(settingGroups.length,6);
+assert.equal(validateSettings({...siteDefaults,mapUrl:'https://maps.app.goo.gl/fixture'}).mapUrl,'https://maps.app.goo.gl/fixture');
+for(const url of ['https://evil.example/maps','javascript:alert(1)','https://google.com/search','https://google.com.evil.example/maps','https://user:password@maps.google.com/'])assert.throws(()=>validateSettings({...siteDefaults,mapUrl:url}));
+assert.throws(()=>validateSettings({...siteDefaults,contactHours:'x'.repeat(301)}));
+const links=publicMenus.flatMap(m=>m.groups.flatMap(g=>g.items));for(const href of ['/pengaduan','/hak-data-pribadi','/aksesibilitas','/kebijakan-publikasi','/pedoman-komunitas','/pengelola','/peta-situs']){assert(links.some(l=>l.href===href));assert(existsSync('src/app/(public)'+href+'/page.tsx'));}
+assert.equal(new Set(links.map(l=>l.href)).size,links.length,'no duplicated menu destination');
+const sharp=require('sharp');
+const original=await sharp({create:{width:2,height:3,channels:3,background:'white'}}).jpeg().withExif({IFD0:{Artist:'Synthetic fixture'}}).toBuffer();
+assert((await sharp(original).metadata()).exif);
+const cleaned=await sanitizeUploadedImage(Uint8Array.from(original).buffer,'image/jpeg');
+const metadata=await sharp(Buffer.from(cleaned)).metadata();assert.equal(metadata.format,'jpeg');assert(!metadata.exif);assert(!metadata.xmp);assert.equal(metadata.width,2);assert.equal(metadata.height,3);
+await assert.rejects(sanitizeUploadedImage(Uint8Array.from([137,80,78,71,13,10,26,10]).buffer,'image/png'),/Foto tidak dapat dibaca/);
+await assert.rejects(sanitizeUploadedImage(Uint8Array.from(original).buffer,'image/png'),/Foto tidak dapat dibaca/);
+console.log('PASS completeness: all setting fields grouped once; official map URLs and limits validated; public submenu destinations real and unique; images decode/re-encode, strip EXIF, reject forged/mismatched data; gallery publication guard retained.');

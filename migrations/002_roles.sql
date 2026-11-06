@@ -1,0 +1,14 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'admin';
+ALTER TABLE users ALTER COLUMN role SET DEFAULT 'anggota';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS workspace_owner TEXT;
+UPDATE users SET workspace_owner=id WHERE workspace_owner IS NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS member_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS position TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS program_ids TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE users ADD CONSTRAINT users_role_valid CHECK(role IN ('admin','ketua','sekretaris','bendahara','koordinator','anggota'));
+CREATE UNIQUE INDEX IF NOT EXISTS users_workspace_member ON users(workspace_owner,member_id) WHERE member_id IS NOT NULL;
+CREATE TABLE IF NOT EXISTS account_invitations(id TEXT PRIMARY KEY,token_hash TEXT UNIQUE NOT NULL,owner TEXT NOT NULL REFERENCES users(id),member_id TEXT NOT NULL,email TEXT NOT NULL,full_name TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('ketua','sekretaris','bendahara','koordinator','anggota')),position TEXT NOT NULL,program_ids TEXT NOT NULL DEFAULT '[]',purpose TEXT NOT NULL CHECK(purpose IN ('activate','reset')),target_user_id TEXT REFERENCES users(id),expires TEXT NOT NULL,consumed_at TEXT,revoked_at TEXT,created_by TEXT NOT NULL REFERENCES users(id),created TEXT NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS invitation_one_pending_member ON account_invitations(owner,member_id) WHERE consumed_at IS NULL AND revoked_at IS NULL;
+CREATE TABLE IF NOT EXISTS access_audit(id TEXT PRIMARY KEY,owner TEXT NOT NULL,actor TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS access_audit_owner_created ON access_audit(owner,created);
+ALTER TABLE files ADD COLUMN IF NOT EXISTS uploader_id TEXT;

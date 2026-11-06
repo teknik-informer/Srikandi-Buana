@@ -1,0 +1,5 @@
+import {env} from '@/lib/runtime';
+import locked from './source-package.encrypted.json';
+export type SourcePackage={id:string;version:string;date:string;status:string;members:{number:string;name:string;address:string;phone:string}[];board:{role:string;names:string}[];attendance:{number:string;name:string;address:string}[];checklist:string[];plan:{period:string;task:string;evidence:string}[];programs:{id:string;name:string;goal:string;period:string;pic:string;funding:string;evidence:string}[];document:string};
+const bytes=(s:string)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+export async function readSourcePackage():Promise<SourcePackage>{if(!env.SRIKANDI_SOURCE_KEY)throw Error('Kunci dokumen sumber belum tersedia.');const key=await crypto.subtle.importKey('raw',bytes(env.SRIKANDI_SOURCE_KEY),'AES-GCM',false,['decrypt']);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes(locked.iv)},key,bytes(locked.data));return JSON.parse(new TextDecoder().decode(plain)) as SourcePackage}

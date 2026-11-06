@@ -1,0 +1,30 @@
+# Build outputs and dependencies
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+.vercel/
+
+# Secrets and runtime configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*credentials*.json
+*.secret
+
+# Local/editor files
+.DS_Store
+.idea/
+.vscode/
+*.log
+npm-debug.log*
+yarn-error.log*

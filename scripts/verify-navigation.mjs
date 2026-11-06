@@ -1,0 +1,19 @@
+import {build} from 'esbuild';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
+const result=await build({stdin:{contents:"export * from './src/lib/navigation-config';export {modules,programs} from './src/lib/srikandi';",resolveDir:process.cwd()},bundle:true,write:false,platform:'node',format:'cjs'});
+const module={exports:{}};vm.runInNewContext(result.outputFiles[0].text,{module,exports:module.exports});
+const {dashboardGroups,publicMenus,modules,programs,navigationMatches}=module.exports;
+const admin=dashboardGroups.flatMap(g=>g.items);
+assert.equal(new Set(admin.map(i=>i.id)).size,admin.length,'Duplicate dashboard destination');
+const required=[...Object.keys(modules),'akun','akun-saya','program','kehadiran','laporan','sumber','dokumen','pesan','panduan','pengaturan','portal','pengajuan','enterprise'];
+assert.deepEqual([...new Set(required)].sort(),Array.from(admin,i=>i.id).sort(),'Every dashboard module must remain reachable');
+assert(existsSync('src/app/dashboard/[[...section]]/page.tsx'));
+const links=publicMenus.flatMap(m=>[m.feature,...m.groups.flatMap(g=>g.items)]);
+for(const route of ['/profil','/visi-misi','/kemitraan','/dokumen','/program','/kegiatan','/kabar','/galeri','/faq','/kontak','/privasi']){assert(links.some(l=>l.href===route),'Missing public route '+route);assert(existsSync('src/app/(public)'+route+'/page.tsx'),'Missing route file '+route)}
+for(const p of programs)assert.equal(links.filter(l=>l.href==='/program/'+p.id).length,1,'Program must appear exactly once');
+assert(existsSync('src/app/(public)/program/[id]/page.tsx'));
+assert(navigationMatches(admin.find(i=>i.id==='kas'),'  KAS '));
+assert.equal(admin.filter(i=>navigationMatches(i,'fitur-tidak-ada')).length,0);
+console.log(`Navigation coverage passed: ${admin.length} dashboard destinations, ${programs.length} programs and all public sections.`);

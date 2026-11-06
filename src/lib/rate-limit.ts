@@ -1,0 +1,3 @@
+import type {NeonDatabase} from './runtime';
+/** A unique row and conditional UPSERT serialize increments across serverless instances. */
+export async function consumeRateLimit(database:Pick<NeonDatabase,'prepare'>,key:string,maximum:number,periodMs:number){const windowStart=Math.floor(Date.now()/periodMs)*periodMs;const row=await database.prepare('INSERT INTO rate_limits(key,window_start,attempts) VALUES(?,?,1) ON CONFLICT(key) DO UPDATE SET window_start=excluded.window_start,attempts=CASE WHEN rate_limits.window_start=excluded.window_start THEN LEAST(rate_limits.attempts+1,?+1) ELSE 1 END RETURNING attempts').bind(key,windowStart,maximum).first();return !!row&&Number(row.attempts)<=maximum}

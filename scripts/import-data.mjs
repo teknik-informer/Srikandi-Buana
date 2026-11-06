@@ -1,0 +1,16 @@
+import {createHash} from 'node:crypto';
+import {neon} from '@neondatabase/serverless';
+import {readFile} from 'node:fs/promises';
+import path from 'node:path';
+if(!process.env.DATABASE_URL||!process.env.ADMIN_EMAIL)throw Error('Isi DATABASE_URL dan ADMIN_EMAIL.');
+const filename=process.argv[2],directory=process.argv[3];if(!filename)throw Error('Penggunaan: npm run data:import -- ekspor.json [folder-lampiran-berdasarkan-id]');
+const data=JSON.parse(await readFile(filename,'utf8'));if(data.formatVersion!==2||!Array.isArray(data.records)||!Array.isArray(data.files))throw Error('Gunakan ekspor JSON format versi 2 dari dashboard lama.');
+const sql=neon(process.env.DATABASE_URL);const users=await sql.query('SELECT id FROM users WHERE email=$1',[process.env.ADMIN_EMAIL.trim().toLowerCase()]);if(users.length!==1)throw Error('Buat akun admin terlebih dahulu.');const owner=users[0].id;
+// Verify every attachment before writing any rows, so references do not silently break.
+const contents=new Map();for(const file of data.files){if(!directory||!/^[a-zA-Z0-9_-]+$/.test(file.id))throw Error('Lampiran wajib tersedia dalam folder dengan nama berkas sesuai ID.');const bytes=await readFile(path.join(directory,file.id));if(bytes.length>3*1024*1024)throw Error('Ada lampiran melebihi batas 3 MB. Siapkan ulang sebelum impor.');contents.set(file.id,bytes.toString('base64'))}
+const namespace=createHash('sha256').update(owner).digest('hex').slice(0,16);const ids=new Map(data.records.map(row=>[row.id,String(row.id).replace(/^source11-[a-f0-9]{16}-/,'source11-'+namespace+'-')]));function remap(value){if(typeof value==='string')return ids.get(value)||value;if(Array.isArray(value))return value.map(remap);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,remap(item)]));return value}
+const queries=[];for(const row of data.records)queries.push(sql.query('INSERT INTO records(id,owner,kind,data,created,updated) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(id) DO NOTHING',[ids.get(row.id),owner,row.kind,JSON.stringify(remap(row.data)),row.created,row.updated]));
+for(const file of data.files){queries.push(sql.query('INSERT INTO files(id,owner,name,mime,size,created,deleted_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO NOTHING',[file.id,owner,file.name,file.mime,file.size,file.created,file.deleted_at||null]));queries.push(sql.query("INSERT INTO file_objects(key,content,content_type) VALUES($1,decode($2,'base64'),$3) ON CONFLICT(key) DO NOTHING",[owner+'/'+file.id,contents.get(file.id),file.mime]))}
+for(const message of data.messages||[])queries.push(sql.query('INSERT INTO messages(id,name,contact,topic,message,status,ip_hash,created) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO NOTHING',[message.id,message.name,message.contact,message.topic,message.message,message.status,'imported',message.created]));
+for(const setting of data.settings||[])queries.push(sql.query('INSERT INTO settings(key,owner,data,updated) VALUES($1,$2,$3,$4) ON CONFLICT(key) DO NOTHING',[setting.key,owner,JSON.stringify(setting.data),setting.updated]));
+if(queries.length)await sql.transaction(queries);console.log('Impor selesai. ID yang sudah tersedia dilewati. Periksa data dan lampiran melalui dashboard.');

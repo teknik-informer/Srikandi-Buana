@@ -1,0 +1,41 @@
+import {newDb,DataType} from 'pg-mem';
+import {build} from 'esbuild';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+import {hashPassword} from '../src/lib/password.mjs';
+const require=createRequire(import.meta.url);
+const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});
+const db=newDb();db.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});db.public.none(readFileSync('migrations/001_initial.sql','utf8'));db.public.none(readFileSync('migrations/002_roles.sql','utf8'));const {Pool}=db.adapters.createPg(),pool=new Pool();
+function prepare(text,args=[]){const query=()=>pool.query(compat.exports.postgresStatement(text),args).catch(error=>{console.error(error.message);throw error});return {bind(...values){return prepare(text,values)},async first(){return (await query()).rows[0]||null},async all(){return {results:(await query()).rows}},async run(){return {meta:{changes:(await query()).rowCount}}}}}
+let failLogout=false;const cookieValues=new Map();let cookieOptions;const jar={get(name){const value=cookieValues.get(name);return value?{value}:undefined},set(name,value,options){cookieValues.set(name,value);cookieOptions=options},delete(name){cookieValues.delete(name)}};
+async function load(path){const out=await build({entryPoints:[path],bundle:true,write:false,platform:'node',format:'cjs',packages:'external',plugins:[{name:'isolated-auth-database',setup(b){b.onLoad({filter:/\/lib\/runtime\.ts$/},()=>({contents:'export const env=globalThis.testEnv;',loader:'ts'}))}}]});const module={exports:{}};vm.runInNewContext(out.outputFiles[0].text,{module,exports:module.exports,testEnv:{DB:{prepare:(sql)=>{if(failLogout&&sql.startsWith('DELETE FROM sessions WHERE token_hash'))throw Error('simulated database outage');return prepare(sql)}}},require(name){if(name==='next/headers')return {cookies:async()=>jar};return require(name)},process:{env:{ADMIN_EMAIL:'admin@example.test',NODE_ENV:'production',ADMIN_SETUP_TOKEN_HASH:createHash('sha256').update('test-activation-token').digest('hex'),ADMIN_SETUP_EXPIRES:new Date(Date.now()+3600000).toISOString()}},crypto,Response,Request,Headers,URL,Buffer,TextEncoder,TextDecoder,Uint8Array,console});return module.exports}
+const setup=await load('src/app/api/auth/setup/route.ts');
+const activation={token:'test-activation-token',email:'admin@example.test',password:'Password-uji-aman-123',confirmation:'Password-uji-aman-123'};
+assert.equal((await setup.POST(request(activation,'https://evil.test'))).status,403);
+assert.equal((await setup.POST(request({...activation,token:'invalid'}))).status,403);
+assert.equal((await setup.POST(request({...activation,email:'other@example.test'}))).status,400);
+assert.equal((await setup.POST(request({...activation,confirmation:'wrong'}))).status,400);
+assert.equal((await setup.POST(request(activation))).status,200);
+assert.equal((await setup.POST(request(activation))).status,409);
+const adminRow=await prepare('SELECT id,password_hash FROM users').first();assert.notEqual(adminRow.password_hash,activation.password);
+await prepare('DELETE FROM sessions').run();cookieValues.clear();
+const login=await load('src/app/api/auth/login/route.ts'),logout=await load('src/app/api/auth/logout/route.ts'),auth=await load('src/lib/auth.ts');
+function request(body,origin='https://test.local',ip='198.51.100.3'){return new Request('https://test.local/api/auth/login',{method:'POST',headers:{origin,'content-type':'application/json','x-vercel-forwarded-for':ip},body:JSON.stringify(body)})}
+assert.equal((await login.POST(request({email:'admin@example.test',password:'salah'},'https://evil.test'))).status,403);
+const valid={email:'admin@example.test',password:'Password-uji-aman-123',remember:true,returnTo:'/dashboard/kas'};const result=await login.POST(request(valid));assert.equal(result.status,200);assert.equal((await result.json()).redirect,'/dashboard/kas');assert.equal(cookieOptions.httpOnly,true);assert.equal(cookieOptions.secure,true);assert.equal(cookieOptions.sameSite,'lax');assert.equal(cookieOptions.maxAge,30*86400);assert.ok(cookieValues.has('__Host-srikandi_session'));assert.equal((await auth.getAuthenticatedUser()).userId,adminRow.id);assert.equal(auth.safeReturn('https://evil.test'),'/dashboard');assert.equal(auth.safeReturn('//evil.test'),'/dashboard');
+const logoutRequest=(origin='https://test.local')=>new Request('https://test.local/api/auth/logout',{method:'POST',headers:{origin,accept:'application/json'}});
+assert.equal((await logout.GET(new Request('https://test.local/api/auth/logout'))).status,303);
+assert(cookieValues.has('__Host-srikandi_session'),'GET must not log out');
+assert.equal((await logout.POST(logoutRequest('https://evil.test'))).status,403);
+assert(cookieValues.has('__Host-srikandi_session'),'CSRF rejection must preserve session');
+failLogout=true;assert.equal((await logout.POST(logoutRequest())).status,503);
+assert(cookieValues.has('__Host-srikandi_session'),'Failed revocation must preserve cookie for retry');
+failLogout=false;const ajaxLogout=await logout.POST(logoutRequest());assert.equal(ajaxLogout.status,200);assert.equal((await ajaxLogout.json()).ok,true);assert.equal(await auth.getAuthenticatedUser(),null);
+assert.equal((await logout.POST(logoutRequest())).status,200,'Repeated logout must be safe');
+assert.equal((await login.POST(request(valid))).status,200);
+assert.equal((await logout.POST(new Request('https://test.local/api/auth/logout',{method:'POST',headers:{origin:'https://test.local'}}))).status,303);assert.equal(await auth.getAuthenticatedUser(),null);assert.equal((await prepare('SELECT * FROM sessions').all()).results.length,0);
+for(let i=0;i<5;i++)assert.equal((await login.POST(request({...valid,password:'salah'},undefined,'198.51.100.4'))).status,401);assert.equal((await login.POST(request(valid,undefined,'198.51.100.4'))).status,429);
+console.log('PASS: single-use owner activation, invalid token/email/confirmation and CSRF rejection; actual login/logout handlers, PostgreSQL fixture, password check, HttpOnly/Secure session, redirect validation, CSRF rejection and login limit. No production account used.');await pool.end();

@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,owner TEXT NOT NULL,kind TEXT NOT NULL,data TEXT NOT NULL CHECK(jsonb_typeof(data::jsonb)='object'),created TEXT NOT NULL,updated TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS records_owner_kind ON records(owner,kind);
+CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY,owner TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,created TEXT NOT NULL,deleted_at TEXT);
+CREATE TABLE IF NOT EXISTS file_objects(key TEXT PRIMARY KEY,content BYTEA NOT NULL,content_type TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,owner TEXT NOT NULL,action TEXT NOT NULL,title TEXT NOT NULL,created TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,name TEXT NOT NULL,contact TEXT NOT NULL,topic TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('Baru','Dibaca','Ditindaklanjuti')),ip_hash TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS messages_rate ON messages(ip_hash,created);
+CREATE INDEX IF NOT EXISTS messages_status_created ON messages(status,created,id);
+CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,owner TEXT NOT NULL,data TEXT NOT NULL,updated TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL,full_name TEXT NOT NULL,enabled BOOLEAN NOT NULL DEFAULT TRUE,created TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS sessions_expires ON sessions(expires);
+CREATE TABLE IF NOT EXISTS login_attempts(id TEXT PRIMARY KEY,fingerprint TEXT NOT NULL,created TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS login_attempts_recent ON login_attempts(fingerprint,created);
+CREATE TABLE IF NOT EXISTS rate_limits(key TEXT PRIMARY KEY,window_start BIGINT NOT NULL,attempts INTEGER NOT NULL);

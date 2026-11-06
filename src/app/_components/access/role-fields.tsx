@@ -1,0 +1,8 @@
+'use client';
+import {Field,FieldLabel,FieldSet,FieldLegend} from '@/components/ui/field';
+import {NativeSelect,NativeSelectOption} from '@/components/ui/native-select';
+import {Input} from '@/components/ui/input';
+import {roles,type Role} from '@/lib/permissions';
+import {programs} from '@/lib/srikandi';
+export type AccessForm={role:Role;position:string;programIds:string[]};
+export default function RoleFields({value,onChange,idPrefix="access"}:{value:AccessForm;onChange:(v:AccessForm)=>void;idPrefix?:string}){return <><Field><FieldLabel htmlFor={idPrefix+"-role"}>Hak akses</FieldLabel><NativeSelect id={idPrefix+"-role"} value={value.role} onChange={e=>onChange({...value,role:e.target.value as Role,programIds:[]})}>{Object.entries(roles).filter(([id])=>id!=='admin').map(([id,label])=><NativeSelectOption key={id} value={id}>{label}</NativeSelectOption>)}</NativeSelect></Field><Field><FieldLabel htmlFor={idPrefix+"-position"}>Jabatan sesuai keputusan organisasi</FieldLabel><Input id={idPrefix+"-position"} value={value.position} maxLength={120} placeholder="Contoh: Wakil Sekretaris" onChange={e=>onChange({...value,position:e.target.value})}/></Field>{value.role==='koordinator'&&<FieldSet><FieldLegend>Program penugasan</FieldLegend>{programs.map(p=><Field key={p.id} orientation="horizontal"><input id={idPrefix+'-scope-'+p.id} type="checkbox" checked={value.programIds.includes(p.id)} onChange={e=>onChange({...value,programIds:e.target.checked?[...value.programIds,p.id]:value.programIds.filter(id=>id!==p.id)})}/><FieldLabel htmlFor={idPrefix+'-scope-'+p.id}>{p.id}. {p.name}</FieldLabel></Field>)}</FieldSet>}</>}

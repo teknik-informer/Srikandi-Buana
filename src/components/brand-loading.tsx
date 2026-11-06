@@ -1,0 +1,2 @@
+import BrandLogo from "./brand-logo";
+export default function BrandLoading({startup=false}:{startup?:boolean}){return <div className={"brand-stage"+(startup?" brand-startup":"")} role={startup?undefined:"status"} aria-live={startup?undefined:"polite"} aria-hidden={startup?true:undefined}><div className="brand-stage-content"><div className="brand-reveal"><BrandLogo priority/></div><span className="brand-progress" aria-hidden="true"/>{!startup&&<p>Menyiapkan ruang tumbuh Anda…</p>}</div></div>}
