@@ -22,7 +22,7 @@ test('Mutasi pesanan dan notifikasi dibatasi laju dan dapat diaudit per akun',()
  const orders=f('src/app/api/ecosystem/orders/route.ts');
  const notes=f('src/app/api/ecosystem/notifications/route.ts');
  assert(orders.includes('commerce:order-status:'));
- assert(orders.includes('RETURNING p.id) SELECT id FROM restored'));
+ assert(orders.includes('stock_logged'));assert(orders.includes('INSERT INTO commerce_stock_history'));assert(orders.includes("status='cancelled'"));
  assert(notes.includes('notification:mark:'));
 });
 test('Neraca saldo dibentuk dari saldo akun nyata dan memiliki peringatan jika tidak seimbang',()=>{
