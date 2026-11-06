@@ -4,6 +4,7 @@ import {informationPages} from './information-pages';
 export const socialImage='/social/srikandi-buana-1200x630.png';
 export const publicPages:Record<string,{title:string;description:string}>={
  '/':{title:'KWT Srikandi Buana — Perempuan Tani Ngadimulyo, Kedu',description:'Kelompok Wanita Tani Srikandi Buana di Ngadimulyo, Kedu, Temanggung. Informasi organisasi, sembilan program, kegiatan, keanggotaan dan kemitraan.'},
+ '/produk':{title:'Katalog Produk Kelompok',description:'Lihat produk yang telah diterbitkan oleh KWT Srikandi Buana. Pemesanan dilakukan melalui akun anggota yang sudah diverifikasi; pembayaran daring belum tersedia.'},
  '/profil':{title:'Profil Kelompok Wanita Tani',description:'Kenali profil, nilai, dan arah pengembangan KWT Srikandi Buana di Desa Ngadimulyo, Kedu, Temanggung.'},
  '/visi-misi':{title:'Visi & Misi',description:'Visi dan enam misi KWT Srikandi Buana dalam penguatan organisasi, pertanian, pemberdayaan perempuan dan kemandirian keluarga.'},
  '/program':{title:'Program Kerja',description:'Sembilan prioritas kerja Srikandi Buana: organisasi, keterampilan, pertanian, literasi keuangan dan kesiapan usaha bersama.'},

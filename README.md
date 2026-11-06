@@ -1,24 +1,24 @@
-> **v11.4.0-beta.1 (staging):** Penambahan Notifikasi, Katalog dan Pemesanan, Akuntansi dan Buku Besar. Panduan rilis: [docs/RELEASE_v11.4_ECOSYSTEM.md](docs/RELEASE_v11.4_ECOSYSTEM.md).
+# SRIKANDI BUANA — Enterprise Ecosystem v11.5 (Beta Staging)
 
-# SRIKANDI BUANA Enterprise — v11.3.0 (Staging)
+Source berasal dari website asli SRIKANDI BUANA di Vercel dan menambahkan lapisan ekosistem digital tanpa menghapus modul organisasi lama. **Status: beta staging; belum dinyatakan production-ready.**
 
-**Basis:** Source asli deployment Vercel v11 → staging v11.1 → patch navigasi v11.2 → standardisasi dan QA v11.3. Ini bukan aplikasi yang dibangun ulang.
+## Yang tersedia saat ini
 
-## Apa yang sudah dikerjakan
+- **Portal Anggota:** autentikasi dan kontrol akses berdasarkan peran yang sudah ada.
+- **Pusat Notifikasi:** notifikasi per akun, tanda baca, dan notifikasi alur pesanan/pengajuan.
+- **Katalog Publik:** `/produk`, hanya produk terpublikasi dari organisasi aktif. Tidak ada checkout publik atau klaim pembayaran otomatis.
+- **Katalog dan Pemesanan:** penambahan serta penyuntingan produk yang mendeteksi perubahan bersamaan, pembatasan stok atomik, bukti pengajuan cetak, status oleh admin, pembatalan dengan pemulihan stok, dan riwayat perubahan stok.
+- **Akuntansi dan Buku Besar:** bagan akun, jurnal debit-kredit yang seimbang, neraca saldo sederhana, ekspor CSV aman, jurnal koreksi berpasangan tanpa menghapus riwayat. **Belum ada rekonsiliasi dengan Buku Kas, pembayaran daring, laporan laba rugi/neraca standar, atau faktur pajak.**
 
-- Standardisasi nama seluruh 7 grup dan 29 menu dashboard sesuai konteks administrasi organisasi, tanpa mengganti ID atau URL.
-- Sinkronisasi nama modul data dan teks utama dashboard termasuk tampilan profil serta layanan pengguna.
-- Penamaan **Laporan Kas** (bukan akuntansi lengkap) dan **Perencanaan Usaha** (bukan transaksi penjualan yang belum tersedia).
-- Menjaga alur otorisasi yang ada, 4 migrasi PostgreSQL, aset asli, modul yang berfungsi, dan seluruh menu publik.
-- Perbaikan kompatibilitas ESM untuk `next.config.ts`.
-- Unit test terminologi dan kompatibilitas navigasi, serta konfigurasi GitHub Actions untuk build dan pengujian otomatis.
+Detail arsitektur, pembatasan dan rancangan lanjutan: `docs/ARSITEKTUR_EKOSISTEM_v11.5.md`.
 
-## Instalasi
+## Jalankan pemeriksaan di VS Code
 
-Prasyarat: Node.js 22.13+ dan lingkungan PostgreSQL staging. **Jangan menguji migrasi di database produksi.**
+Perlu Node.js 22.13+ dan terminal pada root proyek. Jangan sertakan rahasia dalam commit.
 
 ```bash
 npm ci
+npm run test:ecosystem
 npm run test:navigation:compat
 npm run test:terminology
 npm run test:integration:staging
@@ -27,37 +27,10 @@ npm test
 npm run build
 ```
 
-Untuk menjalankan server lokal, gunakan konfigurasi environment staging yang sah dan `npm run dev`. Berkas `.env` tidak disertakan.
+Pembuatan tabel memerlukan migrasi tambahan `005_ecosystem_foundation.sql` dan `006_order_receipts_and_journal_corrections.sql`. **Gunakan Neon staging terisolasi, dengan cadangan sebelum migrasi, jangan gunakan `DATABASE_URL` produksi.** Sesudah memastikan URL staging benar, jalankan `npm run db:migrate`.
 
-## Status
-
-- **Staging source: selesai dibuat.**
-- Tes navigasi dan terminologi: **9/9 lulus.**
-- Pengujian keamanan integrasi lokal: **lulus.**
-- Parsing seluruh source TS/TSX: **240/240 berkas tanpa kesalahan parsing.**
-- Typecheck penuh, semua regression test, build Next.js dan pengujian database sungguhan: **belum lulus/belum terverifikasi** (dependensi npm tidak tersedia di lingkungan pengerjaan).
-- Repositori GitHub `teknik-informer/Srikandi-Buana` kini ditemukan dan dapat diakses oleh akun pemilik; source belum otomatis dikirim oleh paket ini. Build dan deployment baru tetap belum diverifikasi.
-
-Lihat `docs/PEDOMAN_TERMINOLOGI.md`, `docs/QA_v11.3.md`, dan `docs/RELEASE_DAN_DEPLOY.md`.
-
-**Jangan promosi ke produksi sampai build, typecheck, migrasi staging, dan uji alur browser berhasil.**
-
-
-## Publikasi GitHub (Mac)
-
-Repositori tujuan: https://github.com/teknik-informer/Srikandi-Buana (saat diperiksa: kosong, PUBLIC).
-
-1. Ekstrak ZIP dan buka folder sumber.
-2. Jalankan `bash Publikasikan_ke_GitHub.command` melalui Terminal.
-3. Jika Git meminta kredensial, autentikasikan akun `teknik-informer` menggunakan GitHub Credential Manager/CLI. Jangan menaruh token dalam perintah Git atau percakapan.
-4. Verifikasi semua file sumber sudah muncul di cabang `main` GitHub.
-
-**Penting:** Perintah `git add README.md` saja tidak cukup; skrip memakai `git add -A` untuk seluruh proyek kecuali file yang diabaikan `.gitignore`. Skrip juga berhenti jika branch remote sudah berisi commit agar tidak menimpa pekerjaan lain.
-
-## Vercel (Preview dahulu)
-
-Jalankan `bash Deploy_Preview_Vercel.command` setelah GitHub berhasil, atau gunakan Vercel Dashboard untuk menghubungkan repository. Skrip menjalankan tes dan build sebelum membuat **Preview**, bukan rilis produksi. Pemindahan produksi memerlukan hasil pengujian end-to-end, verifikasi database dan peninjauan konfigurasi lingkungan.
+**Publikasi:** kerjakan di branch `feat/ecosystem-v11-5`, lalu pull request ke `main` setelah semua test, build, migrasi dan uji browser berhasil. Vercel Preview harus diuji sebelum promosi ke production. Lihat `docs/RELEASE_v11.5.md`.
 
 ## Keamanan
 
-Repo ini publik. Jangan commit `.env`, token, kata sandi, private key, data anggota tidak untuk publik, atau dump database. `public/dokumen/` dan berkas lain yang dahulu termasuk proyek perlu ditinjau sebelum push agar tidak memublikasikan informasi yang tidak seharusnya.
+Jangan commit `.env.local`, backup database, foto/dokumen privat atau API key ke repositori publik. Aplikasi ini baru memiliki fondasi perdagangan/akuntansi, bukan sistem pembayaran dan perpajakan tersertifikasi.

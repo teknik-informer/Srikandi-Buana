@@ -8,6 +8,9 @@ import { modules } from "@/lib/srikandi";
 import { redirect, notFound } from "next/navigation";
 import EnterpriseWorkspace from "../../_components/enterprise-workspace";
 import Workspace from "../../_components/workspace";
+import WorkspaceShell from "../../_components/workspace-shell";
+import NotificationCenter from "../../_components/notification-center";
+import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem-workspace";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
@@ -35,6 +38,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     "laporan",
     "kehadiran",
     "sumber",
+    "notifikasi", "penjualan", "akuntansi",
   ];
   if (section?.[0] === "profil") redirect("/profil");
   if (section?.[0] && !allowed.includes(section[0])) notFound();
@@ -55,6 +59,12 @@ export default async function Page({ params }: { params: Promise<{ section?: str
         </a>
       </main>
     );
+  if (["notifikasi", "penjualan", "akuntansi"].includes(active)) {
+    const title = active === "notifikasi" ? "Pusat Notifikasi" : active === "penjualan" ? "Katalog dan Pemesanan" : "Akuntansi dan Buku Besar";
+    return <WorkspaceShell user={admin} section={active} title={title} defaultSidebarOpen={defaultSidebarOpen}>
+      {active === "notifikasi" ? <NotificationCenter /> : active === "penjualan" ? <CommerceWorkspace role={admin.role} /> : <AccountingWorkspace role={admin.role} />}
+    </WorkspaceShell>;
+  }
   if (["portal","pengajuan","enterprise"].includes(active)) return <EnterpriseWorkspace user={admin} section={active} defaultSidebarOpen={defaultSidebarOpen} />;
   return admin.role === "admin" ? (
     <Workspace section={active} principal={admin} defaultSidebarOpen={defaultSidebarOpen} />

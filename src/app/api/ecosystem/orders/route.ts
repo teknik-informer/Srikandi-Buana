@@ -5,7 +5,7 @@ import {notifyOwner} from '@/lib/ecosystem/notifications';
 import {consumeRateLimit} from '@/lib/rate-limit';
 export const dynamic='force-dynamic';
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;try{
- const where=c.user.role==='admin'?'owner=?':'owner=? AND buyer_id=?',args=c.user.role==='admin'?[c.user.userId]:[c.user.userId,c.user.accountId];const rows=await c.db.prepare('SELECT id,product_name,quantity,unit_price,total,status,created FROM commerce_orders WHERE '+where+' ORDER BY created DESC LIMIT 100').bind(...args).all();return json({items:rows.results});
+ const where=c.user.role==='admin'?'owner=?':'owner=? AND buyer_id=?',args=c.user.role==='admin'?[c.user.userId]:[c.user.userId,c.user.accountId];const rows=await c.db.prepare('SELECT o.id,o.product_name,o.quantity,o.unit_price,o.total,o.status,o.created,b.full_name AS buyer_name FROM commerce_orders o JOIN users b ON b.id=o.buyer_id AND b.workspace_owner=o.owner WHERE '+where.replaceAll('owner=','o.owner=').replaceAll('buyer_id=','o.buyer_id=')+' ORDER BY o.created DESC LIMIT 100').bind(...args).all();return json({items:rows.results});
  }catch(e){return errorReply(e)}}
 export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;try{const b=await readJsonObject(request,1500);
  if(typeof b.productId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.productId)||typeof b.clientRequestId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.clientRequestId)||!moneyInteger(b.quantity,10000)||Number(b.quantity)===0)return json({error:'Pilih produk dan jumlah yang valid.'},400);
@@ -13,8 +13,8 @@ export async function POST(request:Request){const c=await required(request,true)
  const existing=await c.db.prepare('SELECT id,status FROM commerce_orders WHERE owner=? AND buyer_id=? AND client_request_id=?').bind(c.user.userId,c.user.accountId,b.clientRequestId).first();if(existing)return json({ok:true,id:existing.id,status:existing.status,reused:true});
  const id=crypto.randomUUID(),now=new Date().toISOString();
  // One atomic SQL statement: a concurrent order cannot oversell stock or create an unpaid phantom order.
- const sql=`WITH reserved AS (UPDATE commerce_products SET stock=stock-? WHERE id=? AND owner=? AND published=TRUE AND stock>=? AND price*?<=1000000000000 RETURNING id,name,price) INSERT INTO commerce_orders(id,owner,buyer_id,product_id,product_name,quantity,unit_price,total,status,client_request_id,created,updated) SELECT ?,?,?,reserved.id,reserved.name,?,reserved.price,reserved.price*?,'submitted',?,?,? FROM reserved RETURNING id,total`;
- const row=await c.db.prepare(sql).bind(b.quantity,b.productId,c.user.userId,b.quantity,b.quantity,id,c.user.userId,c.user.accountId,b.quantity,b.quantity,b.clientRequestId,now,now).first();
+ const sql=`WITH reserved AS (UPDATE commerce_products SET stock=stock-?,updated=? WHERE id=? AND owner=? AND published=TRUE AND stock>=? AND price*?<=1000000000000 RETURNING id,name,price) INSERT INTO commerce_orders(id,owner,buyer_id,product_id,product_name,quantity,unit_price,total,status,client_request_id,created,updated) SELECT ?,?,?,reserved.id,reserved.name,?,reserved.price,reserved.price*?,'submitted',?,?,? FROM reserved RETURNING id,total`;
+ const row=await c.db.prepare(sql).bind(b.quantity,now,b.productId,c.user.userId,b.quantity,b.quantity,id,c.user.userId,c.user.accountId,b.quantity,b.quantity,b.clientRequestId,now,now).first();
  if(!row)return json({error:'Produk tidak tersedia atau stok tidak mencukupi.'},409);
  // No payment assertion; the order is merely submitted for manual processing.
  const admins=await c.db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='admin' AND enabled=TRUE LIMIT 1").bind(c.user.userId).all();
