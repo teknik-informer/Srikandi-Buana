@@ -1,61 +1,68 @@
-# Vercel Deployment Risk Audit — Srikandi Buana
+# Vercel and Neon deployment risk audit — Srikandi Buana
 
 **Audit date:** 6 November 2026  
-**Project:** `admin-dashboard`  
+**Vercel project:** `admin-dashboard` (`prj_MfuJUUQQo4nlDtgOnUimyulsoPgN`)  
+**Production deployment:** `dpl_714n1xsXMuoLxdnCVPKgSuWLYGW6`  
+**Production commit:** `15db17e73aa5aa076d53d964fbfd93208895c45d`  
 **Framework:** Next.js  
-**Production baseline observed:** `feat/ecosystem-v11-5` / `e605242b299d53814731cbe2ade6beff32934161`
+**Production branch:** `feat/ecosystem-v11-5`
 
-This audit records configuration metadata only. It does not include decrypted environment-variable values, credentials, or connection strings.
+This audit uses deployment, project, environment-variable metadata, GitHub, and Neon configuration metadata. It does not retrieve or reproduce decrypted environment-variable values.
 
-## Executive summary
+## Current production state
 
-The latest observed Production deployment is READY, but the Vercel project is not yet a safe automated release path for v12. The most important issues are missing Git automation, shared Production/Preview database configuration, environment variables flagged for secret review, and the current Hobby plan's non-commercial restriction.
+- Vercel reports deployment `READY` and confirms the production alias `srikandibuana.vercel.app`.
+- The deployment uses commit `15db17e` from `feat/ecosystem-v11-5`, which includes the v11.5 security hotfix.
+- The Vercel deployment runs in region `iad1`; the Neon project is in `aws-us-east-2`. Both are in the US East region.
+- Vercel reports Node.js `26.x`. The v12 package engine range is `>=22.13.0 <27`.
+- Vercel's aggregated runtime error query returned no error clusters for the last 24 hours; the latest 30-minute error-log query returned no records. This does not prove that every page or workflow has been exercised.
+- Browser-based smoke tests of the public site and protected dashboard were not completed in this audit because the website could not be fetched by the available browser/search reader. Do not mark browser E2E as passed based on deployment status alone.
 
-## Findings
+## Findings and actions
 
-| Severity | Finding | Evidence | Required action |
+| Severity | Finding | Current evidence | Required action |
 |---|---|---|---|
-| Critical | Preview was configured to receive the same `DATABASE_URL` target as Production | Vercel environment metadata listed `DATABASE_URL` for both Production and Preview; no dedicated `PREVIEW_DATABASE_URL` was present | v12 runtime and database administration scripts now fail closed in Preview unless a dedicated `PREVIEW_DATABASE_URL` is configured. Create a sanitized staging branch before enabling Preview database access. |
-| High | Vercel project is not Git-linked | Vercel team context returned no linked projects; current Production deployment source is CLI | Connect the existing project to the GitHub repository in Vercel Project Settings, or establish an explicitly approved Git-linked project. Do not create a duplicate project automatically. |
-| High | Several environment variables carry the `readable-secret` security issue | Vercel environment metadata only; no values were retrieved | Review the variable type in Vercel. Store passwords, database URLs and tokens as write-only **Secret** values, not readable Config values. Rotate any credential confirmed to have been exposed. |
-| High / policy | Team is on the Hobby plan | Vercel team metadata | Vercel restricts Hobby to personal, non-commercial use. If this deployment is used for business operations, sales, paid work, or financial gain, move it to Pro or Enterprise before relying on it commercially. |
-| Medium | Production release is CLI-driven rather than PR-preview-driven | Latest Production deployment reports source `cli`; Git metadata points to the v11.5 baseline | Require a reviewed PR, passing GitHub Actions, Preview verification and explicit production promotion. |
-| Medium | No dedicated staging DB target is configured | No `PREVIEW_DATABASE_URL` in the project environment metadata; Neon has multiple historical branches but none was verified as sanitized staging | Select or create a dedicated staging branch, mask personal data, apply migrations there, then add a Preview-only Secret. |
+| Critical if commercial | Vercel team is on Hobby | Team metadata reports `hobby` | If the site advertises or sells products/services, or otherwise supports paid business activity, move to Pro or Enterprise before relying on it commercially. Hobby is for personal, non-commercial use. |
+| High | Existing Vercel project is not Git-linked | Git deployment context reports no linked projects for the team | Link the existing project to this repository through Vercel Project Settings. Do not create a duplicate project. Until linked, releases remain manually initiated and PR Preview automation is absent. |
+| High | Secret metadata flags | Vercel marks `DATABASE_URL` and several Neon integration variables with `readable-secret`; values were not decrypted | Review their variable types and access. Use write-only Sensitive values where supported; rotate any credential confirmed to have been exposed. |
+| Mitigated | Production DB URL was available to Preview | The original `DATABASE_URL` targeted Production and Preview | `DATABASE_URL` has now been scoped to **Production only**. `PREVIEW_DATABASE_URL` is still absent. The v12 resolver uses only `PREVIEW_DATABASE_URL` for Preview and fails closed when it is missing. |
+| High | Production Neon branch is unprotected | Default branch `production` currently reports `protected=false` | Enable branch protection. The attempt was blocked by the current Neon plan's protected-branch limit; do not remove protection from another branch to work around this. |
+| High | Short database recovery window | Neon project is on `free_v3` with a 6-hour history window | Adopt a paid recovery/backup plan appropriate for business records and document a tested restore procedure. |
+| High | QA branch derives from Production | `srikandi-v12-migration-qa-20261106` is a child of the Production branch | No sanitization evidence was found in branch metadata or repository docs. Treat it as containing Production data until masking is explicitly verified. Do not expose it through a public Preview deployment before sanitization and access review. |
+| Medium | Cloudinary is not configured in Vercel | No `CLOUDINARY_*` environment variables are present; current file storage code uses Neon `file_objects` | Cloudinary upload is not live. Configure separate Preview and Production credentials and implement signed upload/asset authorization before claiming Cloudinary integration is complete. |
+| Medium | No health/readiness API route | No `src/app/api/health/route.ts` or readiness route exists in the v12 tree | Add a minimal health/readiness endpoint and external uptime check; avoid exposing configuration or database error details. |
+| Medium | Indonesian user latency | Vercel `iad1` and Neon `aws-us-east-2` are both in US East | For an Indonesian audience, plan a controlled migration to a Singapore-region Neon project and Vercel Functions in `sin1`. This requires backup, data migration, connection-string rotation and rollback planning; do not change region in place during this release. |
 
-## Verified strengths
+## Database migration boundary
 
-- The latest observed Production deployment state is `READY`.
-- The deployed application framework is Next.js.
-- Vercel reports Node.js `26.x`; GitHub Actions now runs Node.js 26.
-- `vercel.json` sets the Next.js framework and a 60-second maximum duration for API route functions. Vercel's current Hobby documentation allows function duration to be configured up to 60 seconds.
-- The repository's quality workflow has least-privilege `contents: read` permissions and checkout credentials persistence disabled.
-- The v12 branch does not add database migrations or automatically run migrations during a build.
+- Neon Production branch `production` currently contains the v11 application tables.
+- The isolated QA branch `srikandi-v12-migration-qa-20261106` contains the new `commerce_products`, `commerce_orders`, `commerce_stock_history`, `ledger_accounts`, `ledger_entries`, `ledger_lines`, and `ledger_reversals` tables.
+- Those v12 tables are absent from the Production branch table inventory. Migrations 005 and 006 have **not** been applied to Production.
+- Keep migrations out of Vercel build hooks. Apply them only to the verified QA/staging branch, test rollback/restore, and require separate release approval before Production migration.
 
-## Implemented in the v12 branch
+## v12 safeguards already in source
 
-- Added `src/features/shared/database-target.mjs`.
-- Production and local development resolve `DATABASE_URL`.
-- Vercel Preview resolves only `PREVIEW_DATABASE_URL`; it never falls back to `DATABASE_URL`.
-- If the Preview secret is missing, database-dependent routes return the existing database-unavailable response.
-- `scripts/migrate.mjs`, `scripts/create-admin.mjs` and `scripts/import-data.mjs` use the same resolver and fail closed in Preview.
-- Added regression tests for Preview isolation.
+- `src/features/shared/database-target.mjs` resolves Preview only from `PREVIEW_DATABASE_URL`; it does not fall back to Production `DATABASE_URL`.
+- Runtime and database administration scripts use the same resolver.
+- The Preview app returns database-unavailable behavior until a dedicated sanitized staging URL is configured.
+- The v12 PR remains separate from Production.
 
-This guard deliberately leaves the current Preview database unavailable until a dedicated, sanitized staging database is configured. That is safer than allowing test deployments to mutate Production data.
+## Remaining release gates
 
-## Vercel owner actions still required
-
-1. Review every environment variable flagged `readable-secret` in Project Settings. Use Secret type for database URLs, passwords and tokens. Do not paste secret values into GitHub, issues, chat, or source files.
-2. Confirm whether the application is used commercially. If yes, upgrade the Vercel team from Hobby to Pro or Enterprise.
-3. Connect GitHub automation for `teknik-informer/Srikandi-Buana` to the intended Vercel project. Verify the Production Branch explicitly; do not assume it is `main`.
-4. Prepare a separate sanitized Neon staging branch. Do not use a historical branch until its data and access have been reviewed.
-5. Add `PREVIEW_DATABASE_URL` as a Preview-only Secret after staging is ready. Keep Production `DATABASE_URL` scoped to Production.
-6. Verify the Preview deployment, authentication, write operations, migrations and rollback procedure before merging v12.
-7. Keep Production aliases on the known-good v11.5 deployment until release approval.
+1. Link the existing Vercel project to `teknik-informer/Srikandi-Buana` without creating a duplicate.
+2. Review the `readable-secret` flags and rotate credentials if exposure is confirmed.
+3. Upgrade Vercel from Hobby if the deployment is used commercially.
+4. Upgrade Neon or otherwise obtain production branch protection and an adequate recovery window.
+5. Verify sanitization of the v12 QA branch before connecting it to Preview.
+6. Configure a separate Preview-only `PREVIEW_DATABASE_URL`.
+7. Add Cloudinary configuration and test signed upload/authorization if Cloudinary is a requirement.
+8. Run real browser E2E for public pages, login, admin/member authorization, file upload/download, orders, inventory reservation/cancellation, journals and reversal.
+9. Test backup restoration and migration rollback.
+10. Obtain explicit approval before Production migration or deployment.
 
 ## Official references
 
-- [Vercel Git deployments and Preview environments](https://vercel.com/docs/git)
-- [Vercel environment variable Config and Secret types](https://vercel.com/changelog/environment-variables-now-use-config-and-secret-types)
-- [Vercel Hobby plan restrictions](https://vercel.com/docs/plans/hobby)
-- [Vercel fair use and commercial usage](https://vercel.com/docs/limits/fair-use-guidelines)
-- [Node.js 26 on Vercel](https://vercel.com/changelog/node-js-26-lts-is-now-generally-available-on-vercel)
+- Vercel Hobby plan: https://vercel.com/docs/plans/hobby
+- Vercel fair use and commercial use: https://vercel.com/docs/limits/fair-use-guidelines
+- Neon branch protection: https://neon.com/blog/restrict-access-to-the-production-branch
+- Neon restore history: https://neon.com/blog/practical-guide-to-database-branching
