@@ -103,7 +103,7 @@ test("commerce and finance migration defines tenant-safe domain tables", () => {
   assert.ok(migration.includes("FOREIGN KEY (entry_id, owner) REFERENCES ledger_entries(id, owner)"));
   assert.ok(migration.includes("FOREIGN KEY (account_id, owner) REFERENCES ledger_accounts(id, owner)"));
   assert.ok(migration.includes("UNIQUE (owner, original_entry_id)"));
-  assert.ok(migration.includes("capture_commerce_stock_change"));
+  assert.ok(migration.includes("CREATE INDEX IF NOT EXISTS commerce_stock_history_owner_created"));
 });
 
 test("ledger write paths carry the authenticated workspace owner into ledger lines", () => {
@@ -111,4 +111,9 @@ test("ledger write paths carry the authenticated workspace owner into ledger lin
   assert.ok(ledger.includes("INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit)"));
   assert.ok(ledger.includes("l.owner=e.owner"));
   assert.ok(ledger.includes("l.owner=a.owner"));
+  const products = readFileSync("src/app/api/ecosystem/products/route.ts", "utf8");
+  const orders = readFileSync("src/app/api/ecosystem/orders/route.ts", "utf8");
+  assert.ok(products.includes("INSERT INTO commerce_stock_history"));
+  assert.ok(orders.includes("stock_logged"));
+  assert.ok(orders.includes("RETURNING id,product_id,quantity,buyer_id"));
 });
