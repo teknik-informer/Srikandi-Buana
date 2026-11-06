@@ -1,6 +1,6 @@
 import {required,json,errorReply} from '@/lib/ecosystem/guard';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
-import {moneyInteger} from '@/lib/ecosystem/validation.mjs';
+import {moneyInteger} from '@/features/shared/validation.mjs';
 import {notifyOwner} from '@/lib/ecosystem/notifications';
 import {consumeRateLimit} from '@/lib/rate-limit';
 export const dynamic='force-dynamic';
