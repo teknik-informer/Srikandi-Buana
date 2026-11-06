@@ -36,3 +36,15 @@ test("runtime and database administration scripts use the same environment guard
     assert.ok(!source.includes("neon(process.env.DATABASE_URL)"), path);
   }
 });
+
+test("health and readiness endpoints return minimal non-cacheable status", () => {
+  const health = readFileSync("src/app/api/health/route.ts", "utf8");
+  const ready = readFileSync("src/app/api/ready/route.ts", "utf8");
+  assert.ok(health.includes('status: "ok"'));
+  assert.ok(health.includes('"Cache-Control": "no-store"'));
+  assert.ok(ready.includes('await env.DB.prepare("SELECT 1 AS ok").first()'));
+  assert.ok(ready.includes("status: 503"));
+  assert.ok(ready.includes('"Cache-Control": "no-store"'));
+  assert.ok(!ready.includes("process.env.DATABASE_URL"));
+  assert.ok(!ready.includes("connectionString"));
+});
