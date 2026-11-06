@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "admin:create": "node --env-file-if-exists=.env.local scripts/create-admin.mjs",
-    "test:integration:staging": "node --experimental-transform-types tests/integration-security.mjs",
+    "test:integration:staging": "node tests/integration-security.mjs",
     "test:api": "node scripts/verify-neon.mjs",
     "data:import": "node --env-file-if-exists=.env.local scripts/import-data.mjs",
     "test": "node scripts/verify-neon.mjs && node scripts/verify-auth.mjs && node scripts/verify-navigation.mjs && node scripts/verify-interactions.mjs && node scripts/verify-roles.mjs && node scripts/verify-policies.mjs && node scripts/verify-pwa.mjs && node scripts/verify-seo.mjs && node scripts/verify-workspace.mjs && node scripts/verify-template-ui.mjs && node scripts/verify-client-flows.mjs && node scripts/verify-management.mjs && node scripts/verify-management-client.mjs && node scripts/verify-visual-compositions.mjs && node scripts/verify-site-completeness.mjs && node scripts/verify-enterprise.mjs",
