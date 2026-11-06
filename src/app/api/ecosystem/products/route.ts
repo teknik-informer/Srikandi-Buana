@@ -3,7 +3,8 @@ import {getAuthenticatedUser} from '@/lib/auth';
 import {env} from '@/lib/runtime';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {consumeRateLimit} from '@/lib/rate-limit';
-import {moneyInteger,skuValid,textField} from '@/lib/ecosystem/validation.mjs';
+import {moneyInteger,textField} from '@/features/shared/validation.mjs';
+import {skuValid} from '@/features/commerce/validation.mjs';
 export const dynamic='force-dynamic';
 export async function GET(request:Request){try{
  const user=await getAuthenticatedUser();const db=env.DB;if(!db)return json({error:'Katalog belum tersedia.'},503);
