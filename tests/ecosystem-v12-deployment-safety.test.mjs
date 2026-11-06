@@ -48,3 +48,10 @@ test("health and readiness endpoints return minimal non-cacheable status", () =>
   assert.ok(!ready.includes("process.env.DATABASE_URL"));
   assert.ok(!ready.includes("connectionString"));
 });
+
+const nextConfig = readFileSync("next.config.ts", "utf8");
+const publicContent = readFileSync("src/lib/public-content.ts", "utf8");
+const siteSettings = readFileSync("src/lib/site-settings.ts", "utf8");
+assert.ok(nextConfig.includes("Strict-Transport-Security"));
+assert.ok(publicContent.includes("import { cache } from \"react\""));
+assert.ok(siteSettings.includes("import { cache } from \"react\""));
