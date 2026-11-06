@@ -17,6 +17,19 @@ vm.runInNewContext(bundle.outputFiles[0].text, {
   exports: commonjs.exports,
 });
 const registry = commonjs.exports;
+const permissionBundle = await build({
+  entryPoints: ["src/lib/permissions.ts"],
+  bundle: true,
+  write: false,
+  platform: "node",
+  format: "cjs",
+});
+const permissionCommonjs = { exports: {} };
+vm.runInNewContext(permissionBundle.outputFiles[0].text, {
+  module: permissionCommonjs,
+  exports: permissionCommonjs.exports,
+});
+const permissions = permissionCommonjs.exports;
 const navigationSource = readFileSync("src/lib/navigation-config.ts", "utf8");
 const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((match) => match[1]);
 const pillarRouteIds = registry.enterprisePillars.flatMap((pillar) =>
@@ -58,4 +71,29 @@ test("feature lookup is deterministic and unknown routes stay unresolved", () =>
   assert.equal(registry.getEnterpriseFeature("akuntansi")?.label, "Akuntansi dan Buku Besar");
   assert.equal(registry.getEnterprisePillar("route-tidak-terdaftar"), undefined);
   assert.equal(registry.getEnterpriseFeature("route-tidak-terdaftar"), undefined);
+});
+
+test("legacy permission imports remain compatible after identity extraction", () => {
+  assert.equal(permissions.roles.admin, "Administrator");
+  assert.equal(permissions.canReadSectionForRole("admin", "akun"), true);
+  assert.equal(permissions.canReadSectionForRole("anggota", "akun"), false);
+  const member = {
+    accountId: "member-1",
+    userId: "workspace-1",
+    email: "member@example.test",
+    displayName: "Member",
+    fullName: "Member",
+    role: "anggota",
+    memberId: "member-1",
+    position: "",
+    programIds: [],
+  };
+  assert.equal(
+    permissions.canReadRecord(member, { id: "member-1", kind: "anggota", data: {} }),
+    true,
+  );
+  assert.equal(
+    permissions.canReadRecord(member, { id: "other-member", kind: "anggota", data: {} }),
+    false,
+  );
 });
