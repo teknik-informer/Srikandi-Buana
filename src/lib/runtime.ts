@@ -1,5 +1,6 @@
 import {neon} from '@neondatabase/serverless';
 import {postgresStatement} from './sql-compat';
+import {databaseUrlForEnvironment} from '../features/shared/database-target.mjs';
 type Row=Record<string,unknown>;
 export class PreparedStatement{
  constructor(readonly database:NeonDatabase,readonly text:string,readonly args:unknown[]=[]){ }
@@ -15,7 +16,8 @@ export class NeonDatabase{
  async batch(statements:PreparedStatement[]){try{return await this.sql.transaction(statements.map(s=>this.sql.query(postgresStatement(s.text),s.args)),{fullResults:true,isolationLevel:'Serializable'})}catch{throw Error('Database belum dapat menyimpan perubahan.')}}
 }
 let connection:NeonDatabase|undefined;
-function database(){if(!process.env.DATABASE_URL)return undefined;return connection??=new NeonDatabase(process.env.DATABASE_URL)}
+let connectionUrl:string|undefined;
+function database(){const url=databaseUrlForEnvironment(process.env);if(!url)return undefined;if(connection&&connectionUrl===url)return connection;connectionUrl=url;connection=new NeonDatabase(url);return connection}
 const objects={
  async put(key:string,data:ArrayBuffer,options?:{httpMetadata?:{contentType?:string}}){const db=database();if(!db)throw Error('Database belum tersedia.');await db.prepare("INSERT INTO file_objects(key,content,content_type) VALUES(?,decode(?,'base64'),?) ON CONFLICT(key) DO UPDATE SET content=excluded.content,content_type=excluded.content_type").bind(key,Buffer.from(data).toString('base64'),options?.httpMetadata?.contentType||'application/octet-stream').run()},
  async get(key:string){const db=database();if(!db)return null;const object=await db.prepare("SELECT encode(content,'base64') AS content FROM file_objects WHERE key=?").bind(key).first();return object?{body:new Uint8Array(Buffer.from(String(object.content),'base64'))}:null},
