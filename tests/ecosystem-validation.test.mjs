@@ -1,0 +1,8 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {balancedLines,moneyInteger,skuValid,localHref} from '../src/lib/ecosystem/validation.mjs';
+const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222';
+test('Jurnal berpasangan wajib seimbang',()=>{assert(balancedLines([{accountId:a,debit:12000,credit:0},{accountId:b,debit:0,credit:12000}]));assert(!balancedLines([{accountId:a,debit:12000,credit:0},{accountId:b,debit:0,credit:10000}]));assert(!balancedLines([{accountId:a,debit:0,credit:0},{accountId:b,debit:0,credit:0}]));assert(!balancedLines([{accountId:a,debit:12000,credit:200},{accountId:b,debit:0,credit:11800}]))});
+test('Nilai uang bukan float atau tidak aman',()=>{assert(moneyInteger(45000));assert(!moneyInteger(-1));assert(!moneyInteger(1.5));assert(!moneyInteger(Number.MAX_SAFE_INTEGER))});
+test('SKU divalidasi dan tautan internal tidak boleh lintas domain',()=>{assert(skuValid('KWT-KOPI-01'));assert(!skuValid('../bad'));assert(localHref('/dashboard/penjualan'));assert(!localHref('//evil.com/dashboard'));assert(!localHref('https://evil.com'))});
+test('Migrasi harus mengunci ruang kerja dan perlindungan stok',async()=>{const {readFileSync}=await import('node:fs');const sql=readFileSync('migrations/005_ecosystem_foundation.sql','utf8');assert(sql.includes('UNIQUE(owner,buyer_id,client_request_id)'));assert(sql.includes('recipient_id TEXT NOT NULL REFERENCES users(id)'));const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');assert(orders.includes('stock=stock-?'));assert(orders.includes('stock>=?'));assert(orders.includes('FROM reserved RETURNING id,total'))});

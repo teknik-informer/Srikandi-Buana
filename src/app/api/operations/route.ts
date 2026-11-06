@@ -1,4 +1,5 @@
 import { getAuthenticatedUser } from "@/lib/auth";
+import {notifyOwner} from "@/lib/ecosystem/notifications";
 import { json, sameOrigin } from "@/lib/account-access";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -56,7 +57,9 @@ export async function POST(request:Request){
  const submit=raw.submit===true,input=validateOperation(raw.data,submit);await checkInputAsset(user.userId,input,submit);
  if(submit&&input.category==='expense')throw new OperationError('Simpan draf dan unggah bukti pengeluaran sebelum mengajukan penggantian biaya.');
  if(!await consumeRateLimit(db,'operations:create:'+user.accountId,30,3600000))return json({error:'Terlalu banyak pengajuan. Coba kembali setelah satu jam.'},429);
- return json({ok:true,item:await createOperation(user,String(raw.clientRequestId),input,submit)});
+ const item=await createOperation(user,String(raw.clientRequestId),input,submit);
+ if(submit){const managers=await db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='admin' AND enabled=TRUE LIMIT 1").bind(user.userId).all();for(const m of managers.results)if(String(m.id)!==user.accountId)await notifyOwner(user.userId,String(m.id),'operation:'+item.id+':submitted','Pengajuan baru',input.title,'/dashboard/enterprise','operasional');}
+ return json({ok:true,item});
  }catch(error){return failure(error);}
 }
 export async function PATCH(request:Request){

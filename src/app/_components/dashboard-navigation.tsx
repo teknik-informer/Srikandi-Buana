@@ -31,6 +31,7 @@ import {
   Grid2X2,
   LayoutDashboard,
   MessagesSquare,
+  ShoppingBag,
   Search,
   Settings2,
   ShieldCheck,
@@ -41,7 +42,8 @@ import {
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
-const icons = [Users, CalendarDays, Wallet, Files, MessagesSquare, Grid2X2, Settings2];
+const icons = [Users, CalendarDays, Wallet, Files, MessagesSquare,
+  ShoppingBag, Grid2X2, Settings2];
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();

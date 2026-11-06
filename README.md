@@ -1,3 +1,5 @@
+> **v11.4.0-beta.1 (staging):** Penambahan Notifikasi, Katalog dan Pemesanan, Akuntansi dan Buku Besar. Panduan rilis: [docs/RELEASE_v11.4_ECOSYSTEM.md](docs/RELEASE_v11.4_ECOSYSTEM.md).
+
 # SRIKANDI BUANA Enterprise — v11.3.0 (Staging)
 
 **Basis:** Source asli deployment Vercel v11 → staging v11.1 → patch navigasi v11.2 → standardisasi dan QA v11.3. Ini bukan aplikasi yang dibangun ulang.

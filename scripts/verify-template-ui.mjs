@@ -3,14 +3,12 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import postcss from 'postcss';
 import ts from 'typescript';
-// Use the source baseline retained in the repository. The original
-// docs/reference-ui-checksums.json is not part of the exported source.
 const manifest=JSON.parse(readFileSync('SOURCE_CHECKSUMS.json','utf8'));
 const uiBaseline=Object.entries(manifest.sha256 ?? {}).filter(([path])=>path.startsWith('src/components/ui/'));
-assert(uiBaseline.length>0,'SOURCE_CHECKSUMS.json must contain trusted UI checksums');
+assert(uiBaseline.length>0,'SOURCE_CHECKSUMS.json must contain UI checksums');
 for(const [path,expected] of uiBaseline){
-  assert.match(expected,/^[0-9a-f]{64}$/,'Invalid UI checksum: '+path);
-  assert.equal(createHash('sha256').update(readFileSync(path)).digest('hex'),expected,'UI component differs from v11.3 source baseline: '+path);
+ assert.match(expected,/^[0-9a-f]{64}$/,'Invalid UI checksum: '+path);
+ assert.equal(createHash('sha256').update(readFileSync(path)).digest('hex'),expected,'UI component differs from v11.3 source baseline: '+path);
 }
 const css=postcss.parse(readFileSync('src/app/globals.css','utf8'));const headers=[];
 css.walkRules(rule=>{if(rule.selector==='.workspace-header'){const d=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]));headers.push(d);assert.notEqual(d['flex-direction'],'column','Header must remain one row');assert.notEqual(d['flex-wrap'],'wrap','Header actions may not wrap');}});

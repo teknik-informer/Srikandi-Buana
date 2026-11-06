@@ -27,5 +27,5 @@ test('Tidak mengubah nilai status yang disimpan pada database',()=>{
  for(const s of ['Draf','Terbit','Pemasukan','Pengeluaran','Perlu verifikasi','Disepakati'])assert.ok(mods.includes(`"${s}"`),s);
 });
 test('Menu publik tidak terpengaruh dan tidak ada menu tanpa endpoint',()=>{
- const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,29); // 7 groups and 29 stable route identifiers
+ const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,32); // 29 existing destinations + 3 new ecosystem destinations
 });
