@@ -25,6 +25,6 @@ test('Product creation writes an immutable audit snapshot in the same batch',()=
 });
 
 test('Product updates use optimistic concurrency and append before/after snapshots atomically',()=>{
- assert.match(products,/WITH before AS MATERIALIZED[\s\S]*updated=\?\)[\s\S]*UPDATE commerce_products p[\s\S]*INSERT INTO commerce_product_audit/);
+ assert.match(products,/WITH before AS MATERIALIZED[\s\S]*WHERE id=\? AND owner=\? AND updated=\?[\s\S]*UPDATE commerce_products p SET[\s\S]*FROM before b WHERE p\.id=b\.id AND p\.owner=b\.owner AND p\.updated=b\.updated[\s\S]*INSERT INTO commerce_product_audit/);
  assert.match(products,/to_jsonb\(before\)::text,to_jsonb\(changed\)::text/);
 });
