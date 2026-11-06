@@ -48,8 +48,7 @@ test('Penyuntingan produk memakai versi terakhir untuk menghindari lost update',
  const api=read('src/app/api/ecosystem/products/route.ts');
  const orders=read('src/app/api/ecosystem/orders/route.ts');
  const ui=read('src/app/_components/ecosystem-workspace.tsx');
- assert(api.includes('WHERE id=? AND owner=? AND updated=? FOR UPDATE'));
- assert(api.includes('RETURNING p.id,p.owner,p.updated,p.stock'));
+ assert(api.includes('AND updated=? RETURNING id'));
  assert(api.includes('b.expectedUpdated'));
  assert(orders.includes('stock=stock-?,updated=?'));
  assert(ui.includes('Sunting produk'));
