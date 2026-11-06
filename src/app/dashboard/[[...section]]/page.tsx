@@ -5,6 +5,7 @@ import { canReadSection } from "@/lib/permissions";
 import RoleWorkspace from "../../_components/access/role-workspace";
 import { safeReturn } from "@/lib/auth";
 import { modules } from "@/lib/srikandi";
+import { dashboardSectionIds, getEnterpriseFeature } from "@/features/enterprise/registry";
 import { redirect, notFound } from "next/navigation";
 import EnterpriseWorkspace from "../../_components/enterprise-workspace";
 import Workspace from "../../_components/workspace";
@@ -14,7 +15,7 @@ import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
-  const item = dashboardGroups.flatMap((g) => g.items).find((i) => i.id === id);
+  const item = getEnterpriseFeature(id) || dashboardGroups.flatMap((g) => g.items).find((i) => i.id === id);
   return {
     title: (item?.label || "Ringkasan Operasional") + " | Ruang kerja Srikandi Buana",
     robots: { index: false, follow: false },
@@ -24,24 +25,9 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   if ((section?.length || 0) > 1) notFound();
-  const allowed = [
-    ...Object.keys(modules),
-    "portal", "pengajuan", "enterprise",
-    "akun",
-    "akun-saya",
-    "ringkasan",
-    "program",
-    "dokumen",
-    "panduan",
-    "pesan",
-    "pengaturan",
-    "laporan",
-    "kehadiran",
-    "sumber",
-    "notifikasi", "penjualan", "akuntansi",
-  ];
+  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, "ringkasan"]);
   if (section?.[0] === "profil") redirect("/profil");
-  if (section?.[0] && !allowed.includes(section[0])) notFound();
+  if (section?.[0] && !allowed.has(section[0])) notFound();
   const admin = await getAuthenticatedUser();
   if (!admin)
     redirect(
