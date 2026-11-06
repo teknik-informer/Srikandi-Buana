@@ -30,7 +30,7 @@ This audit uses deployment, project, environment-variable metadata, GitHub, and 
 | High | Short database recovery window | Neon project is on `free_v3` with a 6-hour history window | Adopt a paid recovery/backup plan appropriate for business records and document a tested restore procedure. |
 | High | QA branch derives from Production | `srikandi-v12-migration-qa-20261106` is a child of the Production branch | No sanitization evidence was found in branch metadata or repository docs. Treat it as containing Production data until masking is explicitly verified. Do not expose it through a public Preview deployment before sanitization and access review. |
 | Medium | Cloudinary is not configured in Vercel | No `CLOUDINARY_*` environment variables are present; current file storage code uses Neon `file_objects` | Cloudinary upload is not live. Configure separate Preview and Production credentials and implement signed upload/asset authorization before claiming Cloudinary integration is complete. |
-| Medium | No health/readiness API route | No `src/app/api/health/route.ts` or readiness route exists in the v12 tree | Add a minimal health/readiness endpoint and external uptime check; avoid exposing configuration or database error details. |
+| Mitigated on v12 branch | Health/readiness endpoints absent from v11.5 Production | The deployed v11.5 build has no health/readiness route | v12 adds `/api/health` (liveness) and `/api/ready` (database readiness). These routes are not live until v12 is approved and deployed. |
 | Medium | Indonesian user latency | Vercel `iad1` and Neon `aws-us-east-2` are both in US East | For an Indonesian audience, plan a controlled migration to a Singapore-region Neon project and Vercel Functions in `sin1`. This requires backup, data migration, connection-string rotation and rollback planning; do not change region in place during this release. |
 
 ## Database migration boundary
@@ -45,6 +45,9 @@ This audit uses deployment, project, environment-variable metadata, GitHub, and 
 - `src/features/shared/database-target.mjs` resolves Preview only from `PREVIEW_DATABASE_URL`; it does not fall back to Production `DATABASE_URL`.
 - Runtime and database administration scripts use the same resolver.
 - The Preview app returns database-unavailable behavior until a dedicated sanitized staging URL is configured.
+- `/api/health` and `/api/ready` provide minimal liveness/readiness responses without exposing secrets.
+- Global response headers now include HSTS, nosniff, Referrer-Policy and X-Frame-Options.
+- Public content and site settings are memoized within a server render to avoid duplicate database reads.
 - The v12 PR remains separate from Production.
 
 ## Remaining release gates
