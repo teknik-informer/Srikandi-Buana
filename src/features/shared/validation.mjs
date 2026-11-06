@@ -16,5 +16,6 @@ export function localHref(value) {
   return typeof value === "string" &&
     value.startsWith("/dashboard") &&
     !value.startsWith("//") &&
-    !/[\\\\\\x00-\\x1f]/.test(value);
+    !value.includes("\\") &&
+    !/[\u0000-\u001f]/.test(value);
 }
