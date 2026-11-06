@@ -65,6 +65,7 @@ import {
 } from "@/lib/srikandi";
 import { canDiscardChanges, markFormSaved } from "@/lib/unsaved-changes";
 import { Progress } from "@/components/ui/progress";
+import { getVisibleEnterprisePillars } from "@/features/enterprise/registry";
 import {
   WorkspaceMetric,
   WorkspaceSearch,
@@ -110,6 +111,7 @@ export default function ManagementDashboard({
   useEffect(() => setTaskLimit(12), [query, assignee]);
   const view = buildManagementInsights(rows, files, user, now);
   const taskAccess = canReadSection(user, "tindaklanjut");
+  const visiblePillars = getVisibleEnterprisePillars(user.role);
   const canCreate =
     canWriteKind(user, "tindaklanjut") &&
     (user.role !== "koordinator" || user.programIds.length > 0);
@@ -300,6 +302,28 @@ export default function ManagementDashboard({
           />
         ))}
       </div>
+      <section aria-labelledby="workspace-pillars-title" className="space-y-3">
+        <div>
+          <h2 id="workspace-pillars-title" className="text-sm font-semibold">Akses pilar ruang kerja</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Modul yang tersedia mengikuti peran dan penugasan akun Anda.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
+          {visiblePillars.map((pillar) => (
+            <Card key={pillar.id} className="flex h-full flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">{pillar.label}</CardTitle>
+                <CardDescription className="min-h-10">{pillar.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">{pillar.features.length} menu</span>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={pillar.features[0].href}>Buka <ArrowUpRight className="size-3.5" /></Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
       {mutationError && !editor && (
         <Alert variant="destructive">
           <AlertTitle>Perubahan belum selesai</AlertTitle>
