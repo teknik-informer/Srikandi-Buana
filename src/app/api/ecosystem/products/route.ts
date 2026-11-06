@@ -20,26 +20,5 @@ export async function POST(request:Request){const c=await required(request,true)
  }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}}
 export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(c.user.role!=='admin')return json({error:'Akses ditolak.'},403);
  try{const b=await readJsonObject(request,4500);if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id)||typeof b.expectedUpdated!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(b.expectedUpdated)||!textField(b.name,160)||!textField(b.unit,30)||!moneyInteger(b.price)||!moneyInteger(b.stock,1000000)||typeof b.published!=='boolean'||typeof b.description!=='string'||b.description.length>2000)return json({error:'Data produk tidak valid.'},400);
- const now=new Date().toISOString();const sql=`WITH target AS (
- SELECT id,owner,stock AS stock_before FROM commerce_products
- WHERE id=? AND owner=? AND updated=? FOR UPDATE
-),
-changed AS (
- UPDATE commerce_products p SET name=?,description=?,unit=?,price=?,stock=?,published=?,updated=?
- FROM target t WHERE p.id=t.id AND p.owner=t.owner
- RETURNING p.id,p.owner,p.updated,p.stock
-),
-stock_logged AS (
- INSERT INTO commerce_stock_history(id,owner,product_id,change_amount,stock_before,stock_after,created)
- SELECT ?,c.owner,c.id,c.stock-t.stock_before,t.stock_before,c.stock,?
- FROM changed c JOIN target t ON t.id=c.id AND t.owner=c.owner
- WHERE c.stock<>t.stock_before
- RETURNING product_id
-)
-SELECT id,updated FROM changed`;
- const row=await c.db.prepare(sql).bind(
-  b.id,c.user.userId,b.expectedUpdated,
-  String(b.name).trim(),b.description,String(b.unit).trim(),b.price,b.stock,b.published,now,
-  crypto.randomUUID(),now
- ).first();return row?json({ok:true}):json({error:'Data produk telah berubah atau tidak ditemukan. Muat ulang daftar sebelum menyimpan.'},409);
+ const now=new Date().toISOString();const row=await c.db.prepare('UPDATE commerce_products SET name=?,description=?,unit=?,price=?,stock=?,published=?,updated=? WHERE id=? AND owner=? AND updated=? RETURNING id').bind(String(b.name).trim(),b.description,String(b.unit).trim(),b.price,b.stock,b.published,now,b.id,c.user.userId,b.expectedUpdated).first();return row?json({ok:true}):json({error:'Data produk telah berubah atau tidak ditemukan. Muat ulang daftar sebelum menyimpan.'},409);
  }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}}
