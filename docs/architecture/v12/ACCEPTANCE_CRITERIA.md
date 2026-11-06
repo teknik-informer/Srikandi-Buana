@@ -50,6 +50,15 @@
 - [ ] Migration, admin bootstrap and data import scripts use the same environment-specific database resolver.
 - [ ] Preview credentials and data are separate from Production; no production member data is copied into Preview without an approved masking plan.
 
+## Vercel release readiness
+
+- [ ] The Vercel project is Git-linked to the intended repository, or a reviewed CLI deployment pipeline provides equivalent Preview and Production controls.
+- [ ] The Vercel Production Branch is explicitly verified; no release assumes `main` without checking the project setting.
+- [ ] Environment variables flagged `readable-secret` have been reviewed and sensitive values are stored as write-only Secret values.
+- [ ] Credentials confirmed to have been exposed are rotated and the affected deployments are redeployed.
+- [ ] Vercel plan usage complies with the plan terms; commercial use is not hosted on a Hobby team.
+- [ ] Production aliases remain on the last known-good release until explicit approval.
+
 ## Quality and performance
 
 - [ ] `npm ci` succeeds from a clean environment.
