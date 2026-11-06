@@ -1,5 +1,5 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
-import { canReadSectionForRole, type Role } from "../../lib/permissions";
+import { canReadSectionForRole, type Role } from "../identity/access-policy";
 
 export type EnterprisePillarId =
   | "ecosystem"
