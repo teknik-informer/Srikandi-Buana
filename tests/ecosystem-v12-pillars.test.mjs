@@ -25,7 +25,7 @@ const pillarRouteIds = registry.enterprisePillars.flatMap((pillar) =>
 
 test("v12 defines exactly five dashboard pillars", () => {
   assert.deepEqual(
-    registry.enterprisePillars.map((pillar) => pillar.id),
+    [...registry.enterprisePillars].map((pillar) => pillar.id),
     ["ecosystem", "management", "administration", "commerce", "public-support"],
   );
 });
@@ -38,14 +38,14 @@ test("all legacy dashboard routes are assigned exactly once", () => {
 });
 
 test("administrator navigation retains every existing destination", () => {
-  const visible = registry.getVisibleEnterprisePillars("admin")
-    .flatMap((pillar) => pillar.features.map((feature) => feature.id));
+  const visible = [...registry.getVisibleEnterprisePillars("admin")]
+    .flatMap((pillar) => [...pillar.features].map((feature) => feature.id));
   assert.deepEqual([...visible].sort(), [...legacyRouteIds].sort());
 });
 
 test("member navigation does not expose administration-only controls", () => {
-  const visible = registry.getVisibleEnterprisePillars("anggota")
-    .flatMap((pillar) => pillar.features.map((feature) => feature.id));
+  const visible = [...registry.getVisibleEnterprisePillars("anggota")]
+    .flatMap((pillar) => [...pillar.features].map((feature) => feature.id));
   for (const restricted of ["akun", "pengaturan", "sumber", "pesan", "akuntansi"]) {
     assert.ok(!visible.includes(restricted), `anggota must not see ${restricted}`);
   }
