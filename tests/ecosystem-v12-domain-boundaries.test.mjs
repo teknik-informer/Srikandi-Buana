@@ -119,5 +119,6 @@ test("ledger write paths carry the authenticated workspace owner into ledger lin
   assert.ok(products.includes("AND updated=? RETURNING id"));
   assert.ok(orders.includes("stock=stock-?"));
   assert.ok(orders.includes("status='cancelled'"));
+  const stockAudit = readFileSync("migrations/006_order_receipts_and_journal_corrections.sql", "utf8");
   assert.ok(stockAudit.includes("INSERT INTO commerce_stock_history(owner,product_id,change_amount,stock_before,stock_after)"));
 });
