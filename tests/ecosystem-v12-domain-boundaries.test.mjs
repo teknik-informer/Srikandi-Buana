@@ -97,12 +97,12 @@ test("commerce and finance migration defines tenant-safe domain tables", () => {
   ]) {
     assert.ok(migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`), table);
   }
-  assert.ok(migration.includes("UNIQUE (owner, sku)"));
-  assert.ok(migration.includes("UNIQUE (owner, buyer_id, client_request_id)"));
-  assert.ok(migration.includes("FOREIGN KEY (product_id, owner) REFERENCES commerce_products(id, owner)"));
-  assert.ok(migration.includes("FOREIGN KEY (entry_id, owner) REFERENCES ledger_entries(id, owner)"));
-  assert.ok(migration.includes("FOREIGN KEY (account_id, owner) REFERENCES ledger_accounts(id, owner)"));
-  assert.ok(migration.includes("UNIQUE (owner, original_entry_id)"));
+  assert.ok(migration.includes("UNIQUE(owner,sku)"));
+  assert.ok(migration.includes("UNIQUE(owner,buyer_id,client_request_id)"));
+  assert.ok(migration.includes("FOREIGN KEY(product_id,owner) REFERENCES commerce_products(id,owner)"));
+  assert.ok(migration.includes("FOREIGN KEY(entry_id,owner) REFERENCES ledger_entries(id,owner)"));
+  assert.ok(migration.includes("FOREIGN KEY(account_id,owner) REFERENCES ledger_accounts(id,owner)"));
+  assert.ok(migration.includes("UNIQUE(owner,original_entry_id)"));
   const stockAudit = readFileSync("migrations/006_order_receipts_and_journal_corrections.sql", "utf8");
   assert.ok(stockAudit.includes("CREATE TABLE IF NOT EXISTS commerce_stock_history"));
   assert.ok(stockAudit.includes("CREATE OR REPLACE FUNCTION srikandi_capture_stock_change"));
