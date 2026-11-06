@@ -15,7 +15,7 @@ test('Notifikasi dan jurnal hanya mengakses data dalam organisasi',()=>{
 });
 test('Pesanan mempunyai status server dan stok tidak negatif',()=>{
  const q=f('src/app/api/ecosystem/orders/route.ts'); assert(q.includes('stock>=?'));assert(q.includes("status IN ('submitted','confirmed')")); assert(q.includes("status='cancelled'"));assert(q.includes('status=?'));assert(q.includes('client_request_id=?'));
- const m=f('migrations/005_ecosystem_foundation.sql'); assert(m.includes('stock INTEGER NOT NULL CHECK(stock>=0)')); assert(m.includes('UNIQUE(owner,buyer_id,client_request_id)'));
+ const m=f('migrations/005_ecosystem_foundation.sql'); assert(m.includes('stock INTEGER NOT NULL DEFAULT 0 CHECK(stock>=0 AND stock<=1000000)')); assert(m.includes('UNIQUE(owner,buyer_id,client_request_id)'));
 });
 
 test('Mutasi pesanan dan notifikasi dibatasi laju dan dapat diaudit per akun',()=>{
