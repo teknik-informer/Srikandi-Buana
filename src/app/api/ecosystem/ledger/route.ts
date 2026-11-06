@@ -1,7 +1,8 @@
 import {required,json,errorReply} from '@/lib/ecosystem/guard';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {consumeRateLimit} from '@/lib/rate-limit';
-import {balancedLines,textField} from '@/lib/ecosystem/validation.mjs';
+import {balancedLines} from '@/features/finance/validation.mjs';
+import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
 export const dynamic='force-dynamic';
 const canRead=(role:string)=>['admin','ketua','bendahara'].includes(role),canWrite=(role:string)=>['admin','bendahara'].includes(role);
