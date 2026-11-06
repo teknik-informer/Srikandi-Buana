@@ -116,7 +116,7 @@ test("ledger write paths carry the authenticated workspace owner into ledger lin
   assert.ok(ledger.includes("l.owner=a.owner"));
   const products = readFileSync("src/app/api/ecosystem/products/route.ts", "utf8");
   const orders = readFileSync("src/app/api/ecosystem/orders/route.ts", "utf8");
-  assert.ok(products.includes("AND updated=? RETURNING id"));
+  assert.ok(products.includes("WHERE id=? AND owner=? AND updated=?"));\n  assert.ok(products.includes("FROM before b WHERE p.id=b.id AND p.owner=b.owner AND p.updated=b.updated"));
   assert.ok(orders.includes("stock=stock-?"));
   assert.ok(orders.includes("status='cancelled'"));
   const stockAudit = readFileSync("migrations/006_order_receipts_and_journal_corrections.sql", "utf8");
