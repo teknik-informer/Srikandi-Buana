@@ -21,6 +21,8 @@ jobs:
         run: npm ci
       - name: Navigation and terminology tests
         run: npm run test:navigation:compat && npm run test:terminology
+      - name: Enterprise architecture regression tests
+        run: npm run test:ecosystem
       - name: Integration security tests
         run: npm run test:integration:staging
       - name: TypeScript typecheck
