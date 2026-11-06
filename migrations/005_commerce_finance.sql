@@ -62,33 +62,8 @@ CREATE TABLE IF NOT EXISTS commerce_stock_history (
 CREATE INDEX IF NOT EXISTS commerce_stock_history_owner_created
   ON commerce_stock_history(owner, created DESC);
 
-CREATE OR REPLACE FUNCTION capture_commerce_stock_change()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  IF NEW.stock IS DISTINCT FROM OLD.stock THEN
-    INSERT INTO commerce_stock_history (
-      id, owner, product_id, change_amount, stock_before, stock_after, created
-    ) VALUES (
-      gen_random_uuid()::text,
-      NEW.owner,
-      NEW.id,
-      NEW.stock - OLD.stock,
-      OLD.stock,
-      NEW.stock,
-      clock_timestamp()::text
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS commerce_products_stock_history ON commerce_products;
-CREATE TRIGGER commerce_products_stock_history
-AFTER UPDATE OF stock ON commerce_products
-FOR EACH ROW
-EXECUTE FUNCTION capture_commerce_stock_change();
+-- Stock history is written explicitly by the commerce application service.
+-- Avoid DDL trigger bodies so migration splitting remains deterministic.
 
 CREATE TABLE IF NOT EXISTS ledger_accounts (
   id TEXT PRIMARY KEY,
