@@ -502,6 +502,18 @@ export default function Workspace({
             audit={audit}
           />
         )}
+        {section === "galeri" && (
+          <div className="mb-6 space-y-3">
+            <Alert>
+              <ShieldCheck />
+              <AlertTitle>Media privat dan izin publikasi</AlertTitle>
+              <AlertDescription>
+                Foto di pustaka media hanya dapat dilihat pengelola. Foto baru tampil di situs setelah ditautkan ke Galeri Foto atau konten yang berstatus Terbit, dan izin publikasi fotonya dikonfirmasi.
+              </AlertDescription>
+            </Alert>
+            <FileManager files={files} onChange={load} loading={loading} loadError={error} mode="images" />
+          </div>
+        )}
         {module && (
           <>
             {section === "kas" && (
