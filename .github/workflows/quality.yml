@@ -21,9 +21,8 @@ jobs:
         run: npm ci
       - name: Production dependency security gate
         run: npm audit --omit=dev --audit-level=low
-      - name: Audit all dependencies (report-only)
+      - name: Full dependency security gate
         run: npm audit --audit-level=moderate
-        continue-on-error: true
       - name: Navigation and terminology tests
         run: npm run test:navigation:compat && npm run test:terminology
       - name: Enterprise architecture regression tests
