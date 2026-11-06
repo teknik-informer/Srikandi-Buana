@@ -78,4 +78,4 @@ Do not use database triggers as a substitute for domain services. Existing stock
 
 ## Current implementation note
 
-The v12 foundation introduces `src/features/enterprise/registry.ts` and a shared role-level route policy. The existing `dashboardGroups` definitions remain as the compatibility source for route labels and URLs while the dashboard navigation is presented as five pillars. The next extraction should be identity/access and then commerce/finance, each with its own migration and regression plan.
+The v12 foundation introduces `src/features/enterprise/registry.ts` and extracts the role/record access policy into `src/features/identity/access-policy.ts`. `src/lib/permissions.ts` remains a compatibility facade so legacy imports keep working. The existing `dashboardGroups` definitions remain the compatibility source for route labels and URLs while the dashboard navigation is presented as five pillars. The next extraction should be commerce and finance, each with its own migration and regression plan.
