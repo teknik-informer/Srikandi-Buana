@@ -85,7 +85,7 @@ test("commerce and finance API handlers import their owning feature contracts", 
 });
 
 test("commerce and finance migration defines tenant-safe domain tables", () => {
-  const migration = readFileSync("migrations/005_commerce_finance.sql", "utf8");
+  const migration = readFileSync("migrations/005_ecosystem_foundation.sql", "utf8") + "\\n" + readFileSync("migrations/006_order_receipts_and_journal_corrections.sql", "utf8");
   for (const table of [
     "commerce_products",
     "commerce_orders",
