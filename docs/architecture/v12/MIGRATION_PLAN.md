@@ -92,6 +92,18 @@ Before public checkout or payment activation:
 
 The inspected Vercel project reports Node.js `26.x`. The v12 foundation now aligns GitHub Actions to Node.js `26` and bounds the package engine range to `>=22.13.0 <27` to avoid silently accepting the next major. Keep this alignment under review when the next Node major becomes supported. This change does not modify the Vercel Production runtime setting.
 
+## Vercel Preview database isolation
+
+The Vercel project currently attaches a shared `DATABASE_URL` to both Production and Preview. The application previously read that variable in every environment, which meant a Preview deployment could reach the Production Neon branch.
+
+The v12 branch now resolves database access by deployment target:
+- Production and local development use `DATABASE_URL`.
+- Vercel Preview uses only `PREVIEW_DATABASE_URL`.
+- If `PREVIEW_DATABASE_URL` is absent, Preview database access is disabled (the runtime returns the existing database-unavailable response) instead of silently falling back to Production.
+- Migration, admin creation and data import scripts use the same resolver and fail closed in Preview.
+
+A dedicated sanitized staging branch and Preview secret still need to be configured by the project owner. Do not copy the current Production connection string into `PREVIEW_DATABASE_URL`. Existing Neon branches are not assumed safe for Preview until their data and ownership have been reviewed.
+
 ## Rollback
 
 - Application rollback: redeploy the last known-good production commit/alias.
