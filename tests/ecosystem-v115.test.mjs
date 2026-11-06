@@ -27,7 +27,7 @@ test('Jurnal koreksi menukar debit/kredit tanpa menghapus posting historis',()=>
  assert(ledger.includes("b.action==='reverse'"));assert(ledger.includes('Number(l.credit),Number(l.debit)'));
  assert(ledger.includes('ledger_reversals'));assert(!ledger.includes('DELETE FROM ledger_entries'));
  const sql=read('migrations/006_order_receipts_and_journal_corrections.sql');
- assert(sql.includes('original_entry_id TEXT NOT NULL UNIQUE'));assert(sql.includes('reversal_entry_id TEXT NOT NULL UNIQUE'));
+ assert(sql.includes('UNIQUE(owner,original_entry_id)'));assert(sql.includes('UNIQUE(owner,reversal_entry_id)'));
 });
 test('Riwayat stok terikat pada organisasi dan administrator',()=>{const route=read('src/app/api/ecosystem/stock-history/route.ts');assert(route.includes("c.user.role!=='admin'"));assert(route.includes('m.owner=?'));assert(route.includes('p.owner=m.owner'));const ui=read('src/app/_components/ecosystem-workspace.tsx');assert(ui.includes('Riwayat Perubahan Stok'))});
 test('Ekspor CSV aman dari rumus berbahaya dan menghasilkan UTF-8 BOM',()=>{
