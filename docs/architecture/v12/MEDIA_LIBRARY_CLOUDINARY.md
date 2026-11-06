@@ -14,6 +14,8 @@
 - The account's first assets are sample images. No assets under `srikandi-buana` were found before folder provisioning.
 - Created empty folders: `srikandi-buana/public/brand`, `public/gallery`, `public/products`, `public/news`, and `private/profiles`.
 - Folder paths are organizational only; a `private` folder name does not make a Cloudinary delivery URL private.
+- The Vercel project currently has no `CLOUDINARY_*` environment variables. Application-level Cloudinary upload is therefore not active; the working media archive remains the existing private Neon `file_objects` store until server credentials and a staged migration are configured.
+- The dashboard Media Library currently manages the existing private JPG/PNG archive. It does not claim that files are being uploaded to Cloudinary.
 
 ## Required upload architecture
 
