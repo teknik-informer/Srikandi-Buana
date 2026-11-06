@@ -21,11 +21,11 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { dashboardGroups, navigationMatches } from "@/lib/navigation-config";
-import { canReadSection, roles, type Principal } from "@/lib/permissions";
+import { navigationMatches } from "@/lib/navigation-config";
+import { roles, type Principal } from "@/lib/permissions";
+import { enterprisePillars, getVisibleEnterprisePillars } from "@/features/enterprise/registry";
 import {
   ArrowUpRight,
-  CalendarDays,
   ChevronDown,
   Files,
   Grid2X2,
@@ -33,30 +33,27 @@ import {
   MessagesSquare,
   ShoppingBag,
   Search,
-  Settings2,
   ShieldCheck,
-  Users,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
-const icons = [Users, CalendarDays, Wallet, Files, MessagesSquare,
-  ShoppingBag, Grid2X2, Settings2];
+const icons = [Grid2X2, Wallet, ShieldCheck, ShoppingBag, MessagesSquare];
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
-  const active = dashboardGroups.find((g) => g.items.some((i) => i.id === section));
+  const active = enterprisePillars.find((pillar) => pillar.features.some((feature) => feature.id === section));
   const [expanded, setExpanded] = useState(active?.id || ""),
     [query, setQuery] = useState("");
   useEffect(() => {
     setExpanded(active?.id || "");
     setQuery("");
   }, [section, active?.id]);
-  const groups = dashboardGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => canReadSection(user, i.id) && navigationMatches(i, query)) }))
-    .filter((g) => g.items.length);
+  const groups = getVisibleEnterprisePillars(user.role)
+    .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
+    .filter((pillar) => pillar.items.length);
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
       setOpen(true);
@@ -114,10 +111,10 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>KATEGORI RUANG KERJA</SidebarGroupLabel>
+          <SidebarGroupLabel>LIMA PILAR RUANG KERJA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
-              const Icon = icons[dashboardGroups.findIndex((g) => g.id === group.id)];
+              const Icon = icons[enterprisePillars.findIndex((pillar) => pillar.id === group.id)] ?? Grid2X2;
               const shown = !!query || expanded === group.id;
               return (
                 <SidebarMenuItem key={group.id} className="dashboard-category">
@@ -224,9 +221,9 @@ export function DashboardMegaMenu({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
-  const groups = dashboardGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => canReadSection(user, i.id) && navigationMatches(i, query)) }))
-    .filter((g) => g.items.length);
+  const groups = getVisibleEnterprisePillars(user.role)
+    .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
+    .filter((pillar) => pillar.items.length);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button
@@ -248,7 +245,7 @@ export function DashboardMegaMenu({
           <DialogClose className="dashboard-mega-close" aria-label="Tutup menu aplikasi">
             <X size={18} />
           </DialogClose>
-          <DialogTitle>Semua ruang kerja, satu tempat.</DialogTitle>
+          <DialogTitle>Lima pilar, satu ekosistem.</DialogTitle>
           <DialogDescription>
             Pilih kategori atau cari fitur untuk langsung membuka halaman yang Anda perlukan.
           </DialogDescription>
