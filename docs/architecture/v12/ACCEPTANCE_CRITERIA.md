@@ -42,6 +42,14 @@
 - [ ] Layout remains usable at narrow viewport widths and browser zoom.
 - [ ] Loading, empty, error, forbidden and offline states are designed intentionally.
 
+## Vercel environment isolation
+
+- [ ] Preview runtime never falls back to `DATABASE_URL`.
+- [ ] Preview database access stays disabled until a dedicated sanitized `PREVIEW_DATABASE_URL` is configured.
+- [ ] Production uses only the Production `DATABASE_URL`.
+- [ ] Migration, admin bootstrap and data import scripts use the same environment-specific database resolver.
+- [ ] Preview credentials and data are separate from Production; no production member data is copied into Preview without an approved masking plan.
+
 ## Quality and performance
 
 - [ ] `npm ci` succeeds from a clean environment.
