@@ -90,7 +90,7 @@ Before public checkout or payment activation:
 
 ## Runtime alignment finding
 
-The inspected Vercel project reports Node.js `26.x`, while the repository's GitHub Actions quality workflow currently uses Node.js `22`. The package engine range is `>=22.13.0`, which can float across major versions. Before production promotion, choose one supported Node major and align the Vercel project setting, package engine range and CI workflow. Do not change the Production runtime as part of this foundation-only change.
+The inspected Vercel project reports Node.js `26.x`. The v12 foundation now aligns GitHub Actions to Node.js `26` and bounds the package engine range to `>=22.13.0 <27` to avoid silently accepting the next major. Keep this alignment under review when the next Node major becomes supported. This change does not modify the Vercel Production runtime setting.
 
 ## Rollback
 
