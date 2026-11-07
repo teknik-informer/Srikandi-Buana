@@ -21,12 +21,13 @@ function loadModule(entryPoint) {
   });
 }
 
-const [reporting, monitoring, permissions, verification, programEvaluation] = await Promise.all([
+const [reporting, monitoring, permissions, verification, programEvaluation, meetingCycle] = await Promise.all([
   loadModule("src/lib/enterprise-reporting.ts"),
   loadModule("src/lib/enterprise-monitoring.ts"),
   loadModule("src/features/identity/access-policy.ts"),
   loadModule("src/lib/enterprise/task-verification.ts"),
   loadModule("src/lib/program-evaluation.ts"),
+  loadModule("src/lib/meeting-cycle.ts"),
 ]);
 
 const principal = (role, overrides = {}) => ({
@@ -403,4 +404,90 @@ test("coordinator program evaluation is restricted to assigned programs and thei
   assert.deepEqual(plain(evaluations.map((item) => item.programId)), ["1"]);
   assert.ok(evaluations[0].latest?.id === "program-report-1");
   assert.ok(!programEvaluation.buildMeetingPriorities(evaluations).some((item) => item.programId === "2"));
+});
+
+
+test("meeting decisions are parsed one per line and receive stable source references", () => {
+  const decisions = meetingCycle.parseMeetingActions(
+    "1. Tetapkan jadwal pelatihan\n- Verifikasi daftar anggota\n• Hubungi penyuluh\n\n4) Siapkan notulen evaluasi",
+  );
+  assert.deepEqual(plain(decisions), [
+    "Tetapkan jadwal pelatihan",
+    "Verifikasi daftar anggota",
+    "Hubungi penyuluh",
+    "Siapkan notulen evaluasi",
+  ]);
+  const marker = meetingCycle.meetingActionSourceMarker("meeting-abc", 1);
+  assert.equal(marker, "Sumber rapat: meeting-abc · Keputusan #2:");
+  assert.deepEqual(
+    plain(meetingCycle.parseMeetingTaskReference(marker + " Hubungi penyuluh")),
+    { meetingId: "meeting-abc", decisionNumber: 2, marker },
+  );
+  assert.equal(meetingCycle.parseMeetingTaskReference("Tugas tanpa sumber rapat"), null);
+});
+
+test("existing meeting decisions can only be retained in order with new actions appended", () => {
+  const original = "Atur jadwal\nVerifikasi peserta";
+  assert.equal(
+    meetingCycle.decisionsPreserveExistingOrder(original, "Atur jadwal\nVerifikasi peserta\nHubungi penyuluh"),
+    true,
+  );
+  assert.equal(
+    meetingCycle.decisionsPreserveExistingOrder(original, "Verifikasi peserta\nAtur jadwal\nHubungi penyuluh"),
+    false,
+  );
+  assert.equal(
+    meetingCycle.decisionsPreserveExistingOrder(original, "Atur jadwal"),
+    false,
+  );
+  assert.equal(
+    meetingCycle.decisionsPreserveExistingOrder(original, "Atur jadwal\nVerifikasi peserta diubah"),
+    false,
+  );
+});
+
+test("meeting decision evaluations require a dated leadership review and a reason", () => {
+  const review = {
+    role: "ketua",
+    previousStatus: "Belum dievaluasi",
+    previousMeeting: "",
+    previousDate: "",
+    previousNote: "",
+    status: "Sebagian terlaksana",
+    meeting: "Rapat evaluasi November",
+    date: "2026-11-30",
+    note: "Satu keputusan selesai; jadwal pelatihan menunggu penyuluh.",
+  };
+  assert.equal(meetingCycle.meetingReviewError(review), null);
+  assert.equal(meetingCycle.meetingReviewError({ ...review, role: "admin" }), null);
+  assert.match(
+    meetingCycle.meetingReviewError({ ...review, role: "sekretaris" }) || "",
+    /Hanya Ketua atau Administrator/,
+  );
+  assert.match(
+    meetingCycle.meetingReviewError({ ...review, meeting: "" }) || "",
+    /judul atau nomor rapat/,
+  );
+  assert.match(
+    meetingCycle.meetingReviewError({ ...review, note: "" }) || "",
+    /hasil evaluasi/,
+  );
+  assert.match(
+    meetingCycle.meetingReviewError({ ...review, date: "2026-02-31" }) || "",
+    /tanggal rapat evaluasi yang valid/,
+  );
+  assert.equal(
+    meetingCycle.meetingReviewError({
+      role: "koordinator",
+      previousStatus: "Belum dievaluasi",
+      previousMeeting: "",
+      previousDate: "",
+      previousNote: "",
+      status: "Belum dievaluasi",
+      meeting: "",
+      date: "",
+      note: "",
+    }),
+    null,
+  );
 });
