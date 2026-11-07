@@ -256,7 +256,7 @@ export default function ManagementDashboard({
       : []),
   ];
   return (
-    <div className="management-dashboard space-y-4 min-w-0 md:space-y-6">
+    <div className="management-dashboard workspace-page min-w-0">
       <Card className="management-intro overflow-hidden" size="sm">
         <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
