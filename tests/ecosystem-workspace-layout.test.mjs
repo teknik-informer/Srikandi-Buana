@@ -240,3 +240,24 @@ test("leadership task decisions are retained as distinct audit events and shown 
   assert.ok(monitoring.includes('["admin", "ketua"].includes(user.role) && audit.length > 0'));
   assert.ok(monitoring.includes("Aktivitas tercatat"));
 });
+
+
+test("period-aware program evaluation and meeting agenda are connected to Reports and Monitoring", () => {
+  const helper = read("src/lib/program-evaluation.ts");
+  const reports = read("src/app/_components/enterprise-reports.tsx");
+  const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
+  const snapshot = read("src/lib/enterprise-monitoring.ts");
+  for (const field of ["target", "achievement", "previous", "unchangedProgress", "hasReportInPeriod"]) {
+    assert.ok(helper.includes(field));
+  }
+  assert.ok(helper.includes("Informasi belum tersedia; jangan menyimpulkan program tidak berjalan."));
+  assert.ok(helper.includes("Perbandingan teks laporan"));
+  assert.ok(reports.includes("function ProgramEvaluationPanel"));
+  assert.ok(reports.includes("buildProgramEvaluations(rows, user, month)"));
+  assert.ok(reports.includes("Perbandingan target, capaian, dan pelaksanaan"));
+  assert.ok(reports.includes("Tidak ada persentase kemajuan yang dihitung"));
+  assert.ok(snapshot.includes("buildMeetingPriorities(programEvaluations)"));
+  assert.ok(monitoring.includes("Bahan rapat dan keputusan pengurus"));
+  assert.ok(monitoring.includes("snapshot.meetingPriorities.slice(0, 12)"));
+  assert.ok(monitoring.includes("bukan keputusan otomatis"));
+});
