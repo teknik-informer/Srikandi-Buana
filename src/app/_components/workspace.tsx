@@ -405,7 +405,7 @@ export default function Workspace({
     >
       {" "}
       <section
-        className="workspace"
+        className="workspace workspace-page"
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
