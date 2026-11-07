@@ -74,7 +74,7 @@ test("Pusat Kendali provides a role-scoped action queue from real operational re
 test("meeting follow-ups can be promoted to permission-checked task drafts without inventing deadlines", () => {
   const dashboard = read("src/app/_components/management-dashboard.tsx");
   assert.ok(dashboard.includes('row.kind === "musyawarah" && String(row.data.followup || "").trim()'));
-  assert.ok(dashboard.includes("Sumber rapat: " + " + row.id"));
+  assert.ok(dashboard.includes('Sumber rapat: " + row.id'));
   assert.ok(dashboard.includes("meetingTaskLocks.current.has(row.id)"));
   assert.ok(dashboard.includes('canWriteKind(user, "tindaklanjut")'));
   assert.ok(dashboard.includes('kind: "tindaklanjut"'));
