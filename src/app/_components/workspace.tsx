@@ -1062,8 +1062,7 @@ export default function Workspace({
               {editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
-              Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi
-              dan galeri berstatus Terbit dapat dilihat siapa pun.
+              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Pengesahan hanya dapat dilakukan Ketua atau Administrator." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -1125,7 +1124,7 @@ export default function Workspace({
                               f.options[0],
                           )}
                         >
-                          {f.options.map((o) => (
+                          {(editor.kind === "tindaklanjut" && f.key === "verification" && !["admin", "ketua"].includes(principal.role) ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
                             <NativeSelectOption key={o}>{o}</NativeSelectOption>
                           ))}
                         </NativeSelect>
@@ -1141,6 +1140,7 @@ export default function Workspace({
                           required={f.required}
                           maxLength={5000}
                           rows={3}
+                          disabled={f.key === "reviewNote" && !["admin", "ketua"].includes(principal.role)}
                         />
                       ) : (
                         <Input
