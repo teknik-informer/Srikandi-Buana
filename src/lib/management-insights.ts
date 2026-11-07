@@ -230,6 +230,18 @@ export function buildManagementInsights(
           "Tinjau bukti pendukung; transaksi tidak diubah secara otomatis.",
           "info",
         );
+      if (row.kind === "laporan_program") {
+        const blockers = String(row.data.blockers || "").trim();
+        const support = String(row.data.supportNeeded || "").trim();
+        if (row.data.status === "Terkendala" || blockers || support)
+          add(
+            row,
+            "program-report",
+            row.data.status === "Terkendala" ? "Program dilaporkan terkendala" : "Laporan program meminta perhatian",
+            [blockers ? "Kendala: " + blockers : "", support ? "Dukungan: " + support : ""].filter(Boolean).join(" · ") || "Tinjau perkembangan dan langkah berikutnya.",
+            row.data.status === "Terkendala" ? "warning" : "info",
+          );
+      }
       for (const key of ["attachmentId", "fileId"]) {
         const id = String(row.data[key] || "");
         if (id && !availableFiles.has(id))
