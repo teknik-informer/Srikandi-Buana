@@ -263,3 +263,35 @@ test("period-aware program evaluation and meeting agenda are connected to Report
   assert.ok(monitoring.includes("snapshot.meetingPriorities.slice(0, 12)"));
   assert.ok(monitoring.includes("bukan keputusan otomatis"));
 });
+
+
+test("meeting decisions become individually linked tasks only after approval and keep their source history", () => {
+  const schema = read("src/lib/srikandi.ts");
+  const helper = read("src/lib/meeting-cycle.ts");
+  const dashboard = read("src/app/_components/management-dashboard.tsx");
+  const api = read("src/app/api/records/route.ts");
+  const workspace = read("src/app/_components/workspace.tsx");
+
+  for (const field of ["agendaPoints", "decisionSummary", "followup", "nextReviewDate", "reviewOfMeeting", "reviewSummary"]) {
+    assert.ok(schema.includes('key:"' + field + '"'));
+  }
+  for (const field of ["meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"]) {
+    assert.ok(schema.includes('key:"' + field + '"'));
+  }
+  assert.ok(helper.includes("parseMeetingActions"));
+  assert.ok(helper.includes("parseMeetingTaskReference"));
+  assert.ok(helper.includes("decisionsPreserveExistingOrder"));
+  assert.ok(dashboard.includes('["Disepakati", "Ditindaklanjuti"].includes(String(row.data.status || ""))'));
+  assert.ok(dashboard.includes("meetingActionSourceMarker(row.id, index)"));
+  assert.ok(dashboard.includes("Lanjutkan "));
+  assert.ok(dashboard.includes("Evaluasi pelaksanaan keputusan rapat"));
+  assert.ok(dashboard.includes('["admin", "ketua"].includes(user.role) && canWriteRecord(user, task)'));
+  assert.ok(api.includes("Keputusan harus tercatat Disepakati sebelum dibuat menjadi tugas."));
+  assert.ok(api.includes("Keputusan rapat ini sudah memiliki tugas."));
+  assert.ok(api.includes("Daftar keputusan sudah memiliki tugas terkait."));
+  assert.ok(api.includes("Notulen tidak dapat dihapus karena masih menjadi sumber tugas"));
+  assert.ok(api.includes("Tugas yang berasal dari keputusan rapat tidak dapat dihapus."));
+  assert.ok(api.includes("Keputusan rapat dibuat menjadi tugas"));
+  assert.ok(api.includes("Evaluasi keputusan rapat diperbarui"));
+  assert.ok(workspace.includes('["meetingReviewMeeting", "meetingReviewDate"].includes(f.key)'));
+});
