@@ -104,7 +104,9 @@ export default function RoleWorkspace({
               ? "Kehadiran"
               : section === "laporan"
                 ? "Laporan Kas"
-                : section === "dokumen"
+                : section === "monitoring"
+                  ? "Monitoring Operasional"
+                  : section === "dokumen"
                   ? "Arsip kerja"
                   : module?.title || "Ruang kerja";
   const {
@@ -219,11 +221,13 @@ export default function RoleWorkspace({
           title={title}
           eyebrow="Ruang anggota & pengurus"
           description={
-            (user.position || roles[user.role]) +
-            " · " +
-            (user.role === "koordinator"
-              ? "Program " + user.programIds.join(", ")
-              : "Srikandi Buana")
+            section === "monitoring"
+              ? "Pantau tugas, agenda, tenggat, dan kondisi operasional sesuai lingkup akses " + roles[user.role] + "."
+              : (user.position || roles[user.role]) +
+                " · " +
+                (user.role === "koordinator"
+                  ? "Program " + user.programIds.join(", ")
+                  : "Srikandi Buana")
           }
           actions={
             <>
@@ -284,8 +288,8 @@ export default function RoleWorkspace({
             </AlertDescription>
           </Alert>
         )}
-        {loading && section !== "ringkasan" && <Skeleton className="h-20 w-full" />}
-        {section === "ringkasan" && (
+        {loading && !["ringkasan", "monitoring"].includes(section) && <Skeleton className="h-20 w-full" />}
+        {["ringkasan", "monitoring"].includes(section) && (
           <ManagementDashboard
             rows={rows}
             files={files}
@@ -293,6 +297,7 @@ export default function RoleWorkspace({
             loading={loading}
             error={error}
             onSaved={load}
+            mode={section === "monitoring" ? "monitoring" : "overview"}
           />
         )}
         {section === "akun-saya" && <MyAccount />}
