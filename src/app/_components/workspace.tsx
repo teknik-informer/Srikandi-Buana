@@ -270,7 +270,7 @@ export default function Workspace({
     {
       akun: "Akun & akses",
       "akun-saya": "Akun saya",
-      ringkasan: "Ringkasan Operasional",
+      ringkasan: "Pusat Kendali",
       program: "Program kerja",
       dokumen: "Arsip dokumen",
       profil: "Profil & arah bersama",
@@ -411,13 +411,13 @@ export default function Workspace({
       >
         <WorkspacePageHeader
           eyebrow="KELOMPOK WANITA TANI · NGADIMULYO"
-          title={section === "ringkasan" ? "Dashboard organisasi" : title}
+          title={section === "ringkasan" ? "Pusat Kendali" : title}
           description={
             module?.description ||
             (
               {
                 ringkasan:
-                  "Ringkasan keanggotaan, program, kegiatan, dan keuangan Srikandi Buana.",
+                  "Pusat kendali untuk memantau kegiatan, tugas, keanggotaan, dan kondisi operasional sesuai hak akses.",
                 program:
                   "Sembilan prioritas, satu arah: tumbuh dan berdaya bersama.",
                 dokumen:
