@@ -40,6 +40,7 @@ import {
   type ReportGroupId,
 } from "@/lib/enterprise-reporting";
 import { jakartaDate, taskIsOpen, validDate } from "@/lib/management-insights";
+import { buildProgramEvaluations } from "@/lib/program-evaluation";
 import CashReports from "./reports";
 import { StatusBadge, WorkspaceMetric } from "./workspace-ui";
 
@@ -166,6 +167,116 @@ function exportRows(group: ReportGroup, rows: Row[]) {
         : []),
     ]),
   ]);
+}
+
+function ProgramEvaluationPanel({
+  rows,
+  user,
+  month,
+}: {
+  rows: Row[];
+  user: Principal;
+  month: string;
+}) {
+  const evaluations = useMemo(
+    () => buildProgramEvaluations(rows, user, month),
+    [rows, user, month],
+  );
+  const reported = evaluations.filter((item) => item.hasReportInPeriod).length;
+  const blocked = evaluations.filter((item) => item.blocked).length;
+  const tasksWithoutPic = evaluations.reduce((total, item) => total + item.tasksWithoutPic, 0);
+  const tasksAwaitingReview = evaluations.reduce((total, item) => total + item.tasksAwaitingVerification, 0);
+
+  return (
+    <section className="space-y-3" aria-labelledby="program-evaluation-title">
+      <div className="space-y-1">
+        <h3 id="program-evaluation-title" className="text-base font-semibold">Evaluasi lintas program</h3>
+        <p className="text-sm text-muted-foreground">
+          Bandingkan target dan capaian dari laporan yang benar-benar masuk. Tidak ada persentase kemajuan yang dihitung dari uraian bebas.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <WorkspaceMetric title="Program dalam portofolio" value={evaluations.length} note="Daftar program strategis yang dapat diakses." icon={FileBarChart} />
+        <WorkspaceMetric title="Ada laporan periode ini" value={reported} note={month ? "Laporan dengan tanggal pada bulan terpilih." : "Program dengan setidaknya satu laporan."} icon={CalendarDays} />
+        <WorkspaceMetric title="Program perlu keputusan" value={blocked} note="Berdasarkan status atau kendala laporan terbaru." icon={ShieldCheck} />
+        <WorkspaceMetric title="Tugas tanpa PIC" value={tasksWithoutPic} note={tasksAwaitingReview + " hasil selesai menunggu verifikasi."} icon={FileBarChart} />
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Perbandingan target, capaian, dan pelaksanaan</CardTitle>
+          <CardDescription>
+            Periode {month || "seluruh periode"}. Laporan terdahulu tetap ditampilkan sebagai pembanding; ketiadaan laporan bukan bukti bahwa program berhenti.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Program</TableHead>
+                  <TableHead>Status laporan</TableHead>
+                  <TableHead>Target periode</TableHead>
+                  <TableHead>Capaian / realisasi</TableHead>
+                  <TableHead>Perhatian tugas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {evaluations.map((item) => (
+                  <TableRow key={item.programId}>
+                    <TableCell className="min-w-56 align-top">
+                      <div className="space-y-1">
+                        <p className="font-medium">{item.programId}. {item.programName}</p>
+                        <p className="text-xs text-muted-foreground">{item.goal}</p>
+                        {item.latest ? (
+                          <Link className="text-xs text-primary hover:underline" href={"/dashboard/laporan_program?cari=" + encodeURIComponent(String(item.latest.data.name || ""))}>
+                            Buka laporan terakhir
+                          </Link>
+                        ) : (
+                          <Link className="text-xs text-primary hover:underline" href="/dashboard/laporan_program">Buka laporan program</Link>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-48 align-top">
+                      <div className="space-y-1">
+                        <StatusBadge value={item.latest ? String(item.latest.data.status || "Belum ditetapkan") : "Belum ada laporan"} />
+                        <p className="text-xs text-muted-foreground">
+                          {item.latest ? String(item.latest.data.date || item.latest.created).slice(0, 10) : "Belum ada tanggal laporan"}
+                        </p>
+                        {month && !item.hasReportInPeriod && (
+                          <p className="text-xs text-amber-700 dark:text-amber-400">Belum ada laporan pada periode terpilih</p>
+                        )}
+                        {item.unchangedProgress && (
+                          <p className="text-xs text-amber-700 dark:text-amber-400">Uraian sama dengan laporan sebelumnya</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-56 align-top">
+                      <p className="whitespace-pre-wrap text-sm">{item.target || "Target periode belum dicatat."}</p>
+                    </TableCell>
+                    <TableCell className="min-w-56 align-top">
+                      <p className="whitespace-pre-wrap text-sm">{item.achievement || "Capaian belum dicatat."}</p>
+                      {item.latest?.data.evaluation && (
+                        <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">Evaluasi: {String(item.latest.data.evaluation)}</p>
+                      )}
+                    </TableCell>
+                    <TableCell className="min-w-40 align-top">
+                      <div className="space-y-1 text-sm">
+                        <p>{item.openTasks.length} tugas terbuka</p>
+                        {item.tasksWithoutPic > 0 && <p className="text-amber-700 dark:text-amber-400">{item.tasksWithoutPic} tanpa PIC</p>}
+                        {item.tasksWithoutDueDate > 0 && <p className="text-muted-foreground">{item.tasksWithoutDueDate} tanpa tenggat</p>}
+                        {item.tasksAwaitingVerification > 0 && <p>{item.tasksAwaitingVerification} menunggu verifikasi</p>}
+                        {item.tasksNeedingCorrection > 0 && <p className="text-destructive">{item.tasksNeedingCorrection} perlu perbaikan</p>}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
 }
 
 function ReportTable({ group, rows }: { group: ReportGroup; rows: Row[] }) {
@@ -400,7 +511,10 @@ export default function EnterpriseReports({
                   </Alert>
                 </>
               ) : (
-                <ReportTable group={group} rows={data} />
+                <>
+                  {group.id === "operasional" && <ProgramEvaluationPanel rows={rows} user={user} month={month} />}
+                  <ReportTable group={group} rows={data} />
+                </>
               )}
             </TabsContent>
           );
