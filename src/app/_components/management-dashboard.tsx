@@ -211,6 +211,16 @@ export default function ManagementDashboard({
   const actionItems = [...actionByRecord.values()]
     .sort((a, b) => a.urgency - b.urgency || a.id.localeCompare(b.id))
     .slice(0, 8);
+
+  const meetingFollowups = view.rows
+    .filter((row) => row.kind === "musyawarah" && String(row.data.followup || "").trim())
+    .map((row) => {
+      const sourceMarker = "Sumber rapat: " + row.id;
+      const linkedTask = view.tasks.find((task) => String(task.data.notes || "").includes(sourceMarker));
+      return { row, linkedTask, sourceMarker };
+    })
+    .sort((a, b) => String(b.row.data.date || "").localeCompare(String(a.row.data.date || "")))
+    .slice(0, 5);
   const completed = view.tasks.filter(
     (row) => taskStatus(row) === "Selesai",
   ).length;
@@ -235,6 +245,27 @@ export default function ManagementDashboard({
       markFormSaved(form);
       setEditor(null);
     }
+  }
+  async function createTaskFromMeeting(row: Row, sourceMarker: string) {
+    if (busy || !canWriteKind(user, "tindaklanjut") || !canWriteRecord(user, row)) return;
+    const followup = String(row.data.followup || "").trim();
+    if (!followup) return;
+    const linked = view.tasks.some((task) => String(task.data.notes || "").includes(sourceMarker));
+    if (linked) return;
+    await mutate("POST", {
+      kind: "tindaklanjut",
+      data: {
+        name: "Tindak lanjut rapat: " + String(row.data.name || "Rapat"),
+        period: "",
+        dueDate: "",
+        priority: "Normal",
+        pic: String(row.data.pic || ""),
+        status: "Belum dimulai",
+        evidence: followup,
+        notes: sourceMarker + " · Catatan sumber dipertahankan; tetapkan penanggung jawab dan tenggat melalui keputusan pengurus.",
+        ...(row.data.programId ? { programId: String(row.data.programId) } : {}),
+      },
+    });
   }
   async function changeStatus(row: Row, status: string) {
     if (!canWriteRecord(user, row) || busy) return;
@@ -474,6 +505,34 @@ export default function ManagementDashboard({
           </CardContent>
         </Card>
       </section>
+      {meetingFollowups.length > 0 && (
+        <section aria-labelledby="meeting-followups-title" className="space-y-3">
+          <div className="space-y-1">
+            <h2 id="meeting-followups-title" className="text-base font-semibold">Hasil rapat yang perlu ditindaklanjuti</h2>
+            <p className="text-sm text-muted-foreground">Ubah catatan tindak lanjut menjadi draf tugas. Tenggat tidak dibuat otomatis; pengurus menetapkannya berdasarkan keputusan rapat.</p>
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {meetingFollowups.map(({ row, linkedTask, sourceMarker }) => (
+                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-medium">{String(row.data.name || "Rapat tanpa judul")}</p>
+                    <p className="text-xs text-muted-foreground">{dateID(String(row.data.date || ""))} · {String(row.data.followup || "")}</p>
+                    {linkedTask && <p className="text-xs text-muted-foreground">Tugas terkait: {String(linkedTask.data.name || "Tindak lanjut")} · {String(linkedTask.data.status || "Belum dimulai")}</p>}
+                  </div>
+                  {linkedTask ? (
+                    <Button size="sm" variant="outline" asChild><Link href={recordHref(linkedTask)}>Buka tugas <ArrowUpRight className="size-3.5" /></Link></Button>
+                  ) : canWriteKind(user, "tindaklanjut") && canWriteRecord(user, row) ? (
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => void createTaskFromMeeting(row, sourceMarker)}>Buat draf tugas</Button>
+                  ) : (
+                    <Badge variant="secondary">Menunggu pengurus</Badge>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      )}
       {mutationError && !editor && (
         <Alert variant="destructive">
           <AlertTitle>Perubahan belum selesai</AlertTitle>
