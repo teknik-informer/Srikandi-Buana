@@ -211,6 +211,55 @@ export function buildManagementInsights(
           "info",
         );
       if (
+        row.kind === "tindaklanjut" &&
+        row.data.status === "Selesai" &&
+        row.data.verification === "Menunggu verifikasi"
+      )
+        add(
+          row,
+          "task-verification",
+          "Hasil tugas menunggu verifikasi",
+          "Periksa hasil pelaksanaan dan lampiran sebelum mengesahkan penyelesaian.",
+          "info",
+        );
+      if (
+        row.kind === "tindaklanjut" &&
+        row.data.verification === "Perlu perbaikan"
+      )
+        add(
+          row,
+          "task-correction",
+          "Hasil tugas perlu perbaikan",
+          String(row.data.reviewNote || "Baca catatan pemeriksaan dan sepakati perbaikan berikutnya."),
+          "warning",
+        );
+      if (
+        row.kind === "tindaklanjut" &&
+        row.data.status === "Selesai" &&
+        row.data.verification !== "Terverifikasi" &&
+        row.data.verification !== "Menunggu verifikasi"
+      )
+        add(
+          row,
+          "task-unverified-legacy",
+          "Penyelesaian belum diverifikasi",
+          "Periksa tugas lama dan lengkapi hasil aktual/bukti sebelum pengesahan.",
+          "info",
+        );
+      if (
+        row.kind === "tindaklanjut" &&
+        row.data.status === "Selesai" &&
+        !String(row.data.completionEvidence || "").trim() &&
+        !String(row.data.attachmentId || "").trim()
+      )
+        add(
+          row,
+          "task-evidence",
+          "Bukti hasil tugas belum tercatat",
+          "Lengkapi uraian hasil pelaksanaan atau lampirkan bukti dari arsip.",
+          "warning",
+        );
+      if (
         row.kind === "kegiatan" &&
         validDate(row.data.date) &&
         row.data.date < today &&
