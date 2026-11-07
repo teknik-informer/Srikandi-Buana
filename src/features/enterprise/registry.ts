@@ -108,7 +108,7 @@ export const enterpriseUtilities: readonly NavItem[] = [
   {
     id: "laporan",
     label: "Laporan",
-    description: "Tinjau laporan buku kas berdasarkan periode dan pos dana.",
+    description: "Lihat laporan operasional, keanggotaan, administrasi, usaha, publikasi, dan keuangan sesuai hak akses.",
     href: "/dashboard/laporan",
   },
 ];
