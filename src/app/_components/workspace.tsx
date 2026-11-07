@@ -411,6 +411,7 @@ export default function Workspace({
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
+        {!["monitoring", "laporan"].includes(section) && (
         <WorkspacePageHeader
           eyebrow="KELOMPOK WANITA TANI · NGADIMULYO"
           title={section === "ringkasan" ? "Pusat Kendali" : title}
@@ -465,6 +466,7 @@ export default function Workspace({
             </>
           }
         />
+        )}
         {error && (
           <Alert variant="destructive">
             <AlertTitle>
