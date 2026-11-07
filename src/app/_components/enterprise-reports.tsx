@@ -146,18 +146,67 @@ function exportRows(group: ReportGroup, rows: Row[]) {
     ]);
   }
   return createCSV([
-    ["Tanggal / periode", "Modul", "Nama catatan", "Status", "Penanggung jawab"],
+    group.id === "operasional"
+      ? ["Tanggal / periode", "Modul", "Nama catatan", "Status", "Penanggung jawab", "Jumlah anggota ditandai hadir"]
+      : ["Tanggal / periode", "Modul", "Nama catatan", "Status", "Penanggung jawab"],
     ...rows.map((row) => [
       rowDate(row),
       kindLabels[row.kind] || modules[row.kind]?.title || row.kind,
       row.data.name || "—",
       row.data.status || "Belum ditetapkan",
       row.data.pic || "—",
+      ...(group.id === "operasional"
+        ? [row.kind === "kehadiran" && Array.isArray(row.data.memberIds)
+            ? row.data.memberIds.filter((id) => typeof id === "string").length
+            : "—"]
+        : []),
     ]),
   ]);
 }
 
 function ReportTable({ group, rows }: { group: ReportGroup; rows: Row[] }) {
+  if (group.id === "operasional") {
+    const events = rows.filter((row) => row.kind === "kegiatan");
+    const attendance = rows.filter((row) => row.kind === "kehadiran");
+    const markedPresent = attendance.reduce((total, row) =>
+      total + (Array.isArray(row.data.memberIds)
+        ? row.data.memberIds.filter((id) => typeof id === "string").length
+        : 0), 0);
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <WorkspaceMetric title="Kegiatan tercatat" value={events.length} note="Kegiatan dalam cakupan dan periode laporan." icon={CalendarDays} />
+          <WorkspaceMetric title="Daftar hadir tersimpan" value={attendance.length} note="Kegiatan dengan catatan kehadiran tersimpan." icon={ShieldCheck} />
+          <WorkspaceMetric title="Anggota ditandai hadir" value={markedPresent} note="Jumlah tanda hadir, bukan jumlah undangan atau seluruh anggota." icon={FileBarChart} />
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Rincian program dan kegiatan</CardTitle>
+            <CardDescription>Rekap menggunakan catatan kegiatan, tugas, rapat, dan daftar hadir yang dapat diakses. Nama anggota tidak ditampilkan dalam ringkasan kehadiran.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow><TableHead>Tanggal / periode</TableHead><TableHead>Modul</TableHead><TableHead>Catatan</TableHead><TableHead>Status</TableHead><TableHead>Penanggung jawab</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="whitespace-nowrap text-sm">{rowDate(row)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{kindLabels[row.kind] || modules[row.kind]?.title || row.kind}</TableCell>
+                      <TableCell className="min-w-48 font-medium"><Link className="hover:text-primary hover:underline" href={"/dashboard/" + row.kind + "?cari=" + encodeURIComponent(String(row.data.name || ""))}>{String(row.data.name || "Catatan tanpa judul")}</Link></TableCell>
+                      <TableCell><StatusBadge value={row.data.status || "Tercatat"} /></TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{String(row.data.pic || "—")}</TableCell>
+                    </TableRow>
+                  ))}
+                  {!rows.length && <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Tidak ada catatan yang cocok dengan periode ini.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   if (group.id === "keanggotaan") {
     const statuses = summarizeReportRows(rows);
     const verified = rows.filter((row) => row.data.verification === "Terverifikasi").length;
