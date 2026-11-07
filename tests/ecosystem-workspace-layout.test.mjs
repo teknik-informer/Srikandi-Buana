@@ -118,3 +118,17 @@ test("members receive guided self-service without direct edits to verified membe
   assert.ok(policy.includes("r.id===u.memberId"));
   assert.ok(policy.includes("role==='anggota'"));
 });
+
+
+test("secretariat correspondence workflow is available only to authorized roles and captures disposition and archive references", () => {
+  const schema = read("src/lib/srikandi.ts");
+  const policy = read("src/features/identity/access-policy.ts");
+  const navigation = read("src/lib/navigation-config.ts");
+  const api = read("src/app/api/records/route.ts");
+  assert.ok(schema.includes('surat:{title:"Surat Masuk dan Keluar"'));
+  for (const field of ["direction", "number", "receivedDate", "sender", "recipient", "disposition", "pic", "dueDate", "attachmentId"]) assert.ok(schema.includes('key:"' + field + '"'));
+  assert.ok(policy.includes("'program','surat']"));
+  assert.ok(navigation.includes("admin('surat','Surat Masuk dan Keluar'"));
+  assert.ok(api.includes("const module=modules[kind]"));
+  assert.ok(api.includes("canWriteRecord(c.user!"));
+});
