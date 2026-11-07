@@ -6,6 +6,7 @@ import {
 } from "./management-insights";
 import type { Row } from "./srikandi";
 import type { WorkspaceFile } from "./workspace-types";
+import { buildMeetingPriorities, buildProgramEvaluations } from "./program-evaluation";
 
 const count = (rows: Row[], predicate: (row: Row) => boolean) =>
   rows.filter(predicate).length;
@@ -22,6 +23,8 @@ export function buildEnterpriseMonitoring(
   const rows = insights.rows;
   const ofKind = (kind: string) => rows.filter((row) => row.kind === kind);
   const today = insights.today;
+  const programEvaluations = buildProgramEvaluations(rows, user);
+  const meetingPriorities = buildMeetingPriorities(programEvaluations);
 
   const members = ofKind("anggota");
   const tasks = ofKind("tindaklanjut");
@@ -159,6 +162,8 @@ export function buildEnterpriseMonitoring(
     warningFindings: insights.issues.filter((issue) => issue.severity === "warning").length,
     infoFindings: insights.issues.filter((issue) => issue.severity === "info").length,
     issues: insights.issues,
+    programEvaluations,
+    meetingPriorities,
     operational: canReadSection(user, "kegiatan") ||
       canReadSection(user, "tindaklanjut") ||
       canReadSection(user, "program") ? operational : null,
