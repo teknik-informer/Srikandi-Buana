@@ -232,7 +232,7 @@ export function DashboardMegaMenu({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
-  const groups = getVisibleEnterprisePillars(user.role)
+  const groups = getVisibleEnterpriseDashboards(user.role)
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
   return (
