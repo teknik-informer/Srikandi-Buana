@@ -29,7 +29,7 @@ export function parseMeetingTaskReference(value: unknown): {
   marker: string;
 } | null {
   const notes = String(value || "");
-  const match = notes.match(/Sumber rapat: ([^·\\n]+) · Keputusan #(\\d+):/);
+  const match = notes.match(/Sumber rapat: ([^·]+) · Keputusan #(\d+):/);
   if (!match) return null;
   const meetingId = match[1].trim();
   const decisionNumber = Number(match[2]);
