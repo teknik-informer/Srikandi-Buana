@@ -225,3 +225,15 @@ test("task completion evidence is submitted by implementers and verified only by
   assert.ok(insights.includes("Hasil tugas menunggu verifikasi"));
   assert.ok(insights.includes("Hasil tugas perlu perbaikan"));
 });
+
+
+test("leadership task decisions are retained as distinct audit events and shown to the chair", () => {
+  const api = read("src/app/api/records/route.ts");
+  const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
+  for (const action of ["Hasil diajukan untuk verifikasi", "Hasil tugas disahkan", "Perbaikan tugas diminta"]) {
+    assert.ok(api.includes(action));
+  }
+  assert.ok(api.includes("audit:['admin','ketua'].includes(u.role)?audit.results:[]"));
+  assert.ok(monitoring.includes('["admin", "ketua"].includes(user.role) && audit.length > 0'));
+  assert.ok(monitoring.includes("Aktivitas tercatat"));
+});
