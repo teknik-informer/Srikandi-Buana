@@ -30,7 +30,7 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
   useEffect(() => {
     const requestedEventId = new URLSearchParams(window.location.search).get("eventId");
     if (!requestedEventId || dirty.current) return;
-    if (events.some((item) => item.id === requestedEventId)) setEventId(requestedEventId);
+    if (rows.some((item) => item.kind === "kegiatan" && item.id === requestedEventId)) setEventId(requestedEventId);
   }, [rows]);
   useEffect(() => {
     // A background reload must not overwrite work that is still being edited.
