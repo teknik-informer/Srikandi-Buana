@@ -79,7 +79,7 @@ test("monitoring and reports are standalone shortcuts with role-aware visibility
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("anggota"), (item) => item.id),
-    ["monitoring"],
+    ["monitoring", "laporan"],
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("ketua"), (item) => item.id),
@@ -153,6 +153,8 @@ test("legacy permission imports remain compatible after identity extraction", ()
   assert.equal(permissions.roles.admin, "Administrator");
   assert.equal(permissions.canReadSectionForRole("admin", "akun"), true);
   assert.equal(permissions.canReadSectionForRole("anggota", "akun"), false);
+  assert.equal(permissions.canReadSectionForRole("anggota", "laporan"), true);
+  assert.equal(permissions.canReadSectionForRole("koordinator", "laporan"), true);
   const member = {
     accountId: "member-1",
     userId: "workspace-1",
