@@ -441,6 +441,73 @@ export default function EnterpriseMonitoring({
         </div>
       </section>
 
+      {["admin", "ketua", "sekretaris"].includes(user.role) && (
+        <section className="space-y-3" aria-labelledby="meeting-priorities-title">
+          <div className="space-y-1">
+            <h2 id="meeting-priorities-title" className="text-base font-semibold">Bahan rapat dan keputusan pengurus</h2>
+            <p className="text-sm text-muted-foreground">
+              Daftar pembahasan disusun dari laporan Koordinator dan tugas yang tercatat. Gunakan sebagai bahan rapat, bukan keputusan otomatis.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <WorkspaceMetric
+              title="Program dengan laporan"
+              value={snapshot.programEvaluations.filter((item) => item.hasReportInPeriod).length}
+              note="Memiliki laporan pada catatan yang tersedia."
+              icon={FileText}
+            />
+            <WorkspaceMetric
+              title="Program terkendala"
+              value={snapshot.programEvaluations.filter((item) => item.blocked).length}
+              note="Berdasarkan laporan terbaru yang dapat diakses."
+              icon={AlertTriangle}
+            />
+            <WorkspaceMetric
+              title="Agenda pembahasan"
+              value={snapshot.meetingPriorities.length}
+              note="Butir yang perlu dikonfirmasi atau diputuskan."
+              icon={ClipboardCheck}
+            />
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {snapshot.meetingPriorities.slice(0, 12).map((item) => {
+                const target = item.task || item.source;
+                const href = target ? recordHref(target) : "/dashboard/laporan_program";
+                return (
+                  <div key={item.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={item.priority === "Tinggi" ? "destructive" : item.priority === "Sedang" ? "secondary" : "outline"}>
+                          Prioritas {item.priority.toLocaleLowerCase("id-ID")}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">Program {item.programId} · {item.programName}</span>
+                      </div>
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-sm text-muted-foreground">{item.detail}</p>
+                      <p className="text-xs text-muted-foreground">{item.reason}</p>
+                    </div>
+                    <Button variant="outline" size="sm" asChild className="shrink-0">
+                      <Link href={href}>{item.task ? "Buka tugas" : item.source ? "Buka laporan" : "Buka laporan program"}</Link>
+                    </Button>
+                  </div>
+                );
+              })}
+              {!snapshot.meetingPriorities.length && (
+                <p className="p-6 text-center text-sm text-muted-foreground">
+                  Tidak ada butir prioritas otomatis dalam catatan yang dapat diakses. Konfirmasi agenda dan kebutuhan pengurus tetap diperlukan.
+                </p>
+              )}
+              {snapshot.meetingPriorities.length > 12 && (
+                <p className="p-4 text-xs text-muted-foreground">
+                  Menampilkan 12 dari {snapshot.meetingPriorities.length} butir. Daftar lengkap tersedia di evaluasi program.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       <section className="space-y-3" aria-labelledby="monitoring-quality-title">
         <div>
           <h2 id="monitoring-quality-title" className="text-base font-semibold">Pusat perhatian</h2>
