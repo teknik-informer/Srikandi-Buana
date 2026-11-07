@@ -23,16 +23,19 @@ import {
 } from "@/components/ui/sidebar";
 import { navigationMatches } from "@/lib/navigation-config";
 import { roles, type Principal } from "@/lib/permissions";
-import { enterprisePillars, getVisibleEnterprisePillars } from "@/features/enterprise/registry";
+import { enterpriseDashboards, getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
 import {
   ArrowUpRight,
+  BriefcaseBusiness,
   ChevronDown,
   Files,
   Grid2X2,
   LayoutDashboard,
   MessagesSquare,
   ShoppingBag,
+  Megaphone,
   Search,
+  Settings2,
   ShieldCheck,
   Wallet,
   X,
@@ -40,18 +43,26 @@ import {
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
-const icons = [Grid2X2, Wallet, ShieldCheck, ShoppingBag, MessagesSquare];
+const dashboardIcons: Record<string, typeof Grid2X2> = {
+  ecosystem: Grid2X2,
+  management: BriefcaseBusiness,
+  administration: Files,
+  finance: Wallet,
+  commerce: ShoppingBag,
+  publication: Megaphone,
+  system: Settings2,
+};
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
-  const active = enterprisePillars.find((pillar) => pillar.features.some((feature) => feature.id === section));
+  const active = enterpriseDashboards.find((dashboard) => dashboard.features.some((feature) => feature.id === section));
   const [expanded, setExpanded] = useState(active?.id || ""),
     [query, setQuery] = useState("");
   useEffect(() => {
     setExpanded(active?.id || "");
     setQuery("");
   }, [section, active?.id]);
-  const groups = getVisibleEnterprisePillars(user.role)
+  const groups = getVisibleEnterpriseDashboards(user.role)
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
   function toggle(id: string) {
@@ -82,10 +93,10 @@ export default function DashboardNavigation({ section, user }: { section: string
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Ringkasan">
+              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Pusat Kendali">
                 <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
                   <LayoutDashboard />
-                  <span>Ringkasan</span>
+                  <span>Pusat Kendali</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -111,10 +122,10 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>LIMA PILAR RUANG KERJA</SidebarGroupLabel>
+          <SidebarGroupLabel>TUJUH DASHBOARD</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
-              const Icon = icons[enterprisePillars.findIndex((pillar) => pillar.id === group.id)] ?? Grid2X2;
+              const Icon = dashboardIcons[group.id] ?? Grid2X2;
               const shown = !!query || expanded === group.id;
               return (
                 <SidebarMenuItem key={group.id} className="dashboard-category">
@@ -245,7 +256,7 @@ export function DashboardMegaMenu({
           <DialogClose className="dashboard-mega-close" aria-label="Tutup menu aplikasi">
             <X size={18} />
           </DialogClose>
-          <DialogTitle>Lima pilar, satu ekosistem.</DialogTitle>
+          <DialogTitle>Tujuh dashboard, satu ekosistem.</DialogTitle>
           <DialogDescription>
             Pilih kategori atau cari fitur untuk langsung membuka halaman yang Anda perlukan.
           </DialogDescription>
@@ -288,7 +299,7 @@ export function DashboardMegaMenu({
           )}
           <div className="dashboard-mega-footer">
             <Link href="/dashboard" onClick={() => setOpen(false)}>
-              Kembali ke ringkasan
+              Kembali ke Pusat Kendali
             </Link>
             <span>Ctrl / ⌘ K · Esc untuk menutup</span>
           </div>
