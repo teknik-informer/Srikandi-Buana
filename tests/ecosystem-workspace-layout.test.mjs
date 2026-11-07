@@ -70,3 +70,16 @@ test("Pusat Kendali provides a role-scoped action queue from real operational re
   assert.ok(dashboard.includes("recordHref(item.row)"));
   assert.ok(dashboard.includes("bukan jaminan bahwa seluruh pekerjaan sudah selesai"));
 });
+
+test("meeting follow-ups can be promoted to permission-checked task drafts without inventing deadlines", () => {
+  const dashboard = read("src/app/_components/management-dashboard.tsx");
+  assert.ok(dashboard.includes('row.kind === "musyawarah" && String(row.data.followup || "").trim()'));
+  assert.ok(dashboard.includes("Sumber rapat: " + " + row.id"));
+  assert.ok(dashboard.includes("meetingTaskLocks.current.has(row.id)"));
+  assert.ok(dashboard.includes('canWriteKind(user, "tindaklanjut")'));
+  assert.ok(dashboard.includes('kind: "tindaklanjut"'));
+  assert.ok(dashboard.includes('dueDate: ""'));
+  assert.ok(dashboard.includes("tetapkan penanggung jawab dan tenggat melalui keputusan pengurus"));
+  assert.ok(dashboard.includes("Buat draf tugas"));
+  assert.ok(dashboard.includes("linkedTask"));
+});
