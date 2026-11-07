@@ -170,6 +170,8 @@ test("coordinator program reports are scoped, visible to leadership, and promote
   assert.ok(insights.includes("Program dilaporkan terkendala"));
   assert.ok(reporting.includes('"laporan_program"'));
   assert.ok(memberWorkspace.includes('field.key === "programId" && user.role === "koordinator"'));
+  assert.ok(memberWorkspace.includes('user.programIds.length > 0'));
+  assert.ok(memberWorkspace.includes('programs.find((program) => program.id === o)?.name'));
 });
 
 
