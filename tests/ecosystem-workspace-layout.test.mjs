@@ -45,3 +45,15 @@ test("legacy workspace padding and independent max-widths are reset inside the c
   assert.ok(css.includes("padding: 0"));
   assert.ok(css.includes("margin-block-start: 0 !important"));
 });
+
+test("specialized monitoring and report pages render only their own page heading", () => {
+  const adminWorkspace = read("src/app/_components/workspace.tsx");
+  const roleWorkspace = read("src/app/_components/access/role-workspace.tsx");
+  const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
+  const reports = read("src/app/_components/enterprise-reports.tsx");
+
+  assert.ok(adminWorkspace.includes('{!["monitoring", "laporan"].includes(section) && ('));
+  assert.ok(roleWorkspace.includes('{!["monitoring", "laporan"].includes(section) && ('));
+  assert.ok(monitoring.includes('<WorkspacePageHeader'));
+  assert.ok(reports.includes('<h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Laporan</h1>'));
+});
