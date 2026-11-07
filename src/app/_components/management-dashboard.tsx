@@ -213,6 +213,26 @@ export default function ManagementDashboard({
     .sort((a, b) => a.urgency - b.urgency || a.id.localeCompare(b.id))
     .slice(0, 8);
 
+  const attendanceAccess = user.role === "admin" || user.role === "sekretaris";
+  const upcomingEvents = view.rows
+    .filter((row) =>
+      row.kind === "kegiatan" &&
+      typeof row.data.date === "string" &&
+      validDate(row.data.date) &&
+      row.data.date >= view.today &&
+      !["Selesai", "Ditunda"].includes(String(row.data.status)),
+    )
+    .sort((a, b) => String(a.data.date).localeCompare(String(b.data.date)))
+    .slice(0, 8)
+    .map((event) => {
+      const attendance = view.rows.find((row) =>
+        row.kind === "kehadiran" && row.data.eventId === event.id,
+      );
+      const memberIds = attendance && Array.isArray(attendance.data.memberIds)
+        ? attendance.data.memberIds.filter((id): id is string => typeof id === "string")
+        : [];
+      return { event, attendance, presentCount: memberIds.length };
+    });
   const meetingFollowups = view.rows
     .filter((row) => row.kind === "musyawarah" && String(row.data.followup || "").trim())
     .map((row) => {
@@ -899,6 +919,38 @@ export default function ManagementDashboard({
               <NativeSelectOption value="0">Semua mendatang</NativeSelectOption>
             </NativeSelect>
           </div>
+          {attendanceAccess && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Persiapan daftar hadir</CardTitle>
+                <CardDescription>
+                  Status berasal dari daftar hadir yang benar-benar tersimpan. Anggota yang belum ditandai tidak otomatis dianggap hadir.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {upcomingEvents.map(({ event, attendance, presentCount }) => (
+                  <div key={event.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-sm font-medium break-words">{String(event.data.name || "Kegiatan")}</p>
+                      <p className="text-xs text-muted-foreground">{dateID(String(event.data.date))} · {String(event.data.location || "Lokasi belum ditetapkan")}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={attendance ? "secondary" : "outline"}>{attendance ? "Daftar hadir tersedia" : "Daftar hadir belum dibuat"}</Badge>
+                        {attendance && <span className="text-xs text-muted-foreground">{presentCount} anggota ditandai hadir</span>}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={"/dashboard/kehadiran?eventId=" + encodeURIComponent(event.id)}>
+                        {attendance ? "Perbarui kehadiran" : "Siapkan daftar hadir"}
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+                {!upcomingEvents.length && (
+                  <p className="py-3 text-sm text-muted-foreground">Belum ada kegiatan mendatang yang memerlukan persiapan daftar hadir.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="divide-y pt-2">
               {agenda.map((item) => (
