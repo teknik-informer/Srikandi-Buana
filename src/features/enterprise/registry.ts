@@ -50,7 +50,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     label: "Manajemen",
     description: "Perencanaan program, penugasan, agenda, rapat, dan persetujuan operasional.",
     features: features([
-      "program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah",
+      "program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah",
       "pengajuan", "enterprise",
     ]),
   },
