@@ -255,6 +255,8 @@ test("period-aware program evaluation and meeting agenda are connected to Report
   assert.ok(reports.includes("function ProgramEvaluationPanel"));
   assert.ok(reports.includes("buildProgramEvaluations(rows, user, month)"));
   assert.ok(reports.includes("Perbandingan target, capaian, dan pelaksanaan"));
+  assert.ok(reports.includes('"Target periode", "Capaian / realisasi", "Evaluasi"'));
+  assert.ok(reports.includes('row.kind === "laporan_program" ? row.data.achievement'));
   assert.ok(reports.includes("Tidak ada persentase kemajuan yang dihitung"));
   assert.ok(snapshot.includes("buildMeetingPriorities(programEvaluations)"));
   assert.ok(monitoring.includes("Bahan rapat dan keputusan pengurus"));
