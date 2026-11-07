@@ -82,7 +82,7 @@ test("member navigation does not expose administration-only controls", () => {
   assert.ok(visible.includes("portal"));
   assert.ok(visible.includes("notifikasi"));
   assert.ok(visible.includes("akun-saya"));
-  assert.deepEqual(visibleDashboards.map((dashboard) => dashboard.id), ["ecosystem", "system"]);
+  assert.deepEqual(visibleDashboards.map((dashboard) => dashboard.id), ["ecosystem", "management", "administration", "commerce", "system"]);
 });
 
 test("feature lookup is deterministic and unknown routes stay unresolved", () => {
