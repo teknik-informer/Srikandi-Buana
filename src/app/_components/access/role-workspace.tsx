@@ -247,7 +247,7 @@ export default function RoleWorkspace({
                   Ekspor CSV
                 </Button>
               )}
-              {module && canWriteKind(user, section) && (
+              {module && canWriteKind(user, section) && (user.role !== "koordinator" || user.programIds.length > 0) && (
                 <Button
                   disabled={loading || !!error}
                   onClick={() => {
@@ -686,7 +686,7 @@ export default function RoleWorkspace({
                           )
                           .map((o) => (
                             <NativeSelectOption key={o} value={o}>
-                              {o || "Tidak terkait program"}
+                              {o ? (f.key === "programId" ? (programs.find((program) => program.id === o)?.name || "Program") + " (" + o + ")" : o) : "Tidak terkait program"}
                             </NativeSelectOption>
                           ))}
                       </NativeSelect>
