@@ -164,7 +164,7 @@ export function buildMeetingPriorities(
         reason: "Belum ada laporan dalam periode yang dipilih; kondisi terbaru perlu dikonfirmasi.",
       });
     }
-    if (item.blocked) {
+    if (report && item.blocked) {
       priorities.push({
         id: report.id + ":blocked",
         programId: item.programId,
@@ -176,7 +176,7 @@ export function buildMeetingPriorities(
         priority: "Tinggi",
         reason: String(report.data.supportNeeded || "Tetapkan keputusan, dukungan, atau penanggung jawab."),
       });
-    } else if (String(report.data.supportNeeded || "").trim()) {
+    } else if (report && String(report.data.supportNeeded || "").trim()) {
       priorities.push({
         id: report.id + ":support",
         programId: item.programId,
