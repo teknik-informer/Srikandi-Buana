@@ -255,7 +255,8 @@ export default function ManagementDashboard({
     if (linked) return;
     meetingTaskLocks.current.add(row.id);
     try {
-      await mutate("POST", {
+      const programId = String(row.data.programId || "");
+    await mutate("POST", {
       kind: "tindaklanjut",
       data: {
         name: "Tindak lanjut rapat: " + String(row.data.name || "Rapat"),
@@ -266,7 +267,7 @@ export default function ManagementDashboard({
         status: "Belum dimulai",
         evidence: followup,
         notes: sourceMarker + " · Catatan sumber dipertahankan; tetapkan penanggung jawab dan tenggat melalui keputusan pengurus.",
-        ...(row.data.programId ? { programId: String(row.data.programId) } : {}),
+        ...( ["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(programId) ? { programId } : {}),
       },
       });
     } finally {
