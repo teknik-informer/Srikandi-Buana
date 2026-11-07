@@ -49,6 +49,7 @@ import {
   validDate,
 } from "@/lib/management-insights";
 import {
+  canReadRecord,
   canReadSection,
   canWriteKind,
   canWriteRecord,
@@ -100,6 +101,7 @@ export default function ManagementDashboard({
   const [range, setRange] = useState("30");
   const [taskLimit, setTaskLimit] = useState(12);
   const meetingTaskLocks = useRef(new Set<string>());
+  const programTaskLocks = useRef(new Set<string>());
   const [editor, setEditor] = useState<Row | "new" | null>(null);
   const {
     busy,
@@ -165,7 +167,7 @@ export default function ManagementDashboard({
     label: string;
   };
   const actionArea = (kind: string) =>
-    ["program", "tindaklanjut", "kegiatan", "musyawarah", "kehadiran"].includes(kind)
+    ["program", "laporan_program", "tindaklanjut", "kegiatan", "musyawarah", "kehadiran"].includes(kind)
       ? "Manajemen"
       : ["anggota", "pengurus", "persetujuan", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"].includes(kind)
         ? "Administrasi"
@@ -242,6 +244,15 @@ export default function ManagementDashboard({
     })
     .sort((a, b) => String(b.row.data.date || "").localeCompare(String(a.row.data.date || "")))
     .slice(0, 5);
+  const programReports = view.rows
+    .filter((row) => row.kind === "laporan_program")
+    .map((row) => {
+      const sourceMarker = "Sumber laporan program: " + row.id;
+      const linkedTask = view.tasks.find((task) => String(task.data.notes || "").includes(sourceMarker));
+      return { row, linkedTask, sourceMarker };
+    })
+    .sort((a, b) => String(b.row.data.date || "").localeCompare(String(a.row.data.date || "")))
+    .slice(0, 6);
   const completed = view.tasks.filter(
     (row) => taskStatus(row) === "Selesai",
   ).length;
@@ -268,7 +279,7 @@ export default function ManagementDashboard({
     }
   }
   async function createTaskFromMeeting(row: Row, sourceMarker: string) {
-    if (busy || meetingTaskLocks.current.has(row.id) || !canWriteKind(user, "tindaklanjut") || !canWriteRecord(user, row)) return;
+    if (busy || meetingTaskLocks.current.has(row.id) || !canWriteKind(user, "tindaklanjut") || !canReadRecord(user, row)) return;
     const followup = String(row.data.followup || "").trim();
     if (!followup) return;
     const linked = view.tasks.some((task) => String(task.data.notes || "").includes(sourceMarker));
@@ -292,6 +303,33 @@ export default function ManagementDashboard({
       });
     } finally {
       meetingTaskLocks.current.delete(row.id);
+    }
+  }
+  async function createTaskFromProgramReport(row: Row, sourceMarker: string) {
+    if (busy || programTaskLocks.current.has(row.id) || !canWriteKind(user, "tindaklanjut") || !canReadRecord(user, row)) return;
+    const programId = String(row.data.programId || "");
+    if (!programs.some((program) => program.id === programId)) return;
+    if (view.tasks.some((task) => String(task.data.notes || "").includes(sourceMarker))) return;
+    programTaskLocks.current.add(row.id);
+    const blockers = String(row.data.blockers || "").trim();
+    const supportNeeded = String(row.data.supportNeeded || "").trim();
+    try {
+      await mutate("POST", {
+        kind: "tindaklanjut",
+        data: {
+          name: "Tindak lanjut program: " + String(row.data.name || "Laporan program"),
+          period: String(row.data.period || ""),
+          dueDate: "",
+          priority: row.data.status === "Terkendala" ? "Tinggi" : "Normal",
+          pic: "",
+          status: "Belum dimulai",
+          evidence: String(row.data.nextSteps || "Tinjau laporan dan sepakati langkah berikutnya."),
+          notes: sourceMarker + " · " + [blockers ? "Hambatan: " + blockers : "", supportNeeded ? "Dukungan diminta: " + supportNeeded : "", "Sumber laporan dipertahankan; tetapkan pelaksana dan tenggat melalui keputusan pengurus."].filter(Boolean).join(" · "),
+          programId,
+        },
+      });
+    } finally {
+      programTaskLocks.current.delete(row.id);
     }
   }
   async function changeStatus(row: Row, status: string) {
@@ -532,6 +570,43 @@ export default function ManagementDashboard({
           </CardContent>
         </Card>
       </section>
+      {programReports.length > 0 && (
+        <section aria-labelledby="program-reports-title" className="space-y-3">
+          <div className="space-y-1">
+            <h2 id="program-reports-title" className="text-base font-semibold">Laporan perkembangan program</h2>
+            <p className="text-sm text-muted-foreground">Ringkasan laporan koordinator sesuai lingkup program yang dapat Anda akses. Kendala dan kebutuhan dukungan tetap merujuk pada laporan sumber.</p>
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {programReports.map(({ row, linkedTask, sourceMarker }) => {
+                const program = programs.find((item) => item.id === String(row.data.programId));
+                return (
+                  <div key={row.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-5">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{String(row.data.name || "Laporan program")}</p>
+                        <StatusBadge value={String(row.data.status || "Belum ditetapkan")} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">{program ? program.id + ". " + program.name : "Program " + String(row.data.programId || "—")} · {dateID(String(row.data.date || ""))} · {String(row.data.period || "Periode tidak disebutkan")}</p>
+                      <p className="text-sm text-muted-foreground">{String(row.data.progress || "Belum ada uraian perkembangan.")}</p>
+                      {!!String(row.data.blockers || "").trim() && <p className="text-sm"><span className="font-medium">Kendala:</span> {String(row.data.blockers)}</p>}
+                      {!!String(row.data.supportNeeded || "").trim() && <p className="text-sm"><span className="font-medium">Dukungan diminta:</span> {String(row.data.supportNeeded)}</p>}
+                      {linkedTask && <p className="text-xs text-muted-foreground">Tugas terkait: {String(linkedTask.data.name || "Tindak lanjut")} · {String(linkedTask.data.status || "Belum dimulai")}</p>}
+                    </div>
+                    {linkedTask ? (
+                      <Button size="sm" variant="outline" asChild><Link href={recordHref(linkedTask)}>Buka tugas <ArrowUpRight className="size-3.5" /></Link></Button>
+                    ) : canWriteKind(user, "tindaklanjut") && canReadRecord(user, row) ? (
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => void createTaskFromProgramReport(row, sourceMarker)}>Buat draf tindak lanjut</Button>
+                    ) : (
+                      <Badge variant="secondary">Menunggu tindak lanjut pengurus</Badge>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </section>
+      )}
       {meetingFollowups.length > 0 && (
         <section aria-labelledby="meeting-followups-title" className="space-y-3">
           <div className="space-y-1">
@@ -549,7 +624,7 @@ export default function ManagementDashboard({
                   </div>
                   {linkedTask ? (
                     <Button size="sm" variant="outline" asChild><Link href={recordHref(linkedTask)}>Buka tugas <ArrowUpRight className="size-3.5" /></Link></Button>
-                  ) : canWriteKind(user, "tindaklanjut") && canWriteRecord(user, row) ? (
+                  ) : canWriteKind(user, "tindaklanjut") && canReadRecord(user, row) ? (
                     <Button size="sm" variant="outline" disabled={busy} onClick={() => void createTaskFromMeeting(row, sourceMarker)}>Buat draf tugas</Button>
                   ) : (
                     <Badge variant="secondary">Menunggu pengurus</Badge>
