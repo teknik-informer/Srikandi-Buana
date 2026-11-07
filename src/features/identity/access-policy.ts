@@ -2,7 +2,7 @@ export const roles = {admin:'Administrator',ketua:'Ketua',sekretaris:'Sekretaris
 export type Role=keyof typeof roles;
 export type Principal={accountId:string;userId:string;email:string;displayName:string;avatarUrl?:string;fullName:string;role:Role;memberId:string|null;position:string;programIds:string[]};
 export type AccessRecord={id:string;kind:string;data:Record<string,unknown>};
-const secretariat=['anggota','pengurus','musyawarah','persetujuan','tindaklanjut','kegiatan','kehadiran','kelembagaan','register','transkripsi','publikasi','galeri','program'];
+const secretariat=['anggota','pengurus','musyawarah','persetujuan','tindaklanjut','kegiatan','kehadiran','kelembagaan','register','transkripsi','publikasi','galeri','program','surat'];
 const finance=['kas','aset'];
 const coordination=['program','kegiatan','tindaklanjut'];
 
