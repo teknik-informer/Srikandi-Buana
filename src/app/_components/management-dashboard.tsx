@@ -65,7 +65,7 @@ import {
 } from "@/lib/srikandi";
 import { canDiscardChanges, markFormSaved } from "@/lib/unsaved-changes";
 import { Progress } from "@/components/ui/progress";
-import { getVisibleEnterprisePillars } from "@/features/enterprise/registry";
+import { getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
 import {
   WorkspaceMetric,
   WorkspaceSearch,
@@ -111,7 +111,7 @@ export default function ManagementDashboard({
   useEffect(() => setTaskLimit(12), [query, assignee]);
   const view = buildManagementInsights(rows, files, user, now);
   const taskAccess = canReadSection(user, "tindaklanjut");
-  const visiblePillars = getVisibleEnterprisePillars(user.role);
+  const visibleDashboards = getVisibleEnterpriseDashboards(user.role);
   const canCreate =
     canWriteKind(user, "tindaklanjut") &&
     (user.role !== "koordinator" || user.programIds.length > 0);
@@ -302,23 +302,37 @@ export default function ManagementDashboard({
           />
         ))}
       </div>
-      <section aria-labelledby="workspace-pillars-title" className="space-y-3">
+      <section aria-labelledby="workspace-dashboards-title" className="space-y-3">
         <div>
-          <h2 id="workspace-pillars-title" className="text-sm font-semibold">Akses pilar ruang kerja</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Modul yang tersedia mengikuti peran dan penugasan akun Anda.</p>
+          <h2 id="workspace-dashboards-title" className="text-sm font-semibold">Akses tujuh dashboard</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Pilih ruang kerja sesuai tugas dan kewenangan akun Anda. Menu yang tersedia mengikuti hak akses.</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
-          {visiblePillars.map((pillar) => (
-            <Card key={pillar.id} className="flex h-full flex-col">
+        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          {visibleDashboards.map((dashboard) => (
+            <Card key={dashboard.id} className="flex h-full flex-col">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">{pillar.label}</CardTitle>
-                <CardDescription className="min-h-10">{pillar.description}</CardDescription>
+                <CardTitle className="text-base">{dashboard.label}</CardTitle>
+                <CardDescription className="min-h-10">{dashboard.description}</CardDescription>
               </CardHeader>
-              <CardContent className="mt-auto flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">{pillar.features.length} menu</span>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={pillar.features[0].href}>Buka <ArrowUpRight className="size-3.5" /></Link>
-                </Button>
+              <CardContent className="mt-auto space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {dashboard.features.slice(0, 4).map((feature) => (
+                    <Link
+                      key={feature.id}
+                      href={feature.href}
+                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      {feature.label}
+                      <ArrowUpRight className="size-3" aria-hidden="true" />
+                    </Link>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t pt-3">
+                  <span className="text-xs text-muted-foreground">{dashboard.features.length} menu</span>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={dashboard.features[0].href}>Buka dashboard <ArrowUpRight className="size-3.5" /></Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
