@@ -371,7 +371,7 @@ export default function EnterpriseMonitoring({
             />
           ))}
           <WorkspaceMetric
-            title="Catatan termutakhir"
+            title="Catatan terbaca"
             value={snapshot.visibleRecords}
             note={"Catatan terlihat sesuai hak akses · terakhir diperbarui " + displayDate(snapshot.latestUpdate)}
             icon={Clock3}
