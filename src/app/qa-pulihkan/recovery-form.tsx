@@ -17,7 +17,8 @@ export default function QARecoveryForm() {
     setBusy(true);
     setError("");
     setSuccess("");
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     try {
       const response = await fetch("/api/auth/qa-recovery", {
         method: "POST",
@@ -33,7 +34,7 @@ export default function QARecoveryForm() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Pemulihan password belum berhasil.");
       setSuccess(data.message || "Password administrator QA berhasil diperbarui.");
-      event.currentTarget.reset();
+      formElement.reset();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Koneksi terputus. Periksa jaringan Anda.");
     } finally {
