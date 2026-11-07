@@ -43,9 +43,28 @@ export function buildEnterpriseMonitoring(
     .filter((value): value is string => typeof value === "string" && Number.isFinite(Date.parse(value)))
     .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || null;
 
+  const openTasks = tasks.filter(taskIsOpen);
+  const blockedProgramIds = new Set(
+    ofKind("laporan_program")
+      .filter((row) => row.data.status === "Terkendala")
+      .map((row) => String(row.data.programId || row.id)),
+  );
+
   const operational = {
     programs: ofKind("program").length,
-    openTasks: tasks.filter(taskIsOpen).length,
+    openTasks: openTasks.length,
+    tasksWithoutAssignee: count(openTasks, (row) => !String(row.data.pic || "").trim()),
+    tasksWithoutDueDate: count(openTasks, (row) => !validDate(row.data.dueDate)),
+    tasksAwaitingVerification: count(
+      tasks,
+      (row) => row.data.status === "Selesai" && row.data.verification === "Menunggu verifikasi",
+    ),
+    tasksNeedingCorrection: count(tasks, (row) => row.data.verification === "Perlu perbaikan"),
+    completedWithoutVerification: count(
+      tasks,
+      (row) => row.data.status === "Selesai" && row.data.verification !== "Terverifikasi",
+    ),
+    blockedPrograms: blockedProgramIds.size,
     overdueTasks: insights.overdue.length,
     dueToday: insights.dueToday.length,
     upcomingActivities: count(
