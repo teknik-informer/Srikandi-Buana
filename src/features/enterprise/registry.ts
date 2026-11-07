@@ -12,6 +12,7 @@ export type EnterpriseDashboardId =
 
 export type EnterpriseDashboard = {
   id: EnterpriseDashboardId;
+  href: string;
   label: string;
   description: string;
   features: readonly NavItem[];
@@ -38,12 +39,14 @@ function features(ids: readonly string[]): readonly NavItem[] {
 export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
     id: "ecosystem",
+    href: "/dashboard/ecosystem",
     label: "Ekosistem",
     description: "Pintu masuk layanan lintas unit, portal anggota, dan pemberitahuan akun.",
     features: features(["portal", "notifikasi"]),
   },
   {
     id: "management",
+    href: "/dashboard/management",
     label: "Manajemen",
     description: "Perencanaan program, penugasan, agenda, rapat, dan persetujuan operasional.",
     features: features([
@@ -53,6 +56,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   },
   {
     id: "administration",
+    href: "/dashboard/administration",
     label: "Administrasi",
     description: "Data keanggotaan, tata kelola, persetujuan data, register, dan arsip resmi.",
     features: features([
@@ -62,33 +66,43 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   },
   {
     id: "finance",
+    href: "/dashboard/finance",
     label: "Keuangan",
     description: "Buku kas, laporan, akuntansi, serta pengelolaan aset organisasi.",
     features: features(["kas", "laporan", "akuntansi", "aset"]),
   },
   {
     id: "commerce",
+    href: "/dashboard/commerce",
     label: "E-Commerce",
     description: "Katalog, pemesanan, penerimaan kopi, usaha, dan kemitraan.",
     features: features(["penjualan", "lotkopi", "usaha", "kemitraan"]),
   },
   {
     id: "publication",
+    href: "/dashboard/publication",
     label: "Publikasi",
     description: "Pengelolaan konten publik, galeri dokumentasi, dan pesan masuk.",
     features: features(["publikasi", "galeri", "pesan"]),
   },
   {
     id: "system",
+    href: "/dashboard/system",
     label: "Sistem",
     description: "Akun pengguna, hak akses, profil pribadi, konfigurasi, dan bantuan.",
     features: features(["akun", "akun-saya", "pengaturan", "panduan"]),
   },
 ];
 
+export const dashboardRouteIds = enterpriseDashboards.map((dashboard) => dashboard.id);
+
 export const dashboardSectionIds = enterpriseDashboards.flatMap((dashboard) =>
   dashboard.features.map((feature) => feature.id),
 );
+
+export function getEnterpriseDashboardById(id: string): EnterpriseDashboard | undefined {
+  return enterpriseDashboards.find((dashboard) => dashboard.id === id);
+}
 
 export function getEnterpriseDashboard(sectionId: string): EnterpriseDashboard | undefined {
   return enterpriseDashboards.find((dashboard) =>
