@@ -95,3 +95,13 @@ test("upcoming agenda links to the selected event attendance record with role-li
   assert.ok(attendance.includes('get("eventId")'));
   assert.ok(attendance.includes('setEventId(requestedEventId)'));
 });
+
+test("operational reports summarize attendance without exporting member identities", () => {
+  const reports = read("src/app/_components/enterprise-reports.tsx");
+  assert.ok(reports.includes('group.id === "operasional"'));
+  assert.ok(reports.includes('row.kind === "kehadiran"'));
+  assert.ok(reports.includes("row.data.memberIds.filter((id) => typeof id === \"string\").length"));
+  assert.ok(reports.includes("Anggota ditandai hadir"));
+  assert.ok(reports.includes("Jumlah anggota ditandai hadir"));
+  assert.ok(reports.includes("Nama anggota tidak ditampilkan dalam ringkasan kehadiran"));
+});
