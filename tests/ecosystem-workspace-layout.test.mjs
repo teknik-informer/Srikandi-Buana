@@ -147,3 +147,27 @@ test("financial operation fulfillment exposes strict cash reconciliation and lin
   assert.ok(api.includes("f.deleted_at IS NULL"));
   assert.ok(api.includes("cash_record_id:cashId"));
 });
+
+
+test("coordinator program reports are scoped, visible to leadership, and promoted to one linked task draft", () => {
+  const schema = read("src/lib/srikandi.ts");
+  const policy = read("src/features/identity/access-policy.ts");
+  const navigation = read("src/lib/navigation-config.ts");
+  const dashboard = read("src/app/_components/management-dashboard.tsx");
+  const insights = read("src/lib/management-insights.ts");
+  const reporting = read("src/lib/enterprise-reporting.ts");
+  const memberWorkspace = read("src/app/_components/access/role-workspace.tsx");
+  assert.ok(schema.includes('laporan_program:{title:"Laporan Perkembangan Program"'));
+  for (const field of ["programId", "date", "progress", "blockers", "supportNeeded", "nextSteps", "attachmentId"]) assert.ok(schema.includes('key:"' + field + '"'));
+  assert.ok(policy.includes("'tindaklanjut','laporan_program']"));
+  assert.ok(policy.includes("kind==='laporan_program'"));
+  assert.ok(navigation.includes("admin('laporan_program','Laporan Perkembangan Program'"));
+  assert.ok(dashboard.includes('row.kind === "laporan_program"'));
+  assert.ok(dashboard.includes("createTaskFromProgramReport"));
+  assert.ok(dashboard.includes('const sourceMarker = "Sumber laporan program: " + row.id'));
+  assert.ok(dashboard.includes('dueDate: ""'));
+  assert.ok(dashboard.includes("Buat draf tindak lanjut"));
+  assert.ok(insights.includes("Program dilaporkan terkendala"));
+  assert.ok(reporting.includes('"laporan_program"'));
+  assert.ok(memberWorkspace.includes('field.key === "programId" && user.role === "koordinator"'));
+});
