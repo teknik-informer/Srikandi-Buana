@@ -196,3 +196,32 @@ test("chair records decisions through the task workspace rather than a context-f
   assert.ok(workspace.includes('field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan" }'));
   assert.ok(workspace.includes('field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan" }'));
 });
+
+
+test("task completion evidence is submitted by implementers and verified only by leadership", () => {
+  const schema = read("src/lib/srikandi.ts");
+  const policy = read("src/lib/enterprise/task-verification.ts");
+  const api = read("src/app/api/records/route.ts");
+  const workspace = read("src/app/_components/workspace.tsx");
+  const management = read("src/app/_components/management-dashboard.tsx");
+  const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
+  const insights = read("src/lib/management-insights.ts");
+
+  for (const field of ["programId", "completionEvidence", "attachmentId", "verification", "reviewNote"]) {
+    assert.ok(schema.includes('key:"' + field + '"'));
+  }
+  assert.ok(api.includes('import { taskVerificationError } from "@/lib/enterprise/task-verification"'));
+  assert.ok(api.includes("taskVerificationError({"));
+  assert.ok(policy.includes('input.role === "admin" || input.role === "ketua"'));
+  assert.ok(policy.includes("completionEvidence"));
+  assert.ok(policy.includes("previousVerification === \"Terverifikasi\""));
+  assert.ok(workspace.includes('f.key === "reviewNote" && !["admin", "ketua"].includes(principal.role)'));
+  assert.ok(workspace.includes('f.key === "verification"'));
+  assert.ok(management.includes('field.key !== "reviewNote" || ["admin", "ketua"].includes(user.role)'));
+  assert.ok(management.includes('field.key === "verification" && !reviewer'));
+  assert.ok(monitoring.includes('title: "Hasil menunggu verifikasi"'));
+  assert.ok(monitoring.includes('title: "Tugas tanpa PIC"'));
+  assert.ok(monitoring.includes('title: "Program terkendala"'));
+  assert.ok(insights.includes("Hasil tugas menunggu verifikasi"));
+  assert.ok(insights.includes("Hasil tugas perlu perbaikan"));
+});
