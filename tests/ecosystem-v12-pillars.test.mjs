@@ -50,7 +50,7 @@ test("each enterprise dashboard has its own stable overview route", () => {
 test("all legacy dashboard routes are assigned exactly once", () => {
   assert.equal(new Set(legacyRouteIds).size, legacyRouteIds.length);
   assert.equal(new Set(dashboardRouteIds).size, dashboardRouteIds.length);
-  assert.deepEqual([...dashboardRouteIds].sort(), [...legacyRouteIds].sort());
+  assert.deepEqual([...dashboardRouteIds].sort(), ["administration", "commerce", "ecosystem", "finance", "management", "publication", "system"].sort());
   assert.deepEqual([...registry.dashboardSectionIds].sort(), [...legacyRouteIds].sort());
 });
 
@@ -59,10 +59,32 @@ test("the seven dashboards retain the requested functional grouping", () => {
   assert.deepEqual(featureIds("ecosystem"), ["portal", "notifikasi"]);
   assert.deepEqual(featureIds("management"), ["program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah", "pengajuan", "enterprise"]);
   assert.deepEqual(featureIds("administration"), ["anggota", "pengurus", "persetujuan", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"]);
-  assert.deepEqual(featureIds("finance"), ["kas", "laporan", "akuntansi", "aset"]);
+  assert.deepEqual(featureIds("finance"), ["kas", "akuntansi", "aset"]);
   assert.deepEqual(featureIds("commerce"), ["penjualan", "lotkopi", "usaha", "kemitraan"]);
   assert.deepEqual(featureIds("publication"), ["publikasi", "galeri", "pesan"]);
   assert.deepEqual(featureIds("system"), ["akun", "akun-saya", "pengaturan", "panduan"]);
+});
+
+test("monitoring and reports are standalone shortcuts with role-aware visibility", () => {
+  assert.deepEqual(
+    Array.from(registry.enterpriseUtilities, (item) => item.id),
+    ["monitoring", "laporan"],
+  );
+  assert.deepEqual(
+    Array.from(registry.getVisibleEnterpriseUtilities("admin"), (item) => item.id),
+    ["monitoring", "laporan"],
+  );
+  assert.deepEqual(
+    Array.from(registry.getVisibleEnterpriseUtilities("anggota"), (item) => item.id),
+    ["monitoring"],
+  );
+  assert.deepEqual(
+    Array.from(registry.getVisibleEnterpriseUtilities("ketua"), (item) => item.id),
+    ["monitoring", "laporan"],
+  );
+  assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
+  assert.equal(registry.getEnterpriseFeature("laporan")?.href, "/dashboard/laporan");
+  assert.ok(!registry.enterpriseDashboards.find((dashboard) => dashboard.id === "finance").features.some((item) => item.id === "laporan"));
 });
 
 test("administrator navigation retains every existing destination", () => {
@@ -91,6 +113,14 @@ test("feature lookup is deterministic and unknown routes stay unresolved", () =>
   assert.equal(registry.getEnterpriseDashboard("route-tidak-terdaftar"), undefined);
   assert.equal(registry.getEnterpriseFeature("route-tidak-terdaftar"), undefined);
   assert.equal(registry.getEnterprisePillar("penjualan")?.id, "commerce");
+});
+
+test("the removed seven-dashboard label is not shown in primary navigation", () => {
+  const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
+  const management = readFileSync("src/app/_components/management-dashboard.tsx", "utf8");
+  assert.doesNotMatch(navigation, /TUJUH DASHBOARD|Tujuh dashboard/i);
+  assert.doesNotMatch(management, /Akses tujuh dashboard/i);
+  assert.match(navigation, /RUANG KERJA/);
 });
 
 test("Pusat Kendali is the authenticated dashboard landing page for every role", () => {
