@@ -1,15 +1,17 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
 import { canReadSectionForRole, type Role } from "../identity/access-policy";
 
-export type EnterprisePillarId =
+export type EnterpriseDashboardId =
   | "ecosystem"
   | "management"
   | "administration"
+  | "finance"
   | "commerce"
-  | "public-support";
+  | "publication"
+  | "system";
 
-export type EnterprisePillar = {
-  id: EnterprisePillarId;
+export type EnterpriseDashboard = {
+  id: EnterpriseDashboardId;
   label: string;
   description: string;
   features: readonly NavItem[];
@@ -29,74 +31,93 @@ function features(ids: readonly string[]): readonly NavItem[] {
 }
 
 /**
- * Five experience pillars over shared business domains.
- *
- * This registry groups existing routes; it does not claim that every workflow
- * behind a route is production-complete. Server handlers remain responsible
- * for authentication, record ownership, and row-level authorization.
+ * Seven role-aware dashboards over the existing shared business domains.
+ * This registry only reorganizes navigation. Existing route IDs and URLs stay
+ * stable, while API handlers remain the security boundary for records and data.
  */
-export const enterprisePillars: readonly EnterprisePillar[] = [
+export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
     id: "ecosystem",
     label: "Ekosistem",
-    description: "Kolaborasi lintas unit, layanan anggota, pengajuan, dan alur notifikasi.",
-    features: features(["portal", "pengajuan", "enterprise", "notifikasi"]),
+    description: "Pintu masuk layanan lintas unit, portal anggota, dan pemberitahuan akun.",
+    features: features(["portal", "notifikasi"]),
   },
   {
     id: "management",
     label: "Manajemen",
-    description: "Perencanaan program, pengendalian kegiatan, keuangan, dan kinerja.",
+    description: "Perencanaan program, penugasan, agenda, rapat, dan persetujuan operasional.",
     features: features([
-      "program", "tindaklanjut", "kegiatan", "kehadiran", "kas", "laporan",
-      "usaha", "aset", "lotkopi", "kemitraan", "akuntansi",
+      "program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah",
+      "pengajuan", "enterprise",
     ]),
   },
   {
     id: "administration",
     label: "Administrasi",
-    description: "Keanggotaan, tata kelola, dokumen, pengguna, dan konfigurasi.",
+    description: "Data keanggotaan, tata kelola, persetujuan data, register, dan arsip resmi.",
     features: features([
-      "anggota", "pengurus", "musyawarah", "persetujuan", "sumber",
-      "kelembagaan", "register", "transkripsi", "dokumen", "akun",
-      "akun-saya", "pengaturan",
+      "anggota", "pengurus", "persetujuan", "register",
+      "sumber", "kelembagaan", "transkripsi", "dokumen",
     ]),
+  },
+  {
+    id: "finance",
+    label: "Keuangan",
+    description: "Buku kas, laporan, akuntansi, serta pengelolaan aset organisasi.",
+    features: features(["kas", "laporan", "akuntansi", "aset"]),
   },
   {
     id: "commerce",
     label: "E-Commerce",
-    description: "Katalog, persediaan, pemesanan, dan transaksi perdagangan.",
-    features: features(["penjualan"]),
+    description: "Katalog, pemesanan, penerimaan kopi, usaha, dan kemitraan.",
+    features: features(["penjualan", "lotkopi", "usaha", "kemitraan"]),
   },
   {
-    id: "public-support",
-    label: "Layanan Publik & Informasi",
-    description: "Konten publik, galeri, komunikasi, dan panduan layanan.",
-    features: features(["publikasi", "galeri", "pesan", "panduan"]),
+    id: "publication",
+    label: "Publikasi",
+    description: "Pengelolaan konten publik, galeri dokumentasi, dan pesan masuk.",
+    features: features(["publikasi", "galeri", "pesan"]),
+  },
+  {
+    id: "system",
+    label: "Sistem",
+    description: "Akun pengguna, hak akses, profil pribadi, konfigurasi, dan bantuan.",
+    features: features(["akun", "akun-saya", "pengaturan", "panduan"]),
   },
 ];
 
-export const dashboardSectionIds = enterprisePillars.flatMap((pillar) =>
-  pillar.features.map((feature) => feature.id),
+export const dashboardSectionIds = enterpriseDashboards.flatMap((dashboard) =>
+  dashboard.features.map((feature) => feature.id),
 );
 
-export function getEnterprisePillar(sectionId: string): EnterprisePillar | undefined {
-  return enterprisePillars.find((pillar) =>
-    pillar.features.some((feature) => feature.id === sectionId),
+export function getEnterpriseDashboard(sectionId: string): EnterpriseDashboard | undefined {
+  return enterpriseDashboards.find((dashboard) =>
+    dashboard.features.some((feature) => feature.id === sectionId),
   );
 }
 
 export function getEnterpriseFeature(sectionId: string): NavItem | undefined {
-  return getEnterprisePillar(sectionId)?.features.find((feature) => feature.id === sectionId);
+  return getEnterpriseDashboard(sectionId)?.features.find((feature) => feature.id === sectionId);
 }
 
 /** Navigation projection only. API and record guards remain the security boundary. */
-export function getVisibleEnterprisePillars(role: Role) {
-  return enterprisePillars
-    .map((pillar) => ({
-      ...pillar,
-      features: pillar.features.filter((feature) =>
+export function getVisibleEnterpriseDashboards(role: Role) {
+  return enterpriseDashboards
+    .map((dashboard) => ({
+      ...dashboard,
+      features: dashboard.features.filter((feature) =>
         canReadSectionForRole(role, feature.id),
       ),
     }))
-    .filter((pillar) => pillar.features.length > 0);
+    .filter((dashboard) => dashboard.features.length > 0);
 }
+
+/**
+ * Backward-compatible aliases for components or integrations that still use
+ * the previous "pillar" terminology. New code should use dashboard names.
+ */
+export type EnterprisePillarId = EnterpriseDashboardId;
+export type EnterprisePillar = EnterpriseDashboard;
+export const enterprisePillars = enterpriseDashboards;
+export const getEnterprisePillar = getEnterpriseDashboard;
+export const getVisibleEnterprisePillars = getVisibleEnterpriseDashboards;
