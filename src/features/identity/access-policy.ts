@@ -29,7 +29,7 @@ export function canReadSectionForRole(role:Role,id:string){
  if(id==='enterprise')return ['ketua','sekretaris','bendahara'].includes(role);
  if(id==='dokumen')return ['sekretaris','bendahara','koordinator'].includes(role);
  if(['akun','sumber','panduan','pesan','pengaturan','dokumen'].includes(id))return false;
- if(id==='laporan')return ['ketua','bendahara'].includes(role);
+ if(id==='laporan')return true;
  return canReadKindForRole(role,id);
 }
 export function canReadSection(u:Principal,id:string){return canReadSectionForRole(u.role,id)}
