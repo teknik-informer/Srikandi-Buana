@@ -1183,6 +1183,11 @@ export default function Workspace({
                           }
                           required={f.required}
                           maxLength={5000}
+                          disabled={
+                            editor.kind === "tindaklanjut" &&
+                            ["meetingReviewMeeting", "meetingReviewDate"].includes(f.key) &&
+                            !["admin", "ketua"].includes(principal.role)
+                          }
                         />
                       )}
                     </Field>
