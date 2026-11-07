@@ -1,6 +1,6 @@
 "use client";
 import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -99,6 +99,7 @@ export default function ManagementDashboard({
   const [assignee, setAssignee] = useState("all");
   const [range, setRange] = useState("30");
   const [taskLimit, setTaskLimit] = useState(12);
+  const meetingTaskLocks = useRef(new Set<string>());
   const [editor, setEditor] = useState<Row | "new" | null>(null);
   const {
     busy,
@@ -247,12 +248,14 @@ export default function ManagementDashboard({
     }
   }
   async function createTaskFromMeeting(row: Row, sourceMarker: string) {
-    if (busy || !canWriteKind(user, "tindaklanjut") || !canWriteRecord(user, row)) return;
+    if (busy || meetingTaskLocks.current.has(row.id) || !canWriteKind(user, "tindaklanjut") || !canWriteRecord(user, row)) return;
     const followup = String(row.data.followup || "").trim();
     if (!followup) return;
     const linked = view.tasks.some((task) => String(task.data.notes || "").includes(sourceMarker));
     if (linked) return;
-    await mutate("POST", {
+    meetingTaskLocks.current.add(row.id);
+    try {
+      await mutate("POST", {
       kind: "tindaklanjut",
       data: {
         name: "Tindak lanjut rapat: " + String(row.data.name || "Rapat"),
@@ -265,7 +268,10 @@ export default function ManagementDashboard({
         notes: sourceMarker + " · Catatan sumber dipertahankan; tetapkan penanggung jawab dan tenggat melalui keputusan pengurus.",
         ...(row.data.programId ? { programId: String(row.data.programId) } : {}),
       },
-    });
+      });
+    } finally {
+      meetingTaskLocks.current.delete(row.id);
+    }
   }
   async function changeStatus(row: Row, status: string) {
     if (!canWriteRecord(user, row) || busy) return;
