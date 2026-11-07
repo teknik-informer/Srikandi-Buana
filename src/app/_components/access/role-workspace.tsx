@@ -218,6 +218,7 @@ export default function RoleWorkspace({
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
+        {!["monitoring", "laporan"].includes(section) && (
         <WorkspacePageHeader
           title={title}
           eyebrow="Ruang anggota & pengurus"
@@ -264,6 +265,7 @@ export default function RoleWorkspace({
             </>
           }
         />
+        )}
         {error && (
           <Alert variant="destructive">
             <AlertTitle>
