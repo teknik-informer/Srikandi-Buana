@@ -105,3 +105,16 @@ test("operational reports summarize attendance without exporting member identiti
   assert.ok(reports.includes("Jumlah anggota ditandai hadir"));
   assert.ok(reports.includes("Nama anggota tidak ditampilkan dalam ringkasan kehadiran"));
 });
+
+test("members receive guided self-service without direct edits to verified membership records", () => {
+  const workspace = read("src/app/_components/access/role-workspace.tsx");
+  const policy = read("src/features/identity/access-policy.ts");
+  assert.ok(workspace.includes('user.role === "anggota" && section === "anggota"'));
+  assert.ok(workspace.includes("Layanan keanggotaan saya"));
+  assert.ok(workspace.includes('href="/dashboard/akun-saya"'));
+  assert.ok(workspace.includes('href="/dashboard/pengajuan"'));
+  assert.ok(workspace.includes('href="/dashboard/portal"'));
+  assert.ok(policy.includes("return false") || policy.includes("canWriteKind"));
+  assert.ok(policy.includes("r.id===u.memberId"));
+  assert.ok(policy.includes("role==='anggota'"));
+});
