@@ -264,6 +264,21 @@ export default function ManagementDashboard({
     })
     .sort((a, b) => String(b.row.data.date || "").localeCompare(String(a.row.data.date || "")))
     .slice(0, 8);
+  const meetingDecisionTasks = view.tasks
+    .filter((task) => {
+      const notes = String(task.data.notes || "");
+      return notes.includes("Sumber rapat: ") && notes.includes(" · Keputusan #");
+    })
+    .sort((a, b) => {
+      const pendingA = String(a.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi" ? 0 : 1;
+      const pendingB = String(b.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi" ? 0 : 1;
+      return pendingA - pendingB ||
+        String(a.data.dueDate || "9999-12-31").localeCompare(String(b.data.dueDate || "9999-12-31")) ||
+        String(a.data.name || "").localeCompare(String(b.data.name || ""));
+    });
+  const pendingMeetingReviews = meetingDecisionTasks.filter(
+    (task) => String(task.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi",
+  );
   const programReports = view.rows
     .filter((row) => row.kind === "laporan_program")
     .map((row) => {
@@ -721,6 +736,59 @@ export default function ManagementDashboard({
                   </div>
                 );
               })}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+      {qualityAccess && meetingDecisionTasks.length > 0 && (
+        <section aria-labelledby="meeting-decision-review-title" className="space-y-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="meeting-decision-review-title" className="text-base font-semibold">Evaluasi pelaksanaan keputusan rapat</h2>
+              <Badge variant={pendingMeetingReviews.length ? "secondary" : "outline"}>
+                {pendingMeetingReviews.length} belum dievaluasi
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Setelah rapat berikutnya, Ketua atau Administrator mencatat hasil pelaksanaan, nama dan tanggal rapat evaluasi, serta keputusan lanjutan pada tugas terkait. Riwayat notulen asal tetap terhubung.
+            </p>
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {meetingDecisionTasks.slice(0, 10).map((task) => {
+                const reviewStatus = String(task.data.meetingReviewStatus || "Belum dievaluasi");
+                const canReview = ["admin", "ketua"].includes(user.role) && canWriteRecord(user, task);
+                return (
+                  <div key={task.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{String(task.data.name || "Keputusan rapat")}</p>
+                        <StatusBadge value={reviewStatus} />
+                        <StatusBadge value={String(task.data.status || "Belum dimulai")} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        PIC: {String(task.data.pic || "Belum ditetapkan")} · Tenggat: {String(task.data.dueDate || "Belum ditetapkan")}
+                      </p>
+                      {reviewStatus !== "Belum dievaluasi" && (
+                        <p className="text-xs text-muted-foreground">
+                          Dievaluasi pada {String(task.data.meetingReviewMeeting || "rapat tidak disebutkan")} · {dateID(String(task.data.meetingReviewDate || ""))}
+                        </p>
+                      )}
+                      {!!String(task.data.meetingReviewNote || "").trim() && (
+                        <p className="text-sm text-muted-foreground">{String(task.data.meetingReviewNote)}</p>
+                      )}
+                    </div>
+                    {canReview ? (
+                      <Button size="sm" variant="outline" onClick={() => openEditor(task)}>Catat evaluasi</Button>
+                    ) : (
+                      <Button size="sm" variant="outline" asChild><Link href={recordHref(task)}>Buka tugas</Link></Button>
+                    )}
+                  </div>
+                );
+              })}
+              {meetingDecisionTasks.length > 10 && (
+                <p className="p-4 text-xs text-muted-foreground">Menampilkan 10 dari {meetingDecisionTasks.length} keputusan rapat. Cari sisanya melalui menu Tugas dan Tindak Lanjut.</p>
+              )}
             </CardContent>
           </Card>
         </section>
@@ -1235,8 +1303,9 @@ export default function ManagementDashboard({
               {editor === "new" ? "Tambah tugas" : "Detail & sunting tugas"}
             </DialogTitle>
             <DialogDescription>
-              Tentukan tindakan, penanggung jawab, prioritas, dan tanggal
-              tenggat yang disepakati.
+              {editor === "new"
+                ? "Tentukan tindakan, penanggung jawab, prioritas, dan tanggal tenggat yang disepakati."
+                : "Perbarui pelaksanaan tugas. Ketua atau Administrator juga dapat mencatat evaluasi keputusan rapat setelah rapat peninjauan."}
             </DialogDescription>
           </DialogHeader>
           {editor && (
@@ -1250,7 +1319,7 @@ export default function ManagementDashboard({
             >
               <fieldset disabled={busy} className="min-w-0">
                 <FieldGroup>
-                  {modules.tindaklanjut.fields.filter((field) => field.key !== "reviewNote" || ["admin", "ketua"].includes(user.role)).map((field) => {
+                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || ["admin", "ketua"].includes(user.role)).map((field) => {
                     const value =
                       editor === "new"
                         ? field.key === "programId" &&
