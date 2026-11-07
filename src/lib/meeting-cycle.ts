@@ -23,6 +23,31 @@ export function meetingActionSourceMarker(meetingId: string, index: number): str
   return "Sumber rapat: " + meetingId + " · Keputusan #" + (index + 1) + ":";
 }
 
+export function parseMeetingTaskReference(value: unknown): {
+  meetingId: string;
+  decisionNumber: number;
+  marker: string;
+} | null {
+  const notes = String(value || "");
+  const match = notes.match(/Sumber rapat: ([^·\\n]+) · Keputusan #(\\d+):/);
+  if (!match) return null;
+  const meetingId = match[1].trim();
+  const decisionNumber = Number(match[2]);
+  if (!meetingId || !Number.isSafeInteger(decisionNumber) || decisionNumber < 1) return null;
+  return {
+    meetingId,
+    decisionNumber,
+    marker: meetingActionSourceMarker(meetingId, decisionNumber - 1),
+  };
+}
+
+export function decisionsPreserveExistingOrder(previous: unknown, next: unknown): boolean {
+  const before = parseMeetingActions(previous);
+  const after = parseMeetingActions(next);
+  return after.length >= before.length &&
+    before.every((decision, index) => decision === after[index]);
+}
+
 export function meetingReviewError(input: {
   role: string;
   previousStatus?: string;
