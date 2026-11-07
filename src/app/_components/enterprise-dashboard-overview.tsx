@@ -22,7 +22,7 @@ export default function EnterpriseDashboardOverview({
   role: Role;
 }) {
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6" aria-labelledby="dashboard-overview-title">
+    <main className="workspace-page" aria-labelledby="dashboard-overview-title">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           {dashboardEyebrows[dashboard.id]}
