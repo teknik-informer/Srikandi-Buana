@@ -21,10 +21,11 @@ function loadModule(entryPoint) {
   });
 }
 
-const [reporting, monitoring, permissions] = await Promise.all([
+const [reporting, monitoring, permissions, verification] = await Promise.all([
   loadModule("src/lib/enterprise-reporting.ts"),
   loadModule("src/lib/enterprise-monitoring.ts"),
   loadModule("src/features/identity/access-policy.ts"),
+  loadModule("src/lib/enterprise/task-verification.ts"),
 ]);
 
 const principal = (role, overrides = {}) => ({
@@ -160,4 +161,152 @@ test("coordinator monitoring omits non-assigned program activity", () => {
   assert.equal(snapshot.operational.openTasks, 1);
   assert.equal(snapshot.membership, null);
   assert.equal(snapshot.finance, null);
+});
+
+
+test("task result handoff requires real evidence and a leadership decision", () => {
+  const submit = {
+    role: "koordinator",
+    previousVerification: "Belum diajukan",
+    previousStatus: "Berjalan",
+    verification: "Menunggu verifikasi",
+    status: "Selesai",
+    completionEvidence: "Distribusi bibit terlaksana pada tanggal yang tercatat.",
+    attachmentId: "",
+    reviewNote: "",
+  };
+  assert.equal(verification.taskVerificationError(submit), null);
+  assert.match(
+    verification.taskVerificationError({ ...submit, completionEvidence: "" }) || "",
+    /hasil pelaksanaan atau lampirkan bukti/,
+  );
+  assert.match(
+    verification.taskVerificationError({ ...submit, status: "Berjalan" }) || "",
+    /Selesaikan pekerjaan terlebih dahulu/,
+  );
+});
+
+test("only the chair or administrator can approve a completed task result", () => {
+  const pending = {
+    role: "ketua",
+    previousVerification: "Menunggu verifikasi",
+    previousStatus: "Selesai",
+    verification: "Terverifikasi",
+    status: "Selesai",
+    completionEvidence: "Hasil pelaksanaan sudah diperiksa.",
+    attachmentId: "",
+    reviewNote: "",
+  };
+  assert.equal(verification.taskVerificationError(pending), null);
+  assert.equal(verification.taskVerificationError({ ...pending, role: "admin" }), null);
+  assert.match(
+    verification.taskVerificationError({ ...pending, role: "koordinator" }) || "",
+    /hanya Ketua atau Administrator/,
+  );
+  assert.match(
+    verification.taskVerificationError({ ...pending, role: "sekretaris" }) || "",
+    /hanya Ketua atau Administrator/,
+  );
+});
+
+test("requesting correction requires a reason and reopens the task", () => {
+  const review = {
+    role: "ketua",
+    previousVerification: "Menunggu verifikasi",
+    previousStatus: "Selesai",
+    verification: "Perlu perbaikan",
+    status: "Berjalan",
+    completionEvidence: "Hasil awal perlu dilengkapi.",
+    attachmentId: "",
+    reviewNote: "Lampirkan berita acara dan uraian jumlah peserta.",
+  };
+  assert.equal(verification.taskVerificationError(review), null);
+  assert.match(
+    verification.taskVerificationError({ ...review, reviewNote: "" }) || "",
+    /Tuliskan alasan/,
+  );
+  assert.match(
+    verification.taskVerificationError({ ...review, status: "Selesai" }) || "",
+    /status pekerjaan menjadi Berjalan/,
+  );
+});
+
+test("coordinators cannot alter reviewer notes or reopen an already verified result", () => {
+  const base = {
+    role: "koordinator",
+    previousVerification: "Menunggu verifikasi",
+    previousStatus: "Selesai",
+    previousReviewNote: "Perjelas dokumen hasil.",
+    verification: "Menunggu verifikasi",
+    status: "Selesai",
+    completionEvidence: "Hasil sudah dilengkapi.",
+    reviewNote: "Saya mengubah keputusan",
+  };
+  assert.match(
+    verification.taskVerificationError(base) || "",
+    /Catatan pemeriksaan hanya dapat diubah/,
+  );
+  assert.match(
+    verification.taskVerificationError({
+      ...base,
+      previousVerification: "Terverifikasi",
+      previousReviewNote: "",
+      reviewNote: "",
+    }) || "",
+    /sudah diverifikasi hanya dapat diubah kembali/,
+  );
+});
+
+test("new task records cannot be marked complete without a verification submission", () => {
+  const error = verification.taskVerificationError({
+    role: "koordinator",
+    previousVerification: "",
+    previousStatus: "",
+    verification: "Belum diajukan",
+    status: "Selesai",
+    completionEvidence: "",
+    attachmentId: "",
+    reviewNote: "",
+  });
+  assert.match(error || "", /diajukan untuk verifikasi/);
+});
+
+test("monitoring exposes actionable ownership, deadline, verification and blocked-program counts", () => {
+  const expanded = [
+    ...records,
+    row("task-pending-review", "tindaklanjut", {
+      name: "Hasil menunggu pemeriksaan", programId: "1", status: "Selesai",
+      verification: "Menunggu verifikasi", completionEvidence: "Kegiatan terlaksana.",
+    }),
+    row("task-legacy-completed", "tindaklanjut", {
+      name: "Pekerjaan lama", programId: "1", status: "Selesai",
+      verification: "Belum diajukan",
+    }),
+    row("task-needs-correction", "tindaklanjut", {
+      name: "Perbaiki laporan", programId: "1", status: "Berjalan", pic: "Koordinator",
+      dueDate: "2026-11-12", verification: "Perlu perbaikan",
+      reviewNote: "Lengkapi dokumen hasil.",
+    }),
+    row("task-no-owner-or-date", "tindaklanjut", {
+      name: "Tugas tanpa penanggung jawab", programId: "1", status: "Belum dimulai",
+    }),
+    row("program-blocked", "laporan_program", {
+      name: "Laporan kendala", programId: "3", date: "2026-11-07",
+      status: "Terkendala", progress: "Menunggu bahan.",
+    }),
+  ];
+  const snapshot = monitoring.buildEnterpriseMonitoring(
+    expanded,
+    [],
+    principal("admin"),
+    new Date("2026-11-07T04:00:00.000Z"),
+  );
+  assert.equal(snapshot.operational.tasksWithoutAssignee, 2);
+  assert.equal(snapshot.operational.tasksWithoutDueDate, 1);
+  assert.equal(snapshot.operational.tasksAwaitingVerification, 1);
+  assert.equal(snapshot.operational.tasksNeedingCorrection, 1);
+  assert.equal(snapshot.operational.completedWithoutVerification, 2);
+  assert.equal(snapshot.operational.blockedPrograms, 1);
+  assert.ok(snapshot.issues.some((issue) => issue.title === "Hasil tugas menunggu verifikasi"));
+  assert.ok(snapshot.issues.some((issue) => issue.title === "Hasil tugas perlu perbaikan"));
 });
