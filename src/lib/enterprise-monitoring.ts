@@ -151,7 +151,7 @@ export function buildEnterpriseMonitoring(
     business: ["aset", "lotkopi", "usaha", "kemitraan"].some((kind) => canReadKind(user, kind))
       ? business
       : null,
-    publication: ["publikasi", "galeri"].some((kind) => canReadSection(user, kind))
+    publication: ["publikasi", "galeri"].some((kind) => canReadKind(user, kind))
       ? publication
       : null,
   };
