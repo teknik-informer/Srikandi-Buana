@@ -86,7 +86,7 @@ export function meetingReviewError(input: {
   }
   if (next.status !== "Belum dievaluasi") {
     if (!next.meeting) return "Isi judul atau nomor rapat yang melakukan evaluasi.";
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(next.date)) return "Isi tanggal rapat evaluasi.";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(next.date) || !Number.isFinite(Date.parse(next.date + "T00:00:00.000Z")) || new Date(next.date + "T00:00:00.000Z").toISOString().slice(0, 10) !== next.date) return "Isi tanggal rapat evaluasi yang valid.";
     if (!next.note) return "Catat hasil evaluasi dan alasan keputusan.";
   }
   return null;
