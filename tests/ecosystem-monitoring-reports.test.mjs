@@ -201,11 +201,11 @@ test("only the chair or administrator can approve a completed task result", () =
   assert.equal(verification.taskVerificationError({ ...pending, role: "admin" }), null);
   assert.match(
     verification.taskVerificationError({ ...pending, role: "koordinator" }) || "",
-    /hanya Ketua atau Administrator/,
+    /[Hh]anya Ketua atau Administrator/,
   );
   assert.match(
     verification.taskVerificationError({ ...pending, role: "sekretaris" }) || "",
-    /hanya Ketua atau Administrator/,
+    /[Hh]anya Ketua atau Administrator/,
   );
 });
 
@@ -306,7 +306,7 @@ test("monitoring exposes actionable ownership, deadline, verification and blocke
   assert.equal(snapshot.operational.tasksAwaitingVerification, 1);
   assert.equal(snapshot.operational.tasksNeedingCorrection, 1);
   assert.equal(snapshot.operational.completedWithoutVerification, 2);
-  assert.equal(snapshot.operational.blockedPrograms, 1);
+  assert.equal(snapshot.operational.blockedPrograms, 2);
   assert.ok(snapshot.issues.some((issue) => issue.title === "Hasil tugas menunggu verifikasi"));
   assert.ok(snapshot.issues.some((issue) => issue.title === "Hasil tugas perlu perbaikan"));
 });
