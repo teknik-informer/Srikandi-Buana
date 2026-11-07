@@ -171,3 +171,13 @@ test("coordinator program reports are scoped, visible to leadership, and promote
   assert.ok(reporting.includes('"laporan_program"'));
   assert.ok(memberWorkspace.includes('field.key === "programId" && user.role === "koordinator"'));
 });
+
+
+test("chair task management preserves the follow-up record deletion boundary", () => {
+  const api = read("src/app/api/records/route.ts");
+  const workspace = read("src/app/_components/access/role-workspace.tsx");
+  const policy = read("src/features/identity/access-policy.ts");
+  assert.ok(policy.includes("if(u.role==='ketua')return kind==='tindaklanjut'"));
+  assert.ok(api.includes("Ketua dapat memperbarui status tugas, tetapi tidak menghapus riwayat tindak lanjut."));
+  assert.ok(workspace.includes('user.role !== "ketua" &&'));
+});
