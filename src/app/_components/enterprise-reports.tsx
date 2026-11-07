@@ -34,7 +34,6 @@ import { createCSV } from "@/lib/csv";
 import { modules, type Row } from "@/lib/srikandi";
 import {
   getVisibleReportGroups,
-  reportDateLabel,
   selectReportRows,
   summarizeReportRows,
   type ReportGroup,
@@ -133,7 +132,7 @@ function completionCount(group: ReportGroup, rows: Row[]) {
   ).length;
 }
 
-function exportRows(group: ReportGroup, rows: Row[], user: Principal) {
+function exportRows(group: ReportGroup, rows: Row[]) {
   if (group.id === "keanggotaan") {
     // Never export member names or contact details from the report center.
     const summary = summarizeReportRows(rows);
@@ -158,7 +157,7 @@ function exportRows(group: ReportGroup, rows: Row[], user: Principal) {
   ]);
 }
 
-function ReportTable({ group, rows, user }: { group: ReportGroup; rows: Row[]; user: Principal }) {
+function ReportTable({ group, rows }: { group: ReportGroup; rows: Row[] }) {
   if (group.id === "keanggotaan") {
     const statuses = summarizeReportRows(rows);
     const verified = rows.filter((row) => row.data.verification === "Terverifikasi").length;
@@ -259,7 +258,7 @@ export default function EnterpriseReports({
 
   function download() {
     if (!currentGroup || currentGroup.id === "keuangan") return;
-    const csv = exportRows(currentGroup, reportRows, user);
+    const csv = exportRows(currentGroup, reportRows);
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     try {
       const anchor = document.createElement("a");
@@ -348,7 +347,7 @@ export default function EnterpriseReports({
                   </Alert>
                 </>
               ) : (
-                <ReportTable group={group} rows={data} user={user} />
+                <ReportTable group={group} rows={data} />
               )}
             </TabsContent>
           );
