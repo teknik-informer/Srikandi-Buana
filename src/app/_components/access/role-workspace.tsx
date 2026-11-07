@@ -493,15 +493,17 @@ export default function RoleWorkspace({
                           >
                             Edit
                           </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => {
-                              clearError();
-                              setDeleting(r);
-                            }}
-                          >
-                            Hapus
-                          </Button>
+                          {user.role !== "ketua" && (
+                            <Button
+                              variant="destructive"
+                              onClick={() => {
+                                clearError();
+                                setDeleting(r);
+                              }}
+                            >
+                              Hapus
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>
