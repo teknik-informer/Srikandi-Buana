@@ -277,7 +277,7 @@ export default function Workspace({
       profil: "Profil & arah bersama",
       pesan: "Pesan pengunjung",
       kehadiran: "Kehadiran",
-      laporan: "Laporan Kas",
+      laporan: "Laporan",
       monitoring: "Monitoring Operasional",
       pengaturan: "Pengaturan situs",
       sumber: "Referensi Dokumen",
