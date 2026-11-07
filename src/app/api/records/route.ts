@@ -6,6 +6,7 @@ import {getAuthenticatedUser} from "@/lib/auth";
 import {canReadRecord,canWriteRecord,visibleRecord} from "@/lib/permissions";
 import {allowedFileIds} from "@/lib/file-access";
 import { modules, programs, type Data } from "@/lib/srikandi";
+import { taskVerificationError } from "@/lib/enterprise/task-verification";
 export const dynamic="force-dynamic";
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store"}});
 async function context(req:Request,write=false){
@@ -44,7 +45,37 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
  if(data.attachmentId){const attachment=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.attachmentId,c.user!.userId).first();if(!attachment)return json({error:"Lampiran tidak tersedia di arsip Anda."},400);}
  if(body.kind==="lotkopi"){const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='lotkopi' AND json_extract(data,'$.name')=? AND id!=?").bind(c.user!.userId,data.name,body.id||"").first();if(duplicate)return json({error:"Kode lot sudah digunakan. Gunakan kode unik."},409);}
  const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);
- if(edit){const old=await c.db!.prepare("SELECT id,updated,data FROM records WHERE id=? AND owner=? AND kind=?").bind(id,c.user!.userId,body.kind).first();if(!old)return json({error:"Data tidak ditemukan."},404);if(!canWriteRecord(c.user!,{id:String(old.id),kind:body.kind,data:JSON.parse(String(old.data))}))return json({error:'Data di luar penugasan Anda.'},403);if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);if(['kas','aset'].includes(body.kind)){await assertRecordUnlocked(c.user!.userId,id,body.kind);await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),`${body.kind}: ${data.name}`);return json({ok:true,id});}}
+ let previousTaskData:Data|undefined;
+ if(edit){
+  const old=await c.db!.prepare("SELECT id,updated,data FROM records WHERE id=? AND owner=? AND kind=?").bind(id,c.user!.userId,body.kind).first();
+  if(!old)return json({error:"Data tidak ditemukan."},404);
+  const oldData=JSON.parse(String(old.data)) as Data;
+  if(!canWriteRecord(c.user!,{id:String(old.id),kind:body.kind,data:oldData}))return json({error:'Data di luar penugasan Anda.'},403);
+  if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
+  if(body.kind==="tindaklanjut"){
+   previousTaskData=oldData;
+   if(c.user!.role!=="admin"&&c.user!.role!=="ketua")data.reviewNote=String(oldData.reviewNote||"");
+  }
+  if(['kas','aset'].includes(body.kind)){
+   await assertRecordUnlocked(c.user!.userId,id,body.kind);
+   await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),`${body.kind}: ${data.name}`);
+   return json({ok:true,id});
+  }
+ }
+ if(body.kind==="tindaklanjut"){
+  const verificationError=taskVerificationError({
+   role:c.user!.role,
+   previousVerification:String(previousTaskData?.verification||""),
+   previousStatus:String(previousTaskData?.status||""),
+   previousReviewNote:String(previousTaskData?.reviewNote||""),
+   verification:String(data.verification||"Belum diajukan"),
+   status:String(data.status||""),
+   completionEvidence:String(data.completionEvidence||""),
+   attachmentId:String(data.attachmentId||""),
+   reviewNote:String(data.reviewNote||""),
+  });
+  if(verificationError)return json({error:verificationError},403);
+ }
  if(body.kind==="program"&&!edit){const found=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='program' AND json_extract(data,'$.programId')=?").bind(c.user!.userId,String(data.programId)).first();if(found)return json({error:"Program sudah tercatat. Muat ulang sebelum memperbarui."},409);}
  await c.db!.batch([edit?c.db!.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=?").bind(JSON.stringify(data),now,id,c.user!.userId):c.db!.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)").bind(id,c.user!.userId,body.kind,JSON.stringify(data),now,now),c.db!.prepare("INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),c.user!.userId,edit?"Diperbarui":"Ditambahkan",`${body.kind}: ${data.name}`,now)]);
  return json({ok:true,id});}catch(e){if(e instanceof OperationError)return json({error:e.message},e.status);if(e instanceof RequestBodyError)return json({error:e.message},e.status);return json({error:e instanceof SyntaxError?"Formulir tidak valid.":e instanceof Error&& !/D1|SQL|database/i.test(e.message)?e.message:"Perubahan belum tersimpan. Silakan coba lagi."},400)}}
