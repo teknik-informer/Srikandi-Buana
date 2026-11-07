@@ -89,7 +89,8 @@ import ManagementDashboard from "./management-dashboard";
 import Attendance from "./attendance";
 import FileManager from "./file-manager";
 import Inbox from "./inbox";
-import Reports from "./reports";
+import EnterpriseReports from "./enterprise-reports";
+import EnterpriseMonitoring from "./enterprise-monitoring";
 import SiteSettingsEditor from "./site-settings-editor";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
@@ -270,13 +271,14 @@ export default function Workspace({
     {
       akun: "Akun & akses",
       "akun-saya": "Akun saya",
-      ringkasan: "Ringkasan Operasional",
+      ringkasan: "Pusat Kendali",
       program: "Program kerja",
       dokumen: "Arsip dokumen",
       profil: "Profil & arah bersama",
       pesan: "Pesan pengunjung",
       kehadiran: "Kehadiran",
-      laporan: "Laporan Kas",
+      laporan: "Laporan",
+      monitoring: "Monitoring Operasional",
       pengaturan: "Pengaturan situs",
       sumber: "Referensi Dokumen",
       panduan: "Pusat bantuan",
@@ -405,19 +407,21 @@ export default function Workspace({
     >
       {" "}
       <section
-        className="workspace"
+        className="workspace workspace-page"
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
         <WorkspacePageHeader
           eyebrow="KELOMPOK WANITA TANI · NGADIMULYO"
-          title={section === "ringkasan" ? "Dashboard organisasi" : title}
+          title={section === "ringkasan" ? "Pusat Kendali" : title}
           description={
             module?.description ||
             (
               {
                 ringkasan:
-                  "Ringkasan keanggotaan, program, kegiatan, dan keuangan Srikandi Buana.",
+                  "Pusat kendali untuk memantau kegiatan, tugas, keanggotaan, dan kondisi operasional sesuai hak akses.",
+                monitoring:
+                  "Pantau perkembangan tugas, agenda, tenggat waktu, kualitas data, dan kondisi operasional sesuai lingkup akses Anda.",
                 program:
                   "Sembilan prioritas, satu arah: tumbuh dan berdaya bersama.",
                 dokumen:
@@ -501,6 +505,29 @@ export default function Workspace({
             onSaved={load}
             audit={audit}
           />
+        )}
+        {section === "monitoring" && (
+          <EnterpriseMonitoring
+            rows={rows}
+            files={files}
+            user={principal}
+            audit={audit}
+            loading={loading}
+            error={error}
+            onRefresh={() => void load()}
+          />
+        )}
+        {section === "galeri" && (
+          <div className="mb-6 space-y-3">
+            <Alert>
+              <ShieldCheck />
+              <AlertTitle>Media privat dan izin publikasi</AlertTitle>
+              <AlertDescription>
+                Foto di pustaka media hanya dapat dilihat pengelola. Foto baru tampil di situs setelah ditautkan ke Galeri Foto atau konten yang berstatus Terbit, dan izin publikasi fotonya dikonfirmasi.
+              </AlertDescription>
+            </Alert>
+            <FileManager files={files} onChange={load} loading={loading} loadError={error} mode="images" />
+          </div>
         )}
         {module && (
           <>
@@ -925,7 +952,9 @@ export default function Workspace({
           />
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
-        {section === "laporan" && !loading && !error && <Reports rows={rows} />}
+        {section === "laporan" && !loading && !error && (
+          <EnterpriseReports rows={rows} user={principal} />
+        )}
         {section === "panduan" && (
           <>
             <Box title="Portal & layanan operasional">

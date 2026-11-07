@@ -2,10 +2,12 @@ import {createHash} from 'node:crypto';
 import {neon} from '@neondatabase/serverless';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
-if(!process.env.DATABASE_URL||!process.env.ADMIN_EMAIL)throw Error('Isi DATABASE_URL dan ADMIN_EMAIL.');
+import {databaseUrlForEnvironment} from '../src/features/shared/database-target.mjs';
+const databaseUrl=databaseUrlForEnvironment(process.env);
+if(!databaseUrl||!process.env.ADMIN_EMAIL)throw Error(process.env.VERCEL_ENV==='preview'?'Preview memerlukan PREVIEW_DATABASE_URL khusus staging. Impor data dibatalkan.':'Isi DATABASE_URL dan ADMIN_EMAIL.');
 const filename=process.argv[2],directory=process.argv[3];if(!filename)throw Error('Penggunaan: npm run data:import -- ekspor.json [folder-lampiran-berdasarkan-id]');
 const data=JSON.parse(await readFile(filename,'utf8'));if(data.formatVersion!==2||!Array.isArray(data.records)||!Array.isArray(data.files))throw Error('Gunakan ekspor JSON format versi 2 dari dashboard lama.');
-const sql=neon(process.env.DATABASE_URL);const users=await sql.query('SELECT id FROM users WHERE email=$1',[process.env.ADMIN_EMAIL.trim().toLowerCase()]);if(users.length!==1)throw Error('Buat akun admin terlebih dahulu.');const owner=users[0].id;
+const sql=neon(databaseUrl);const users=await sql.query('SELECT id FROM users WHERE email=$1',[process.env.ADMIN_EMAIL.trim().toLowerCase()]);if(users.length!==1)throw Error('Buat akun admin terlebih dahulu.');const owner=users[0].id;
 // Verify every attachment before writing any rows, so references do not silently break.
 const contents=new Map();for(const file of data.files){if(!directory||!/^[a-zA-Z0-9_-]+$/.test(file.id))throw Error('Lampiran wajib tersedia dalam folder dengan nama berkas sesuai ID.');const bytes=await readFile(path.join(directory,file.id));if(bytes.length>3*1024*1024)throw Error('Ada lampiran melebihi batas 3 MB. Siapkan ulang sebelum impor.');contents.set(file.id,bytes.toString('base64'))}
 const namespace=createHash('sha256').update(owner).digest('hex').slice(0,16);const ids=new Map(data.records.map(row=>[row.id,String(row.id).replace(/^source11-[a-f0-9]{16}-/,'source11-'+namespace+'-')]));function remap(value){if(typeof value==='string')return ids.get(value)||value;if(Array.isArray(value))return value.map(remap);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,remap(item)]));return value}

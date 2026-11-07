@@ -54,7 +54,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Attendance from "../attendance";
 import FileManager from "../file-manager";
-import Reports from "../reports";
+import EnterpriseReports from "../enterprise-reports";
+import EnterpriseMonitoring from "../enterprise-monitoring";
 import WorkspaceShell from "../workspace-shell";
 import MyAccount from "./my-account";
 import ManagementDashboard from "../management-dashboard";
@@ -95,7 +96,7 @@ export default function RoleWorkspace({
   const module = modules[section],
     title =
       section === "ringkasan"
-        ? "Ruang kerja saya"
+        ? "Pusat Kendali"
         : section === "akun-saya"
           ? "Akun saya"
           : section === "program"
@@ -103,8 +104,10 @@ export default function RoleWorkspace({
             : section === "kehadiran"
               ? "Kehadiran"
               : section === "laporan"
-                ? "Laporan Kas"
-                : section === "dokumen"
+                ? "Laporan"
+                : section === "monitoring"
+                  ? "Monitoring Operasional"
+                  : section === "dokumen"
                   ? "Arsip kerja"
                   : module?.title || "Ruang kerja";
   const {
@@ -211,7 +214,7 @@ export default function RoleWorkspace({
       defaultSidebarOpen={defaultSidebarOpen}
     >
       <section
-        className="workspace workspace-role"
+        className="workspace workspace-role workspace-page"
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
@@ -219,11 +222,13 @@ export default function RoleWorkspace({
           title={title}
           eyebrow="Ruang anggota & pengurus"
           description={
-            (user.position || roles[user.role]) +
-            " · " +
-            (user.role === "koordinator"
-              ? "Program " + user.programIds.join(", ")
-              : "Srikandi Buana")
+            section === "monitoring"
+              ? "Pantau tugas, agenda, tenggat, dan kondisi operasional sesuai lingkup akses " + roles[user.role] + "."
+              : (user.position || roles[user.role]) +
+                " · " +
+                (user.role === "koordinator"
+                  ? "Program " + user.programIds.join(", ")
+                  : "Srikandi Buana")
           }
           actions={
             <>
@@ -284,7 +289,7 @@ export default function RoleWorkspace({
             </AlertDescription>
           </Alert>
         )}
-        {loading && section !== "ringkasan" && <Skeleton className="h-20 w-full" />}
+        {loading && !["ringkasan", "monitoring"].includes(section) && <Skeleton className="h-20 w-full" />}
         {section === "ringkasan" && (
           <ManagementDashboard
             rows={rows}
@@ -295,8 +300,20 @@ export default function RoleWorkspace({
             onSaved={load}
           />
         )}
+        {section === "monitoring" && (
+          <EnterpriseMonitoring
+            rows={rows}
+            files={files}
+            user={user}
+            loading={loading}
+            error={error}
+            onRefresh={() => void load()}
+          />
+        )}
         {section === "akun-saya" && <MyAccount />}
-        {section === "laporan" && !loading && !error && <Reports rows={rows} />}
+        {section === "laporan" && !loading && !error && (
+          <EnterpriseReports rows={rows} user={user} />
+        )}
         {section === "kehadiran" && user.role === "sekretaris" && (
           <Attendance rows={rows} onSaved={load} />
         )}

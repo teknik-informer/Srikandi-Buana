@@ -1,4 +1,48 @@
-import type {NextConfig} from "next";
+import type { NextConfig } from "next";
 import path from "node:path";
-const config:NextConfig={poweredByHeader:false,experimental:{globalNotFound:true,serverActions:{bodySizeLimit:'4mb'}},webpack(config){config.resolve.alias.cn=path.resolve(process.cwd(),'src/lib/cn.ts');return config},async headers(){return [{source:'/dashboard/:path*',headers:[{key:'X-Robots-Tag',value:'noindex, nofollow, noarchive'}]},{source:'/api/:path*',headers:[{key:'X-Robots-Tag',value:'noindex, nofollow, noarchive'}]},{source:'/sw.js',headers:[{key:'Cache-Control',value:'no-cache, no-store, must-revalidate'},{key:'Service-Worker-Allowed',value:'/'},{key:'Content-Type',value:'application/javascript; charset=utf-8'}]},{source:'/manifest.webmanifest',headers:[{key:'Cache-Control',value:'public, max-age=0, must-revalidate'}]},{source:'/:path*',headers:[{key:'X-Content-Type-Options',value:'nosniff'},{key:'Referrer-Policy',value:'strict-origin-when-cross-origin'},{key:'X-Frame-Options',value:'DENY'}]}]}};
+
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+];
+
+const config: NextConfig = {
+  poweredByHeader: false,
+  experimental: {
+    globalNotFound: true,
+    serverActions: { bodySizeLimit: "4mb" },
+  },
+  webpack(config) {
+    config.resolve.alias.cn = path.resolve(process.cwd(), "src/lib/cn.ts");
+    return config;
+  },
+  async headers() {
+    return [
+      {
+        source: "/dashboard/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+      {
+        source: "/api/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
+      {
+        source: "/manifest.webmanifest",
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+      },
+      { source: "/:path*", headers: securityHeaders },
+    ];
+  },
+};
+
 export default config;

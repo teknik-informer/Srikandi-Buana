@@ -3,7 +3,7 @@ import { requestJSON } from "@/lib/request-json";
 import { WorkspaceSearch } from "./workspace-ui";
 import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
 import { useState, useRef, type FormEvent } from "react";
-import { Download, Upload, Trash2, Pencil, RotateCcw, FileText } from "lucide-react";
+import { Download, Upload, Trash2, Pencil, RotateCcw, FileText, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,8 @@ import { listPage } from "@/lib/list-page";
 import { dateID } from "@/lib/srikandi";
 import { canDiscardChanges, markFormSaved } from "@/lib/unsaved-changes";
 type FileRow = { id: string; name: string; size: number; mime: string; created: string; deleted_at?: string | null };
-export default function FileManager({ files, onChange, loading = false, loadError = "" }: {
-  files: FileRow[]; onChange: () => Promise<void>; loading?: boolean; loadError?: string;
+export default function FileManager({ files, onChange, loading = false, loadError = "", mode = "archive" }: {
+  files: FileRow[]; onChange: () => Promise<void>; loading?: boolean; loadError?: string; mode?: "archive" | "images";
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -38,7 +38,7 @@ export default function FileManager({ files, onChange, loading = false, loadErro
   const renameForm = useRef<HTMLFormElement>(null);
   const pending = useRef(false);
   const unavailable = busy || loading || !!loadError;
-  const filtered = files.filter((f) => (view === "Sampah" ? !!f.deleted_at : !f.deleted_at) && f.name.toLowerCase().includes(query.toLowerCase()));
+  const filtered = files.filter((f) => (mode !== "images" || ["image/png", "image/jpeg"].includes(f.mime)) && (view === "Sampah" ? !!f.deleted_at : !f.deleted_at) && f.name.toLowerCase().includes(query.toLowerCase()));
   const range = listPage(filtered.length, page);
   async function refresh() {
     try { await onChange(); }
@@ -73,7 +73,7 @@ export default function FileManager({ files, onChange, loading = false, loadErro
         let stop = false;
         try {
           if (file.size === 0 || file.size > 3 * 1024 * 1024) throw Error("Ukuran berkas harus 1 byte hingga 3 MB.");
-          if (!/\.(pdf|docx|xlsx|jpe?g|png)$/i.test(file.name)) throw Error("Format berkas tidak didukung.");
+          if (!(mode === "images" ? /\.(jpe?g|png)$/i.test(file.name) : /\.(pdf|docx|xlsx|jpe?g|png)$/i.test(file.name))) throw Error(mode === "images" ? "Gunakan foto JPG atau PNG." : "Format berkas tidak didukung.");
           const fd = new FormData(); fd.append("file", file);
           const { response: r, data: d } = await requestJSON<{ error?: string }>("/api/files", { method: "POST", body: fd }, 90000);
           if (!r.ok) {
@@ -104,23 +104,30 @@ export default function FileManager({ files, onChange, loading = false, loadErro
   const errorPanel = error && <Alert variant="destructive"><AlertTitle>Periksa tindakan arsip</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
   return <>
     <Card>
-      <CardHeader><CardTitle>Arsip kelompok</CardTitle><CardDescription>Unggah beberapa berkas sekaligus. Maksimal 3 MB per berkas, PDF/DOCX/XLSX/JPG/PNG. Sampah dapat dipulihkan dan tetap menggunakan ruang penyimpanan.</CardDescription></CardHeader>
+      <CardHeader><CardTitle>{mode === "images" ? "Pustaka Media" : "Arsip kelompok"}</CardTitle><CardDescription>{mode === "images" ? "Kelola foto untuk galeri, berita, dan identitas situs. Foto tetap privat sampai dipakai pada konten terbit dengan izin publikasi yang dikonfirmasi. JPG/PNG maksimal 3 MB per foto." : "Unggah beberapa berkas sekaligus. Maksimal 3 MB per berkas, PDF/DOCX/XLSX/JPG/PNG. Sampah dapat dipulihkan dan tetap menggunakan ruang penyimpanan."}</CardDescription></CardHeader>
       <CardContent>
         {!renaming && !deleting && errorPanel}
         <div className="inbox-toolbar">
           <WorkspaceSearch value={query} onChange={(value) => { setQuery(value); setPage(1); }} placeholder="Cari nama berkas…" label="Cari berkas" />
           <NativeSelect value={view} onChange={(e) => { setView(e.target.value); setPage(1); }} aria-label="Tampilan arsip"><NativeSelectOption>Aktif</NativeSelectOption><NativeSelectOption>Sampah</NativeSelectOption></NativeSelect>
-          <Button disabled={unavailable} onClick={() => input.current?.click()}><Upload data-icon="inline-start" />{uploading ? "Mengunggah…" : "Unggah berkas"}</Button>
-          <input ref={input} type="file" className="sr-only" aria-label="Pilih berkas untuk diunggah" disabled={unavailable} multiple accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" onChange={(e) => upload(e.target.files)} />
+          <Button disabled={unavailable} onClick={() => input.current?.click()}><Upload data-icon="inline-start" />{uploading ? "Mengunggah…" : mode === "images" ? "Unggah foto" : "Unggah berkas"}</Button>
+          <input ref={input} type="file" className="sr-only" aria-label={mode === "images" ? "Pilih foto untuk diunggah" : "Pilih berkas untuk diunggah"} disabled={unavailable} multiple accept={mode === "images" ? "image/jpeg,image/png,.jpg,.jpeg,.png" : ".pdf,.docx,.xlsx,.jpg,.jpeg,.png"} onChange={(e) => upload(e.target.files)} />
         </div>
         <div className={dragging ? "file-drop-zone dragging" : "file-drop-zone"} onDragOver={(e) => { e.preventDefault(); if (!unavailable) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); void upload(e.dataTransfer.files); }}>
-          <Upload /><span><strong>Tarik berkas ke sini</strong><small>atau gunakan tombol Unggah berkas · Maksimal 3 MB per berkas</small></span>
+          {mode === "images" ? <ImageIcon /> : <Upload />}<span><strong>{mode === "images" ? "Tarik foto ke sini" : "Tarik berkas ke sini"}</strong><small>{mode === "images" ? "atau gunakan tombol Unggah foto · JPG/PNG maksimal 3 MB" : "atau gunakan tombol Unggah berkas · Maksimal 3 MB per berkas"}</small></span>
         </div>
         {progress.total > 0 && <p className="section-note" role="status">{uploading ? "Memproses" : "Selesai memproses"} {progress.done} dari {progress.total} berkas.</p>}
         {uploadErrors.length > 0 && <Alert variant="destructive"><AlertTitle>Berkas yang perlu diperiksa</AlertTitle><AlertDescription>{uploadErrors.map((message, i) => <p key={i}>{message}</p>)}<p>Periksa daftar arsip sebelum mengunggah ulang berkas yang gagal karena jaringan, agar tidak membuat salinan ganda.</p></AlertDescription></Alert>}
         {loading ? <Skeleton className="mt-4 h-40 w-full" /> : loadError ? <p role="status">Daftar arsip belum tersedia. Gunakan Coba lagi pada pemberitahuan pemuatan data.</p> : <>
           <p className="section-note">{filtered.length} berkas · {(filtered.reduce((n, f) => n + f.size, 0) / 1024 / 1024).toFixed(2)} MB</p>
-          {filtered.length ? filtered.slice(range.offset, range.end).map((f) => <div className="document-row" key={f.id}>
+          {filtered.length ? mode === "images" ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{filtered.slice(range.offset, range.end).map((f) => <article className="overflow-hidden rounded-xl border bg-card" key={f.id}>
+            <div className="aspect-[4/3] bg-muted/50">{f.deleted_at ? <div className="flex h-full items-center justify-center text-muted-foreground"><ImageIcon className="size-10" /></div> : <img src={"/api/files?id=" + encodeURIComponent(f.id) + "&preview=1"} alt={"Pratinjau " + f.name} loading="lazy" className="h-full w-full object-cover" />}</div>
+            <div className="space-y-2 p-3"><strong className="block truncate text-sm" title={f.name}>{f.name}</strong><small className="block text-muted-foreground">{dateID(f.created)} · {(f.size / 1024).toFixed(0)} KB</small>
+              {f.deleted_at ? <Button variant="outline" size="sm" className="w-full" disabled={unavailable} onClick={() => action("PATCH", f.id, { id: f.id, action: "restore" })}><RotateCcw data-icon="inline-start" />Pulihkan</Button> : <div className="flex justify-end gap-1">
+                <Button asChild variant="ghost" size="icon"><a href={"/api/files?id=" + encodeURIComponent(f.id)} aria-label={"Unduh " + f.name} download><Download /></a></Button>
+                <Button variant="ghost" size="icon" aria-label={"Ganti nama " + f.name} disabled={unavailable} onClick={() => { setError(""); setRenaming(f); setName(f.name); }}><Pencil /></Button>
+                <Button variant="ghost" size="icon" aria-label={"Pindahkan " + f.name + " ke sampah"} disabled={unavailable} onClick={() => { setError(""); setDeleting(f); }}><Trash2 /></Button>
+              </div>}</div></article>)}</div> : filtered.slice(range.offset, range.end).map((f) => <div className="document-row" key={f.id}>
             <div className="file-icon"><FileText /></div><div className="min-w-0 flex-1"><strong className="break-all">{f.name}</strong><small>{dateID(f.created)} · {(f.size / 1024).toFixed(0)} KB</small></div>
             {f.deleted_at ? <Button variant="outline" size="sm" disabled={unavailable} onClick={() => action("PATCH", f.id, { id: f.id, action: "restore" })}><RotateCcw data-icon="inline-start" />Pulihkan</Button> : <div className="flex shrink-0 gap-1">
               <Button asChild variant="ghost" size="icon"><a href={"/api/files?id=" + encodeURIComponent(f.id)} aria-label={"Unduh " + f.name} download><Download /></a></Button>

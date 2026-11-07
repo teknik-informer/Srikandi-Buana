@@ -15,14 +15,19 @@ test('Notifikasi dan jurnal hanya mengakses data dalam organisasi',()=>{
 });
 test('Pesanan mempunyai status server dan stok tidak negatif',()=>{
  const q=f('src/app/api/ecosystem/orders/route.ts'); assert(q.includes('stock>=?'));assert(q.includes("status IN ('submitted','confirmed')")); assert(q.includes("status='cancelled'"));assert(q.includes('status=?'));assert(q.includes('client_request_id=?'));
- const m=f('migrations/005_ecosystem_foundation.sql'); assert(m.includes('stock INTEGER NOT NULL CHECK(stock>=0)')); assert(m.includes('UNIQUE(owner,buyer_id,client_request_id)'));
+ const m=f('migrations/005_ecosystem_foundation.sql'); assert(m.includes('stock INTEGER NOT NULL DEFAULT 0 CHECK(stock>=0 AND stock<=1000000)')); assert(m.includes('UNIQUE(owner,buyer_id,client_request_id)'));
 });
 
 test('Mutasi pesanan dan notifikasi dibatasi laju dan dapat diaudit per akun',()=>{
  const orders=f('src/app/api/ecosystem/orders/route.ts');
  const notes=f('src/app/api/ecosystem/notifications/route.ts');
  assert(orders.includes('commerce:order-status:'));
- assert(orders.includes('RETURNING p.id) SELECT id FROM restored'));
+ assert(orders.includes("status='cancelled'"));
+ const stockAudit=f('migrations/006_order_receipts_and_journal_corrections.sql');
+ assert(stockAudit.includes('CREATE TABLE IF NOT EXISTS commerce_stock_history'));
+ assert(stockAudit.includes('CREATE OR REPLACE FUNCTION srikandi_capture_stock_change'));
+ assert(stockAudit.includes('INSERT INTO commerce_stock_history(owner,product_id,change_amount,stock_before,stock_after)'));
+ assert(stockAudit.includes('CREATE TRIGGER srikandi_stock_audit'));
  assert(notes.includes('notification:mark:'));
 });
 test('Neraca saldo dibentuk dari saldo akun nyata dan memiliki peringatan jika tidak seimbang',()=>{

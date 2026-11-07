@@ -65,6 +65,7 @@ import {
 } from "@/lib/srikandi";
 import { canDiscardChanges, markFormSaved } from "@/lib/unsaved-changes";
 import { Progress } from "@/components/ui/progress";
+import { getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
 import {
   WorkspaceMetric,
   WorkspaceSearch,
@@ -81,6 +82,7 @@ type Props = {
   error: string;
   onSaved: () => Promise<void>;
   audit?: WorkspaceAudit[];
+  mode?: "overview" | "monitoring";
 };
 export default function ManagementDashboard({
   rows,
@@ -90,6 +92,7 @@ export default function ManagementDashboard({
   error,
   onSaved,
   audit = [],
+  mode = "overview",
 }: Props) {
   const [now, setNow] = useState(() => new Date());
   const [query, setQuery] = useState("");
@@ -110,6 +113,7 @@ export default function ManagementDashboard({
   useEffect(() => setTaskLimit(12), [query, assignee]);
   const view = buildManagementInsights(rows, files, user, now);
   const taskAccess = canReadSection(user, "tindaklanjut");
+  const visibleDashboards = getVisibleEnterpriseDashboards(user.role);
   const canCreate =
     canWriteKind(user, "tindaklanjut") &&
     (user.role !== "koordinator" || user.programIds.length > 0);
@@ -254,16 +258,16 @@ export default function ManagementDashboard({
       : []),
   ];
   return (
-    <div className="management-dashboard space-y-4 min-w-0 md:space-y-6">
+    <div className="management-dashboard workspace-page min-w-0">
       <Card className="management-intro overflow-hidden" size="sm">
         <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <Badge variant="outline">
               <CheckCircle2 className="size-3.5" />
-              RINGKASAN OPERASIONAL
+              {mode === "monitoring" ? "MONITORING OPERASIONAL" : "RINGKASAN OPERASIONAL"}
             </Badge>
             <CardTitle className="text-xl sm:text-2xl">
-              Selamat bekerja, {user.displayName}.
+              {mode === "monitoring" ? "Pantau perkembangan operasional." : `Selamat bekerja, ${user.displayName}.`}
             </CardTitle>
             <CardDescription>
               {roles[user.role]} · {dateID(view.today)} · Semua ringkasan
@@ -279,8 +283,9 @@ export default function ManagementDashboard({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Mulai dari pekerjaan yang perlu perhatian. Tenggat, prioritas, dan
-            pengingat disusun dari catatan kelompok yang tersedia.
+            {mode === "monitoring"
+              ? "Tinjau tugas, agenda, tenggat, kualitas data, dan pengingat dari catatan operasional yang tersedia."
+              : "Mulai dari pekerjaan yang perlu perhatian. Tenggat, prioritas, dan pengingat disusun dari catatan kelompok yang tersedia."}
           </p>
         </CardContent>
       </Card>
@@ -300,6 +305,44 @@ export default function ManagementDashboard({
           />
         ))}
       </div>
+      {mode === "overview" && (
+      <section aria-labelledby="workspace-dashboards-title" className="space-y-3">
+        <div>
+          <h2 id="workspace-dashboards-title" className="text-sm font-semibold">Ruang kerja utama</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Pilih ruang kerja sesuai tugas dan kewenangan akun Anda. Menu yang tersedia mengikuti hak akses.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          {visibleDashboards.map((dashboard) => (
+            <Card key={dashboard.id} className="flex h-full flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">{dashboard.label}</CardTitle>
+                <CardDescription className="min-h-10">{dashboard.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {dashboard.features.slice(0, 4).map((feature) => (
+                    <Link
+                      key={feature.id}
+                      href={feature.href}
+                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      {feature.label}
+                      <ArrowUpRight className="size-3" aria-hidden="true" />
+                    </Link>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t pt-3">
+                  <span className="text-xs text-muted-foreground">{dashboard.features.length} menu</span>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={dashboard.href}>Buka dashboard <ArrowUpRight className="size-3.5" /></Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+      )}
       {mutationError && !editor && (
         <Alert variant="destructive">
           <AlertTitle>Perubahan belum selesai</AlertTitle>

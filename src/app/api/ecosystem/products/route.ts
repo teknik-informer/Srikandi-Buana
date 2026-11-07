@@ -3,7 +3,8 @@ import {getAuthenticatedUser} from '@/lib/auth';
 import {env} from '@/lib/runtime';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {consumeRateLimit} from '@/lib/rate-limit';
-import {moneyInteger,skuValid,textField} from '@/lib/ecosystem/validation.mjs';
+import {moneyInteger,textField} from '@/features/shared/validation.mjs';
+import {skuValid} from '@/features/commerce/validation.mjs';
 export const dynamic='force-dynamic';
 export async function GET(request:Request){try{
  const user=await getAuthenticatedUser();const db=env.DB;if(!db)return json({error:'Katalog belum tersedia.'},503);
@@ -14,10 +15,31 @@ export async function GET(request:Request){try{
 export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;if(c.user.role!=='admin')return json({error:'Pengelolaan produk hanya untuk administrator.'},403);
  try{const b=await readJsonObject(request,4500);if(!await consumeRateLimit(c.db,'commerce:product:'+c.user.accountId,60,3600000))return json({error:'Batas perubahan katalog tercapai.'},429);const name=textField(b.name,160),sku=typeof b.sku==='string'?b.sku.trim().toUpperCase():null,unit=textField(b.unit,30);if(!name||!skuValid(sku)||!unit||!moneyInteger(b.price)||!moneyInteger(b.stock,1000000)||typeof b.published!=='boolean'||(typeof b.description!=='string'&&b.description!==undefined)||String(b.description||'').length>2000)return json({error:'Data produk tidak valid. Periksa kode, harga, stok, dan deskripsi.'},400);
  const id=crypto.randomUUID(),now=new Date().toISOString();const existing=await c.db.prepare('SELECT id FROM commerce_products WHERE owner=? AND sku=?').bind(c.user.userId,sku).first();if(existing)return json({error:'Kode produk sudah digunakan.'},409);
- await c.db.batch([c.db.prepare('INSERT INTO commerce_products(id,owner,sku,name,description,unit,price,stock,published,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(id,c.user.userId,sku,name,String(b.description||''),unit,b.price,b.stock,b.published,now,now),c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Produk ditambahkan',sku+' · '+name,now)]);
+ const snapshot=JSON.stringify({id,sku,name,description:String(b.description||''),unit,price:b.price,stock:b.stock,published:b.published});
+ await c.db.batch([
+  c.db.prepare('INSERT INTO commerce_products(id,owner,sku,name,description,unit,price,stock,published,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(id,c.user.userId,sku,name,String(b.description||''),unit,b.price,b.stock,b.published,now,now),
+  c.db.prepare("INSERT INTO commerce_product_audit(owner,product_id,actor_id,action,before_state,after_state) VALUES(?,?,?,'created',NULL,?)").bind(c.user.userId,id,c.user.userId,snapshot),
+  c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Produk ditambahkan',sku+' · '+name,now)
+ ]);
  return json({ok:true,id},201);
  }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}}
 export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(c.user.role!=='admin')return json({error:'Akses ditolak.'},403);
  try{const b=await readJsonObject(request,4500);if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id)||typeof b.expectedUpdated!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(b.expectedUpdated)||!textField(b.name,160)||!textField(b.unit,30)||!moneyInteger(b.price)||!moneyInteger(b.stock,1000000)||typeof b.published!=='boolean'||typeof b.description!=='string'||b.description.length>2000)return json({error:'Data produk tidak valid.'},400);
- const now=new Date().toISOString();const row=await c.db.prepare('UPDATE commerce_products SET name=?,description=?,unit=?,price=?,stock=?,published=?,updated=? WHERE id=? AND owner=? AND updated=? RETURNING id').bind(String(b.name).trim(),b.description,String(b.unit).trim(),b.price,b.stock,b.published,now,b.id,c.user.userId,b.expectedUpdated).first();return row?json({ok:true}):json({error:'Data produk telah berubah atau tidak ditemukan. Muat ulang daftar sebelum menyimpan.'},409);
+ const now=new Date().toISOString();
+ const sql=`WITH before AS MATERIALIZED (
+  SELECT id,owner,sku,name,description,unit,price,stock,published,updated
+  FROM commerce_products WHERE id=? AND owner=? AND updated=?
+ ), changed AS (
+  UPDATE commerce_products p SET name=?,description=?,unit=?,price=?,stock=?,published=?,updated=?
+  FROM before b WHERE p.id=b.id AND p.owner=b.owner AND p.updated=b.updated
+  RETURNING p.id,p.owner,p.sku,p.name,p.description,p.unit,p.price,p.stock,p.published,p.updated
+ ), logged AS (
+  INSERT INTO commerce_product_audit(owner,product_id,actor_id,action,before_state,after_state)
+  SELECT before.owner,before.id,?,'updated',to_jsonb(before)::text,to_jsonb(changed)::text
+  FROM before JOIN changed ON changed.id=before.id
+  RETURNING product_id
+ )
+ SELECT product_id FROM logged`;
+ const row=await c.db.prepare(sql).bind(b.id,c.user.userId,b.expectedUpdated,String(b.name).trim(),b.description,String(b.unit).trim(),b.price,b.stock,b.published,now,c.user.userId).first();
+ return row?json({ok:true}):json({error:'Data produk telah berubah atau tidak ditemukan. Muat ulang daftar sebelum menyimpan.'},409);
  }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}}
