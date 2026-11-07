@@ -35,6 +35,8 @@ const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((
 const dashboardRouteIds = registry.enterpriseDashboards.flatMap((dashboard) =>
   dashboard.features.map((feature) => feature.id),
 );
+const expectedFeatureRouteIds = legacyRouteIds.filter((id) => id !== "laporan");
+const expectedAllRouteIds = [...legacyRouteIds, "monitoring"];
 
 test("each enterprise dashboard has its own stable overview route", () => {
   assert.deepEqual(
@@ -47,11 +49,12 @@ test("each enterprise dashboard has its own stable overview route", () => {
   }
 });
 
-test("all legacy dashboard routes are assigned exactly once", () => {
+test("legacy module routes and standalone shortcuts are assigned exactly once", () => {
   assert.equal(new Set(legacyRouteIds).size, legacyRouteIds.length);
   assert.equal(new Set(dashboardRouteIds).size, dashboardRouteIds.length);
-  assert.deepEqual([...dashboardRouteIds].sort(), ["administration", "commerce", "ecosystem", "finance", "management", "publication", "system"].sort());
-  assert.deepEqual([...registry.dashboardSectionIds].sort(), [...legacyRouteIds].sort());
+  assert.equal(new Set(registry.dashboardSectionIds).size, registry.dashboardSectionIds.length);
+  assert.deepEqual([...dashboardRouteIds].sort(), [...expectedFeatureRouteIds].sort());
+  assert.deepEqual([...registry.dashboardSectionIds].sort(), [...expectedAllRouteIds].sort());
 });
 
 test("the seven dashboards retain the requested functional grouping", () => {
@@ -94,7 +97,7 @@ test("administrator navigation retains every existing destination", () => {
     ),
     ...registry.getVisibleEnterpriseUtilities("admin").map((item) => item.id),
   ];
-  assert.deepEqual([...visible].sort(), [...legacyRouteIds].sort());
+  assert.deepEqual([...visible].sort(), [...expectedAllRouteIds].sort());
 });
 
 test("member navigation does not expose administration-only controls", () => {
