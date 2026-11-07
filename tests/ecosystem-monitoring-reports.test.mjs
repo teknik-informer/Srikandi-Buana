@@ -39,6 +39,8 @@ const principal = (role, overrides = {}) => ({
   ...overrides,
 });
 
+const plain = (value) => JSON.parse(JSON.stringify(value));
+
 const row = (id, kind, data = {}, created = "2026-11-07T00:00:00.000Z") => ({
   id,
   kind,
@@ -61,10 +63,10 @@ const records = [
 
 test("the report center exposes only report groups covered by the current role", () => {
   const memberGroups = reporting.getVisibleReportGroups(principal("anggota")).map((group) => group.id);
-  assert.deepEqual(memberGroups, ["operasional", "keanggotaan"]);
+  assert.deepEqual(plain(memberGroups), ["operasional", "keanggotaan"]);
 
   const coordinatorGroups = reporting.getVisibleReportGroups(principal("koordinator")).map((group) => group.id);
-  assert.deepEqual(coordinatorGroups, ["operasional"]);
+  assert.deepEqual(plain(coordinatorGroups), ["operasional"]);
 
   const financeGroups = reporting.getVisibleReportGroups(principal("bendahara")).map((group) => group.id);
   assert.ok(financeGroups.includes("keuangan"));
@@ -72,7 +74,7 @@ test("the report center exposes only report groups covered by the current role",
   assert.ok(!financeGroups.includes("keanggotaan"));
 
   const adminGroups = reporting.getVisibleReportGroups(principal("admin")).map((group) => group.id);
-  assert.deepEqual(adminGroups, [
+  assert.deepEqual(plain(adminGroups), [
     "operasional", "keanggotaan", "administrasi", "keuangan", "usaha", "publikasi",
   ]);
 });
@@ -80,17 +82,17 @@ test("the report center exposes only report groups covered by the current role",
 test("member reports contain only the member's own records and readable activities", () => {
   const user = principal("anggota");
   const membership = reporting.selectReportRows(records, user, "keanggotaan");
-  assert.deepEqual(membership.map((item) => item.id), ["member-1"]);
+  assert.deepEqual(plain(membership.map((item) => item.id)), ["member-1"]);
   const operations = reporting.selectReportRows(records, user, "operasional");
-  assert.deepEqual(operations.map((item) => item.id), ["activity-1"]);
+  assert.deepEqual(plain(operations.map((item) => item.id)), ["activity-1"]);
   assert.ok(!operations.some((item) => item.data.name === "Kegiatan internal"));
-  assert.deepEqual(reporting.selectReportRows(records, user, "keuangan"), []);
+  assert.deepEqual(plain(reporting.selectReportRows(records, user, "keuangan")), []);
 });
 
 test("coordinator report rows are limited to assigned program IDs", () => {
   const user = principal("koordinator");
   const tasks = reporting.selectReportRows(records, user, "operasional");
-  assert.deepEqual(tasks.map((item) => item.id), ["task-1"]);
+  assert.deepEqual(plain(tasks.map((item) => item.id)), ["task-1"]);
 });
 
 test("period filters use the activity or due date and keep all-period reports available", () => {
