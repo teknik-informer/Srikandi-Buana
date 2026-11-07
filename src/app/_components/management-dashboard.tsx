@@ -65,6 +65,7 @@ import {
   type Row,
 } from "@/lib/srikandi";
 import { canDiscardChanges, markFormSaved } from "@/lib/unsaved-changes";
+import { meetingActionSourceMarker, parseMeetingActions } from "@/lib/meeting-cycle";
 import { Progress } from "@/components/ui/progress";
 import { getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
 import {
@@ -239,14 +240,30 @@ export default function ManagementDashboard({
       return { event, attendance, presentCount: memberIds.length };
     });
   const meetingFollowups = view.rows
-    .filter((row) => row.kind === "musyawarah" && String(row.data.followup || "").trim())
+    .filter((row) => row.kind === "musyawarah" && parseMeetingActions(row.data.followup).length > 0)
     .map((row) => {
       const sourceMarker = "Sumber rapat: " + row.id;
-      const linkedTask = view.tasks.find((task) => String(task.data.notes || "").includes(sourceMarker));
-      return { row, linkedTask, sourceMarker };
+      const decisions = parseMeetingActions(row.data.followup);
+      const decisionTasks = decisions.map((decision, index) => {
+        const marker = meetingActionSourceMarker(row.id, index);
+        const task = view.tasks.find((item) => String(item.data.notes || "").includes(marker));
+        return { decision, marker, task };
+      });
+      const legacyTask = view.tasks.find((task) => {
+        const notes = String(task.data.notes || "");
+        return notes.includes(sourceMarker) && !notes.includes(sourceMarker + " · Keputusan ");
+      });
+      return {
+        row,
+        sourceMarker,
+        decisions,
+        decisionTasks,
+        legacyTask,
+        missingCount: legacyTask ? 0 : decisionTasks.filter((item) => !item.task).length,
+      };
     })
     .sort((a, b) => String(b.row.data.date || "").localeCompare(String(a.row.data.date || "")))
-    .slice(0, 5);
+    .slice(0, 8);
   const programReports = view.rows
     .filter((row) => row.kind === "laporan_program")
     .map((row) => {
@@ -281,29 +298,56 @@ export default function ManagementDashboard({
       setEditor(null);
     }
   }
-  async function createTaskFromMeeting(row: Row, sourceMarker: string) {
-    if (busy || meetingTaskLocks.current.has(row.id) || !canWriteKind(user, "tindaklanjut") || !canReadRecord(user, row)) return;
-    const followup = String(row.data.followup || "").trim();
-    if (!followup) return;
-    const linked = view.tasks.some((task) => String(task.data.notes || "").includes(sourceMarker));
-    if (linked) return;
+  async function createTaskFromMeeting(row: Row, decisions: string[]) {
+    if (
+      busy ||
+      meetingTaskLocks.current.has(row.id) ||
+      !canWriteKind(user, "tindaklanjut") ||
+      !canReadRecord(user, row) ||
+      !["Disepakati", "Ditindaklanjuti"].includes(String(row.data.status || ""))
+    ) return;
+    const actions = parseMeetingActions(decisions.join("\n"));
+    if (!actions.length) return;
+    const sourceMarker = "Sumber rapat: " + row.id;
+    const legacyTask = view.tasks.find((task) => {
+      const notes = String(task.data.notes || "");
+      return notes.includes(sourceMarker) && !notes.includes(sourceMarker + " · Keputusan ");
+    });
+    if (legacyTask) return;
     meetingTaskLocks.current.add(row.id);
+    const completedMarkers = new Set(
+      view.tasks
+        .map((task) => String(task.data.notes || ""))
+        .filter((notes) => notes.includes(sourceMarker)),
+    );
     try {
       const programId = String(row.data.programId || "");
-    await mutate("POST", {
-      kind: "tindaklanjut",
-      data: {
-        name: "Tindak lanjut rapat: " + String(row.data.name || "Rapat"),
-        period: "",
-        dueDate: "",
-        priority: "Normal",
-        pic: String(row.data.pic || ""),
-        status: "Belum dimulai",
-        evidence: followup,
-        notes: sourceMarker + " · Catatan sumber dipertahankan; tetapkan penanggung jawab dan tenggat melalui keputusan pengurus.",
-        ...( ["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(programId) ? { programId } : {}),
-      },
-      });
+      for (const [index, decision] of actions.entries()) {
+        const marker = meetingActionSourceMarker(row.id, index);
+        if ([...completedMarkers].some((notes) => notes.includes(marker))) continue;
+        const saved = await mutate("POST", {
+          kind: "tindaklanjut",
+          data: {
+            name: decision.slice(0, 200),
+            period: String(row.data.date || ""),
+            dueDate: "",
+            priority: "Normal",
+            pic: "",
+            status: "Belum dimulai",
+            evidence: "",
+            verification: "Belum diajukan",
+            completionEvidence: "",
+            meetingReviewStatus: "Belum dievaluasi",
+            meetingReviewMeeting: "",
+            meetingReviewDate: "",
+            meetingReviewNote: "",
+            notes: (marker + " · Rapat: " + String(row.data.name || "Rapat") + " · Keputusan: " + decision + " · PIC dan tenggat ditetapkan pengurus setelah keputusan disepakati.").slice(0, 5000),
+            ...( ["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(programId) ? { programId } : {}),
+          },
+        });
+        if (!saved) break;
+        completedMarkers.add(marker);
+      }
     } finally {
       meetingTaskLocks.current.delete(row.id);
     }
@@ -620,27 +664,63 @@ export default function ManagementDashboard({
       {meetingFollowups.length > 0 && (
         <section aria-labelledby="meeting-followups-title" className="space-y-3">
           <div className="space-y-1">
-            <h2 id="meeting-followups-title" className="text-base font-semibold">Hasil rapat yang perlu ditindaklanjuti</h2>
-            <p className="text-sm text-muted-foreground">Ubah catatan tindak lanjut menjadi draf tugas. Tenggat tidak dibuat otomatis; pengurus menetapkannya berdasarkan keputusan rapat.</p>
+            <h2 id="meeting-followups-title" className="text-base font-semibold">Keputusan rapat menjadi tugas</h2>
+            <p className="text-sm text-muted-foreground">Setiap baris keputusan menjadi satu draf tugas dengan tautan ke notulen asal. Pencatat notulen tidak otomatis menjadi pelaksana; PIC dan tenggat ditetapkan pengurus.</p>
           </div>
           <Card>
             <CardContent className="divide-y p-0">
-              {meetingFollowups.map(({ row, linkedTask, sourceMarker }) => (
-                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-sm font-medium">{String(row.data.name || "Rapat tanpa judul")}</p>
-                    <p className="text-xs text-muted-foreground">{dateID(String(row.data.date || ""))} · {String(row.data.followup || "")}</p>
-                    {linkedTask && <p className="text-xs text-muted-foreground">Tugas terkait: {String(linkedTask.data.name || "Tindak lanjut")} · {String(linkedTask.data.status || "Belum dimulai")}</p>}
+              {meetingFollowups.map(({ row, decisions, decisionTasks, legacyTask, missingCount }) => {
+                const agreed = ["Disepakati", "Ditindaklanjuti"].includes(String(row.data.status || ""));
+                return (
+                  <div key={row.id} className="space-y-3 px-4 py-4 sm:px-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium">{String(row.data.name || "Rapat tanpa judul")}</p>
+                          <StatusBadge value={String(row.data.status || "Rancangan")} />
+                          <Badge variant="outline">{decisions.length} keputusan</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{dateID(String(row.data.date || ""))} · {String(row.data.programId || "Lintas program")}</p>
+                        {!!String(row.data.decisionSummary || "").trim() && <p className="text-sm text-muted-foreground">{String(row.data.decisionSummary)}</p>}
+                      </div>
+                      {canWriteKind(user, "tindaklanjut") && canReadRecord(user, row) && missingCount > 0 && !legacyTask ? (
+                        <Button size="sm" variant="outline" disabled={busy || !agreed} onClick={() => void createTaskFromMeeting(row, decisions)}>
+                          {busy ? "Menyimpan…" : (decisions.length - missingCount) > 0 ? "Lanjutkan " + missingCount + " draf" : "Buat " + missingCount + " draf tugas"}
+                        </Button>
+                      ) : legacyTask ? (
+                        <Badge variant="secondary">Tugas gabungan lama · periksa dan pecah manual bila diperlukan</Badge>
+                      ) : missingCount === 0 ? (
+                        <Badge variant="secondary">Semua keputusan sudah memiliki tugas</Badge>
+                      ) : (
+                        <Badge variant="secondary">{agreed ? "Menunggu pengurus" : "Menunggu keputusan disepakati"}</Badge>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      {decisionTasks.map(({ decision, task }, index) => (
+                        <div key={index} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p className="text-sm">{index + 1}. {decision}</p>
+                            {task ? (
+                              <p className="text-xs text-muted-foreground">
+                                {String(task.data.status || "Belum dimulai")} · PIC: {String(task.data.pic || "Belum ditetapkan")} · Tenggat: {String(task.data.dueDate || "Belum ditetapkan")} · Evaluasi: {String(task.data.meetingReviewStatus || "Belum dievaluasi")}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Belum menjadi tugas</p>
+                            )}
+                          </div>
+                          {task && <Button size="sm" variant="outline" asChild><Link href={recordHref(task)}>Buka tugas</Link></Button>}
+                        </div>
+                      ))}
+                    </div>
+                    {legacyTask && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                        <p className="text-sm">Tugas gabungan dari alur lama: {String(legacyTask.data.name || "Tindak lanjut rapat")}</p>
+                        <Button size="sm" variant="outline" asChild><Link href={recordHref(legacyTask)}>Buka tugas</Link></Button>
+                      </div>
+                    )}
                   </div>
-                  {linkedTask ? (
-                    <Button size="sm" variant="outline" asChild><Link href={recordHref(linkedTask)}>Buka tugas <ArrowUpRight className="size-3.5" /></Link></Button>
-                  ) : canWriteKind(user, "tindaklanjut") && canReadRecord(user, row) ? (
-                    <Button size="sm" variant="outline" disabled={busy} onClick={() => void createTaskFromMeeting(row, sourceMarker)}>Buat draf tugas</Button>
-                  ) : (
-                    <Badge variant="secondary">Menunggu pengurus</Badge>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </section>
