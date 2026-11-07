@@ -55,7 +55,7 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
-  const active = enterpriseDashboards.find((dashboard) => dashboard.features.some((feature) => feature.id === section));
+  const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
   const [expanded, setExpanded] = useState(active?.id || ""),
     [query, setQuery] = useState("");
   useEffect(() => {
@@ -145,6 +145,18 @@ export default function DashboardNavigation({ section, user }: { section: string
                   </SidebarMenuButton>
                   {shown && (state !== "collapsed" || isMobile) && (
                     <SidebarMenuSub id={"dashboard-category-" + group.id}>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={section === group.id}>
+                          <Link
+                            href={group.href}
+                            onClick={() => setOpenMobile(false)}
+                            aria-current={section === group.id ? "page" : undefined}
+                          >
+                            <span className="dashboard-sub-dot" />
+                            <span>Ikhtisar {group.label}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                       {group.items.map((item) => (
                         <SidebarMenuSubItem key={item.id}>
                           <SidebarMenuSubButton asChild isActive={section === item.id}>
@@ -273,7 +285,9 @@ export function DashboardMegaMenu({
           <div className="dashboard-mega-grid">
             {groups.map((g) => (
               <section key={g.id}>
-                <h3>{g.label}</h3>
+                <h3>
+                  <Link href={g.href} onClick={() => setOpen(false)}>{g.label}</Link>
+                </h3>
                 <p>{g.description}</p>
                 {g.items.map((item) => (
                   <Link
