@@ -1,4 +1,4 @@
-import { canReadSection, type Principal } from "./permissions";
+import { canReadKind, canReadSection, type Principal } from "./permissions";
 import {
   buildManagementInsights,
   taskIsOpen,
@@ -144,11 +144,11 @@ export function buildEnterpriseMonitoring(
       canReadSection(user, "tindaklanjut") ||
       canReadSection(user, "program") ? operational : null,
     membership: canReadSection(user, "anggota") ? membership : null,
-    administration: ["register", "kelembagaan", "transkripsi", "dokumen"].some((kind) => canReadSection(user, kind))
+    administration: ["register", "kelembagaan", "transkripsi", "dokumen"].some((kind) => canReadKind(user, kind))
       ? administration
       : null,
     finance,
-    business: ["aset", "lotkopi", "usaha", "kemitraan"].some((kind) => canReadSection(user, kind))
+    business: ["aset", "lotkopi", "usaha", "kemitraan"].some((kind) => canReadKind(user, kind))
       ? business
       : null,
     publication: ["publikasi", "galeri"].some((kind) => canReadSection(user, kind))
