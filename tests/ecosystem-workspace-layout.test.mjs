@@ -183,3 +183,16 @@ test("chair task management preserves the follow-up record deletion boundary", (
   assert.ok(api.includes("Ketua dapat memperbarui status tugas, tetapi tidak menghapus riwayat tindak lanjut."));
   assert.ok(workspace.includes('user.role !== "ketua" &&'));
 });
+
+
+test("chair records decisions through the task workspace rather than a context-free dashboard shortcut", () => {
+  const dashboard = read("src/app/_components/management-dashboard.tsx");
+  const workspace = read("src/app/_components/access/role-workspace.tsx");
+  const policy = read("src/features/identity/access-policy.ts");
+  assert.ok(dashboard.includes('user.role !== "ketua"'));
+  assert.ok(dashboard.includes("createTaskFromProgramReport"));
+  assert.ok(policy.includes("if(u.role==='ketua')return kind==='tindaklanjut'"));
+  assert.ok(workspace.includes('field.key === "notes") return { ...field, label: "Keputusan Ketua / perkembangan" }'));
+  assert.ok(workspace.includes('field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan" }'));
+  assert.ok(workspace.includes('field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan" }'));
+});
