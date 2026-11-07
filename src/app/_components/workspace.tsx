@@ -1125,7 +1125,13 @@ export default function Workspace({
                           )}
                         >
                           {(editor.kind === "tindaklanjut" && f.key === "verification" && !["admin", "ketua"].includes(principal.role) ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
-                            <NativeSelectOption key={o}>{o}</NativeSelectOption>
+                            <NativeSelectOption key={o}>
+                              {f.key === "programId"
+                                ? o
+                                  ? o + " · " + (programs.find((program) => program.id === o)?.name || "Program")
+                                  : "Tidak dihubungkan ke program"
+                                : o}
+                            </NativeSelectOption>
                           ))}
                         </NativeSelect>
                       ) : f.type === "textarea" ? (
