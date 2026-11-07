@@ -10,9 +10,9 @@ export type MeetingReviewStatus = (typeof meetingReviewStatuses)[number];
 
 export function parseMeetingActions(value: unknown): string[] {
   return String(value || "")
-    .split(/\\r?\\n/)
+    .split("\n")
     .map((line) => line
-      .replace(/^\\s*(?:[-*•]|\\d+[.)])\\s*/, "")
+      .replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "")
       .trim()
       .slice(0, 500))
     .filter(Boolean)
@@ -61,7 +61,7 @@ export function meetingReviewError(input: {
   }
   if (next.status !== "Belum dievaluasi") {
     if (!next.meeting) return "Isi judul atau nomor rapat yang melakukan evaluasi.";
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(next.date)) return "Isi tanggal rapat evaluasi.";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(next.date)) return "Isi tanggal rapat evaluasi.";
     if (!next.note) return "Catat hasil evaluasi dan alasan keputusan.";
   }
   return null;
