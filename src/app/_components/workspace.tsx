@@ -277,6 +277,7 @@ export default function Workspace({
       pesan: "Pesan pengunjung",
       kehadiran: "Kehadiran",
       laporan: "Laporan Kas",
+      monitoring: "Monitoring Operasional",
       pengaturan: "Pengaturan situs",
       sumber: "Referensi Dokumen",
       panduan: "Pusat bantuan",
@@ -418,6 +419,8 @@ export default function Workspace({
               {
                 ringkasan:
                   "Pusat kendali untuk memantau kegiatan, tugas, keanggotaan, dan kondisi operasional sesuai hak akses.",
+                monitoring:
+                  "Pantau perkembangan tugas, agenda, tenggat waktu, kualitas data, dan kondisi operasional sesuai lingkup akses Anda.",
                 program:
                   "Sembilan prioritas, satu arah: tumbuh dan berdaya bersama.",
                 dokumen:
@@ -491,7 +494,7 @@ export default function Workspace({
             </AlertDescription>
           </Alert>
         )}
-        {section === "ringkasan" && (
+        {["ringkasan", "monitoring"].includes(section) && (
           <ManagementDashboard
             rows={rows}
             files={files}
@@ -500,6 +503,7 @@ export default function Workspace({
             error={error}
             onSaved={load}
             audit={audit}
+            mode={section === "monitoring" ? "monitoring" : "overview"}
           />
         )}
         {section === "galeri" && (
