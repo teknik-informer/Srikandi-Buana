@@ -173,7 +173,11 @@ export default function RoleWorkspace({
           },
         ]
       : editor
-        ? modules[editor.kind]?.fields
+        ? modules[editor.kind]?.fields.map((field) =>
+            field.key === "programId" && user.role === "koordinator"
+              ? { ...field, options: field.options?.filter((option) => user.programIds.includes(option)) }
+              : field,
+          )
         : [];
   function exportCSV() {
     if (!module) return;
