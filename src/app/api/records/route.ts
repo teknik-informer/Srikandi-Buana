@@ -89,6 +89,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
    data.notes=(existingReference.marker+" "+remainder).slice(0,5000);
    data.name=sourceDecision;
    data.programId=String(sourceData.programId||previousTaskData.programId||"");
+   if(!canWriteRecord(c.user!,{id:String(id),kind:body.kind,data}))return json({error:"Penugasan sumber berada di luar lingkup akses Anda."},403);
   }
   const meetingReference=!edit?parseMeetingTaskReference(data.notes):null;
   if(meetingReference){
@@ -99,7 +100,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
    const sourceDecisions=parseMeetingActions(meetingData.followup);
    const sourceDecision=sourceDecisions[meetingReference.decisionNumber-1];
    if(!sourceDecision||sourceDecision!==String(data.name||"").trim())return json({error:"Isi tugas tidak cocok dengan butir keputusan pada notulen sumber."},400);
-   if(meetingData.programId&&String(data.programId||"")!==String(meetingData.programId))return json({error:"Program tugas harus sama dengan program pada notulen sumber."},403);
+   if(String(data.programId||"")!==String(meetingData.programId||""))return json({error:"Program tugas harus sama dengan program pada notulen sumber."},403);
    const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='tindaklanjut' AND data LIKE ? LIMIT 1").bind(c.user!.userId,"%"+meetingReference.marker+"%").first();
    if(duplicate)return json({error:"Keputusan rapat ini sudah memiliki tugas. Muat ulang daftar sebelum melanjutkan."},409);
   }
@@ -135,6 +136,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
    const linked=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='tindaklanjut' AND data LIKE ? LIMIT 1").bind(c.user!.userId,"%Sumber rapat: "+id+"%").first();
    if(linked){
     if(!decisionsPreserveExistingOrder(previousRecordData.followup,data.followup))return json({error:"Daftar keputusan sudah memiliki tugas terkait. Jangan mengubah atau mengurutkan ulang keputusan yang sudah ditugaskan; tambahkan butir baru di bagian akhir."},409);
+    if(String(previousRecordData.programId||"")!==String(data.programId||""))return json({error:"Program notulen tidak dapat dipindahkan setelah keputusan memiliki tugas terkait."},409);
     if(data.status==="Rancangan")return json({error:"Notulen yang sudah menjadi sumber tugas tidak dapat dikembalikan menjadi Rancangan. Gunakan status Ditindaklanjuti atau Dievaluasi."},409);
    }
   }
