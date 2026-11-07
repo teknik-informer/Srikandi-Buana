@@ -61,7 +61,7 @@ test("the seven dashboards retain the requested functional grouping", () => {
   const featureIds = (id) => Array.from(registry.enterpriseDashboards.find((dashboard) => dashboard.id === id).features, (feature) => feature.id);
   assert.deepEqual(featureIds("ecosystem"), ["portal", "notifikasi"]);
   assert.deepEqual(featureIds("management"), ["program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah", "pengajuan", "enterprise"]);
-  assert.deepEqual(featureIds("administration"), ["anggota", "pengurus", "persetujuan", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"]);
+  assert.deepEqual(featureIds("administration"), ["anggota", "pengurus", "persetujuan", "register", "surat", "sumber", "kelembagaan", "transkripsi", "dokumen"]);
   assert.deepEqual(featureIds("finance"), ["kas", "akuntansi", "aset"]);
   assert.deepEqual(featureIds("commerce"), ["penjualan", "lotkopi", "usaha", "kemitraan"]);
   assert.deepEqual(featureIds("publication"), ["publikasi", "galeri", "pesan"]);
