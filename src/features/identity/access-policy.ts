@@ -24,7 +24,7 @@ export function visibleRecord(u:Principal,r:AccessRecord){if(u.role!=='anggota')
 export function canReadSectionForRole(role:Role,id:string){
  if(['notifikasi','penjualan'].includes(id))return true;
  if(id==='akuntansi')return ['admin','ketua','bendahara'].includes(role);
- if(['ringkasan','akun-saya','portal','pengajuan'].includes(id))return true;
+ if(['ringkasan','akun-saya','portal','pengajuan','monitoring'].includes(id))return true;
  if(role==='admin')return true;
  if(id==='enterprise')return ['ketua','sekretaris','bendahara'].includes(role);
  if(id==='dokumen')return ['sekretaris','bendahara','koordinator'].includes(role);
