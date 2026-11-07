@@ -54,7 +54,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Attendance from "../attendance";
 import FileManager from "../file-manager";
-import Reports from "../reports";
+import EnterpriseReports from "../enterprise-reports";
+import EnterpriseMonitoring from "../enterprise-monitoring";
 import WorkspaceShell from "../workspace-shell";
 import MyAccount from "./my-account";
 import ManagementDashboard from "../management-dashboard";
@@ -103,7 +104,7 @@ export default function RoleWorkspace({
             : section === "kehadiran"
               ? "Kehadiran"
               : section === "laporan"
-                ? "Laporan Kas"
+                ? "Laporan"
                 : section === "monitoring"
                   ? "Monitoring Operasional"
                   : section === "dokumen"
@@ -289,7 +290,7 @@ export default function RoleWorkspace({
           </Alert>
         )}
         {loading && !["ringkasan", "monitoring"].includes(section) && <Skeleton className="h-20 w-full" />}
-        {["ringkasan", "monitoring"].includes(section) && (
+        {section === "ringkasan" && (
           <ManagementDashboard
             rows={rows}
             files={files}
@@ -297,11 +298,22 @@ export default function RoleWorkspace({
             loading={loading}
             error={error}
             onSaved={load}
-            mode={section === "monitoring" ? "monitoring" : "overview"}
+          />
+        )}
+        {section === "monitoring" && (
+          <EnterpriseMonitoring
+            rows={rows}
+            files={files}
+            user={user}
+            loading={loading}
+            error={error}
+            onRefresh={() => void load()}
           />
         )}
         {section === "akun-saya" && <MyAccount />}
-        {section === "laporan" && !loading && !error && <Reports rows={rows} />}
+        {section === "laporan" && !loading && !error && (
+          <EnterpriseReports rows={rows} user={user} />
+        )}
         {section === "kehadiran" && user.role === "sekretaris" && (
           <Attendance rows={rows} onSaved={load} />
         )}
