@@ -153,6 +153,64 @@ export default function ManagementDashboard({
         String(issue.row.data.name || ""),
     ),
   );
+
+  type ActionItem = {
+    id: string;
+    row: Row;
+    title: string;
+    detail: string;
+    area: string;
+    urgency: number;
+    label: string;
+  };
+  const actionArea = (kind: string) =>
+    ["program", "tindaklanjut", "kegiatan", "musyawarah", "kehadiran"].includes(kind)
+      ? "Manajemen"
+      : ["anggota", "pengurus", "persetujuan", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"].includes(kind)
+        ? "Administrasi"
+        : ["kas", "akuntansi", "aset"].includes(kind)
+          ? "Keuangan"
+          : ["penjualan", "lotkopi", "usaha", "kemitraan"].includes(kind)
+            ? "E-Commerce"
+            : ["publikasi", "galeri", "pesan"].includes(kind)
+              ? "Publikasi"
+              : "Ekosistem";
+  const actionByRecord = new Map<string, ActionItem>();
+  const addAction = (item: ActionItem) => {
+    const current = actionByRecord.get(item.row.id);
+    if (!current || item.urgency < current.urgency) actionByRecord.set(item.row.id, item);
+  };
+  view.overdue.filter((row) => matches(String(row.data.name || ""))).forEach((row) =>
+    addAction({
+      id: "overdue-" + row.id, row, title: "Tugas melewati tenggat",
+      detail: dateID(String(row.data.dueDate)) + " · " + String(row.data.pic || "Penanggung jawab belum ditetapkan"),
+      area: "Manajemen", urgency: 0, label: "Tinjau tugas",
+    }),
+  );
+  view.dueToday.filter((row) => matches(String(row.data.name || ""))).forEach((row) =>
+    addAction({
+      id: "today-" + row.id, row, title: "Tugas jatuh tempo hari ini",
+      detail: String(row.data.pic || "Penanggung jawab belum ditetapkan"),
+      area: "Manajemen", urgency: 1, label: "Perbarui tugas",
+    }),
+  );
+  issues.forEach((issue) =>
+    addAction({
+      id: issue.id, row: issue.row, title: issue.title, detail: issue.detail,
+      area: actionArea(issue.row.kind), urgency: issue.severity === "warning" ? 2 : 3,
+      label: "Periksa catatan",
+    }),
+  );
+  filterAgenda(view.agenda, view.today, 7).forEach((item) =>
+    addAction({
+      id: item.id, row: item.row, title: item.type === "Kegiatan" ? "Persiapan kegiatan terdekat" : "Tenggat tugas mendatang",
+      detail: dateID(item.date) + " · " + String(item.row.data.location || item.row.data.pic || "Periksa kesiapan"),
+      area: actionArea(item.row.kind), urgency: 4, label: "Buka catatan",
+    }),
+  );
+  const actionItems = [...actionByRecord.values()]
+    .sort((a, b) => a.urgency - b.urgency || a.id.localeCompare(b.id))
+    .slice(0, 8);
   const completed = view.tasks.filter(
     (row) => taskStatus(row) === "Selesai",
   ).length;
@@ -343,6 +401,79 @@ export default function ManagementDashboard({
         </div>
       </section>
       )}
+      <section aria-labelledby="action-center-title" className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="action-center-title" className="text-base font-semibold">Pusat Tindakan</h2>
+              <Badge variant={actionItems.some((item) => item.urgency <= 1) ? "destructive" : "secondary"}>
+                {actionItems.length} tindak lanjut
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Pekerjaan lintas modul yang perlu diselesaikan, diurutkan dari tenggat dan temuan data. Hanya catatan dalam hak akses Anda yang ditampilkan.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {taskAccess && (
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/dashboard/tindaklanjut">Semua tugas <ArrowUpRight className="size-3.5" /></Link>
+              </Button>
+            )}
+            {qualityAccess && (
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/dashboard/monitoring">Monitoring <ArrowUpRight className="size-3.5" /></Link>
+              </Button>
+            )}
+          </div>
+        </div>
+        <Card>
+          <CardContent className="divide-y p-0">
+            {actionItems.map((item) => (
+              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <span className="mt-0.5 rounded-lg border p-2 text-muted-foreground" aria-hidden="true">
+                    {item.urgency <= 1 ? <CalendarDays className="size-4" /> : <FileCheck2 className="size-4" />}
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium break-words">{item.title}</p>
+                      <Badge variant="outline">{item.area}</Badge>
+                      {item.urgency === 0 && <Badge variant="destructive">Terlambat</Badge>}
+                      {item.urgency === 1 && <Badge variant="secondary">Hari ini</Badge>}
+                    </div>
+                    <p className="text-sm text-muted-foreground break-words">{String(item.row.data.name || modules[item.row.kind]?.title || "Catatan")} · {item.detail}</p>
+                  </div>
+                </div>
+                {item.row.kind === "tindaklanjut" && canWriteRecord(user, item.row) ? (
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => openEditor(item.row)}>
+                    {item.label}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={recordHref(item.row)}>{item.label}</Link>
+                  </Button>
+                )}
+              </div>
+            ))}
+            {!actionItems.length && (
+              <div className="flex flex-col items-start gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium">Tidak ada tindak lanjut yang terdeteksi saat ini.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Ini berarti tidak ada tenggat dekat atau temuan dari aturan pemeriksaan pada data yang dapat Anda akses, bukan jaminan bahwa seluruh pekerjaan sudah selesai.
+                  </p>
+                </div>
+                {canCreate && (
+                  <Button size="sm" onClick={() => openEditor("new")}>
+                    <Plus data-icon="inline-start" /> Tambah tugas
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
       {mutationError && !editor && (
         <Alert variant="destructive">
           <AlertTitle>Perubahan belum selesai</AlertTitle>
