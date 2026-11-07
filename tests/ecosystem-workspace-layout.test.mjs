@@ -132,3 +132,18 @@ test("secretariat correspondence workflow is available only to authorized roles 
   assert.ok(api.includes("const module=modules[kind]"));
   assert.ok(api.includes("canWriteRecord(c.user!"));
 });
+
+
+test("financial operation fulfillment exposes strict cash reconciliation and linked ledger reference", () => {
+  const workspace = read("src/app/_components/enterprise-workspace.tsx");
+  const api = read("src/app/api/operations/route.ts");
+  assert.ok(workspace.includes("cash_record_id?'Transaksi Buku Kas sudah tertaut':'Belum ada transaksi Buku Kas tertaut'"));
+  assert.ok(workspace.includes("Pencocokan Buku Kas"));
+  assert.ok(workspace.includes("money(c.amount)"));
+  assert.ok(workspace.includes("Referensi: {detail.item.cash_record_id}"));
+  assert.ok(api.includes("c.data::jsonb->>'type'='Pengeluaran'"));
+  assert.ok(api.includes("c.data::jsonb->>'amount'=?"));
+  assert.ok(api.includes("c.data::jsonb->>'fund'=?"));
+  assert.ok(api.includes("f.deleted_at IS NULL"));
+  assert.ok(api.includes("cash_record_id:cashId"));
+});
