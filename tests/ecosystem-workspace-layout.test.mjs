@@ -57,3 +57,16 @@ test("specialized monitoring and report pages render only their own page heading
   assert.ok(monitoring.includes('<WorkspacePageHeader'));
   assert.ok(reports.includes('<h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Laporan</h1>'));
 });
+
+test("Pusat Kendali provides a role-scoped action queue from real operational records", () => {
+  const dashboard = read("src/app/_components/management-dashboard.tsx");
+  assert.ok(dashboard.includes('aria-labelledby="action-center-title"'));
+  assert.ok(dashboard.includes("Pusat Tindakan"));
+  assert.ok(dashboard.includes("view.overdue"));
+  assert.ok(dashboard.includes("view.dueToday"));
+  assert.ok(dashboard.includes("filterAgenda(view.agenda, view.today, 7)"));
+  assert.ok(dashboard.includes("issues.forEach"));
+  assert.ok(dashboard.includes("canWriteRecord(user, item.row)"));
+  assert.ok(dashboard.includes("recordHref(item.row)"));
+  assert.ok(dashboard.includes("bukan jaminan bahwa seluruh pekerjaan sudah selesai"));
+});
