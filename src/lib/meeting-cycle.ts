@@ -20,7 +20,7 @@ export function parseMeetingActions(value: unknown): string[] {
 }
 
 export function meetingActionSourceMarker(meetingId: string, index: number): string {
-  return "Sumber rapat: " + meetingId + " · Keputusan " + (index + 1);
+  return "Sumber rapat: " + meetingId + " · Keputusan #" + (index + 1) + ":";
 }
 
 export function meetingReviewError(input: {
