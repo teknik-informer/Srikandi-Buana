@@ -1118,6 +1118,11 @@ export default function Workspace({
                         <NativeSelect
                           id={f.key}
                           name={f.key}
+                          disabled={
+                            editor.kind === "tindaklanjut" &&
+                            ["verification", "meetingReviewStatus"].includes(f.key) &&
+                            !["admin", "ketua"].includes(principal.role)
+                          }
                           defaultValue={String(
                             editor.row?.data[f.key] ??
                               editor.initial?.[f.key] ??
@@ -1146,7 +1151,20 @@ export default function Workspace({
                           required={f.required}
                           maxLength={5000}
                           rows={3}
-                          disabled={f.key === "reviewNote" && !["admin", "ketua"].includes(principal.role)}
+                          placeholder={
+                            f.key === "followup"
+                              ? "Satu keputusan/tindakan per baris. Contoh: Tetapkan jadwal pelatihan anggota."
+                              : f.key === "agendaPoints"
+                                ? "Tuliskan pokok agenda, satu butir per baris."
+                                : f.key === "reviewSummary"
+                                  ? "Apa yang berhasil, belum terlaksana, kendala, dan keputusan perbaikannya?"
+                                  : undefined
+                          }
+                          disabled={
+                            editor.kind === "tindaklanjut" &&
+                            ["reviewNote", "meetingReviewNote"].includes(f.key) &&
+                            !["admin", "ketua"].includes(principal.role)
+                          }
                         />
                       ) : (
                         <Input
