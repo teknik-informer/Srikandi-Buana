@@ -9,13 +9,13 @@ const labels={
  tindaklanjut:'Tugas dan Tindak Lanjut', kegiatan:'Agenda Kegiatan', kas:'Buku Kas', usaha:'Perencanaan Usaha',
  aset:'Inventaris Aset', lotkopi:'Penerimaan Kopi', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
  register:'Register Dokumen', transkripsi:'Verifikasi Informasi', publikasi:'Manajemen Konten',galeri:'Galeri Foto',
- portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional',laporan:'Laporan Kas'
+ portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional',laporan:'Laporan Kas',surat:'Surat Masuk dan Keluar',laporan_program:'Laporan Perkembangan Program'
 };
 test('Nama halaman utama konsisten dengan fungsinya',()=>{
  for(const [id,label] of Object.entries(labels))assert.equal(navLabels.get(id),label,`label untuk ${id}`);
 });
 test('Nama modul database cocok dengan menu pengguna',()=>{
- for(const id of ['anggota','pengurus','musyawarah','persetujuan','tindaklanjut','kegiatan','kas','usaha','aset','lotkopi','kelembagaan','register','transkripsi','publikasi','galeri']){
+ for(const id of ['anggota','pengurus','musyawarah','persetujuan','tindaklanjut','kegiatan','kas','usaha','aset','lotkopi','kelembagaan','register','transkripsi','publikasi','galeri','surat','laporan_program']){
  const found=mods.match(new RegExp(String.raw`\b${id}:\{title:"([^"]+)"`));assert.ok(found,id);assert.equal(found[1],labels[id],id);
  }
 });
@@ -27,5 +27,5 @@ test('Tidak mengubah nilai status yang disimpan pada database',()=>{
  for(const s of ['Draf','Terbit','Pemasukan','Pengeluaran','Perlu verifikasi','Disepakati'])assert.ok(mods.includes(`"${s}"`),s);
 });
 test('Menu publik tidak terpengaruh dan tidak ada menu tanpa endpoint',()=>{
- const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,32); // 29 existing destinations + 3 new ecosystem destinations
+ const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,34); // 29 existing + 3 ecosystem + 2 operational workflow destinations
 });
