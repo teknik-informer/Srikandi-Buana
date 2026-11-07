@@ -117,8 +117,11 @@ export default function ManagementDashboard({
   const view = buildManagementInsights(rows, files, user, now);
   const taskAccess = canReadSection(user, "tindaklanjut");
   const visibleDashboards = getVisibleEnterpriseDashboards(user.role);
+  // The chair creates tasks from a reviewed meeting/program report or in the
+  // dedicated task workspace, not from a context-free dashboard shortcut.
   const canCreate =
     canWriteKind(user, "tindaklanjut") &&
+    user.role !== "ketua" &&
     (user.role !== "koordinator" || user.programIds.length > 0);
   const qualityAccess = user.role !== "anggota";
   const matches = (text: string) =>
