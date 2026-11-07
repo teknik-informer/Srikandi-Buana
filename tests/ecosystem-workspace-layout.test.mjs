@@ -158,12 +158,15 @@ test("coordinator program reports are scoped, visible to leadership, and promote
   const reporting = read("src/lib/enterprise-reporting.ts");
   const memberWorkspace = read("src/app/_components/access/role-workspace.tsx");
   assert.ok(schema.includes('laporan_program:{title:"Laporan Perkembangan Program"'));
-  for (const field of ["programId", "date", "progress", "blockers", "supportNeeded", "nextSteps", "attachmentId"]) assert.ok(schema.includes('key:"' + field + '"'));
+  for (const field of ["programId", "date", "target", "achievement", "progress", "evaluation", "blockers", "supportNeeded", "nextSteps", "attachmentId"]) assert.ok(schema.includes('key:"' + field + '"'));
   assert.ok(policy.includes("'tindaklanjut','laporan_program']"));
   assert.ok(policy.includes("kind==='laporan_program'"));
   assert.ok(navigation.includes("admin('laporan_program','Laporan Perkembangan Program'"));
   assert.ok(dashboard.includes('row.kind === "laporan_program"'));
   assert.ok(dashboard.includes("createTaskFromProgramReport"));
+  assert.ok(dashboard.includes('target ? "Target: "'));
+  assert.ok(dashboard.includes('achievement ? "Capaian: "'));
+  assert.ok(dashboard.includes('evaluation ? "Evaluasi: "'));
   assert.ok(dashboard.includes('const sourceMarker = "Sumber laporan program: " + row.id'));
   assert.ok(dashboard.includes('dueDate: ""'));
   assert.ok(dashboard.includes("Buat draf tindak lanjut"));
