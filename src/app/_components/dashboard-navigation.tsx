@@ -23,12 +23,14 @@ import {
 } from "@/components/ui/sidebar";
 import { navigationMatches } from "@/lib/navigation-config";
 import { roles, type Principal } from "@/lib/permissions";
-import { enterpriseDashboards, getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
+import { enterpriseDashboards, getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
+  Activity,
   ArrowUpRight,
   BriefcaseBusiness,
   ChevronDown,
   Files,
+  FileText,
   Grid2X2,
   LayoutDashboard,
   MessagesSquare,
@@ -65,6 +67,8 @@ export default function DashboardNavigation({ section, user }: { section: string
   const groups = getVisibleEnterpriseDashboards(user.role)
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
+  const utilities = getVisibleEnterpriseUtilities(user.role)
+    .filter((item) => navigationMatches(item, query));
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
       setOpen(true);
@@ -100,6 +104,19 @@ export default function DashboardNavigation({ section, user }: { section: string
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {utilities.map((item) => {
+              const Icon = item.id === "monitoring" ? Activity : FileText;
+              return (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton asChild isActive={section === item.id} tooltip={item.label}>
+                    <Link href={item.href} onClick={() => setOpenMobile(false)} aria-current={section === item.id ? "page" : undefined}>
+                      <Icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup className="dashboard-menu-search">
@@ -122,7 +139,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>TUJUH DASHBOARD</SidebarGroupLabel>
+          <SidebarGroupLabel>RUANG KERJA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -247,6 +264,8 @@ export function DashboardMegaMenu({
   const groups = getVisibleEnterpriseDashboards(user.role)
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
+  const utilities = getVisibleEnterpriseUtilities(user.role)
+    .filter((item) => navigationMatches(item, query));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button
@@ -268,9 +287,9 @@ export function DashboardMegaMenu({
           <DialogClose className="dashboard-mega-close" aria-label="Tutup menu aplikasi">
             <X size={18} />
           </DialogClose>
-          <DialogTitle>Tujuh dashboard, satu ekosistem.</DialogTitle>
+          <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih kategori atau cari fitur untuk langsung membuka halaman yang Anda perlukan.
+            Pilih ruang kerja atau buka pintasan monitoring dan laporan sesuai kewenangan akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -282,6 +301,26 @@ export function DashboardMegaMenu({
               placeholder="Cari anggota, kas, dokumen, publikasi…"
             />
           </div>
+          {utilities.length > 0 && (
+            <section className="dashboard-mega-shortcuts" aria-label="Akses cepat">
+              <p>AKSES CEPAT</p>
+              <div>
+                {utilities.map((item) => {
+                  const Icon = item.id === "monitoring" ? Activity : FileText;
+                  return (
+                    <Link href={item.href} key={item.id} onClick={() => setOpen(false)} aria-current={section === item.id ? "page" : undefined}>
+                      <Icon size={17} aria-hidden="true" />
+                      <span>
+                        <strong>{item.label}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                      <ArrowUpRight size={14} />
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
           <div className="dashboard-mega-grid">
             {groups.map((g) => (
               <section key={g.id}>
