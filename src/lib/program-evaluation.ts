@@ -15,6 +15,7 @@ export type ProgramEvaluation = {
   target: string;
   achievement: string;
   openTasks: Row[];
+  programTasks: Row[];
   tasksWithoutPic: number;
   tasksWithoutDueDate: number;
   tasksAwaitingVerification: number;
@@ -54,7 +55,7 @@ function reportBeforeMonthEnd(row: Row, month: string): boolean {
 }
 
 function normalize(value: unknown): string {
-  return String(value || "").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+  return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
 }
 
 export function buildProgramEvaluations(
@@ -114,6 +115,7 @@ export function buildProgramEvaluations(
       target: String(latest?.data.target || ""),
       achievement: String(latest?.data.achievement || ""),
       openTasks,
+      programTasks: tasks.filter((row) => String(row.data.programId || "") === program.id),
       tasksWithoutPic: openTasks.filter((row) => !String(row.data.pic || "").trim()).length,
       tasksWithoutDueDate: openTasks.filter((row) => !validDate(row.data.dueDate)).length,
       tasksAwaitingVerification: tasks.filter(
@@ -143,14 +145,24 @@ export function buildMeetingPriorities(
         programId: item.programId,
         programName: item.programName,
         title: "Minta laporan dasar program",
-        detail: "Belum ada laporan perkembangan yang dapat ditinjau" +
-          (item.reportCount ? " sampai periode yang dipilih." : "."),
+        detail: "Belum ada laporan perkembangan yang dapat ditinjau.",
         source: null,
         task: null,
         priority: "Normal",
         reason: "Informasi belum tersedia; jangan menyimpulkan program tidak berjalan.",
       });
-      continue;
+    } else if (!item.hasReportInPeriod) {
+      priorities.push({
+        id: report.id + ":period-report",
+        programId: item.programId,
+        programName: item.programName,
+        title: "Minta pembaruan untuk periode terpilih",
+        detail: "Laporan terakhir tercatat pada " + recordDate(report) + ".",
+        source: report,
+        task: null,
+        priority: "Normal",
+        reason: "Belum ada laporan dalam periode yang dipilih; kondisi terbaru perlu dikonfirmasi.",
+      });
     }
     if (item.blocked) {
       priorities.push({
@@ -218,7 +230,7 @@ export function buildMeetingPriorities(
         });
       }
     }
-    for (const task of item.openTasks.filter((row) => row.data.verification === "Perlu perbaikan")) {
+    for (const task of item.programTasks.filter((row) => row.data.verification === "Perlu perbaikan")) {
       priorities.push({
         id: task.id + ":correction",
         programId: item.programId,
@@ -231,7 +243,7 @@ export function buildMeetingPriorities(
         reason: "Tetapkan tindakan koreksi dan bukti yang perlu dilengkapi.",
       });
     }
-    for (const task of item.openTasks.filter((row) => row.data.status === "Selesai" && row.data.verification === "Menunggu verifikasi")) {
+    for (const task of item.programTasks.filter((row) => row.data.status === "Selesai" && row.data.verification === "Menunggu verifikasi")) {
       priorities.push({
         id: task.id + ":verification",
         programId: item.programId,
