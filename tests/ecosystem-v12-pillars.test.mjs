@@ -143,7 +143,8 @@ test("Pusat Kendali is the authenticated dashboard landing page for every role",
   assert.ok(route.includes("dashboardSectionIds"));
   assert.match(workspace, /section === "monitoring"/);
   assert.match(memberWorkspace, /section === "monitoring"/);
-  assert.match(memberWorkspace, /mode=\{section === "monitoring" \? "monitoring" : "overview"\}/);
+  assert.match(workspace, /<EnterpriseMonitoring/);
+  assert.match(memberWorkspace, /<EnterpriseMonitoring/);
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
   assert.ok(overview.includes("dashboard.features.map"));
   assert.ok(overview.includes("feature.href"));
