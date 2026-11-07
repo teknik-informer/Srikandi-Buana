@@ -21,11 +21,12 @@ function loadModule(entryPoint) {
   });
 }
 
-const [reporting, monitoring, permissions, verification] = await Promise.all([
+const [reporting, monitoring, permissions, verification, programEvaluation] = await Promise.all([
   loadModule("src/lib/enterprise-reporting.ts"),
   loadModule("src/lib/enterprise-monitoring.ts"),
   loadModule("src/features/identity/access-policy.ts"),
   loadModule("src/lib/enterprise/task-verification.ts"),
+  loadModule("src/lib/program-evaluation.ts"),
 ]);
 
 const principal = (role, overrides = {}) => ({
@@ -309,4 +310,97 @@ test("monitoring exposes actionable ownership, deadline, verification and blocke
   assert.equal(snapshot.operational.blockedPrograms, 2);
   assert.ok(snapshot.issues.some((issue) => issue.title === "Hasil tugas menunggu verifikasi"));
   assert.ok(snapshot.issues.some((issue) => issue.title === "Hasil tugas perlu perbaikan"));
+});
+
+
+test("program evaluation compares actual reports without inventing numerical progress", () => {
+  const expanded = [
+    ...records,
+    row("program-report-older", "laporan_program", {
+      name: "Laporan sebelumnya", programId: "1", date: "2026-10-15",
+      status: "Terkendala", progress: "Pemetaan peserta sudah dilakukan.",
+      target: "Daftar peserta terverifikasi.", achievement: "Sebagian peserta terdata.",
+    }),
+    row("task-awaiting-verification", "tindaklanjut", {
+      name: "Hasil tugas menunggu pengesahan", programId: "1", status: "Selesai",
+      verification: "Menunggu verifikasi", completionEvidence: "Pelatihan terlaksana.",
+    }),
+    row("task-program-1-no-pic", "tindaklanjut", {
+      name: "Jadwalkan pertemuan", programId: "1", status: "Berjalan",
+      dueDate: "2026-11-12", verification: "Belum diajukan",
+    }),
+  ];
+  const evaluations = programEvaluation.buildProgramEvaluations(
+    expanded,
+    principal("admin"),
+    "2026-11",
+  );
+  const first = evaluations.find((item) => item.programId === "1");
+  const noReport = evaluations.find((item) => item.programId === "3");
+  assert.equal(evaluations.length, 9);
+  assert.equal(first.latest.id, "program-report-1");
+  assert.equal(first.previous.id, "program-report-older");
+  assert.equal(first.hasReportInPeriod, true);
+  assert.equal(first.unchangedProgress, true);
+  assert.equal(first.blocked, true);
+  assert.equal(first.target, "");
+  assert.equal(first.achievement, "");
+  assert.equal(first.tasksWithoutPic, 1);
+  assert.equal(first.tasksAwaitingVerification, 1);
+  assert.equal(noReport.latest, null);
+  assert.equal(noReport.reportCount, 0);
+});
+
+test("period evaluation keeps the latest prior report visible and asks for an update without calling it stalled", () => {
+  const expanded = [
+    ...records,
+    row("program-report-older", "laporan_program", {
+      name: "Laporan sebelumnya", programId: "1", date: "2026-10-15",
+      status: "Terkendala", progress: "Pemetaan peserta sudah dilakukan.",
+    }),
+  ];
+  const evaluations = programEvaluation.buildProgramEvaluations(
+    expanded,
+    principal("admin"),
+    "2026-12",
+  );
+  const first = evaluations.find((item) => item.programId === "1");
+  assert.equal(first.latest.id, "program-report-1");
+  assert.equal(first.hasReportInPeriod, false);
+  const priorities = programEvaluation.buildMeetingPriorities(evaluations);
+  assert.ok(priorities.some((item) => item.title === "Minta pembaruan untuk periode terpilih" && item.programId === "1"));
+  assert.ok(priorities.some((item) => item.title === "Minta laporan dasar program" && item.programId === "3"));
+  assert.ok(priorities.some((item) => item.title === "Putuskan penanganan kendala program" && item.programId === "1"));
+});
+
+test("meeting agenda carries task review and missing-accountability decisions with source records", () => {
+  const expanded = [
+    ...records,
+    row("task-awaiting-verification", "tindaklanjut", {
+      name: "Hasil tugas menunggu pengesahan", programId: "1", status: "Selesai",
+      verification: "Menunggu verifikasi", completionEvidence: "Pelatihan terlaksana.",
+    }),
+    row("task-no-pic", "tindaklanjut", {
+      name: "Tugas tanpa pelaksana", programId: "1", status: "Berjalan",
+    }),
+  ];
+  const evaluations = programEvaluation.buildProgramEvaluations(expanded, principal("admin"));
+  const agenda = programEvaluation.buildMeetingPriorities(evaluations);
+  assert.ok(agenda.some((item) => item.title === "Verifikasi hasil tugas" && item.task?.id === "task-awaiting-verification"));
+  assert.ok(agenda.some((item) => item.title === "Tetapkan pelaksana tugas" && item.task?.id === "task-no-pic"));
+  assert.ok(agenda.some((item) => item.title === "Tetapkan tenggat tugas" && item.task?.id === "task-no-pic"));
+  assert.deepEqual(
+    plain(agenda.map((item) => item.priority).slice(0, 2)),
+    ["Tinggi", "Tinggi"],
+  );
+});
+
+test("coordinator program evaluation is restricted to assigned programs and their source records", () => {
+  const evaluations = programEvaluation.buildProgramEvaluations(
+    records,
+    principal("koordinator"),
+  );
+  assert.deepEqual(plain(evaluations.map((item) => item.programId)), ["1"]);
+  assert.ok(evaluations[0].latest?.id === "program-report-1");
+  assert.ok(!programEvaluation.buildMeetingPriorities(evaluations).some((item) => item.programId === "2"));
 });
