@@ -166,6 +166,7 @@ export function statusTone(value: string) {
   if (
     [
       "Selesai",
+      "Siap",
       "Aktif",
       "Terverifikasi",
       "Terbit",
