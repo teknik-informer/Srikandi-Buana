@@ -88,8 +88,12 @@ test("monitoring and reports are standalone shortcuts with role-aware visibility
 });
 
 test("administrator navigation retains every existing destination", () => {
-  const visible = [...registry.getVisibleEnterpriseDashboards("admin")]
-    .flatMap((dashboard) => [...dashboard.features].map((feature) => feature.id));
+  const visible = [
+    ...registry.getVisibleEnterpriseDashboards("admin").flatMap((dashboard) =>
+      [...dashboard.features].map((feature) => feature.id),
+    ),
+    ...registry.getVisibleEnterpriseUtilities("admin").map((item) => item.id),
+  ];
   assert.deepEqual([...visible].sort(), [...legacyRouteIds].sort());
 });
 
