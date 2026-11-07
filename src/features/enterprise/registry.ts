@@ -60,7 +60,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     label: "Administrasi",
     description: "Data keanggotaan, tata kelola, persetujuan data, register, dan arsip resmi.",
     features: features([
-      "anggota", "pengurus", "persetujuan", "register",
+      "anggota", "pengurus", "persetujuan", "register", "surat",
       "sumber", "kelembagaan", "transkripsi", "dokumen",
     ]),
   },
