@@ -208,6 +208,36 @@ export default function EnterpriseMonitoring({
       icon: ClipboardCheck,
     },
     operational && {
+      title: "Tugas tanpa PIC",
+      value: operational.tasksWithoutAssignee,
+      note: "Pekerjaan terbuka yang belum memiliki pelaksana",
+      icon: Users,
+    },
+    operational && {
+      title: "Tugas tanpa tenggat",
+      value: operational.tasksWithoutDueDate,
+      note: "Tetapkan tanggal berdasarkan keputusan pengurus",
+      icon: CalendarClock,
+    },
+    operational && {
+      title: "Hasil menunggu verifikasi",
+      value: operational.tasksAwaitingVerification,
+      note: "Penyelesaian diajukan oleh pelaksana",
+      icon: FileCheck2,
+    },
+    operational && {
+      title: "Hasil perlu perbaikan",
+      value: operational.tasksNeedingCorrection,
+      note: "Baca catatan pemeriksaan Ketua",
+      icon: AlertTriangle,
+    },
+    operational && {
+      title: "Program terkendala",
+      value: operational.blockedPrograms,
+      note: "Berdasarkan laporan Koordinator yang tersedia",
+      icon: Activity,
+    },
+    operational && {
       title: "Agenda mendatang",
       value: operational.upcomingActivities,
       note: operational.unresolvedPastActivities + " kegiatan lewat tanggal belum ditutup",
@@ -241,11 +271,11 @@ export default function EnterpriseMonitoring({
   const domains = [
     operational && {
       title: "Program & aktivitas",
-      description: operational.programs + " program · " + operational.openTasks + " tugas aktif · " + operational.upcomingActivities + " agenda mendatang.",
+      description: operational.programs + " program · " + operational.openTasks + " tugas aktif · " + operational.tasksWithoutAssignee + " tanpa PIC · " + operational.tasksWithoutDueDate + " tanpa tenggat · " + operational.tasksAwaitingVerification + " hasil menunggu verifikasi · " + operational.blockedPrograms + " program terkendala.",
       href: canReadSection(user, "tindaklanjut") ? "/dashboard/tindaklanjut" : "/dashboard/kegiatan",
       label: "Buka operasional",
       icon: Activity,
-      attention: operational.overdueTasks + operational.unresolvedPastActivities,
+      attention: operational.overdueTasks + operational.unresolvedPastActivities + operational.tasksWithoutAssignee + operational.tasksWithoutDueDate + operational.tasksAwaitingVerification + operational.tasksNeedingCorrection + operational.blockedPrograms,
     },
     snapshot.membership && {
       title: "Keanggotaan",
@@ -300,7 +330,8 @@ export default function EnterpriseMonitoring({
 
   const visibleIssues = snapshot.issues
     .filter((issue) => canReadRecord(user, issue.row))
-    .slice(0, 8);
+    .sort((a, b) => Number(b.severity === "warning") - Number(a.severity === "warning"))
+    .slice(0, 12);
 
   return (
     <div className="workspace-page min-w-0">
