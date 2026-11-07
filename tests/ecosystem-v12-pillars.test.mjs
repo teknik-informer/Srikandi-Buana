@@ -36,11 +36,15 @@ const dashboardRouteIds = registry.enterpriseDashboards.flatMap((dashboard) =>
   dashboard.features.map((feature) => feature.id),
 );
 
-test("v12 defines exactly seven enterprise dashboards in the approved order", () => {
+test("each enterprise dashboard has its own stable overview route", () => {
   assert.deepEqual(
     [...registry.enterpriseDashboards].map((dashboard) => dashboard.id),
     ["ecosystem", "management", "administration", "finance", "commerce", "publication", "system"],
   );
+  for (const dashboard of registry.enterpriseDashboards) {
+    assert.equal(dashboard.href, "/dashboard/" + dashboard.id);
+    assert.equal(registry.getEnterpriseDashboardById(dashboard.id)?.id, dashboard.id);
+  }
 });
 
 test("all legacy dashboard routes are assigned exactly once", () => {
@@ -97,6 +101,11 @@ test("Pusat Kendali is the authenticated dashboard landing page for every role",
   assert.ok(memberWorkspace.includes('? "Pusat Kendali"'));
   assert.ok(route.includes('section?.[0] || "ringkasan"'));
   assert.ok(route.includes('item?.label || "Pusat Kendali"'));
+  assert.ok(route.includes("dashboardRouteIds"));
+  assert.ok(route.includes("getEnterpriseDashboardById"));
+  const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
+  assert.ok(overview.includes("dashboard.features.map"));
+  assert.ok(overview.includes("feature.href"));
 });
 
 test("legacy permission imports remain compatible after identity extraction", () => {
