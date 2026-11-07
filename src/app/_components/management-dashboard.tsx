@@ -324,7 +324,7 @@ export default function ManagementDashboard({
           pic: "",
           status: "Belum dimulai",
           evidence: String(row.data.nextSteps || "Tinjau laporan dan sepakati langkah berikutnya."),
-          notes: sourceMarker + " · " + [blockers ? "Hambatan: " + blockers : "", supportNeeded ? "Dukungan diminta: " + supportNeeded : "", "Sumber laporan dipertahankan; tetapkan pelaksana dan tenggat melalui keputusan pengurus."].filter(Boolean).join(" · "),
+          notes: (sourceMarker + " · " + [blockers ? "Hambatan: " + blockers : "", supportNeeded ? "Dukungan diminta: " + supportNeeded : "", "Sumber laporan dipertahankan; tetapkan pelaksana dan tenggat melalui keputusan pengurus."].filter(Boolean).join(" · ")).slice(0, 5000),
           programId,
         },
       });
