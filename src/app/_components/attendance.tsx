@@ -28,7 +28,8 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
   const event = events.find((e) => e.id === eventId);
   const record = rows.find((r) => r.kind === "kehadiran" && r.data.eventId === eventId);
   useEffect(() => {
-    const requestedEventId = new URLSearchParams(window.location.search).get("eventId");
+    const search = typeof window === "undefined" ? "" : window.location?.search || "";
+    const requestedEventId = new URLSearchParams(search).get("eventId");
     if (!requestedEventId || dirty.current) return;
     if (rows.some((item) => item.kind === "kegiatan" && item.id === requestedEventId)) setEventId(requestedEventId);
   }, [rows]);
