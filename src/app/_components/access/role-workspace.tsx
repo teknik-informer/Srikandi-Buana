@@ -95,7 +95,7 @@ export default function RoleWorkspace({
   const module = modules[section],
     title =
       section === "ringkasan"
-        ? "Ruang kerja saya"
+        ? "Pusat Kendali"
         : section === "akun-saya"
           ? "Akun saya"
           : section === "program"
