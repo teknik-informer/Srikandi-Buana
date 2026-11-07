@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ section?:
   const id = section?.[0] || "ringkasan";
   const item = getEnterpriseFeature(id) || dashboardGroups.flatMap((g) => g.items).find((i) => i.id === id);
   return {
-    title: (item?.label || "Ringkasan Operasional") + " | Ruang kerja Srikandi Buana",
+    title: (item?.label || "Pusat Kendali") + " | Ruang kerja Srikandi Buana",
     robots: { index: false, follow: false },
   };
 }
