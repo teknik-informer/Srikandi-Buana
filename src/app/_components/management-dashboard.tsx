@@ -330,7 +330,7 @@ export default function ManagementDashboard({
                 <div className="flex items-center justify-between gap-2 border-t pt-3">
                   <span className="text-xs text-muted-foreground">{dashboard.features.length} menu</span>
                   <Button asChild variant="outline" size="sm">
-                    <Link href={dashboard.features[0].href}>Buka dashboard <ArrowUpRight className="size-3.5" /></Link>
+                    <Link href={dashboard.href}>Buka dashboard <ArrowUpRight className="size-3.5" /></Link>
                   </Button>
                 </div>
               </CardContent>
