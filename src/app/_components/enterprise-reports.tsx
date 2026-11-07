@@ -45,6 +45,7 @@ import { StatusBadge, WorkspaceMetric } from "./workspace-ui";
 
 const kindLabels: Record<string, string> = {
   program: "Program",
+  laporan_program: "Laporan program",
   tindaklanjut: "Tugas",
   kegiatan: "Kegiatan",
   musyawarah: "Musyawarah",
@@ -80,6 +81,9 @@ function attentionCount(group: ReportGroup, rows: Row[]) {
   }
   if (group.id === "operasional") {
     return rows.filter((row) => {
+      if (row.kind === "laporan_program") {
+        return row.data.status === "Terkendala" || Boolean(String(row.data.blockers || "").trim() || String(row.data.supportNeeded || "").trim());
+      }
       if (row.kind === "tindaklanjut") {
         return taskIsOpen(row) && validDate(row.data.dueDate) && row.data.dueDate < today;
       }
