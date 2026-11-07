@@ -152,7 +152,7 @@ function exportRows(group: ReportGroup, rows: Row[]) {
   }
   return createCSV([
     group.id === "operasional"
-      ? ["Tanggal / periode", "Modul", "Nama catatan", "Status", "Penanggung jawab", "Jumlah anggota ditandai hadir"]
+      ? ["Tanggal / periode", "Modul", "Nama catatan", "Status", "Penanggung jawab", "Jumlah anggota ditandai hadir", "Target periode", "Capaian / realisasi", "Evaluasi"]
       : ["Tanggal / periode", "Modul", "Nama catatan", "Status", "Penanggung jawab"],
     ...rows.map((row) => [
       rowDate(row),
@@ -161,9 +161,14 @@ function exportRows(group: ReportGroup, rows: Row[]) {
       row.data.status || "Belum ditetapkan",
       row.data.pic || "—",
       ...(group.id === "operasional"
-        ? [row.kind === "kehadiran" && Array.isArray(row.data.memberIds)
-            ? row.data.memberIds.filter((id) => typeof id === "string").length
-            : "—"]
+        ? [
+            row.kind === "kehadiran" && Array.isArray(row.data.memberIds)
+              ? row.data.memberIds.filter((id) => typeof id === "string").length
+              : "—",
+            row.kind === "laporan_program" ? row.data.target || "—" : "",
+            row.kind === "laporan_program" ? row.data.achievement || "—" : "",
+            row.kind === "laporan_program" ? row.data.evaluation || "—" : "",
+          ]
         : []),
     ]),
   ]);
