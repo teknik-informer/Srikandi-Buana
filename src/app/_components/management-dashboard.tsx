@@ -1163,7 +1163,7 @@ export default function ManagementDashboard({
             >
               <fieldset disabled={busy} className="min-w-0">
                 <FieldGroup>
-                  {modules.tindaklanjut.fields.map((field) => {
+                  {modules.tindaklanjut.fields.filter((field) => field.key !== "reviewNote" || ["admin", "ketua"].includes(user.role)).map((field) => {
                     const value =
                       editor === "new"
                         ? field.key === "programId" &&
@@ -1171,10 +1171,13 @@ export default function ManagementDashboard({
                           ? user.programIds[0]
                           : ""
                         : String(editor.data[field.key] ?? "");
+                    const reviewer = user.role === "admin" || user.role === "ketua";
                     const options =
                       field.key === "programId" && user.role === "koordinator"
                         ? user.programIds
-                        : field.options;
+                        : field.key === "verification" && !reviewer
+                          ? [...new Set(["Belum diajukan", "Menunggu verifikasi", ...(value && value !== "Belum diajukan" && value !== "Menunggu verifikasi" ? [value] : [])])]
+                          : field.options;
                     return (
                       <Field key={field.key}>
                         <FieldLabel htmlFor={"smart-task-" + field.key}>
