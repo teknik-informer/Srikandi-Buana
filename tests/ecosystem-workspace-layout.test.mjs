@@ -83,3 +83,15 @@ test("meeting follow-ups can be promoted to permission-checked task drafts witho
   assert.ok(dashboard.includes("Buat draf tugas"));
   assert.ok(dashboard.includes("linkedTask"));
 });
+
+test("upcoming agenda links to the selected event attendance record with role-limited editing", () => {
+  const dashboard = read("src/app/_components/management-dashboard.tsx");
+  const attendance = read("src/app/_components/attendance.tsx");
+  assert.ok(dashboard.includes('const attendanceAccess = user.role === "admin" || user.role === "sekretaris"'));
+  assert.ok(dashboard.includes('row.kind === "kehadiran" && row.data.eventId === event.id'));
+  assert.ok(dashboard.includes('"/dashboard/kehadiran?eventId=" + encodeURIComponent(event.id)'));
+  assert.ok(dashboard.includes("Daftar hadir belum dibuat"));
+  assert.ok(dashboard.includes("tidak otomatis dianggap hadir"));
+  assert.ok(attendance.includes('get("eventId")'));
+  assert.ok(attendance.includes('setEventId(requestedEventId)'));
+});
