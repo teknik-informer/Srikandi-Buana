@@ -7,6 +7,7 @@ import {canReadRecord,canWriteRecord,visibleRecord} from "@/lib/permissions";
 import {allowedFileIds} from "@/lib/file-access";
 import { modules, programs, type Data } from "@/lib/srikandi";
 import { taskVerificationError } from "@/lib/enterprise/task-verification";
+import { meetingReviewError } from "@/lib/meeting-cycle";
 export const dynamic="force-dynamic";
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store"}});
 async function context(req:Request,write=false){
@@ -46,15 +47,22 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
  if(body.kind==="lotkopi"){const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='lotkopi' AND json_extract(data,'$.name')=? AND id!=?").bind(c.user!.userId,data.name,body.id||"").first();if(duplicate)return json({error:"Kode lot sudah digunakan. Gunakan kode unik."},409);}
  const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);
  let previousTaskData:Data|undefined;
+ let previousRecordData:Data|undefined;
  if(edit){
   const old=await c.db!.prepare("SELECT id,updated,data FROM records WHERE id=? AND owner=? AND kind=?").bind(id,c.user!.userId,body.kind).first();
   if(!old)return json({error:"Data tidak ditemukan."},404);
   const oldData=JSON.parse(String(old.data)) as Data;
+  previousRecordData=oldData;
   if(!canWriteRecord(c.user!,{id:String(old.id),kind:body.kind,data:oldData}))return json({error:'Data di luar penugasan Anda.'},403);
   if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
   if(body.kind==="tindaklanjut"){
    previousTaskData=oldData;
-   if(c.user!.role!=="admin"&&c.user!.role!=="ketua")data.reviewNote=String(oldData.reviewNote||"");
+   if(c.user!.role!=="admin"&&c.user!.role!=="ketua"){
+    for(const key of ["reviewNote","meetingReviewMeeting","meetingReviewDate","meetingReviewNote"]){
+     data[key]=String(oldData[key]||"");
+    }
+    data.meetingReviewStatus=String(oldData.meetingReviewStatus||"Belum dievaluasi");
+   }
   }
   if(['kas','aset'].includes(body.kind)){
    await assertRecordUnlocked(c.user!.userId,id,body.kind);
@@ -63,6 +71,25 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   }
  }
  if(body.kind==="tindaklanjut"){
+  if(c.user!.role!=="admin"&&c.user!.role!=="ketua"&&!edit){
+   data.reviewNote="";
+   data.meetingReviewStatus="Belum dievaluasi";
+   data.meetingReviewMeeting="";
+   data.meetingReviewDate="";
+   data.meetingReviewNote="";
+  }
+  const reviewError=meetingReviewError({
+   role:c.user!.role,
+   previousStatus:String(previousTaskData?.meetingReviewStatus||"Belum dievaluasi"),
+   previousMeeting:String(previousTaskData?.meetingReviewMeeting||""),
+   previousDate:String(previousTaskData?.meetingReviewDate||""),
+   previousNote:String(previousTaskData?.meetingReviewNote||""),
+   status:String(data.meetingReviewStatus||"Belum dievaluasi"),
+   meeting:String(data.meetingReviewMeeting||""),
+   date:String(data.meetingReviewDate||""),
+   note:String(data.meetingReviewNote||""),
+  });
+  if(reviewError)return json({error:reviewError},403);
   const verificationError=taskVerificationError({
    role:c.user!.role,
    previousVerification:String(previousTaskData?.verification||""),
@@ -76,15 +103,31 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   });
   if(verificationError)return json({error:verificationError},403);
  }
+ if(body.kind==="musyawarah"){
+  if(["Disepakati","Ditindaklanjuti"].includes(String(data.status))&&!String(data.decisionSummary||"").trim())return json({error:"Isi keputusan yang disepakati sebelum menandai rapat Disepakati atau Ditindaklanjuti."},400);
+  if(data.status==="Dievaluasi"&&(!String(data.reviewOfMeeting||"").trim()||!String(data.reviewSummary||"").trim()))return json({error:"Isi rapat terdahulu yang dievaluasi dan ringkasan evaluasinya."},400);
+ }
  if(body.kind==="program"&&!edit){const found=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='program' AND json_extract(data,'$.programId')=?").bind(c.user!.userId,String(data.programId)).first();if(found)return json({error:"Program sudah tercatat. Muat ulang sebelum memperbarui."},409);}
  const previousVerification=String(previousTaskData?.verification||"Belum diajukan");
  const nextVerification=String(data.verification||"Belum diajukan");
- const auditAction=body.kind==="tindaklanjut"&&edit&&previousVerification!==nextVerification
-  ? nextVerification==="Menunggu verifikasi"?"Hasil diajukan untuk verifikasi"
-    : nextVerification==="Terverifikasi"?"Hasil tugas disahkan"
-    : nextVerification==="Perlu perbaikan"?"Perbaikan tugas diminta"
-    : "Status verifikasi diperbarui"
-  : edit?"Diperbarui":"Ditambahkan";
+ const meetingReviewChanged=body.kind==="tindaklanjut"&&edit&&(
+  String(previousTaskData?.meetingReviewStatus||"Belum dievaluasi")!==String(data.meetingReviewStatus||"Belum dievaluasi")||
+  String(previousTaskData?.meetingReviewMeeting||"")!==String(data.meetingReviewMeeting||"")||
+  String(previousTaskData?.meetingReviewDate||"")!==String(data.meetingReviewDate||"")||
+  String(previousTaskData?.meetingReviewNote||"")!==String(data.meetingReviewNote||"")
+ );
+ const auditAction=meetingReviewChanged
+  ? "Evaluasi keputusan rapat diperbarui"
+  : body.kind==="tindaklanjut"&&edit&&previousVerification!==nextVerification
+   ? nextVerification==="Menunggu verifikasi"?"Hasil diajukan untuk verifikasi"
+     : nextVerification==="Terverifikasi"?"Hasil tugas disahkan"
+     : nextVerification==="Perlu perbaikan"?"Perbaikan tugas diminta"
+     : "Status verifikasi diperbarui"
+   : body.kind==="musyawarah"&&edit&&previousRecordData?.status!==data.status&&data.status==="Disepakati"
+    ? "Keputusan rapat disepakati"
+    : body.kind==="musyawarah"&&edit&&previousRecordData?.status!==data.status&&data.status==="Dievaluasi"
+     ? "Evaluasi rapat diselesaikan"
+     : edit?"Diperbarui":"Ditambahkan";
  await c.db!.batch([edit?c.db!.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=?").bind(JSON.stringify(data),now,id,c.user!.userId):c.db!.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)").bind(id,c.user!.userId,body.kind,JSON.stringify(data),now,now),c.db!.prepare("INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),c.user!.userId,auditAction,`${body.kind}: ${data.name}`,now)]);
  return json({ok:true,id});}catch(e){if(e instanceof OperationError)return json({error:e.message},e.status);if(e instanceof RequestBodyError)return json({error:e.message},e.status);return json({error:e instanceof SyntaxError?"Formulir tidak valid.":e instanceof Error&& !/D1|SQL|database/i.test(e.message)?e.message:"Perubahan belum tersimpan. Silakan coba lagi."},400)}}
 export async function DELETE(req:Request){try{const c=await context(req,true);if(c.error)return c.error;const id=new URL(req.url).searchParams.get("id");const row=await c.db!.prepare("SELECT kind,data FROM records WHERE id=? AND owner=?").bind(id,c.user!.userId).first();if(!row)return json({error:"Data tidak ditemukan."},404);if(!canWriteRecord(c.user!,{id:String(id),kind:String(row.kind),data:JSON.parse(String(row.data))}))return json({error:'Anda tidak memiliki izin menghapus data ini.'},403);if(c.user!.role==="ketua"&&row.kind==="tindaklanjut")return json({error:"Ketua dapat memperbarui status tugas, tetapi tidak menghapus riwayat tindak lanjut."},403);await assertRecordUnlocked(c.user!.userId,String(id),String(row.kind),true);if(row.kind==="anggota"){const linked=await c.db!.prepare('SELECT id FROM users WHERE workspace_owner=? AND member_id=?').bind(c.user!.userId,id).first();if(linked)return json({error:'Anggota terhubung dengan akun. Nonaktifkan keanggotaan dan akun; riwayat tetap disimpan.'},409);const used=await c.db!.prepare("SELECT r.id FROM records r,json_each(json_extract(r.data,'$.memberIds')) j WHERE r.owner=? AND r.kind='kehadiran' AND j.value=? LIMIT 1").bind(c.user!.userId,id).first();if(used)return json({error:"Anggota memiliki riwayat kehadiran. Ubah status menjadi Tidak aktif, atau perbarui daftar hadir sebelum menghapus."},409);}await c.db!.batch([c.db!.prepare("DELETE FROM records WHERE owner=? AND kind='kehadiran' AND json_extract(data,'$.eventId')=?").bind(c.user!.userId,id),c.db!.prepare("DELETE FROM records WHERE id=? AND owner=?").bind(id,c.user!.userId),c.db!.prepare("INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),c.user!.userId,"Dihapus",`${row.kind}: ${JSON.parse(row.data as string).name}`,new Date().toISOString())]);return json({ok:true});}catch(error){if(error instanceof OperationError)return json({error:error.message},error.status);return json({error:"Data belum dapat dihapus."},500)}}
