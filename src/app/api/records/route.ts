@@ -71,12 +71,12 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   }
  }
  if(body.kind==="tindaklanjut"){
-  if(c.user!.role!=="admin"&&c.user!.role!=="ketua"&&!edit){
-   data.reviewNote="";
+  if(!edit){
    data.meetingReviewStatus="Belum dievaluasi";
    data.meetingReviewMeeting="";
    data.meetingReviewDate="";
    data.meetingReviewNote="";
+   if(c.user!.role!=="admin"&&c.user!.role!=="ketua")data.reviewNote="";
   }
   const existingReference=edit?parseMeetingTaskReference(previousTaskData?.notes):null;
   if(existingReference&&previousTaskData){
