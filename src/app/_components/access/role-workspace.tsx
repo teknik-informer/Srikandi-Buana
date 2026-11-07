@@ -408,6 +408,27 @@ export default function RoleWorkspace({
               })}
           </div>
         )}
+        {user.role === "anggota" && section === "anggota" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Layanan keanggotaan saya</CardTitle>
+              <CardDescription>
+                Periksa status data, perbarui informasi akun, atau kirim kebutuhan kepada pengurus tanpa mengubah data keanggotaan resmi secara langsung.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link href="/dashboard/akun-saya">Perbarui profil akun</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/dashboard/pengajuan">Ajukan perubahan atau kebutuhan</Link>
+              </Button>
+              <Button asChild variant="ghost">
+                <Link href="/dashboard/portal">Kembali ke portal anggota</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         {module && (
           <Card>
             <CardHeader>
