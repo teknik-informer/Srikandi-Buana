@@ -1,6 +1,6 @@
 import {
+  canReadKind,
   canReadRecord,
-  canReadSection,
   visibleRecord,
   type Principal,
 } from "./permissions";
@@ -62,7 +62,7 @@ const reportGroups: readonly ReportGroup[] = [
 
 export function getVisibleReportGroups(user: Principal): ReportGroup[] {
   return reportGroups.filter((group) =>
-    group.kinds.some((kind) => canReadSection(user, kind)),
+    group.kinds.some((kind) => canReadKind(user, kind)),
   );
 }
 
