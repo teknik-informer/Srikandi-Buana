@@ -220,7 +220,7 @@ test("task completion evidence is submitted by implementers and verified only by
   assert.ok(policy.includes("previousVerification === \"Terverifikasi\""));
   assert.ok(workspace.includes('["reviewNote", "meetingReviewNote"].includes(f.key)'));
   assert.ok(workspace.includes('f.key === "verification"'));
-  assert.ok(management.includes('field.key !== "reviewNote" || ["admin", "ketua"].includes(user.role)'));
+  assert.ok(management.includes('!["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || ["admin", "ketua"].includes(user.role)'));
   assert.ok(management.includes('field.key === "verification" && !reviewer'));
   assert.ok(monitoring.includes('title: "Hasil menunggu verifikasi"'));
   assert.ok(monitoring.includes('title: "Tugas tanpa PIC"'));
