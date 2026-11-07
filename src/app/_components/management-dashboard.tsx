@@ -316,6 +316,9 @@ export default function ManagementDashboard({
     programTaskLocks.current.add(row.id);
     const blockers = String(row.data.blockers || "").trim();
     const supportNeeded = String(row.data.supportNeeded || "").trim();
+    const target = String(row.data.target || "").trim();
+    const achievement = String(row.data.achievement || "").trim();
+    const evaluation = String(row.data.evaluation || "").trim();
     try {
       await mutate("POST", {
         kind: "tindaklanjut",
@@ -327,7 +330,7 @@ export default function ManagementDashboard({
           pic: "",
           status: "Belum dimulai",
           evidence: String(row.data.nextSteps || "Tinjau laporan dan sepakati langkah berikutnya."),
-          notes: (sourceMarker + " · " + [blockers ? "Hambatan: " + blockers : "", supportNeeded ? "Dukungan diminta: " + supportNeeded : "", "Sumber laporan dipertahankan; tetapkan pelaksana dan tenggat melalui keputusan pengurus."].filter(Boolean).join(" · ")).slice(0, 5000),
+          notes: (sourceMarker + " · " + [target ? "Target: " + target : "", achievement ? "Capaian: " + achievement : "", evaluation ? "Evaluasi: " + evaluation : "", blockers ? "Hambatan: " + blockers : "", supportNeeded ? "Dukungan diminta: " + supportNeeded : "", "Sumber laporan dipertahankan; tetapkan pelaksana dan tenggat melalui keputusan pengurus."].filter(Boolean).join(" · ")).slice(0, 5000),
           programId,
         },
       });
@@ -592,6 +595,10 @@ export default function ManagementDashboard({
                       </div>
                       <p className="text-xs text-muted-foreground">{program ? program.id + ". " + program.name : "Program " + String(row.data.programId || "—")} · {dateID(String(row.data.date || ""))} · {String(row.data.period || "Periode tidak disebutkan")}</p>
                       <p className="text-sm text-muted-foreground">{String(row.data.progress || "Belum ada uraian perkembangan.")}</p>
+                      {!!String(row.data.target || "").trim() && <p className="text-sm"><span className="font-medium">Target periode:</span> {String(row.data.target)}</p>}
+                      {!!String(row.data.achievement || "").trim() && <p className="text-sm"><span className="font-medium">Capaian:</span> {String(row.data.achievement)}</p>}
+                      {!!String(row.data.evaluation || "").trim() && <p className="text-sm"><span className="font-medium">Evaluasi:</span> {String(row.data.evaluation)}</p>}
+                      {!!String(row.data.nextSteps || "").trim() && <p className="text-sm"><span className="font-medium">Langkah berikutnya:</span> {String(row.data.nextSteps)}</p>}
                       {!!String(row.data.blockers || "").trim() && <p className="text-sm"><span className="font-medium">Kendala:</span> {String(row.data.blockers)}</p>}
                       {!!String(row.data.supportNeeded || "").trim() && <p className="text-sm"><span className="font-medium">Dukungan diminta:</span> {String(row.data.supportNeeded)}</p>}
                       {linkedTask && <p className="text-xs text-muted-foreground">Tugas terkait: {String(linkedTask.data.name || "Tindak lanjut")} · {String(linkedTask.data.status || "Belum dimulai")}</p>}
