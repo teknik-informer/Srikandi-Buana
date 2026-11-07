@@ -102,7 +102,7 @@ export const enterpriseUtilities: readonly NavItem[] = [
   {
     id: "monitoring",
     label: "Monitoring",
-    description: "Pantau tugas, agenda, tenggat, dan kondisi operasional sesuai hak akses.",
+    description: "Pantau kesiapan API/database, operasional, kualitas data, dan aktivitas lintas bagian sesuai hak akses.",
     href: "/dashboard/monitoring",
   },
   {
