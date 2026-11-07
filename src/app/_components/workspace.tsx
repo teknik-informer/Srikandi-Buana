@@ -89,7 +89,8 @@ import ManagementDashboard from "./management-dashboard";
 import Attendance from "./attendance";
 import FileManager from "./file-manager";
 import Inbox from "./inbox";
-import Reports from "./reports";
+import EnterpriseReports from "./enterprise-reports";
+import EnterpriseMonitoring from "./enterprise-monitoring";
 import SiteSettingsEditor from "./site-settings-editor";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
@@ -494,7 +495,7 @@ export default function Workspace({
             </AlertDescription>
           </Alert>
         )}
-        {["ringkasan", "monitoring"].includes(section) && (
+        {section === "ringkasan" && (
           <ManagementDashboard
             rows={rows}
             files={files}
@@ -503,7 +504,17 @@ export default function Workspace({
             error={error}
             onSaved={load}
             audit={audit}
-            mode={section === "monitoring" ? "monitoring" : "overview"}
+          />
+        )}
+        {section === "monitoring" && (
+          <EnterpriseMonitoring
+            rows={rows}
+            files={files}
+            user={principal}
+            audit={audit}
+            loading={loading}
+            error={error}
+            onRefresh={() => void load()}
           />
         )}
         {section === "galeri" && (
@@ -941,7 +952,9 @@ export default function Workspace({
           />
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
-        {section === "laporan" && !loading && !error && <Reports rows={rows} />}
+        {section === "laporan" && !loading && !error && (
+          <EnterpriseReports rows={rows} user={principal} />
+        )}
         {section === "panduan" && (
           <>
             <Box title="Portal & layanan operasional">
