@@ -73,15 +73,15 @@ test("Pusat Kendali provides a role-scoped action queue from real operational re
 
 test("meeting follow-ups can be promoted to permission-checked task drafts without inventing deadlines", () => {
   const dashboard = read("src/app/_components/management-dashboard.tsx");
-  assert.ok(dashboard.includes('row.kind === "musyawarah" && String(row.data.followup || "").trim()'));
+  assert.ok(dashboard.includes('row.kind === "musyawarah" && parseMeetingActions(row.data.followup).length > 0'));
   assert.ok(dashboard.includes('Sumber rapat: " + row.id'));
   assert.ok(dashboard.includes("meetingTaskLocks.current.has(row.id)"));
   assert.ok(dashboard.includes('canWriteKind(user, "tindaklanjut")'));
   assert.ok(dashboard.includes('kind: "tindaklanjut"'));
   assert.ok(dashboard.includes('dueDate: ""'));
-  assert.ok(dashboard.includes("tetapkan penanggung jawab dan tenggat melalui keputusan pengurus"));
-  assert.ok(dashboard.includes("Buat draf tugas"));
-  assert.ok(dashboard.includes("linkedTask"));
+  assert.ok(dashboard.includes("PIC dan tenggat ditetapkan pengurus setelah keputusan disepakati"));
+  assert.ok(dashboard.includes("Buat \" + missingCount + \" draf tugas"));
+  assert.ok(dashboard.includes("decisionTasks"));
 });
 
 test("upcoming agenda links to the selected event attendance record with role-limited editing", () => {
@@ -218,7 +218,7 @@ test("task completion evidence is submitted by implementers and verified only by
   assert.ok(policy.includes('input.role === "admin" || input.role === "ketua"'));
   assert.ok(policy.includes("completionEvidence"));
   assert.ok(policy.includes("previousVerification === \"Terverifikasi\""));
-  assert.ok(workspace.includes('f.key === "reviewNote" && !["admin", "ketua"].includes(principal.role)'));
+  assert.ok(workspace.includes('["reviewNote", "meetingReviewNote"].includes(f.key)'));
   assert.ok(workspace.includes('f.key === "verification"'));
   assert.ok(management.includes('field.key !== "reviewNote" || ["admin", "ketua"].includes(user.role)'));
   assert.ok(management.includes('field.key === "verification" && !reviewer'));
