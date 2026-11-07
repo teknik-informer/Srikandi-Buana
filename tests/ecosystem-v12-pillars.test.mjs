@@ -60,7 +60,7 @@ test("legacy module routes and standalone shortcuts are assigned exactly once", 
 test("the seven dashboards retain the requested functional grouping", () => {
   const featureIds = (id) => Array.from(registry.enterpriseDashboards.find((dashboard) => dashboard.id === id).features, (feature) => feature.id);
   assert.deepEqual(featureIds("ecosystem"), ["portal", "notifikasi"]);
-  assert.deepEqual(featureIds("management"), ["program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah", "pengajuan", "enterprise"]);
+  assert.deepEqual(featureIds("management"), ["program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah", "pengajuan", "enterprise"]);
   assert.deepEqual(featureIds("administration"), ["anggota", "pengurus", "persetujuan", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"]);
   assert.deepEqual(featureIds("finance"), ["kas", "akuntansi", "aset"]);
   assert.deepEqual(featureIds("commerce"), ["penjualan", "lotkopi", "usaha", "kemitraan"]);
@@ -175,4 +175,14 @@ test("legacy permission imports remain compatible after identity extraction", ()
     permissions.canReadRecord(member, { id: "other-member", kind: "anggota", data: {} }),
     false,
   );
+});
+
+
+test("program reports are visible to coordinators and leadership but not members", () => {
+  const visible = (role) => registry.getVisibleEnterpriseDashboards(role).flatMap((dashboard) => [...dashboard.features].map((feature) => feature.id));
+  assert.ok(visible("koordinator").includes("laporan_program"));
+  assert.ok(visible("sekretaris").includes("laporan_program"));
+  assert.ok(visible("bendahara").includes("laporan_program"));
+  assert.ok(visible("ketua").includes("laporan_program"));
+  assert.ok(!visible("anggota").includes("laporan_program"));
 });
