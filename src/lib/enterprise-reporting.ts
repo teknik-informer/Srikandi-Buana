@@ -26,7 +26,7 @@ const reportGroups: readonly ReportGroup[] = [
     id: "operasional",
     label: "Program & kegiatan",
     description: "Perkembangan program, tugas, agenda, rapat, dan kehadiran.",
-    kinds: ["program", "tindaklanjut", "kegiatan", "musyawarah", "kehadiran"],
+    kinds: ["program", "laporan_program", "tindaklanjut", "kegiatan", "musyawarah", "kehadiran"],
   },
   {
     id: "keanggotaan",
