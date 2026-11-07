@@ -211,7 +211,7 @@ export default function RoleWorkspace({
       defaultSidebarOpen={defaultSidebarOpen}
     >
       <section
-        className="workspace workspace-role"
+        className="workspace workspace-role workspace-page"
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
