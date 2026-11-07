@@ -82,6 +82,7 @@ type Props = {
   error: string;
   onSaved: () => Promise<void>;
   audit?: WorkspaceAudit[];
+  mode?: "overview" | "monitoring";
 };
 export default function ManagementDashboard({
   rows,
@@ -91,6 +92,7 @@ export default function ManagementDashboard({
   error,
   onSaved,
   audit = [],
+  mode = "overview",
 }: Props) {
   const [now, setNow] = useState(() => new Date());
   const [query, setQuery] = useState("");
@@ -262,10 +264,10 @@ export default function ManagementDashboard({
           <div className="min-w-0 space-y-2">
             <Badge variant="outline">
               <CheckCircle2 className="size-3.5" />
-              RINGKASAN OPERASIONAL
+              {mode === "monitoring" ? "MONITORING OPERASIONAL" : "RINGKASAN OPERASIONAL"}
             </Badge>
             <CardTitle className="text-xl sm:text-2xl">
-              Selamat bekerja, {user.displayName}.
+              {mode === "monitoring" ? "Pantau perkembangan operasional." : `Selamat bekerja, ${user.displayName}.`}
             </CardTitle>
             <CardDescription>
               {roles[user.role]} · {dateID(view.today)} · Semua ringkasan
@@ -281,8 +283,9 @@ export default function ManagementDashboard({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Mulai dari pekerjaan yang perlu perhatian. Tenggat, prioritas, dan
-            pengingat disusun dari catatan kelompok yang tersedia.
+            {mode === "monitoring"
+              ? "Tinjau tugas, agenda, tenggat, kualitas data, dan pengingat dari catatan operasional yang tersedia."
+              : "Mulai dari pekerjaan yang perlu perhatian. Tenggat, prioritas, dan pengingat disusun dari catatan kelompok yang tersedia."}
           </p>
         </CardContent>
       </Card>
@@ -302,9 +305,10 @@ export default function ManagementDashboard({
           />
         ))}
       </div>
+      {mode === "overview" && (
       <section aria-labelledby="workspace-dashboards-title" className="space-y-3">
         <div>
-          <h2 id="workspace-dashboards-title" className="text-sm font-semibold">Akses tujuh dashboard</h2>
+          <h2 id="workspace-dashboards-title" className="text-sm font-semibold">Ruang kerja utama</h2>
           <p className="mt-1 text-xs text-muted-foreground">Pilih ruang kerja sesuai tugas dan kewenangan akun Anda. Menu yang tersedia mengikuti hak akses.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
@@ -338,6 +342,7 @@ export default function ManagementDashboard({
           ))}
         </div>
       </section>
+      )}
       {mutationError && !editor && (
         <Alert variant="destructive">
           <AlertTitle>Perubahan belum selesai</AlertTitle>
