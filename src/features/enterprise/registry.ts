@@ -68,8 +68,8 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     id: "finance",
     href: "/dashboard/finance",
     label: "Keuangan",
-    description: "Buku kas, laporan, akuntansi, serta pengelolaan aset organisasi.",
-    features: features(["kas", "laporan", "akuntansi", "aset"]),
+    description: "Buku kas, akuntansi, serta pengelolaan aset organisasi.",
+    features: features(["kas", "akuntansi", "aset"]),
   },
   {
     id: "commerce",
@@ -94,11 +94,33 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   },
 ];
 
+/**
+ * Frequently used workspace destinations that sit beside the seven work areas.
+ * These are shortcuts, not additional dashboards.
+ */
+export const enterpriseUtilities: readonly NavItem[] = [
+  {
+    id: "monitoring",
+    label: "Monitoring",
+    description: "Pantau tugas, agenda, tenggat, dan kondisi operasional sesuai hak akses.",
+    href: "/dashboard/monitoring",
+  },
+  {
+    id: "laporan",
+    label: "Laporan",
+    description: "Tinjau laporan buku kas berdasarkan periode dan pos dana.",
+    href: "/dashboard/laporan",
+  },
+];
+
 export const dashboardRouteIds = enterpriseDashboards.map((dashboard) => dashboard.id);
 
-export const dashboardSectionIds = enterpriseDashboards.flatMap((dashboard) =>
-  dashboard.features.map((feature) => feature.id),
-);
+export const dashboardSectionIds = [
+  ...enterpriseDashboards.flatMap((dashboard) =>
+    dashboard.features.map((feature) => feature.id),
+  ),
+  ...enterpriseUtilities.map((feature) => feature.id),
+];
 
 export function getEnterpriseDashboardById(id: string): EnterpriseDashboard | undefined {
   return enterpriseDashboards.find((dashboard) => dashboard.id === id);
@@ -111,7 +133,8 @@ export function getEnterpriseDashboard(sectionId: string): EnterpriseDashboard |
 }
 
 export function getEnterpriseFeature(sectionId: string): NavItem | undefined {
-  return getEnterpriseDashboard(sectionId)?.features.find((feature) => feature.id === sectionId);
+  return getEnterpriseDashboard(sectionId)?.features.find((feature) => feature.id === sectionId)
+    ?? enterpriseUtilities.find((feature) => feature.id === sectionId);
 }
 
 /** Navigation projection only. API and record guards remain the security boundary. */
@@ -124,6 +147,13 @@ export function getVisibleEnterpriseDashboards(role: Role) {
       ),
     }))
     .filter((dashboard) => dashboard.features.length > 0);
+}
+
+/** Frequently used destinations filtered by the same role policy as routes. */
+export function getVisibleEnterpriseUtilities(role: Role) {
+  return enterpriseUtilities.filter((item) =>
+    canReadSectionForRole(role, item.id),
+  );
 }
 
 /**
