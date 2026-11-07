@@ -21,9 +21,10 @@ function loadModule(entryPoint) {
   });
 }
 
-const [reporting, monitoring] = await Promise.all([
+const [reporting, monitoring, permissions] = await Promise.all([
   loadModule("src/lib/enterprise-reporting.ts"),
   loadModule("src/lib/enterprise-monitoring.ts"),
+  loadModule("src/features/identity/access-policy.ts"),
 ]);
 
 const principal = (role, overrides = {}) => ({
@@ -56,6 +57,8 @@ const records = [
   row("activity-2", "kegiatan", { name: "Kegiatan internal", date: "2026-11-03", status: "Perlu verifikasi", location: "Balai" }),
   row("task-1", "tindaklanjut", { name: "Selesaikan proposal", dueDate: "2026-11-05", programId: "1", status: "Berjalan", pic: "Koordinator" }),
   row("task-2", "tindaklanjut", { name: "Tugas di program lain", dueDate: "2026-11-05", programId: "2", status: "Berjalan" }),
+  row("program-report-1", "laporan_program", { name: "Perkembangan program 1", programId: "1", date: "2026-11-06", period: "November 2026", status: "Terkendala", progress: "Pemetaan peserta sudah dilakukan.", blockers: "Distribusi bibit terlambat.", supportNeeded: "Koordinasi pemasok.", nextSteps: "Jadwalkan ulang distribusi." }),
+  row("program-report-2", "laporan_program", { name: "Perkembangan program 2", programId: "2", date: "2026-11-06", period: "November 2026", status: "Berjalan", progress: "Pendataan berlangsung." }),
   row("cash-1", "kas", { name: "Pembelian bibit", date: "2026-11-04", amount: 250000, type: "Pengeluaran", fund: "Program" }),
   row("asset-1", "aset", { name: "Pompa air", quantity: 1, condition: "Perlu perawatan", status: "Aktif" }),
   row("draft-1", "publikasi", { name: "Kabar kegiatan", date: "2026-11-06", status: "Draf", fileId: "image-1", publicationPermission: "Belum dikonfirmasi" }),
@@ -92,13 +95,19 @@ test("member reports contain only the member's own records and readable activiti
 test("coordinator report rows are limited to assigned program IDs", () => {
   const user = principal("koordinator");
   const tasks = reporting.selectReportRows(records, user, "operasional");
-  assert.deepEqual(plain(tasks.map((item) => item.id)), ["task-1"]);
+  assert.deepEqual(plain(tasks.map((item) => item.id)), ["task-1", "program-report-1"]);
+  assert.equal(permissions.canReadKind(principal("koordinator"), "laporan_program"), true);
+  assert.equal(permissions.canWriteKind(principal("koordinator"), "laporan_program"), true);
+  assert.equal(permissions.canReadRecord(principal("koordinator"), { id: "program-report-2", kind: "laporan_program", data: { programId: "2" } }), false);
+  assert.equal(permissions.canReadKind(principal("sekretaris"), "laporan_program"), true);
+  assert.equal(permissions.canWriteKind(principal("sekretaris"), "laporan_program"), false);
+  assert.equal(permissions.canWriteKind(principal("ketua"), "tindaklanjut"), true);
 });
 
 test("period filters use the activity or due date and keep all-period reports available", () => {
   const user = principal("admin");
   const november = reporting.selectReportRows(records, user, "operasional", "2026-11");
-  assert.equal(november.length, 4);
+  assert.equal(november.length, 6);
   const october = reporting.selectReportRows(records, user, "operasional", "2026-10");
   assert.equal(october.length, 0);
 });
