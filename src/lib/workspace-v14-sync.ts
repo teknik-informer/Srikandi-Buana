@@ -1,4 +1,3 @@
-import "server-only";
 import type { NeonDatabase, PreparedStatement } from "@/lib/runtime";
 import { mapLegacyRecordToV14 } from "@/features/workspace-v14/legacy-mapping.mjs";
 
