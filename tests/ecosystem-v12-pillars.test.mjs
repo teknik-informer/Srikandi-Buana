@@ -35,8 +35,8 @@ const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((
 const dashboardRouteIds = registry.enterpriseDashboards.flatMap((dashboard) =>
   dashboard.features.map((feature) => feature.id),
 );
-const expectedFeatureRouteIds = legacyRouteIds.filter((id) => id !== "laporan");
-const expectedAllRouteIds = [...legacyRouteIds, "monitoring", "pengembangan"];
+const expectedFeatureRouteIds = [...legacyRouteIds];
+const expectedAllRouteIds = [...legacyRouteIds, "monitoring", "laporan"];
 
 test("each enterprise dashboard has its own stable overview route", () => {
   assert.deepEqual(
@@ -61,33 +61,22 @@ test("the seven dashboards retain the requested functional grouping", () => {
   const featureIds = (id) => Array.from(registry.enterpriseDashboards.find((dashboard) => dashboard.id === id).features, (feature) => feature.id);
   assert.deepEqual(featureIds("ecosystem"), ["portal", "notifikasi"]);
   assert.deepEqual(featureIds("management"), ["program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah", "pengajuan", "enterprise"]);
-  assert.deepEqual(featureIds("administration"), ["anggota", "pengurus", "persetujuan", "register", "surat", "sumber", "kelembagaan", "transkripsi", "dokumen"]);
+  assert.deepEqual(featureIds("administration"), ["anggota", "pengurus", "persetujuan", "surat", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"]);
   assert.deepEqual(featureIds("finance"), ["kas", "akuntansi", "aset"]);
   assert.deepEqual(featureIds("commerce"), ["penjualan", "lotkopi", "usaha", "kemitraan"]);
   assert.deepEqual(featureIds("publication"), ["publikasi", "galeri", "pesan"]);
-  assert.deepEqual(featureIds("system"), ["akun", "akun-saya", "pengaturan", "panduan"]);
+  assert.deepEqual(featureIds("system"), ["akun", "akun-saya", "pengaturan"]);
 });
 
-test("monitoring, reports and template roadmap are standalone shortcuts with role-aware visibility", () => {
-  assert.deepEqual(
-    Array.from(registry.enterpriseUtilities, (item) => item.id),
-    ["monitoring", "laporan", "pengembangan"],
-  );
-  assert.deepEqual(
-    Array.from(registry.getVisibleEnterpriseUtilities("admin"), (item) => item.id),
-    ["monitoring", "laporan", "pengembangan"],
-  );
-  assert.deepEqual(
-    Array.from(registry.getVisibleEnterpriseUtilities("anggota"), (item) => item.id),
-    ["monitoring", "laporan", "pengembangan"],
-  );
-  assert.deepEqual(
-    Array.from(registry.getVisibleEnterpriseUtilities("ketua"), (item) => item.id),
-    ["monitoring", "laporan", "pengembangan"],
-  );
+test("monitoring and reports are the only operational utilities; template documentation belongs to Help Centre", () => {
+  assert.deepEqual(Array.from(registry.enterpriseUtilities, (item) => item.id), ["monitoring", "laporan"]);
+  for (const role of ["admin", "anggota", "ketua", "sekretaris", "bendahara", "koordinator"]) {
+    assert.deepEqual(Array.from(registry.getVisibleEnterpriseUtilities(role), (item) => item.id), ["monitoring", "laporan"]);
+    assert.equal(permissions.canReadSectionForRole(role, "panduan"), true);
+  }
   assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
   assert.equal(registry.getEnterpriseFeature("laporan")?.href, "/dashboard/laporan");
-  assert.equal(registry.getEnterpriseFeature("pengembangan")?.href, "/dashboard/pengembangan");
+  assert.equal(registry.getEnterpriseFeature("pengembangan"), undefined);
   assert.ok(!registry.enterpriseDashboards.find((dashboard) => dashboard.id === "finance").features.some((item) => item.id === "laporan"));
 });
 
