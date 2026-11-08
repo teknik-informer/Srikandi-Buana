@@ -65,6 +65,7 @@ export async function PUT(req: Request) {
     const raw = (await readJsonObject(req, 250000)) as {
       eventId: string;
       memberIds: string[];
+      memberStatuses?: unknown;
       externalParticipants?: unknown;
       notes?: string;
     };
@@ -83,7 +84,7 @@ export async function PUT(req: Request) {
       .first();
     if (!event) return json({ error: "Kegiatan tidak ditemukan." }, 404);
 
-    const memberIds = [...new Set(raw.memberIds)];
+    const submittedMemberIds = [...new Set(raw.memberIds)];
     const allMembers = await env.DB
       .prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota'")
       .bind(user.userId)
@@ -91,10 +92,68 @@ export async function PUT(req: Request) {
     const memberIndex = new Map(
       allMembers.results.map((row) => [String(row.id), JSON.parse(String(row.data)) as Record<string, unknown>]),
     );
-    if (memberIds.some((id) => !memberIndex.has(id))) {
+    if (submittedMemberIds.some((id) => !memberIndex.has(id))) {
       return json({ error: "Anggota tidak ditemukan dalam kelompok Anda." }, 400);
     }
 
+    const currentAttendance = await env.DB
+      .prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='kehadiran'")
+      .bind("attendance-" + raw.eventId, user.userId)
+      .first();
+    const previousData = currentAttendance
+      ? JSON.parse(String(currentAttendance.data)) as Record<string, unknown>
+      : {};
+    let previousStatuses: Record<string, string> = {};
+    try {
+      const stored = previousData.memberStatusJson;
+      if (typeof stored === "string") {
+        const parsed = JSON.parse(stored) as unknown;
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          previousStatuses = Object.fromEntries(
+            Object.entries(parsed as Record<string, unknown>)
+              .filter(([id, status]) => memberIndex.has(id) && typeof status === "string" && (status === "Belum ditandai" || attendanceStates.has(status)))
+              .map(([id, status]) => [id, String(status)]),
+          );
+        }
+      }
+    } catch {
+      previousStatuses = {};
+    }
+    // Legacy records only stored memberIds. Preserve that meaning when migrating
+    // their status map in memory; unknown members remain explicitly unmarked.
+    if (!Object.keys(previousStatuses).length && Array.isArray(previousData.memberIds)) {
+      for (const id of previousData.memberIds) {
+        if (typeof id === "string" && memberIndex.has(id)) previousStatuses[id] = "Hadir penuh";
+      }
+    }
+
+    let cleanedStatuses: Record<string, string> = {};
+    if (raw.memberStatuses !== undefined) {
+      if (!raw.memberStatuses || typeof raw.memberStatuses !== "object" || Array.isArray(raw.memberStatuses)) {
+        return json({ error: "Status kehadiran anggota tidak valid." }, 400);
+      }
+      const submitted = raw.memberStatuses as Record<string, unknown>;
+      if (Object.keys(submitted).length > 2000) return json({ error: "Daftar status anggota terlalu besar." }, 400);
+      for (const [id, status] of Object.entries(submitted)) {
+        if (!memberIndex.has(id)) return json({ error: "Anggota pada status kehadiran tidak ditemukan dalam kelompok Anda." }, 400);
+        if (status !== "Belum ditandai" && !attendanceStates.has(String(status))) {
+          return json({ error: "Status kehadiran anggota tidak valid." }, 400);
+        }
+        cleanedStatuses[id] = String(status);
+      }
+    } else {
+      // Backward compatibility for existing clients that still submit memberIds.
+      for (const id of submittedMemberIds) cleanedStatuses[id] = "Hadir penuh";
+    }
+
+    const memberStatusMap = { ...previousStatuses, ...cleanedStatuses };
+    for (const row of allMembers.results) {
+      const id = String(row.id);
+      if (!memberStatusMap[id]) memberStatusMap[id] = "Belum ditandai";
+    }
+    const memberIds = Object.entries(memberStatusMap)
+      .filter(([, status]) => status.startsWith("Hadir"))
+      .map(([id]) => id);
     const externalParticipants = cleanExternalParticipants(raw.externalParticipants);
     const notes = String(raw.notes || "").slice(0, 5000);
     const data = {
@@ -102,6 +161,7 @@ export async function PUT(req: Request) {
       name: String((JSON.parse(String(event.data)) as Record<string, unknown>).name || ""),
       memberIds,
       memberNames: memberIds.map((id) => String(memberIndex.get(id)?.name || "")),
+      memberStatusJson: JSON.stringify(memberStatusMap),
       externalParticipantsJson: JSON.stringify(externalParticipants),
       notes,
     };
