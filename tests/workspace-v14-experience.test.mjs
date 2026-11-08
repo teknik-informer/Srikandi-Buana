@@ -45,6 +45,8 @@ test("workspace overview distinguishes attention, steady and limited access stat
   assert.match(overview, /featureIcons/);
   assert.match(overview, /Aktivitas yang baru tercatat/);
   assert.match(overview, /recentRecords/);
+  assert.match(overview, /Perbarui data/);
+  assert.match(overview, /onClick=\{\(\) => void load\(\)\}/);
 });
 
 test("help centre searches template names, descriptions, categories and field names", () => {
