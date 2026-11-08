@@ -120,7 +120,7 @@ export function normalizeAccountCV(value: unknown, fallbackPhone = ""): AccountC
       description: text(row.description, 700, "Keterangan pendidikan"),
     };
   });
-  const experienceMap = (label: string) => (item: unknown): ExperienceEntry => {
+  const experienceMap = (item: unknown): ExperienceEntry => {
     const row = record(item);
     return {
       organization: text(row.organization, 140, "Nama instansi / organisasi"),
@@ -132,8 +132,8 @@ export function normalizeAccountCV(value: unknown, fallbackPhone = ""): AccountC
       description: text(row.description, 900, "Uraian pengalaman"),
     };
   };
-  const experience = list(raw.experience, 20, "Pengalaman kerja", experienceMap("Pengalaman kerja"));
-  const volunteer = list(raw.volunteer, 20, "Pengalaman organisasi", experienceMap("Pengalaman organisasi"));
+  const experience = list(raw.experience, 20, "Pengalaman kerja", experienceMap);
+  const volunteer = list(raw.volunteer, 20, "Pengalaman organisasi", experienceMap);
   const languages = list(raw.languages, 12, "Bahasa", item => {
     const row = record(item);
     const proficiency = text(row.proficiency, 40, "Tingkat kemampuan bahasa");
