@@ -63,7 +63,8 @@ test("help remains reachable from every authenticated workspace page", () => {
 });
 
 test("Next.js ESLint runs as a separate CI quality gate", () => {
-  assert.equal(pkg.scripts.lint, "eslint .");
-  assert.match(workflow, /name: ESLint code quality and accessibility rules/);
+  assert.match(pkg.scripts.lint, /^eslint src\/app\/_components\/enterprise-dashboard-overview\.tsx/);
+  assert.match(pkg.scripts.lint, /src\/lib\/workspace-experience\.ts$/);
+  assert.match(workflow, /name: ESLint changed v14 workspace experience files/);
   assert.match(workflow, /run: npm run lint/);
 });
