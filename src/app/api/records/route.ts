@@ -30,11 +30,34 @@ function validate(kind:string,raw:unknown):Data{
  return {programId:String(d.programId),status:String(d.status),name:String(d.name||"Program kerja").slice(0,200),notes:String(d.notes||"").slice(0,5000)};
  }
  const module=modules[kind];if(!module)throw new Error("Modul tidak ditemukan.");
- for(const f of module.fields){let v=String(d[f.key]??"").trim();if(f.required&&!v)throw new Error(`${f.label} wajib diisi.`);if(v.length>5000)throw new Error(`${f.label} terlalu panjang.`);
+ for(const f of module.fields){
+  if(f.visibleWhen&&String(d[f.visibleWhen.field]??"")!==f.visibleWhen.equals)continue;
+  let v=String(d[f.key]??"").trim();
+  if(f.required&&!v)throw new Error(`${f.label} wajib diisi.`);
+  if(v.length>5000)throw new Error(`${f.label} terlalu panjang.`);
+  if(f.type==="url"&&v&&!/^https?:\/\/\S+$/i.test(v))throw new Error(`${f.label} harus berupa tautan http/https.`);
  if(f.options&&!v)v=f.options[0];
  if(f.options&&!f.options.includes(v))throw new Error(`${f.label} tidak valid.`);
  if(f.type==="date"&&v&&(!/^\d{4}-\d{2}-\d{2}$/.test(v)||(!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v)))throw new Error("Tanggal tidak valid.");
  if(f.type==="number"||f.type==="decimal"){const n=Number(v||0);if((f.type==="number"?!Number.isSafeInteger(n):!Number.isFinite(n))||n<0||n>1e12||(f.key==="amount"&&n===0))throw new Error(`${f.label} harus berupa bilangan bulat yang valid.`);out[f.key]=n;}else out[f.key]=v;
+ }
+ if(kind==="kegiatan"&&d.formPreset==="tot-session-record"){
+  const start=String(d.date||"");
+  const end=String(d.endDate||"");
+  if(end&&start&&end<start)throw new Error("Tanggal selesai ToT tidak boleh sebelum tanggal mulai.");
+  if(d.trainerRecognition==="Diterbitkan dan bukti tersedia"&&!String(d.trainerRecognitionEvidenceId||"").trim())throw new Error("Tambahkan referensi bukti sebelum menyatakan sertifikat/kompetensi diterbitkan.");
+ }
+ if(kind==="kemitraan"&&d.formPreset==="program-preparation-checklist"){
+  const relationship=String(d.relationshipStage||"");
+  const mandate=String(d.writtenMandateStatus||"");
+  const requiresSigned=["agreement_signed","ready_for_activation","active"].includes(relationship)||mandate==="Sudah ditandatangani";
+  if(requiresSigned&&mandate!=="Sudah ditandatangani")throw new Error("Tahap perjanjian hanya dapat dicatat setelah dokumen tertulis ditandatangani.");
+  if(requiresSigned&&!String(d.signedAgreementFileId||"").trim())throw new Error("Lampirkan referensi dokumen perjanjian tertulis yang telah ditandatangani.");
+  if(["ready_for_activation","active"].includes(relationship)&&String(d.counterpartConfirmed||"")!=="Ya")throw new Error("Narahubung resmi harus dikonfirmasi sebelum tahap aktivasi.");
+ }
+ if(kind==="anggota"&&d.formPreset==="member-intake-basic"){
+  if(d.dataConsent!=="Setuju"&&d.status==="Aktif")throw new Error("Anggota belum dapat diaktifkan sebelum persetujuan pendataan diberikan dan dicatat.");
+  if(d.dataConsent==="Tidak setuju"&&String(d.status||"")==="Aktif")throw new Error("Status aktif tidak boleh diberikan ketika persetujuan pendataan ditolak.");
  }
  return out;
 }
