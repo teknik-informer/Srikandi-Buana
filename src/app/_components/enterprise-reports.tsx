@@ -462,6 +462,27 @@ export default function EnterpriseReports({
         </p>
       </header>
 
+      <section aria-label="Panduan singkat menggunakan laporan" className="rounded-xl border bg-card p-4">
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold">Cara menggunakan pusat laporan</h2>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Ikuti urutan ini agar ringkasan sesuai kebutuhan dan tidak salah dibaca.</p>
+        </div>
+        <ol className="grid gap-3 md:grid-cols-3">
+          <li className="flex min-w-0 gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">01</span>
+            <span><strong className="block text-sm">Pilih bidang</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Buka tab operasional, keanggotaan, administrasi, keuangan, usaha, atau publikasi sesuai hak akses.</span></span>
+          </li>
+          <li className="flex min-w-0 gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">02</span>
+            <span><strong className="block text-sm">Tentukan periode</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Pilih bulan untuk rekap tertentu, atau kosongkan periode untuk melihat semua catatan yang tersedia.</span></span>
+          </li>
+          <li className="flex min-w-0 gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">03</span>
+            <span><strong className="block text-sm">Tinjau sebelum dibagikan</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Periksa sumber dan bukti. Cetak atau ekspor hanya setelah data dinilai layak oleh petugas berwenang.</span></span>
+          </li>
+        </ol>
+      </section>
+
       <Card>
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 space-y-1">
