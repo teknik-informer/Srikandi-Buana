@@ -64,6 +64,37 @@ test("partner access requires an active unexpired program-scoped grant", () => {
   }).allowed, false);
 });
 
+test("partner and internal reviewer grants remain read-only", () => {
+  const request = {
+    principal: principal("partner_viewer"),
+    resource: "report", action: "create",
+    record: record({ containsPersonalData: false }),
+    grant: {
+      active: true, expiresAt: "2026-12-01T00:00:00.000Z",
+      organisationId: "org-1", resources: ["report"], actions: ["create"],
+      programIds: ["program-1"], siteIds: ["site-1"],
+    },
+    now,
+  };
+  assert.equal(authorizeAgencyAction(request).allowed, false);
+  assert.equal(authorizeAgencyAction({ ...request, principal: principal("internal_reviewer") }).allowed, false);
+});
+
+test("finance and quality reviewer roles are read-only capabilities", () => {
+  assert.equal(authorizeAgencyAction({
+    principal: principal("finance_reviewer"),
+    resource: "finance", action: "read", record: record(), now,
+  }).allowed, true);
+  assert.equal(authorizeAgencyAction({
+    principal: principal("finance_reviewer"),
+    resource: "finance", action: "create_transaction", record: record(), now,
+  }).allowed, false);
+  assert.equal(authorizeAgencyAction({
+    principal: principal("quality_reviewer"),
+    resource: "standard", action: "read", record: record(), now,
+  }).allowed, true);
+});
+
 test("partner grants cannot expose personal records without specific approval", () => {
   const request = {
     principal: principal("partner_viewer"),
