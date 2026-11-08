@@ -36,10 +36,10 @@ export default function AgencyRoadmap() {
           <div className="flex items-center gap-2">
             <Clock3 className="size-5 text-amber-600" aria-hidden="true" />
             <CardTitle className="text-base">Status hubungan mitra saat ini</CardTitle>
-            <Badge variant="outline">Belum ada perjanjian</Badge>
+            <Badge variant="outline">Belum ada perjanjian program</Badge>
           </div>
           <CardDescription>
-            Informasi ini mengikuti keterangan kelompok: hubungan masih pada tahap Training of Trainers (ToT).
+            Hubungan masih pada tahap Training of Trainers (ToT). Kelompok belum memiliki salinan digital dokumen program mitra.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
