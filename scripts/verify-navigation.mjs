@@ -7,7 +7,7 @@ const module={exports:{}};vm.runInNewContext(result.outputFiles[0].text,{module,
 const {dashboardGroups,publicMenus,modules,programs,navigationMatches,enterpriseUtilities}=module.exports;
 const admin=dashboardGroups.flatMap(g=>g.items);
 assert.equal(new Set(admin.map(i=>i.id)).size,admin.length,'Duplicate dashboard destination');
-const required=[...Object.keys(modules),'akun','akun-saya','program','kehadiran','laporan','sumber','dokumen','pesan','panduan','pengaturan','portal','pengajuan','enterprise','notifikasi','penjualan','akuntansi'];
+const required=[...Object.keys(modules),'akun','akun-saya','program','kehadiran','laporan','sumber','dokumen','pesan','panduan','pengaturan','portal','pengajuan','enterprise','notifikasi','penjualan','akuntansi','monitoring'];
 const reachable=[...admin.map(i=>i.id),...enterpriseUtilities.map(i=>i.id),'panduan'];
 assert.equal(new Set(reachable).size,reachable.length,'Duplicate dashboard destination');
 assert.deepEqual([...new Set(required)].sort(),reachable.sort(),'Every dashboard module must remain reachable');
