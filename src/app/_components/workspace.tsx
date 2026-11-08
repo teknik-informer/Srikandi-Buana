@@ -215,6 +215,7 @@ export default function Workspace({
     [filter, setFilter] = useState("Semua"),
     [month, setMonth] = useState(""),
     [fund, setFund] = useState("Semua pos"),
+    [formPreset, setFormPreset] = useState("standard"),
     [editor, setEditor] = useState<{
       kind: string;
       row?: Row;
@@ -293,6 +294,8 @@ export default function Workspace({
   const openEditor = (kind: string, row?: Row, initial?: Data) => {
     if (loading || error) return;
     clearError();
+    const presetField = modules[kind]?.fields.find((field) => field.key === "formPreset");
+    setFormPreset(String(row?.data.formPreset ?? initial?.formPreset ?? presetField?.options?.[0] ?? "standard"));
     setEditor({ kind, row, initial });
   };
   async function saveForm(e: FormEvent<HTMLFormElement>) {
@@ -1079,13 +1082,31 @@ export default function Workspace({
             <fieldset disabled={saving || imageUploading} className="min-w-0">
               <FieldGroup>
                 {editor &&
-                  modules[editor.kind]?.fields.map((f) => (
+                  modules[editor.kind]?.fields
+                    .filter((f) => !f.visibleWhen || formPreset === f.visibleWhen.equals)
+                    .map((f) => (
                     <Field key={f.key}>
                       <FieldLabel htmlFor={f.key}>
                         {f.label}
                         {f.required ? " *" : ""}
                       </FieldLabel>
-                      {f.key === "fileId" ? (<ImagePicker id={f.key} name={f.key} files={files} defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={saving} />) : ["fileId", "attachmentId"].includes(f.key) ? (
+                      {f.key === "formPreset" ? (
+                        <>
+                          <NativeSelect
+                            id={f.key}
+                            value={formPreset}
+                            onChange={(event) => setFormPreset(event.target.value)}
+                            disabled={!!editor.row}
+                          >
+                            {(f.options || ["standard"]).map((option) => (
+                              <NativeSelectOption key={option} value={option}>
+                                {formPresetLabels[option] || option}
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                          <input type="hidden" name="formPreset" value={formPreset} />
+                        </>
+                      ) : f.key === "fileId" ? (<ImagePicker id={f.key} name={f.key} files={files} defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={saving} />) : ["fileId", "attachmentId"].includes(f.key) ? (
                         <NativeSelect
                           id={f.key}
                           name={f.key}
@@ -1190,6 +1211,7 @@ export default function Workspace({
                           }
                         />
                       )}
+                      {f.helpText && <p className="text-xs leading-5 text-muted-foreground">{f.helpText}</p>}
                     </Field>
                   ))}
                 <div className="flex justify-end gap-2">
