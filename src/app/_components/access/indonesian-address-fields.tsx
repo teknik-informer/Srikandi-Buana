@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProfileAddress } from "@/lib/account-profile-data";
 
-type Region = { code: string; name: string };
+type Region = { code: string; name: string; postalCode?: string };
 type Props = { value: ProfileAddress; onChange: (value: ProfileAddress) => void; disabled?: boolean };
 
 async function loadRegions(level: string, parent = "", signal?: AbortSignal): Promise<Region[]> {
@@ -98,7 +98,7 @@ export default function IndonesianAddressFields({ value, onChange, disabled = fa
       setVillages([]);
       onChange({ ...value, districtCode: code, districtName: selected?.name || "", villageCode: "", villageName: "", postalCode: "" });
     }
-    if (level === "village") onChange({ ...value, villageCode: code, villageName: selected?.name || "" });
+    if (level === "village") onChange({ ...value, villageCode: code, villageName: selected?.name || "", postalCode: selected?.postalCode || value.postalCode });
   };
 
   const regionSelect = (id: string, label: string, selectedCode: string, options: Region[], loadingState: boolean, level: "province" | "regency" | "district" | "village", hint: string) => (
