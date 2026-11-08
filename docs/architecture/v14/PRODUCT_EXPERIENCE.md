@@ -57,7 +57,8 @@ Menu **Akun Saya** membedakan identitas keanggotaan yang telah diverifikasi dari
 - Alamat memilih provinsi, kabupaten/kota, kecamatan, dan desa/kelurahan melalui kode wilayah resmi. Nama wilayah tetap dapat diisi manual saat layanan daftar wilayah tidak tersedia.
 - Profil CV tersimpan per akun dan tidak otomatis dipublikasikan. Nomor telepon utama disinkronkan ke kolom kontak pada catatan anggota yang tertaut; bidang CV lain tidak mengubah status verifikasi, jabatan, atau hak akses.
 - NIK dan rekening bersifat opsional, memerlukan persetujuan terpisah, dienkripsi dengan AES-256-GCM dan AAD per pemilik/akun, serta API hanya mengembalikan status tersimpan dan tampilan tersamarkan. Tidak boleh ditempatkan pada catatan anggota umum atau diekspor ke laporan rutin.
-- Bila kunci enkripsi server tidak tersedia, penyimpanan NIK/rekening harus gagal tertutup (fail closed); jangan mengganti enkripsi dengan penyimpanan teks biasa.
+- Kunci `PROFILE_DATA_ENCRYPTION_KEY` hanya dipasang pada lingkungan Preview untuk pengujian saat ini. Kunci Production harus dibuat dan dipasang secara terpisah sebelum fitur identitas sensitif diaktifkan pada Production; jangan pernah memakai ulang kunci Preview.
+- Bila kunci enkripsi server tidak tersedia, penyimpanan NIK/rekening harus gagal tertutup (fail closed); jangan mengganti enkripsi dengan penyimpanan teks biasa. Form CV biasa tetap dapat disimpan tanpa mengirim field sensitif.
 - Pengguna dapat mencabut persetujuan untuk menghapus nilai sensitif yang tersimpan. Setiap perubahan profil dicatat dalam audit tanpa menyalin nilai NIK atau rekening ke log.
 
 ### Pusat Bantuan
