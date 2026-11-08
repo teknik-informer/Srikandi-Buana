@@ -30,7 +30,7 @@
     "test:enterprise": "node scripts/verify-enterprise.mjs",
     "test:navigation:compat": "node --test tests/navigation-compatibility.mjs",
     "test:terminology": "node --test tests/terminology-consistency.mjs",
-    "test:ecosystem": "node --test tests/ecosystem-*.test.mjs"
+    "test:ecosystem": "node --test tests/ecosystem-*.test.mjs tests/workspace-v14-*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
