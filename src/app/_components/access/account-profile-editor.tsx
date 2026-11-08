@@ -30,7 +30,8 @@ type Props = {
   user: ProfileUser;
   memberName: string;
   initialCV: AccountCV;
-  initialPrivateSummary: PrivateProfileSummary;
+  initialPrivateSummary: PrivateProfileSummary | null;
+  privateStorageReady: boolean;
   onSaved: (payload: SavedPayload) => void;
 };
 const emptyEducation = (): EducationEntry => ({ institution: "", level: "", field: "", startYear: "", endYear: "", description: "" });
@@ -47,16 +48,16 @@ function EntryActions({ onAdd, label }: { onAdd: () => void; label: string }) {
   return <Button type="button" variant="outline" size="sm" onClick={onAdd}><Plus className="size-4" />{label}</Button>;
 }
 
-export default function AccountProfileEditor({ user, memberName, initialCV, initialPrivateSummary, onSaved }: Props) {
+export default function AccountProfileEditor({ user, memberName, initialCV, initialPrivateSummary, privateStorageReady, onSaved }: Props) {
   const [displayName, setDisplayName] = useState(user.displayName);
   const [cv, setCV] = useState<AccountCV>(() => ({ ...emptyAccountCV, ...initialCV }));
-  const [privateSummary, setPrivateSummary] = useState(initialPrivateSummary);
+  const [privateSummary, setPrivateSummary] = useState<PrivateProfileSummary | null>(initialPrivateSummary);
   const [privateInput, setPrivateInput] = useState<PrivateProfileInput>(() => ({
     ...emptyPrivateProfile,
-    nikConsent: initialPrivateSummary.nikConsent,
-    bankConsent: initialPrivateSummary.bankConsent,
-    bankName: initialPrivateSummary.bankName,
-    accountHolder: initialPrivateSummary.accountHolder,
+    nikConsent: initialPrivateSummary?.nikConsent ?? false,
+    bankConsent: initialPrivateSummary?.bankConsent ?? false,
+    bankName: initialPrivateSummary?.bankName ?? "",
+    accountHolder: initialPrivateSummary?.accountHolder ?? "",
   }));
   const [showSensitiveHelp, setShowSensitiveHelp] = useState(false);
   const [selected, setSelected] = useState<File | null>(null), [preview, setPreview] = useState("");
@@ -164,7 +165,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
     void send("/api/account", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "details", cv, privateProfile: privateInput }),
+      body: JSON.stringify({ action: "details", cv, ...(privateStorageReady ? { privateProfile: privateInput } : {}) }),
     }, payload => {
       if (payload.cv) setCV(payload.cv);
       if (payload.privateSummary) {
@@ -218,6 +219,12 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
         {error && <Alert variant="destructive"><AlertTitle>Profil belum diperbarui</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
 
         <form ref={detailsForm} data-protect-unsaved onSubmit={saveDetails} className="space-y-8">
+          {!privateStorageReady && (
+            <Alert>
+              <AlertTitle>Kolom NIK dan rekening sementara dikunci</AlertTitle>
+              <AlertDescription>Kunci enkripsi server belum tersedia. Data CV biasa tetap dapat disimpan. NIK dan nomor rekening tidak akan dikirim atau disimpan sampai administrator menyiapkan kunci enkripsi. Data sensitif yang sebelumnya terenkripsi tidak akan diubah.</AlertDescription>
+            </Alert>
+          )}
           <fieldset disabled={busy} className="min-w-0 space-y-8">
             <section className="space-y-4" aria-labelledby="profile-personal-title">
               <SectionHeading id="profile-personal-title" title="1. Data diri" description="Nama resmi mengikuti data keanggotaan terverifikasi. Lengkapi informasi pribadi yang ingin ditampilkan pada CV internal." />
@@ -229,7 +236,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
                 </Field>
                 <Field><FieldLabel htmlFor="profile-preferred-name">Nama panggilan</FieldLabel><Input id="profile-preferred-name" value={cv.personal.preferredName} onChange={event => updatePersonal("preferredName", event.target.value)} maxLength={80} autoComplete="nickname" /></Field>
                 <Field><FieldLabel htmlFor="profile-nationality">Kewarganegaraan</FieldLabel><Input id="profile-nationality" value={cv.personal.nationality} onChange={event => updatePersonal("nationality", event.target.value)} maxLength={80} /></Field>
-                <Field><FieldLabel htmlFor="profile-birth-place">Tempat lahir</FieldLabel><Input id="profile-birth-place" value={cv.personal.birthPlace} onChange={event => updatePersonal("birthPlace", event.target.value)} maxLength={100} autoComplete="off" /></Field>
+                <Field><FieldLabel htmlFor="profile-birth-place">Tempat lahir</FieldLabel><Input id="profile-birth-place" value={cv.personal.birthPlace} onChange={event => updatePersonal("birthPlace", event.target.value)} maxLength={100} autoComplete="off" disabled={!privateStorageReady} /></Field>
                 <Field><FieldLabel htmlFor="profile-birth-date">Tanggal lahir</FieldLabel><Input id="profile-birth-date" type="date" value={cv.personal.birthDate} onChange={event => updatePersonal("birthDate", event.target.value)} autoComplete="bday" /></Field>
                 <Field><FieldLabel htmlFor="profile-gender">Jenis kelamin (opsional)</FieldLabel><NativeSelect id="profile-gender" className="w-full" value={cv.personal.gender} onChange={event => updatePersonal("gender", event.target.value)}><NativeSelectOption value="">Tidak diisi</NativeSelectOption><NativeSelectOption value="Perempuan">Perempuan</NativeSelectOption><NativeSelectOption value="Laki-laki">Laki-laki</NativeSelectOption><NativeSelectOption value="Memilih tidak menyebutkan">Memilih tidak menyebutkan</NativeSelectOption></NativeSelect></Field>
               </div>
@@ -338,18 +345,18 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
               <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2">
                 <Field className="sm:col-span-2">
                   <FieldLabel htmlFor="profile-nik">NIK (16 digit)</FieldLabel>
-                  <Input id="profile-nik" value={privateInput.nik} onChange={event => setPrivateInput(current => ({ ...current, nik: event.target.value.replace(/\D/g, "").slice(0,16) }))} inputMode="numeric" autoComplete="off" placeholder={privateSummary.hasNik ? "Sudah tersimpan: " + privateSummary.nikMasked + " · isi untuk mengganti" : "Masukkan 16 digit hanya bila diperlukan"} maxLength={16} />
-                  <FieldDescription>{privateSummary.hasNik ? "Tersimpan secara terenkripsi: " + privateSummary.nikMasked + ". Kosongkan untuk mempertahankan nilai yang tersimpan." : "Tidak wajib. Tidak digunakan sebagai nomor anggota atau ditampilkan di profil publik."}</FieldDescription>
+                  <Input id="profile-nik" value={privateInput.nik} onChange={event => setPrivateInput(current => ({ ...current, nik: event.target.value.replace(/\D/g, "").slice(0,16) }))} inputMode="numeric" autoComplete="off" disabled={!privateStorageReady} placeholder={privateSummary?.hasNik ? "Sudah tersimpan: " + privateSummary.nikMasked + " · isi untuk mengganti" : "Masukkan 16 digit hanya bila diperlukan"} maxLength={16} />
+                  <FieldDescription>{privateSummary?.hasNik ? "Tersimpan secara terenkripsi: " + privateSummary.nikMasked + ". Kosongkan untuk mempertahankan nilai yang tersimpan." : "Tidak wajib. Tidak digunakan sebagai nomor anggota atau ditampilkan di profil publik."}</FieldDescription>
                 </Field>
                 <Field className="sm:col-span-2">
-                  <label className="flex items-start gap-2 text-sm"><input className={checkClass} type="checkbox" checked={privateInput.nikConsent} onChange={event => setPrivateInput(current => ({ ...current, nikConsent: event.target.checked }))} /><span>Saya setuju menyimpan NIK untuk verifikasi identitas internal bila diperlukan.</span></label>
+                  <label className="flex items-start gap-2 text-sm"><input className={checkClass} type="checkbox" disabled={!privateStorageReady} checked={privateInput.nikConsent} onChange={event => setPrivateInput(current => ({ ...current, nikConsent: event.target.checked }))} /><span>Saya setuju menyimpan NIK untuk verifikasi identitas internal bila diperlukan.</span></label>
                   <FieldDescription>Hapus centang untuk menghapus NIK yang tersimpan.</FieldDescription>
                 </Field>
                 <div className="sm:col-span-2 border-t pt-4"><p className="font-medium">Informasi rekening bank</p><p className="mt-1 text-sm text-muted-foreground">Boleh dikosongkan bila tidak diperlukan untuk administrasi pembayaran.</p></div>
-                <Field><FieldLabel htmlFor="profile-bank-name">Nama bank</FieldLabel><Input id="profile-bank-name" value={privateInput.bankName} onChange={event => setPrivateInput(current => ({ ...current, bankName: event.target.value }))} maxLength={100} placeholder="Contoh: BRI, BNI, BCA…" autoComplete="off" /></Field>
+                <Field><FieldLabel htmlFor="profile-bank-name">Nama bank</FieldLabel><Input id="profile-bank-name" value={privateInput.bankName} onChange={event => setPrivateInput(current => ({ ...current, bankName: event.target.value }))} maxLength={100} placeholder="Contoh: BRI, BNI, BCA…" autoComplete="off" disabled={!privateStorageReady} /></Field>
                 <Field><FieldLabel htmlFor="profile-bank-holder">Nama pemilik rekening</FieldLabel><Input id="profile-bank-holder" value={privateInput.accountHolder} onChange={event => setPrivateInput(current => ({ ...current, accountHolder: event.target.value }))} maxLength={100} autoComplete="off" /></Field>
-                <Field className="sm:col-span-2"><FieldLabel htmlFor="profile-bank-number">Nomor rekening</FieldLabel><Input id="profile-bank-number" value={privateInput.accountNumber} onChange={event => setPrivateInput(current => ({ ...current, accountNumber: event.target.value.replace(/\D/g, "").slice(0,24) }))} inputMode="numeric" autoComplete="off" maxLength={24} placeholder={privateSummary.hasBankAccount ? "Sudah tersimpan: " + privateSummary.accountNumberMasked + " · isi untuk mengganti" : "Masukkan nomor rekening"} /><FieldDescription>{privateSummary.hasBankAccount ? "Tersimpan secara terenkripsi di " + privateSummary.bankName + " · " + privateSummary.accountNumberMasked + ". Kosongkan untuk mempertahankan." : "6–24 digit. Nomor lengkap tidak pernah dikembalikan oleh API."}</FieldDescription></Field>
-                <Field className="sm:col-span-2"><label className="flex items-start gap-2 text-sm"><input className={checkClass} type="checkbox" checked={privateInput.bankConsent} onChange={event => setPrivateInput(current => ({ ...current, bankConsent: event.target.checked }))} /><span>Saya setuju menyimpan informasi rekening untuk administrasi pembayaran internal bila diperlukan.</span></label><FieldDescription>Hapus centang untuk menghapus data rekening yang tersimpan.</FieldDescription></Field>
+                <Field className="sm:col-span-2"><FieldLabel htmlFor="profile-bank-number">Nomor rekening</FieldLabel><Input id="profile-bank-number" value={privateInput.accountNumber} onChange={event => setPrivateInput(current => ({ ...current, accountNumber: event.target.value.replace(/\D/g, "").slice(0,24) }))} inputMode="numeric" autoComplete="off" maxLength={24} disabled={!privateStorageReady} placeholder={privateSummary?.hasBankAccount ? "Sudah tersimpan: " + privateSummary.accountNumberMasked + " · isi untuk mengganti" : "Masukkan nomor rekening"} /><FieldDescription>{privateSummary?.hasBankAccount ? "Tersimpan secara terenkripsi di " + privateSummary.bankName + " · " + privateSummary.accountNumberMasked + ". Kosongkan untuk mempertahankan." : "6–24 digit. Nomor lengkap tidak pernah dikembalikan oleh API."}</FieldDescription></Field>
+                <Field className="sm:col-span-2"><label className="flex items-start gap-2 text-sm"><input className={checkClass} type="checkbox" disabled={!privateStorageReady} checked={privateInput.bankConsent} onChange={event => setPrivateInput(current => ({ ...current, bankConsent: event.target.checked }))} /><span>Saya setuju menyimpan informasi rekening untuk administrasi pembayaran internal bila diperlukan.</span></label><FieldDescription>Hapus centang untuk menghapus data rekening yang tersimpan.</FieldDescription></Field>
               </div>
             </section>
           </fieldset>
