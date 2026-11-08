@@ -65,6 +65,11 @@ test("dashboard progress chart derives six-month trends from role-scoped source 
   assert.match(progressChart, /Belum ada aktivitas dalam enam bulan terakhir/);
   assert.doesNotMatch(progressChart, /Math\.random|faker|mockData|dummyData/i);
   assert.match(progressChart, /bukan persentase keberhasilan program/);
+  assert.match(overview, /programEvaluations=\{dashboard\.id === "management" \? snapshot\.programEvaluations : undefined\}/);
+  assert.match(progressChart, /Perkembangan program kerja/);
+  assert.match(progressChart, /program\.reportCount/);
+  assert.match(progressChart, /program\.openTasks\.length/);
+  assert.match(progressChart, /program\.blocked/);
 });
 
 test("help centre searches template names, descriptions, categories and field names", () => {
