@@ -15,11 +15,14 @@ export type AgencyAccessRequest = {
   record: {
     organisationId: string;
     personId?: string;
+    participantPersonId?: string;
+    enrolledPersonIds?: string[];
     programId?: string;
     siteId?: string;
     createdBy?: string;
     initiatedBy?: string;
     containsPersonalData?: boolean;
+    personalDataClass?: string;
   };
   grant?: {
     active: boolean;
@@ -28,7 +31,7 @@ export type AgencyAccessRequest = {
     resources: string[];
     actions: string[];
     programIds: string[];
-    siteIds?: string[];
+    siteIds: string[];
     restrictedDataApproved?: boolean;
     personalDataApproved?: boolean;
   };
