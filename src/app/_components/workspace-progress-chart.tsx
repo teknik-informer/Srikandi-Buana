@@ -48,11 +48,13 @@ export default function WorkspaceProgressChart({
   features,
   dashboardLabel,
   loading,
+  programEvaluations,
 }: {
   rows: Row[];
   features: readonly NavItem[];
   dashboardLabel: string;
   loading: boolean;
+  programEvaluations?: ProgramEvaluation[];
 }) {
   const featureIds = useMemo(() => new Set(features.map((feature) => feature.id)), [features]);
   const scopedRows = useMemo(() => rows.filter((row) => featureIds.has(row.kind)), [rows, featureIds]);
