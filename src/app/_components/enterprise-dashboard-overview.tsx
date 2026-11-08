@@ -252,6 +252,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
         features={dashboard.features}
         dashboardLabel={dashboard.label}
         loading={loading}
+        programEvaluations={dashboard.id === "management" ? snapshot.programEvaluations : undefined}
       />
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
