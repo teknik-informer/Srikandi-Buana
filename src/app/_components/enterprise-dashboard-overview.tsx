@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getVisibleEnterpriseUtilities, type EnterpriseDashboard, type EnterpriseDashboardId } from "@/features/enterprise/registry";
+import { getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities, type EnterpriseDashboard, type EnterpriseDashboardId } from "@/features/enterprise/registry";
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
 import { recordHref } from "@/lib/management-insights";
@@ -127,8 +127,8 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const snapshot = useMemo(() => buildEnterpriseMonitoring(rows, files, user), [rows, files, user]);
   const metrics = useMemo(() => dashboardMetrics(dashboard.id, snapshot), [dashboard.id, snapshot]);
   const availableFeatureIds = useMemo(
-    () => dashboard.features.map((feature) => feature.id),
-    [dashboard.features],
+    () => getVisibleEnterpriseDashboards(user.role).flatMap((workspace) => workspace.features.map((feature) => feature.id)),
+    [user.role],
   );
   const briefing = useMemo(
     () => buildDashboardBriefing(dashboard.id, snapshot, availableFeatureIds),
