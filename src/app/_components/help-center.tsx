@@ -63,13 +63,13 @@ const roleGuides: Record<Role, { summary: string; steps: { title: string; detail
 };
 
 const templateNotes: Record<string, string> = {
-  "partner-engagement-log": "Input penjajakan dilakukan pada menu Kemitraan. Tahap hubungan dan catatan resmi harus mencerminkan komunikasi yang benar-benar terjadi.",
-  "tot-session-record": "Pelaksanaan ToT dicatat pada menu Kegiatan. Field khusus laporan pelatihan masih memerlukan penyelarasan sebelum formulir digital lengkap.",
-  "tot-attendance-roster": "Daftar hadir dikelola melalui menu Daftar Hadir. Jangan meminta NIK, rekening, atau data sensitif yang tidak diperlukan.",
-  "tot-action-plan": "Tindak lanjut pasca-ToT dikelola pada menu Tugas dan Tindak Lanjut. Gunakan hasil aktual dan bukti untuk verifikasi.",
-  "partner-document-register": "Register dokumen dikelola pada Administrasi → Register Dokumen. Status 'diterima' berbeda dari 'terverifikasi sumber/versi'.",
-  "program-preparation-checklist": "Checklist dibahas pada menu Kemitraan. Checklist tidak mengaktifkan program, membuat anggaran, atau menyatakan adanya perjanjian.",
-  "basic-member-intake": "Pendataan anggota dilakukan di menu Keanggotaan. Jelaskan tujuan dan persetujuan, lalu verifikasi sebelum data digunakan sebagai data resmi.",
+  "partner-engagement-log": "Pilih preset Catatan penjajakan mitra pada Kemitraan. Nama pihak, narahubung, tahap komunikasi, ringkasan, dokumen yang dijanjikan, penanggung jawab, dan tindak lanjut disimpan pada satu catatan kemitraan.",
+  "tot-session-record": "Pilih preset Laporan Training of Trainers pada Agenda Kegiatan. Nama/judul, tanggal mulai, lokasi, fasilitator dan peserta menggunakan kolom kegiatan; materi, tujuan, pembelajaran, evaluasi dan bukti ToT disimpan sebagai kolom khusus pada catatan yang sama.",
+  "tot-attendance-roster": "Menu Daftar Hadir saat ini mencatat kehadiran anggota yang sudah terdaftar untuk suatu kegiatan. Roster peserta eksternal/mitra, peran pihak luar, dan izin foto terpisah belum dipetakan; jangan menganggap daftar hadir anggota sebagai roster ToT lengkap. Jangan meminta NIK, rekening, atau data sensitif yang tidak diperlukan.",
+  "tot-action-plan": "Pilih preset Rencana aksi pasca-ToT pada Tugas dan Tindak Lanjut. Tindakan, penanggung jawab, tenggat, hasil aktual, dukungan yang diperlukan dan verifikasi tetap menggunakan catatan tugas yang sama.",
+  "partner-document-register": "Pilih preset Register dokumen mitra pada Register Dokumen. Nama mitra, jenis dokumen, status permintaan/penerimaan, tanggal, versi, penanggung jawab dan pemeriksaan sumber dicatat bersama referensi lampiran arsip.",
+  "program-preparation-checklist": "Pilih preset Kesiapan program sebelum perjanjian pada Kemitraan. Checklist tidak mengaktifkan program, membuat anggaran, atau menganggap ToT sebagai perjanjian. Tahap perjanjian/aktivasi memerlukan bukti dokumen tertulis dari arsip organisasi.",
+  "member-intake-basic": "Pilih preset Pendataan dasar anggota pada Keanggotaan. Isian memakai data seperlunya, menampilkan versi pemberitahuan, dan mencatat persetujuan pendataan serta izin foto secara terpisah.",
 };
 
 export default function HelpCenter({ role }: { role: Role }) {
