@@ -71,7 +71,14 @@ export async function GET() {
         if (typeof saved.value === "string" && saved.value.trim()) displayName = saved.value;
       } catch { /* Keep the verified identity if an optional display preference is malformed. */ }
     }
-    const cv = normalizeAccountCV(stored.cv, String(memberData.phone || ""));
+    const normalizedCV = normalizeAccountCV(stored.cv, String(memberData.phone || ""));
+    const cv = {
+      ...normalizedCV,
+      address: {
+        ...normalizedCV.address,
+        street: normalizedCV.address.street || String(memberData.dusun || ""),
+      },
+    };
     const privateStorageReady = isPrivateProfileEncryptionConfigured();
     const privateSummary = await privateSummaryFor(stored, u.userId, u.accountId);
     return json({
