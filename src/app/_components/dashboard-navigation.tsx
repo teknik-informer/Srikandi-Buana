@@ -310,7 +310,7 @@ export function DashboardMegaMenu({
               <p>AKSES CEPAT</p>
               <div>
                 {utilities.map((item) => {
-                  const Icon = item.id === "monitoring" ? Activity : item.id === "pengembangan" ? ClipboardList : FileText;
+                  const Icon = item.id === "monitoring" ? Activity : FileText;
                   return (
                     <Link href={item.href} key={item.id} onClick={() => setOpen(false)} aria-current={section === item.id ? "page" : undefined}>
                       <Icon size={17} aria-hidden="true" />
