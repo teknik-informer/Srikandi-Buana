@@ -72,7 +72,7 @@ test("partner grants cannot expose personal records without specific approval", 
     grant: {
       active: true, expiresAt: "2026-12-01T00:00:00.000Z",
       organisationId: "org-1", resources: ["report"], actions: ["read"],
-      programIds: ["program-1"], siteIds: [],
+      programIds: ["program-1"], siteIds: ["site-1"],
     },
     now,
   };
