@@ -89,10 +89,16 @@ export function resolveAssuranceState(input = {}) {
       ["evidenceId", "Bukti resmi wajib ditautkan."],
     ];
     const missing = required.filter(([key]) => !nonEmpty(input[key])).map(([, message]) => message);
+    if (!isValidDay(input.verifiedAt) && !isValidTimestamp(input.verifiedAt)) {
+      missing.push("Tanggal verifikasi eksternal harus berupa tanggal yang valid.");
+    }
+    if (input.expiresOn && !isValidDay(input.expiresOn)) {
+      missing.push("Tanggal kedaluwarsa eksternal tidak valid.");
+    }
     if (missing.length) {
       return { state: recordStates.NEEDS_CORRECTION, valid: false, issues: missing };
     }
-    if (input.expiresOn && isValidDay(input.expiresOn) && input.expiresOn < today) {
+    if (input.expiresOn && input.expiresOn < today) {
       return { state: recordStates.EXPIRED, valid: false, issue: "Bukti eksternal sudah melewati tanggal berlaku." };
     }
     return { state: recordStates.EXTERNALLY_VERIFIED, valid: true };
@@ -101,7 +107,9 @@ export function resolveAssuranceState(input = {}) {
   if (status === recordStates.INTERNALLY_VERIFIED) {
     const missing = [];
     if (!nonEmpty(input.verifierId)) missing.push("Pemeriksa internal wajib dicatat.");
-    if (!nonEmpty(input.verifiedAt)) missing.push("Tanggal pemeriksaan internal wajib dicatat.");
+    if (!isValidDay(input.verifiedAt) && !isValidTimestamp(input.verifiedAt)) {
+      missing.push("Tanggal pemeriksaan internal harus berupa tanggal yang valid.");
+    }
     if (!nonEmpty(input.evidenceId)) missing.push("Bukti pendukung wajib ditautkan.");
     return missing.length
       ? { state: recordStates.NEEDS_CORRECTION, valid: false, issues: missing }
@@ -142,7 +150,7 @@ export function interpretMeasure(input = {}) {
 
 /**
  * A program is not active simply because a draft or offer exists.
- * All eight activation gates must be explicitly satisfied.
+ * All nine activation gates must be explicitly satisfied.
  */
 export function evaluateProgramActivation(program = {}) {
   const missing = [];
