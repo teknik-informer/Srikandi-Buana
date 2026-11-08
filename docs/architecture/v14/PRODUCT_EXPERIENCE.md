@@ -61,3 +61,4 @@ Pusat Bantuan adalah pusat dokumentasi, bukan menu input. Pencarian template men
 7. Tata letak tetap terbaca pada lebar ponsel, tablet, dan desktop; keyboard, screen reader, kontras, serta reduced-motion diperiksa langsung.
 8. Build, typecheck, ESLint, regression, dan security gate lulus sebelum perubahan dipromosikan.
 9. QA browser dengan role uji yang sah tetap wajib; test statis atau HTTP 200 tidak menggantikannya.
+10. ESLint dijalankan pada komponen v14 yang berubah. Lint seluruh repositori masih memiliki temuan historis di area lain; temuan tersebut tidak boleh disembunyikan dan harus diselesaikan bertahap melalui backlog terpisah.
