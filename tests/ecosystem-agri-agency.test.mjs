@@ -43,6 +43,26 @@ test("external verification cannot be claimed without issuer, reference, date an
   assert.equal(accepted.valid, true);
 });
 
+test("verification timestamps and expiry dates must be valid calendar dates", () => {
+  const internal = resolveAssuranceState({
+    status: "internally_verified",
+    verifierId: "reviewer-1",
+    verifiedAt: "not-a-date",
+    evidenceId: "DOC-1",
+  });
+  assert.equal(internal.state, "needs_correction");
+  const external = resolveAssuranceState({
+    status: "externally_verified",
+    issuer: "Issuer",
+    externalReference: "REF-2",
+    verifiedAt: "2026-10-30",
+    evidenceId: "DOC-2",
+    expiresOn: "not-a-date",
+    today: "2026-11-08",
+  });
+  assert.equal(external.state, "needs_correction");
+});
+
 test("expired external evidence is not reported as currently verified", () => {
   const result = resolveAssuranceState({
     status: "externally_verified",
