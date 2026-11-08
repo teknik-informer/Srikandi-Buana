@@ -70,8 +70,8 @@ test("private identity values are never returned by account GET; only masks are 
   assert.doesNotMatch(accountApi, /accountNumber:\s*privateData\.accountNumber/);
   assert.match(privateCrypto, /nikMasked/);
   assert.match(privateCrypto, /accountNumberMasked/);
-  assert.match(editor, /privateSummary\.nikMasked/);
-  assert.match(editor, /privateSummary\.accountNumberMasked/);
+  assert.match(editor, /privateSummary\\?\\.nikMasked/);
+  assert.match(editor, /privateSummary\\?\\.accountNumberMasked/);
 });
 
 test("private fields are consent-gated and can be removed by withdrawing consent", () => {
