@@ -24,11 +24,11 @@ export function visibleRecord(u:Principal,r:AccessRecord){if(u.role!=='anggota')
 export function canReadSectionForRole(role:Role,id:string){
  if(['notifikasi','penjualan'].includes(id))return true;
  if(id==='akuntansi')return ['admin','ketua','bendahara'].includes(role);
- if(['ringkasan','akun-saya','portal','pengajuan','monitoring','pengembangan'].includes(id))return true;
+ if(['ringkasan','akun-saya','portal','pengajuan','monitoring','panduan'].includes(id))return true;
  if(role==='admin')return true;
  if(id==='enterprise')return ['ketua','sekretaris','bendahara'].includes(role);
  if(id==='dokumen')return ['sekretaris','bendahara','koordinator'].includes(role);
- if(['akun','sumber','panduan','pesan','pengaturan','dokumen'].includes(id))return false;
+ if(['akun','sumber','pesan','pengaturan','dokumen'].includes(id))return false;
  if(id==='laporan')return true;
  return canReadKindForRole(role,id);
 }
