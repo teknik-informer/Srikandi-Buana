@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity, AlertTriangle, ArrowUpRight, Bell, BookOpen, BriefcaseBusiness,
+  AlertTriangle, ArrowUpRight, Bell, BookOpen, BriefcaseBusiness,
   CalendarClock, CalendarDays, Camera, CheckCircle2, ClipboardCheck, FileCheck2,
   FileText, Files, FolderCheck, Handshake, Landmark, LayoutGrid, Megaphone,
   MessagesSquare, PackageCheck, Settings2, ShieldCheck, ShoppingBag, Sprout,
@@ -49,19 +49,19 @@ const briefingAppearance = {
   attention: {
     border: "border-amber-500/30",
     background: "from-amber-500/10 via-card to-card",
-    badge: "warning" as const,
+    badgeClass: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200",
     icon: AlertTriangle,
   },
   steady: {
     border: "border-emerald-500/25",
     background: "from-emerald-500/10 via-card to-card",
-    badge: "success" as const,
+    badgeClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
     icon: CheckCircle2,
   },
   limited: {
     border: "border-border",
     background: "from-muted/70 via-card to-card",
-    badge: "secondary" as const,
+    badgeClass: "border-border bg-muted text-muted-foreground",
     icon: ShieldCheck,
   },
 };
@@ -125,7 +125,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const { rows, files, loading, error, load } = useWorkspaceData();
   const snapshot = useMemo(() => buildEnterpriseMonitoring(rows, files, user), [rows, files, user]);
   const metrics = useMemo(() => dashboardMetrics(dashboard.id, snapshot), [dashboard.id, snapshot]);
-  const briefing = useMemo(() => buildDashboardBriefing(dashboard.id, snapshot), [dashboard.id, snapshot]);
+  const briefing = useMemo(() => buildDashboardBriefing(dashboard.id, snapshot, dashboard.features.map((feature) => feature.id)), [dashboard.id, snapshot]);
   const utilities = getVisibleEnterpriseUtilities(user.role);
   const issues = snapshot.issues.slice(0, 5);
   const firstFeature = dashboard.features[0];
@@ -165,7 +165,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
                 <AppearanceIcon className="size-4" aria-hidden="true" />
               </span>
               <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground">{briefing.eyebrow}</p>
-              <Badge variant={briefingAppearance[briefing.state].badge}>
+              <Badge variant="outline" className={briefingAppearance[briefing.state].badgeClass}>
                 {briefing.state === "attention" ? "Perlu tindak lanjut" : briefing.state === "steady" ? "Ritme terjaga" : "Sesuai hak akses"}
               </Badge>
             </div>
