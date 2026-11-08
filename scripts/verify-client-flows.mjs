@@ -406,7 +406,7 @@ const personal=await harness('src/app/_components/access/account-profile-editor.
  window:{dispatchEvent:event=>personalEvents.push(event)},
  fetch:(url,options)=>{personalCalls++;personalRequests.push({url,options});return personalRequest.promise;},
 });
-const personalRender=()=>personal.render(()=>personal.exports.default({user:personalUser,onSaved:profile=>{personalUser={...personalUser,...profile};}}));
+const personalRender=()=>personal.render(()=>personal.exports.default({user:personalUser,onSaved:payload=>{personalUser={...personalUser,...payload.user};}}));
 let personalTree=personalRender();personal.effects();
 const nameDraft={dataset:{unsaved:'true'}},photoDraft={dataset:{}};
 find(personalTree,n=>n.props?.['aria-label']==='Ubah foto profil').props.ref.current=photoDraft;
