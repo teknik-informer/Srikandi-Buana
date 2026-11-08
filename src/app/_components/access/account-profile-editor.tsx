@@ -37,8 +37,6 @@ const emptyEducation = (): EducationEntry => ({ institution: "", level: "", fiel
 const emptyExperience = (): ExperienceEntry => ({ organization: "", title: "", location: "", startDate: "", endDate: "", current: false, description: "" });
 const emptyLanguage = (): LanguageEntry => ({ language: "", proficiency: "" });
 const emptyCertification = (): CertificationEntry => ({ name: "", issuer: "", year: "", description: "" });
-const inputClass = "w-full";
-const labelText = "text-sm font-medium";
 const checkClass = "size-4 rounded border-input accent-primary";
 
 function SectionHeading({ id, title, description }: { id: string; title: string; description: string }) {
