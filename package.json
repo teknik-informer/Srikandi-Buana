@@ -31,7 +31,7 @@
     "test:navigation:compat": "node --test tests/navigation-compatibility.mjs",
     "test:terminology": "node --test tests/terminology-consistency.mjs",
     "test:ecosystem": "node --test tests/ecosystem-*.test.mjs tests/workspace-v14-*.test.mjs",
-    "lint": "eslint src/app/_components/enterprise-dashboard-overview.tsx src/app/_components/workspace-progress-chart.tsx src/app/_components/enterprise-monitoring.tsx src/app/_components/enterprise-reports.tsx src/app/_components/help-center.tsx src/app/_components/workspace-shell.tsx src/lib/workspace-experience.ts"
+    "lint": "eslint src/app/_components/enterprise-dashboard-overview.tsx src/app/_components/workspace-progress-chart.tsx src/app/_components/enterprise-monitoring.tsx src/app/_components/enterprise-reports.tsx src/app/_components/help-center.tsx src/app/_components/workspace-shell.tsx src/app/_components/access/my-account.tsx src/app/_components/access/account-profile-editor.tsx src/app/_components/access/indonesian-address-fields.tsx src/app/api/account/route.ts src/app/api/regions/route.ts src/lib/account-profile-data.ts src/lib/account-profile-private.ts src/lib/workspace-experience.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
