@@ -402,7 +402,7 @@ export const templateDestinations = Object.freeze({
   "tot-action-plan": { route: "/dashboard/tindaklanjut", label: "Tugas dan Tindak Lanjut", inputStatus: "existing_domain_form" },
   "partner-document-register": { route: "/dashboard/register", label: "Register Dokumen", inputStatus: "field_mapping_pending" },
   "program-preparation-checklist": { route: "/dashboard/kemitraan", label: "Kemitraan", inputStatus: "field_mapping_pending" },
-  "basic-member-intake": { route: "/dashboard/anggota", label: "Keanggotaan", inputStatus: "existing_domain_form" },
+  "member-intake-basic": { route: "/dashboard/anggota", label: "Keanggotaan", inputStatus: "field_mapping_pending" },
 });
 
 const validDay = (value) => typeof value === "string"
