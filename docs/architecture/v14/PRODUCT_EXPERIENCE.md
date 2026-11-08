@@ -31,6 +31,10 @@ Tindakan dibatasi ke modul yang terlihat pada dashboard role pengguna. Saat tida
 
 Setiap ringkasan dashboard menampilkan beberapa catatan terbaru yang dapat dibuka ke modul sumber. Pengurutan menggunakan waktu pembaruan/pencatatan dari record yang tersedia, bukan membuat peristiwa sintetis. Pengguna dapat meminta pemuatan ulang secara manual; tidak ada polling agresif yang mengganggu pekerjaan.
 
+### Grafik perkembangan dan equalizer
+
+Setiap dashboard menampilkan tren enam bulan catatan baru dan catatan yang diperbarui, serta perbandingan jumlah catatan menurut modul yang terlihat oleh role. Grafik menggunakan timestamp `created` dan `updated` dari API catatan yang sudah menerapkan penyaringan kepemilikan dan kebijakan akses. Equalizer adalah animasi visual yang menghormati `prefers-reduced-motion`; angka selalu ditampilkan dan grafik memiliki kondisi kosong. Tren ini mengukur ritme pencatatan, bukan keberhasilan program, dampak sosial, atau tingkat penyelesaian. Indikator outcome harus dibangun terpisah dari target/capaian yang memiliki definisi dan bukti sumber.
+
 ### Monitoring dan Laporan
 
 Monitoring membedakan pemeriksaan keterjangkauan API/database dari indikator operasional dan temuan kualitas data. Temuan teratas disajikan sebagai titik mulai yang dapat dibuka ke catatan sumber; temuan adalah petunjuk pemeriksaan, bukan keputusan otomatis bahwa catatan salah. Laporan memandu pengguna memilih bidang, periode, meninjau sumber, lalu mencetak/mengekspor hasil sesuai hak akses.
