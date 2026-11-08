@@ -23,6 +23,25 @@ type ExternalParticipant = {
   photoConsent: string;
 };
 
+const memberAttendanceStates = ["Belum ditandai", "Hadir penuh", "Hadir sebagian", "Izin", "Tidak hadir"];
+
+function parseMemberStatuses(value: unknown, memberIds: unknown): Record<string, string> {
+  const fallbackIds = Array.isArray(memberIds) ? memberIds.filter((id): id is string => typeof id === "string") : [];
+  if (typeof value === "string" && value) {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return Object.fromEntries(Object.entries(parsed).filter(([id, status]) =>
+          typeof id === "string" && typeof status === "string" && memberAttendanceStates.includes(status),
+        ));
+      }
+    } catch {
+      // Older attendance records only stored the memberIds list.
+    }
+  }
+  return Object.fromEntries(fallbackIds.map((id) => [id, "Hadir penuh"]));
+}
+
 const defaultExternalParticipant = (): ExternalParticipant => ({
   name: "",
   organisation: "",
@@ -59,7 +78,7 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
   const events = rows.filter((r) => r.kind === "kegiatan");
   const members = rows.filter((r) => r.kind === "anggota");
   const [eventId, setEventId] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
+  const [memberStatuses, setMemberStatuses] = useState<Record<string, string>>({});
   const [externalParticipants, setExternalParticipants] = useState<ExternalParticipant[]>([]);
   const [notes, setNotes] = useState("");
   const [query, setQuery] = useState("");
@@ -81,8 +100,7 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
   useEffect(() => {
     // A background reload must not overwrite work that is still being edited.
     if (dirty.current) return;
-    const ids = record?.data.memberIds;
-    setSelected(Array.isArray(ids) ? ids.filter((v): v is string => typeof v === "string") : []);
+    setMemberStatuses(parseMemberStatuses(record?.data.memberStatusJson, record?.data.memberIds));
     setExternalParticipants(parseExternalParticipants(record?.data.externalParticipantsJson));
     setNotes(String(record?.data.notes || ""));
   }, [eventId, record]);
@@ -91,9 +109,21 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
     dirty.current = true;
     markFormDirty(form.current);
   }
+  const selected = Object.entries(memberStatuses)
+    .filter(([, status]) => status.startsWith("Hadir"))
+    .map(([id]) => id);
+
+  function changeMemberStatus(id: string, status: string) {
+    markDirty();
+    setMemberStatuses((current) => ({ ...current, [id]: status }));
+  }
   function changeSelection(ids: string[]) {
     markDirty();
-    setSelected(ids);
+    const selectedIds = new Set(ids);
+    setMemberStatuses(Object.fromEntries(members.map((member) => [
+      member.id,
+      selectedIds.has(member.id) ? "Hadir penuh" : "Belum ditandai",
+    ])));
   }
   function updateExternalParticipant(index: number, patch: Partial<ExternalParticipant>) {
     markDirty();
@@ -121,7 +151,7 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventId, memberIds: selected, externalParticipants, notes }),
+          body: JSON.stringify({ eventId, memberIds: selected, memberStatuses, externalParticipants, notes }),
         },
       );
       if (!r.ok) throw Error(r.status === 401
@@ -151,7 +181,7 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
         String(m.data.name),
         String(m.data.dusun || ""),
         String(m.data.role || ""),
-        selected.includes(m.id) ? "Hadir" : "Belum ditandai",
+        memberStatuses[m.id] || "Belum ditandai",
         "Mengikuti catatan persetujuan anggota",
       ]),
       ...externalParticipants.map((p) => [
