@@ -40,7 +40,7 @@ test("every existing template routes its real input to an owning workspace", () 
   assert.equal(templateDestinations["tot-action-plan"].route, "/dashboard/tindaklanjut");
   assert.equal(templateDestinations["partner-document-register"].route, "/dashboard/register");
   assert.equal(templateDestinations["program-preparation-checklist"].route, "/dashboard/kemitraan");
-  assert.equal(templateDestinations["basic-member-intake"].route, "/dashboard/anggota");
+  assert.equal(templateDestinations["member-intake-basic"].route, "/dashboard/anggota");
 });
 
 test("Pusat Bantuan is readable by all legacy roles and stays separate from data-entry authorization", () => {
