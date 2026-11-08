@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -10,6 +13,7 @@ import { roles, type Role } from "@/lib/permissions";
 import { futureModules, operationalTemplates, templateDestinations } from "@/features/agriculture/templates.mjs";
 import { ArrowUpRight, BookOpen, ClipboardList, FileCheck2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { WorkspaceSearch } from "./workspace-ui";
 
 const roleGuides: Record<Role, { summary: string; steps: { title: string; detail: string; href: string }[] }> = {
   admin: {
@@ -124,7 +128,19 @@ export default function HelpCenter({ role }: { role: Role }) {
               Bagian ini berisi dokumentasi kolom, tujuan, dan cara penggunaan tujuh template. Ini bukan menu input dan tidak menyimpan data.
             </p>
           </div>
-          <Badge variant="secondary">{operationalTemplates.length} panduan template</Badge>
+          <Badge variant="secondary">{filteredTemplates.length} dari {operationalTemplates.length} panduan</Badge>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <WorkspaceSearch
+            value={templateQuery}
+            onChange={setTemplateQuery}
+            label="Cari panduan atau kolom formulir"
+            placeholder="Cari nama template, tujuan, atau nama kolom…"
+          />
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            Pencarian mencakup judul, penjelasan, kategori, dan kolom template.
+          </p>
         </div>
 
         <Card className="border-amber-500/30">
@@ -150,8 +166,8 @@ export default function HelpCenter({ role }: { role: Role }) {
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 xl:grid-cols-2">
-          {operationalTemplates.map((template) => {
+        <div className="grid gap-4 xl:grid-cols-2" aria-live="polite">
+          {filteredTemplates.length ? filteredTemplates.map((template) => {
             const destination = templateDestinations[template.id];
             return (
               <Card key={template.id} className="min-w-0">
@@ -201,7 +217,15 @@ export default function HelpCenter({ role }: { role: Role }) {
                 </CardContent>
               </Card>
             );
-          })}
+          }) : (
+            <Card className="xl:col-span-2">
+              <CardContent className="flex flex-col items-start gap-3 p-5">
+                <p className="font-medium">Panduan belum ditemukan</p>
+                <p className="text-sm text-muted-foreground">Coba kata lain seperti “anggota”, “mitra”, “dokumen”, “ToT”, atau nama kolom yang ingin dicari.</p>
+                <button type="button" className="inline-flex min-h-10 items-center rounded-lg border px-3 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => setTemplateQuery("")}>Hapus pencarian</button>
+              </CardContent>
+            </Card>
+          )}
         </div>
         <p className="text-xs leading-5 text-muted-foreground">
           Catatan: tombol di atas hanya membuka modul kerja yang sudah ada. Kolom template yang belum dipetakan tidak dianggap sudah tersedia atau tersimpan sampai implementasi form domain dan uji QA selesai.
