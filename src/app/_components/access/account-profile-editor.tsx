@@ -41,8 +41,8 @@ const inputClass = "w-full";
 const labelText = "text-sm font-medium";
 const checkClass = "size-4 rounded border-input accent-primary";
 
-function SectionHeading({ title, description }: { title: string; description: string }) {
-  return <div className="space-y-1 border-b pb-3"><h3 className="text-base font-semibold">{title}</h3><p className="text-sm text-muted-foreground">{description}</p></div>;
+function SectionHeading({ id, title, description }: { id: string; title: string; description: string }) {
+  return <div className="space-y-1 border-b pb-3"><h3 id={id} className="text-base font-semibold">{title}</h3><p className="text-sm text-muted-foreground">{description}</p></div>;
 }
 
 function EntryActions({ onAdd, label }: { onAdd: () => void; label: string }) {
@@ -222,7 +222,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
         <form ref={detailsForm} data-protect-unsaved onSubmit={saveDetails} className="space-y-8">
           <fieldset disabled={busy} className="min-w-0 space-y-8">
             <section className="space-y-4" aria-labelledby="profile-personal-title">
-              <SectionHeading title="1. Data diri" description="Nama resmi mengikuti data keanggotaan terverifikasi. Lengkapi informasi pribadi yang ingin ditampilkan pada CV internal." />
+              <SectionHeading id="profile-personal-title" title="1. Data diri" description="Nama resmi mengikuti data keanggotaan terverifikasi. Lengkapi informasi pribadi yang ingin ditampilkan pada CV internal." />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field className="sm:col-span-2">
                   <FieldLabel htmlFor="profile-full-name">Nama lengkap resmi</FieldLabel>
@@ -238,7 +238,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-contact-title">
-              <SectionHeading title="2. Kontak" description="Nomor telepon utama tersinkron ke data kontak keanggotaan Anda. Email masuk tetap dikelola administrator." />
+              <SectionHeading id="profile-contact-title" title="2. Kontak" description="Nomor telepon utama tersinkron ke data kontak keanggotaan Anda. Email masuk tetap dikelola administrator." />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field><FieldLabel htmlFor="profile-phone">Nomor telepon utama</FieldLabel><Input id="profile-phone" type="tel" value={cv.contact.phone} onChange={event => updateContact("phone", event.target.value)} maxLength={30} autoComplete="tel" /></Field>
                 <Field><FieldLabel htmlFor="profile-whatsapp">Nomor WhatsApp</FieldLabel><Input id="profile-whatsapp" type="tel" value={cv.contact.whatsapp} onChange={event => updateContact("whatsapp", event.target.value)} maxLength={30} autoComplete="tel" /></Field>
@@ -250,17 +250,17 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-address-title">
-              <SectionHeading title="3. Alamat domisili" description="Pilih provinsi, kabupaten/kota, kecamatan, lalu desa/kelurahan. Kode wilayah mengikuti hierarki administrasi Indonesia." />
+              <SectionHeading id="profile-address-title" title="3. Alamat domisili" description="Pilih provinsi, kabupaten/kota, kecamatan, lalu desa/kelurahan. Kode wilayah mengikuti hierarki administrasi Indonesia." />
               <IndonesianAddressFields value={cv.address} onChange={value => updateCV("address", value)} disabled={busy} />
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-summary-title">
-              <SectionHeading title="4. Ringkasan profil" description="Perkenalkan diri, minat kontribusi, dan fokus keahlian dalam beberapa kalimat." />
+              <SectionHeading id="profile-summary-title" title="4. Ringkasan profil" description="Perkenalkan diri, minat kontribusi, dan fokus keahlian dalam beberapa kalimat." />
               <Field><FieldLabel htmlFor="profile-summary">Tentang saya</FieldLabel><Textarea id="profile-summary" value={cv.summary} onChange={event => updateCV("summary", event.target.value)} maxLength={1600} rows={5} placeholder="Tuliskan ringkasan pengalaman, tujuan, dan bidang kontribusi Anda…" /><FieldDescription>{cv.summary.length}/1600 karakter.</FieldDescription></Field>
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-education-title">
-              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading title="5. Riwayat pendidikan" description="Catat pendidikan formal, kursus, atau pendidikan nonformal yang relevan." /><EntryActions label="Tambah pendidikan" onAdd={() => updateCV("education", [...cv.education, emptyEducation()])} /></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading id="profile-education-title" title="5. Riwayat pendidikan" description="Catat pendidikan formal, kursus, atau pendidikan nonformal yang relevan." /><EntryActions label="Tambah pendidikan" onAdd={() => updateCV("education", [...cv.education, emptyEducation()])} /></div>
               {cv.education.map((item, index) => (
                 <div key={index} className="space-y-3 rounded-xl border p-4">
                   <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-semibold"><GraduationCap className="size-4 text-muted-foreground" />Pendidikan {index + 1}</div><Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => updateCV("education", cv.education.filter((_, i) => i !== index))}>Hapus</Button></div>
@@ -277,7 +277,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-experience-title">
-              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading title="6. Pengalaman kerja" description="Cantumkan pekerjaan, usaha, proyek, atau pengalaman profesional. Tidak wajib memiliki pengalaman formal." /><EntryActions label="Tambah pengalaman kerja" onAdd={() => updateCV("experience", [...cv.experience, emptyExperience()])} /></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading id="profile-experience-title" title="6. Pengalaman kerja" description="Cantumkan pekerjaan, usaha, proyek, atau pengalaman profesional. Tidak wajib memiliki pengalaman formal." /><EntryActions label="Tambah pengalaman kerja" onAdd={() => updateCV("experience", [...cv.experience, emptyExperience()])} /></div>
               {cv.experience.map((item, index) => (
                 <div key={index} className="space-y-3 rounded-xl border p-4">
                   <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-semibold"><BriefcaseBusiness className="size-4 text-muted-foreground" />Pengalaman {index + 1}</div><Button type="button" size="sm" variant="ghost" onClick={() => updateCV("experience", cv.experience.filter((_, i) => i !== index))}>Hapus</Button></div>
@@ -288,7 +288,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-volunteer-title">
-              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading title="7. Pengalaman organisasi & kerelawanan" description="Masukkan kepengurusan, kegiatan sosial, kelompok tani, komunitas, atau kegiatan sukarela." /><EntryActions label="Tambah pengalaman organisasi" onAdd={() => updateCV("volunteer", [...cv.volunteer, emptyExperience()])} /></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading id="profile-volunteer-title" title="7. Pengalaman organisasi & kerelawanan" description="Masukkan kepengurusan, kegiatan sosial, kelompok tani, komunitas, atau kegiatan sukarela." /><EntryActions label="Tambah pengalaman organisasi" onAdd={() => updateCV("volunteer", [...cv.volunteer, emptyExperience()])} /></div>
               {cv.volunteer.map((item, index) => (
                 <div key={index} className="space-y-3 rounded-xl border p-4">
                   <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-semibold"><HeartHandshake className="size-4 text-muted-foreground" />Organisasi {index + 1}</div><Button type="button" size="sm" variant="ghost" onClick={() => updateCV("volunteer", cv.volunteer.filter((_, i) => i !== index))}>Hapus</Button></div>
@@ -299,7 +299,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-skills-title">
-              <SectionHeading title="8. Keahlian, hobi & minat" description="Pisahkan setiap item dengan koma. Contoh keahlian: administrasi, pengolahan hasil tani, desain, pemasaran, pengorganisasian." />
+              <SectionHeading id="profile-skills-title" title="8. Keahlian, hobi & minat" description="Pisahkan setiap item dengan koma. Contoh keahlian: administrasi, pengolahan hasil tani, desain, pemasaran, pengorganisasian." />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field><FieldLabel htmlFor="profile-skills">Keahlian / kompetensi</FieldLabel><Textarea id="profile-skills" rows={3} value={cv.skills.join(", ")} onChange={event => updateCV("skills", event.target.value.split(",").map(item => item.trim()).filter(Boolean))} placeholder="Administrasi, komunikasi, budidaya tanaman…" /></Field>
                 <Field><FieldLabel htmlFor="profile-hobbies">Hobi / minat</FieldLabel><Textarea id="profile-hobbies" rows={3} value={cv.hobbies.join(", ")} onChange={event => updateCV("hobbies", event.target.value.split(",").map(item => item.trim()).filter(Boolean))} placeholder="Membaca, berkebun, memasak…" /></Field>
@@ -307,7 +307,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-language-title">
-              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading title="9. Kemampuan bahasa" description="Catat bahasa dan tingkat kemampuan yang benar-benar Anda kuasai." /><EntryActions label="Tambah bahasa" onAdd={() => updateCV("languages", [...cv.languages, emptyLanguage()])} /></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading id="profile-language-title" title="9. Kemampuan bahasa" description="Catat bahasa dan tingkat kemampuan yang benar-benar Anda kuasai." /><EntryActions label="Tambah bahasa" onAdd={() => updateCV("languages", [...cv.languages, emptyLanguage()])} /></div>
               {cv.languages.map((item, index) => (
                 <div key={index} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
                   <Field><FieldLabel htmlFor={"language-name-" + index}>Bahasa</FieldLabel><Input id={"language-name-" + index} value={item.language} onChange={event => updateLanguage(index, "language", event.target.value)} maxLength={80} /></Field>
@@ -319,7 +319,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-cert-title">
-              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading title="10. Sertifikat & pelatihan" description="Masukkan pelatihan, pendidikan teknis, sertifikat kompetensi, atau kegiatan peningkatan kapasitas." /><EntryActions label="Tambah sertifikat" onAdd={() => updateCV("certifications", [...cv.certifications, emptyCertification()])} /></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading id="profile-cert-title" title="10. Sertifikat & pelatihan" description="Masukkan pelatihan, pendidikan teknis, sertifikat kompetensi, atau kegiatan peningkatan kapasitas." /><EntryActions label="Tambah sertifikat" onAdd={() => updateCV("certifications", [...cv.certifications, emptyCertification()])} /></div>
               {cv.certifications.map((item, index) => (
                 <div key={index} className="space-y-3 rounded-xl border p-4">
                   <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-semibold"><Award className="size-4 text-muted-foreground" />Pelatihan / sertifikat {index + 1}</div><Button type="button" variant="ghost" size="sm" onClick={() => updateCV("certifications", cv.certifications.filter((_, i) => i !== index))}>Hapus</Button></div>
@@ -335,7 +335,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
             </section>
 
             <section className="space-y-4" aria-labelledby="profile-private-title">
-              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading title="11. Identitas & rekening pribadi (opsional)" description="NIK dan nomor rekening disimpan terenkripsi. Tidak muncul pada daftar akun, data anggota, laporan umum, atau ringkasan dashboard." /><Button type="button" variant="ghost" size="sm" onClick={() => setShowSensitiveHelp(value => !value)}>{showSensitiveHelp ? <EyeOff className="size-4" /> : <Eye className="size-4" />}Keterangan privasi</Button></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><SectionHeading id="profile-private-title" title="11. Identitas & rekening pribadi (opsional)" description="NIK dan nomor rekening disimpan terenkripsi. Tidak muncul pada daftar akun, data anggota, laporan umum, atau ringkasan dashboard." /><Button type="button" variant="ghost" size="sm" onClick={() => setShowSensitiveHelp(value => !value)}>{showSensitiveHelp ? <EyeOff className="size-4" /> : <Eye className="size-4" />}Keterangan privasi</Button></div>
               {showSensitiveHelp && <Alert><AlertTitle>Penggunaan terbatas</AlertTitle><AlertDescription>NIK hanya untuk verifikasi identitas internal bila diperlukan. Rekening hanya untuk administrasi pembayaran internal bila diperlukan. Keduanya hanya dapat dibaca kembali oleh pemilik akun melalui tampilan tersamarkan. Jangan mengisi bila tidak ada kebutuhan atau persetujuan Anda.</AlertDescription></Alert>}
               <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2">
                 <Field className="sm:col-span-2">
