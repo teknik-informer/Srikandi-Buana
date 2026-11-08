@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(path, "utf8");
 const overview = read("src/app/_components/enterprise-dashboard-overview.tsx");
+const progressChart = read("src/app/_components/workspace-progress-chart.tsx");
 const experience = read("src/lib/workspace-experience.ts");
 const help = read("src/app/_components/help-center.tsx");
 const shell = read("src/app/_components/workspace-shell.tsx");
@@ -52,6 +53,20 @@ test("workspace overview distinguishes attention, steady and limited access stat
   assert.match(overview, /onClick=\{\(\) => void load\(\)\}/);
 });
 
+test("dashboard progress chart derives six-month trends from role-scoped source records", () => {
+  assert.match(overview, /<WorkspaceProgressChart/);
+  assert.match(progressChart, /rows\.filter\(\(row\) => featureIds\.has\(row\.kind\)\)/);
+  assert.match(progressChart, /validTimestamp\(row\.created\)/);
+  assert.match(progressChart, /validTimestamp\(row\.updated\)/);
+  assert.match(progressChart, /Array\.from\(\{ length: 6 \}/);
+  assert.match(progressChart, /Catatan baru/);
+  assert.match(progressChart, /Catatan diperbarui/);
+  assert.match(progressChart, /workspace-equalizer-fill/);
+  assert.match(progressChart, /Belum ada aktivitas dalam enam bulan terakhir/);
+  assert.doesNotMatch(progressChart, /Math\.random|faker|mockData|dummyData/i);
+  assert.match(progressChart, /bukan persentase keberhasilan program/);
+});
+
 test("help centre searches template names, descriptions, categories and field names", () => {
   assert.match(help, /useMemo, useState/);
   assert.match(help, /templateQuery/);
@@ -83,6 +98,7 @@ test("Next.js ESLint runs as a separate CI quality gate", () => {
   assert.match(pkg.scripts.lint, /^eslint src\/app\/_components\/enterprise-dashboard-overview\.tsx/);
   assert.match(pkg.scripts.lint, /src\/app\/_components\/enterprise-monitoring\.tsx/);
   assert.match(pkg.scripts.lint, /src\/app\/_components\/enterprise-reports\.tsx/);
+  assert.match(pkg.scripts.lint, /src\/app\/_components\/workspace-progress-chart\.tsx/);
   assert.match(pkg.scripts.lint, /src\/lib\/workspace-experience\.ts$/);
   assert.match(workflow, /name: ESLint changed v14 workspace experience files/);
   assert.match(workflow, /run: npm run lint/);
