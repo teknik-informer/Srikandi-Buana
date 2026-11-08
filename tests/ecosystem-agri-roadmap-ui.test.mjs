@@ -13,6 +13,8 @@ test("the ToT template roadmap is linked as a real read-only dashboard utility",
   assert.ok(page.includes('<AgencyRoadmap />'));
   assert.ok(nav.includes('item.id === "pengembangan" ? ClipboardList'));
   assert.ok(ui.includes("Status hubungan mitra saat ini"));
+  assert.ok(ui.includes("Belum ada perjanjian program"));
+  assert.ok(ui.includes("Kelompok belum memiliki salinan digital dokumen program mitra."));
   assert.ok(ui.includes("Segera hadir"));
   assert.ok(ui.includes("Formulir digital, penyimpanan dan persetujuan belum diaktifkan."));
 });
