@@ -224,21 +224,6 @@ export default function EnterpriseMonitoring({
     };
   }, [checkSystem]);
 
-  if (loading) {
-    return (
-      <div className="workspace-page">
-        <Skeleton className="h-24 w-full" />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-        </div>
-        <Skeleton className="h-72 w-full" />
-      </div>
-    );
-  }
-
   const operational = snapshot.operational;
   const metrics = [
     operational && {
@@ -470,6 +455,21 @@ export default function EnterpriseMonitoring({
       .slice(0, 8),
     [snapshot.programEvaluations],
   );
+
+  if (loading) {
+    return (
+      <div className="workspace-page">
+        <Skeleton className="h-24 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+        </div>
+        <Skeleton className="h-72 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="workspace-page min-w-0">
