@@ -3,6 +3,12 @@
 **Purpose:** convert external program obligations into versioned, traceable work plans and evidence checklists.  
 **Status:** initial source register; not a confirmation that SRIKANDI BUANA has been accepted, enrolled, approved or certified by any listed organisation.
 
+## 0. Current engagement status — ToT, not a signed programme
+
+The group has clarified that current partner engagement is at the **Training of Trainers (ToT) / early engagement stage**. There is no signed programme agreement or contract yet, and the group does not currently hold digital copies of the relevant programme documents. This is a group-supplied operational status, not a status issued by the partners.
+
+Accordingly, the platform should record partner contacts, actual ToT events, attendance, learning, action plans and requested/received documents. It must not create an active programme, infer grant funding, populate participant targets or report certification readiness as achieved. The templates are generic preparation tools; partner-specific obligations are configured only when official guidance and agreement documents are received.
+
 ## 1. Partner/program profiles
 
 ### CARE Indonesia
