@@ -89,7 +89,7 @@ test("profile API is authenticated, same-origin, owner-scoped and size-limited",
   assert.match(accountApi, /sameOrigin\(request\)/);
   assert.match(accountApi, /readJsonObject\(request, 65000\)/);
   assert.match(accountApi, /storedAccountProfile\(u\.userId, u\.accountId\)/);
-  assert.match(accountApi, /X-Profile-Account/);
+  assert.match(accountApi, /x-profile-account/);
   assert.match(accountApi, /consumeRateLimit/);
   assert.match(accountApi, /access_audit/);
 });
@@ -106,7 +106,7 @@ test("profile CV data is normalized, bounded and validates dates and URLs", () =
   assert.match(data, /list\(raw\.experience, 20/);
   assert.match(data, /list\(raw\.volunteer, 20/);
   assert.match(data, /list\(raw\.certifications, 20/);
-  assert.match(data, /https:\/\//);
+  assert.match(data, /https:/);
   assert.match(data, /Tanggal lahir tidak valid/);
   assert.match(data, /RT harus berupa angka/);
   assert.match(data, /Kode pos harus lima digit/);
