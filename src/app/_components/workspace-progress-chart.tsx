@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import {
   Bar,
   BarChart,
@@ -175,7 +175,7 @@ export default function WorkspaceProgressChart({
                 >
                   <div
                     className="workspace-equalizer-fill h-full rounded-full bg-primary"
-                    style={{ "--equalizer-width": (item.count / maxModuleCount) * 100 + "%", animationDelay: index * 65 + "ms" } as React.CSSProperties}
+                    style={{ "--equalizer-width": (item.count / maxModuleCount) * 100 + "%", animationDelay: index * 65 + "ms" } as CSSProperties}
                   />
                 </div>
               </div>
