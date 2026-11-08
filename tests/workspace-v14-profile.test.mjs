@@ -45,7 +45,10 @@ test("address selectors cascade by official region codes and keep a manual fallb
   assert.match(address, /districtCode: code/);
   assert.match(address, /villageCode: code/);
   assert.match(address, /isi manual bila perlu/);
-  assert.match(regionApi, /wilayah-id-api\.dhanypedia\.com/);
+  assert.match(regionApi, /www\.emsifa\.com\/api-wilayah-indonesia\/v2/);
+  assert.match(regionApi, /provinces\.json/);
+  assert.match(regionApi, /postal_code/);
+  assert.match(address, /postalCode: selected\?\.postalCode/);
   assert.match(regionApi, /provinces.*regencies.*districts.*villages/);
   assert.match(regionApi, /Cache-Control.*s-maxage=86400/);
 });
