@@ -1,7 +1,7 @@
 export const agencyRoles = Object.freeze([
   "member", "field_enumerator", "group_leader", "program_coordinator",
   "finance_officer", "quality_officer", "supply_chain_operator",
-  "executive", "internal_reviewer", "partner_viewer", "platform_admin",
+  "executive", "finance_reviewer", "quality_reviewer", "internal_reviewer", "partner_viewer", "platform_admin",
 ]);
 
 const permissionSets = {
@@ -148,6 +148,9 @@ export function authorizeAgencyAction(request = {}) {
   }
 
   if (principal.role === "partner_viewer" || principal.role === "internal_reviewer") {
+    if (request.action !== "read" && !request.action.startsWith("read_")) {
+      return deny("Akses mitra dan peninjau bersifat baca-saja.");
+    }
     if (!grantAllows(request.grant, { ...request, record }, now)) {
       return deny("Tidak ada mandat akses aktif yang mencakup data, tindakan dan ruang lingkup ini.");
     }
