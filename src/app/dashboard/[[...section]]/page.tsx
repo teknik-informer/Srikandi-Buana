@@ -17,7 +17,7 @@ import HelpCenter from "../../_components/help-center";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
-  if (id === "pengembangan") redirect("/dashboard/panduan#template");
+  if (id === "pengembangan") return { title: "Pusat Bantuan | Ruang kerja Srikandi Buana", robots: { index: false, follow: false } };
   if (id === "panduan") return { title: "Pusat Bantuan | Ruang kerja Srikandi Buana", robots: { index: false, follow: false } };
   const dashboard = getEnterpriseDashboardById(id);
   const item = dashboard ? { label: dashboard.label } : getEnterpriseFeature(id) || dashboardGroups.flatMap((g) => g.items).find((i) => i.id === id);
