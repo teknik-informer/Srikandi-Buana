@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { canReadRecord, canReadSection, visibleRecord, type Principal } from "@/lib/permissions";
-import { dateID } from "@/lib/srikandi";
+import { dateID, modules } from "@/lib/srikandi";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
 import { recordHref, taskStatus } from "@/lib/management-insights";
 import type { WorkspaceAudit, WorkspaceFile } from "@/lib/workspace-types";
