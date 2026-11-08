@@ -28,53 +28,76 @@ export default function IndonesianAddressFields({ value, onChange, disabled = fa
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(current => ({ ...current, provinces: true }));
     loadRegions("provinces", "", controller.signal)
-      .then(setProvinces)
+      .then(data => { if (!controller.signal.aborted) { setProvinces(data); setError(""); } })
       .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar provinsi belum tersedia."); })
       .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, provinces: false })); });
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    if (!value.provinceCode) { setRegencies([]); return; }
+    if (!value.provinceCode) return;
     const controller = new AbortController();
-    setLoading(current => ({ ...current, regencies: true }));
+    const timer = window.setTimeout(() => {
+      if (!controller.signal.aborted) setLoading(current => ({ ...current, regencies: true }));
+    }, 0);
     loadRegions("regencies", value.provinceCode, controller.signal)
-      .then(setRegencies)
+      .then(data => { if (!controller.signal.aborted) { setRegencies(data); setError(""); } })
       .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar kabupaten/kota belum tersedia."); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, regencies: false })); });
-    return () => controller.abort();
+      .finally(() => {
+        window.clearTimeout(timer);
+        if (!controller.signal.aborted) setLoading(current => ({ ...current, regencies: false }));
+      });
+    return () => { window.clearTimeout(timer); controller.abort(); };
   }, [value.provinceCode]);
 
   useEffect(() => {
-    if (!value.regencyCode) { setDistricts([]); return; }
+    if (!value.regencyCode) return;
     const controller = new AbortController();
-    setLoading(current => ({ ...current, districts: true }));
+    const timer = window.setTimeout(() => {
+      if (!controller.signal.aborted) setLoading(current => ({ ...current, districts: true }));
+    }, 0);
     loadRegions("districts", value.regencyCode, controller.signal)
-      .then(setDistricts)
+      .then(data => { if (!controller.signal.aborted) { setDistricts(data); setError(""); } })
       .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar kecamatan belum tersedia."); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, districts: false })); });
-    return () => controller.abort();
+      .finally(() => {
+        window.clearTimeout(timer);
+        if (!controller.signal.aborted) setLoading(current => ({ ...current, districts: false }));
+      });
+    return () => { window.clearTimeout(timer); controller.abort(); };
   }, [value.regencyCode]);
 
   useEffect(() => {
-    if (!value.districtCode) { setVillages([]); return; }
+    if (!value.districtCode) return;
     const controller = new AbortController();
-    setLoading(current => ({ ...current, villages: true }));
+    const timer = window.setTimeout(() => {
+      if (!controller.signal.aborted) setLoading(current => ({ ...current, villages: true }));
+    }, 0);
     loadRegions("villages", value.districtCode, controller.signal)
-      .then(setVillages)
+      .then(data => { if (!controller.signal.aborted) { setVillages(data); setError(""); } })
       .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar desa/kelurahan belum tersedia."); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, villages: false })); });
-    return () => controller.abort();
+      .finally(() => {
+        window.clearTimeout(timer);
+        if (!controller.signal.aborted) setLoading(current => ({ ...current, villages: false }));
+      });
+    return () => { window.clearTimeout(timer); controller.abort(); };
   }, [value.districtCode]);
 
   const selectRegion = (level: "province" | "regency" | "district" | "village", code: string) => {
     const options = level === "province" ? provinces : level === "regency" ? regencies : level === "district" ? districts : villages;
     const selected = options.find(item => item.code === code);
-    if (level === "province") onChange({ ...value, provinceCode: code, provinceName: selected?.name || "", regencyCode: "", regencyName: "", districtCode: "", districtName: "", villageCode: "", villageName: "", postalCode: "" });
-    if (level === "regency") onChange({ ...value, regencyCode: code, regencyName: selected?.name || "", districtCode: "", districtName: "", villageCode: "", villageName: "", postalCode: "" });
-    if (level === "district") onChange({ ...value, districtCode: code, districtName: selected?.name || "", villageCode: "", villageName: "", postalCode: "" });
+    if (level === "province") {
+      setRegencies([]); setDistricts([]); setVillages([]);
+      onChange({ ...value, provinceCode: code, provinceName: selected?.name || "", regencyCode: "", regencyName: "", districtCode: "", districtName: "", villageCode: "", villageName: "", postalCode: "" });
+    }
+    if (level === "regency") {
+      setDistricts([]); setVillages([]);
+      onChange({ ...value, regencyCode: code, regencyName: selected?.name || "", districtCode: "", districtName: "", villageCode: "", villageName: "", postalCode: "" });
+    }
+    if (level === "district") {
+      setVillages([]);
+      onChange({ ...value, districtCode: code, districtName: selected?.name || "", villageCode: "", villageName: "", postalCode: "" });
+    }
     if (level === "village") onChange({ ...value, villageCode: code, villageName: selected?.name || "" });
   };
 
