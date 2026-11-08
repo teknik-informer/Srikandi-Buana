@@ -13,10 +13,12 @@ import WorkspaceShell from "../../_components/workspace-shell";
 import NotificationCenter from "../../_components/notification-center";
 import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem-workspace";
 import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-overview";
-import AgencyRoadmap from "../../_components/agency-roadmap";
+import HelpCenter from "../../_components/help-center";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
+  if (id === "pengembangan") redirect("/dashboard/panduan#template");
+  if (id === "panduan") return { title: "Pusat Bantuan | Ruang kerja Srikandi Buana", robots: { index: false, follow: false } };
   const dashboard = getEnterpriseDashboardById(id);
   const item = dashboard ? { label: dashboard.label } : getEnterpriseFeature(id) || dashboardGroups.flatMap((g) => g.items).find((i) => i.id === id);
   return {
@@ -28,7 +30,8 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   if ((section?.length || 0) > 1) notFound();
-  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan"]);
+  if (section?.[0] === "pengembangan") redirect("/dashboard/panduan#template");
+  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan", "panduan"]);
   if (section?.[0] === "profil") redirect("/profil");
   if (section?.[0] && !allowed.has(section[0])) notFound();
   const admin = await getAuthenticatedUser();
@@ -59,8 +62,8 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       </WorkspaceShell>
     );
   }
-  if (active === "pengembangan") {
-    return <WorkspaceShell user={admin} section={active} title="Template & Pengembangan" defaultSidebarOpen={defaultSidebarOpen}><AgencyRoadmap /></WorkspaceShell>;
+  if (active === "panduan") {
+    return <WorkspaceShell user={admin} section={active} title="Pusat Bantuan" defaultSidebarOpen={defaultSidebarOpen}><HelpCenter role={admin.role} /></WorkspaceShell>;
   }
   if (["notifikasi", "penjualan", "akuntansi"].includes(active)) {
     const title = active === "notifikasi" ? "Pusat Notifikasi" : active === "penjualan" ? "Katalog dan Pemesanan" : "Akuntansi dan Buku Besar";
