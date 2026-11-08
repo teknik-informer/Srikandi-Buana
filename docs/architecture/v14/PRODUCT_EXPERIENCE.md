@@ -37,7 +37,16 @@ Setiap dashboard menampilkan tren enam bulan catatan baru dan catatan yang diper
 
 ### Monitoring dan Laporan
 
-Monitoring membedakan pemeriksaan keterjangkauan API/database dari indikator operasional dan temuan kualitas data. Temuan teratas disajikan sebagai titik mulai yang dapat dibuka ke catatan sumber; temuan adalah petunjuk pemeriksaan, bukan keputusan otomatis bahwa catatan salah. Laporan memandu pengguna memilih bidang, periode, meninjau sumber, lalu mencetak/mengekspor hasil sesuai hak akses.
+Monitoring membedakan pemeriksaan keterjangkauan API/database dari indikator operasional dan temuan kualitas data. Temuan teratas disajikan sebagai titik mulai yang dapat dibuka ke catatan sumber; temuan adalah petunjuk pemeriksaan, bukan keputusan otomatis bahwa catatan salah.
+
+Halaman Monitoring memiliki analisis grafik khusus, tidak hanya mengandalkan ringkasan grafik umum dashboard:
+- Tren enam bulan untuk catatan tugas, laporan program, dan agenda baru berdasarkan timestamp pembuatan record.
+- Distribusi tugas berdasarkan status pencatatan (belum dimulai, berjalan, selesai, ditunda).
+- Beban tindak lanjut: tenggat terlewat/hari ini, tanpa PIC/tenggat, hasil menunggu verifikasi, hasil perlu perbaikan, serta agenda lewat tanggal.
+- Kualitas data per modul dengan pemisahan temuan peringatan dan pengingat.
+- Pemantauan per program yang membandingkan jumlah laporan, tugas terbuka, dan sinyal kendala dalam laporan terbaru.
+
+Semua data grafik diturunkan dari record yang lolos izin baca dan penyamaran field sesuai role. Kategori beban tindak lanjut dapat saling tumpang tindih sehingga tidak dijumlahkan sebagai total unik. Jumlah laporan bukan persentase target tercapai; sinyal kendala bukan pengukuran tingkat keparahan. Laporan memandu pengguna memilih bidang, periode, meninjau sumber, lalu mencetak/mengekspor hasil sesuai hak akses.
 
 ### Pusat Bantuan
 
