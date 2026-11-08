@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 
 type ProfileUser = ProfileIdentity & { email: string; role: Role; position: string };
-type SavedPayload = { user?: ProfileIdentity; cv?: AccountCV; privateSummary?: PrivateProfileSummary; error?: string };
+type SavedPayload = { user?: ProfileIdentity; cv?: AccountCV; privateSummary?: PrivateProfileSummary | null; privateStorageReady?: boolean; error?: string };
 type Props = {
   user: ProfileUser;
   memberName: string;
@@ -236,7 +236,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
                 </Field>
                 <Field><FieldLabel htmlFor="profile-preferred-name">Nama panggilan</FieldLabel><Input id="profile-preferred-name" value={cv.personal.preferredName} onChange={event => updatePersonal("preferredName", event.target.value)} maxLength={80} autoComplete="nickname" /></Field>
                 <Field><FieldLabel htmlFor="profile-nationality">Kewarganegaraan</FieldLabel><Input id="profile-nationality" value={cv.personal.nationality} onChange={event => updatePersonal("nationality", event.target.value)} maxLength={80} /></Field>
-                <Field><FieldLabel htmlFor="profile-birth-place">Tempat lahir</FieldLabel><Input id="profile-birth-place" value={cv.personal.birthPlace} onChange={event => updatePersonal("birthPlace", event.target.value)} maxLength={100} autoComplete="off" disabled={!privateStorageReady} /></Field>
+                <Field><FieldLabel htmlFor="profile-birth-place">Tempat lahir</FieldLabel><Input id="profile-birth-place" value={cv.personal.birthPlace} onChange={event => updatePersonal("birthPlace", event.target.value)} maxLength={100} autoComplete="off" /></Field>
                 <Field><FieldLabel htmlFor="profile-birth-date">Tanggal lahir</FieldLabel><Input id="profile-birth-date" type="date" value={cv.personal.birthDate} onChange={event => updatePersonal("birthDate", event.target.value)} autoComplete="bday" /></Field>
                 <Field><FieldLabel htmlFor="profile-gender">Jenis kelamin (opsional)</FieldLabel><NativeSelect id="profile-gender" className="w-full" value={cv.personal.gender} onChange={event => updatePersonal("gender", event.target.value)}><NativeSelectOption value="">Tidak diisi</NativeSelectOption><NativeSelectOption value="Perempuan">Perempuan</NativeSelectOption><NativeSelectOption value="Laki-laki">Laki-laki</NativeSelectOption><NativeSelectOption value="Memilih tidak menyebutkan">Memilih tidak menyebutkan</NativeSelectOption></NativeSelect></Field>
               </div>
@@ -354,7 +354,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
                 </Field>
                 <div className="sm:col-span-2 border-t pt-4"><p className="font-medium">Informasi rekening bank</p><p className="mt-1 text-sm text-muted-foreground">Boleh dikosongkan bila tidak diperlukan untuk administrasi pembayaran.</p></div>
                 <Field><FieldLabel htmlFor="profile-bank-name">Nama bank</FieldLabel><Input id="profile-bank-name" value={privateInput.bankName} onChange={event => setPrivateInput(current => ({ ...current, bankName: event.target.value }))} maxLength={100} placeholder="Contoh: BRI, BNI, BCA…" autoComplete="off" disabled={!privateStorageReady} /></Field>
-                <Field><FieldLabel htmlFor="profile-bank-holder">Nama pemilik rekening</FieldLabel><Input id="profile-bank-holder" value={privateInput.accountHolder} onChange={event => setPrivateInput(current => ({ ...current, accountHolder: event.target.value }))} maxLength={100} autoComplete="off" /></Field>
+                <Field><FieldLabel htmlFor="profile-bank-holder">Nama pemilik rekening</FieldLabel><Input id="profile-bank-holder" value={privateInput.accountHolder} onChange={event => setPrivateInput(current => ({ ...current, accountHolder: event.target.value }))} maxLength={100} autoComplete="off" disabled={!privateStorageReady} /></Field>
                 <Field className="sm:col-span-2"><FieldLabel htmlFor="profile-bank-number">Nomor rekening</FieldLabel><Input id="profile-bank-number" value={privateInput.accountNumber} onChange={event => setPrivateInput(current => ({ ...current, accountNumber: event.target.value.replace(/\D/g, "").slice(0,24) }))} inputMode="numeric" autoComplete="off" maxLength={24} disabled={!privateStorageReady} placeholder={privateSummary?.hasBankAccount ? "Sudah tersimpan: " + privateSummary.accountNumberMasked + " · isi untuk mengganti" : "Masukkan nomor rekening"} /><FieldDescription>{privateSummary?.hasBankAccount ? "Tersimpan secara terenkripsi di " + privateSummary.bankName + " · " + privateSummary.accountNumberMasked + ". Kosongkan untuk mempertahankan." : "6–24 digit. Nomor lengkap tidak pernah dikembalikan oleh API."}</FieldDescription></Field>
                 <Field className="sm:col-span-2"><label className="flex items-start gap-2 text-sm"><input className={checkClass} type="checkbox" disabled={!privateStorageReady} checked={privateInput.bankConsent} onChange={event => setPrivateInput(current => ({ ...current, bankConsent: event.target.checked }))} /><span>Saya setuju menyimpan informasi rekening untuk administrasi pembayaran internal bila diperlukan.</span></label><FieldDescription>Hapus centang untuk menghapus data rekening yang tersimpan.</FieldDescription></Field>
               </div>
