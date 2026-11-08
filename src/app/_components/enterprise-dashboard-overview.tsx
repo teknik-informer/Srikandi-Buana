@@ -7,7 +7,7 @@ import {
   AlertTriangle, ArrowUpRight, Bell, BookOpen, BriefcaseBusiness,
   CalendarClock, CalendarDays, Camera, CheckCircle2, ClipboardCheck, FileCheck2,
   FileText, Files, FolderCheck, Handshake, Landmark, LayoutGrid, Megaphone,
-  MessagesSquare, PackageCheck, Settings2, ShieldCheck, ShoppingBag, Sprout,
+  MessagesSquare, PackageCheck, RefreshCw, Settings2, ShieldCheck, ShoppingBag, Sprout,
   Users, Wallet,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -223,9 +223,12 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
       </section>
 
       <section className="space-y-3" aria-label={"Ringkasan " + dashboard.label}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div><h2 className="text-base font-semibold">Kondisi saat ini</h2><p className="text-sm text-muted-foreground">Pahami angka sebelum menentukan tindakan. Nilai yang tidak tersedia tidak ditampilkan sebagai nol.</p></div>
-          <span className="text-xs text-muted-foreground">{loading ? "Memuat data…" : "Diperbarui " + dateLabel(snapshot.latestUpdate)}</span>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div><h2 className="text-base font-semibold">Kondisi saat ini</h2><p className="text-sm text-muted-foreground">Pahami angka sebelum menentukan tindakan. Nilai yang tidak tersedia tidak ditampilkan sebagai nol.</p><p className="mt-1 text-xs text-muted-foreground">{loading ? "Sedang mengambil data terbaru…" : "Pembaruan sumber: " + dateLabel(snapshot.latestUpdate)}</p></div>
+          <Button type="button" size="sm" variant="outline" disabled={loading} onClick={() => void load()}>
+            <RefreshCw className={"size-4" + (loading ? " animate-spin" : "")} aria-hidden="true" />
+            Perbarui data
+          </Button>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {loading ? Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-32" />) : metrics.map((m) => <WorkspaceMetric key={m.title} title={m.title} value={m.value} note={m.note} icon={m.icon} />)}
