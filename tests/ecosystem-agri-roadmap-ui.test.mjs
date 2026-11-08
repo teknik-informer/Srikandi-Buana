@@ -62,5 +62,5 @@ test("future modules stay informational and have no clickable route", () => {
 test("the previous roadmap component is no longer the dashboard implementation", () => {
   const page = read("src/app/dashboard/[[...section]]/page.tsx");
   assert.ok(!page.includes("AgencyRoadmap"));
-  assert.ok(!page.includes("/dashboard/pengembangan"));
+  assert.ok(page.includes('redirect("/dashboard/panduan#template")'));
 });
