@@ -13,6 +13,7 @@ import WorkspaceShell from "../../_components/workspace-shell";
 import NotificationCenter from "../../_components/notification-center";
 import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem-workspace";
 import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-overview";
+import AgencyRoadmap from "../../_components/agency-roadmap";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
@@ -57,6 +58,9 @@ export default async function Page({ params }: { params: Promise<{ section?: str
         <EnterpriseDashboardOverview dashboard={visibleDashboard} role={admin.role} />
       </WorkspaceShell>
     );
+  }
+  if (active === "pengembangan") {
+    return <WorkspaceShell user={admin} section={active} title="Template & Pengembangan" defaultSidebarOpen={defaultSidebarOpen}><AgencyRoadmap /></WorkspaceShell>;
   }
   if (["notifikasi", "penjualan", "akuntansi"].includes(active)) {
     const title = active === "notifikasi" ? "Pusat Notifikasi" : active === "penjualan" ? "Katalog dan Pemesanan" : "Akuntansi dan Buku Besar";
