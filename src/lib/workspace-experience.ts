@@ -32,6 +32,7 @@ function nudge(
 export function buildDashboardBriefing(
   id: EnterpriseDashboardId,
   snapshot: Snapshot,
+  availableFeatureIds: readonly string[],
 ): DashboardBriefing {
   const actions: WorkspaceNudge[] = [];
   let hasScope = true;
@@ -296,13 +297,30 @@ export function buildDashboardBriefing(
     };
   }
 
-  if (actions.length) {
+  // The briefing may only link to modules already visible in this user's
+  // role-filtered dashboard navigation. Fall back safely if a suggested
+  // destination is outside the current assignment.
+  const allowed = new Set(availableFeatureIds);
+  const safeActions = actions.slice(0, 3).map((action) => {
+    const destination = action.href.split("/").filter(Boolean).at(-1) || "";
+    return allowed.has(destination)
+      ? action
+      : {
+          ...action,
+          href: "/dashboard/" + (availableFeatureIds[0] || "panduan"),
+          actionLabel: "Buka modul terkait",
+        };
+  });
+
+  if (safeActions.length) {
     return {
-      state: "attention",
+      state: actions.some((action) => action.id !== "system-routine" && action.id !== "finance-routine" && action.id !== "administration-routine" && action.id !== "publication-routine" && action.id !== "commerce-routine" && action.id !== "plan-next-activity" && action.id !== "open-notifications")
+        ? "attention"
+        : "steady",
       eyebrow: "ARAH TINDAKAN BERDASARKAN DATA",
       title: "Mari selesaikan hal yang paling berdampak",
       description: "Saran berikut dihitung dari catatan aktual yang dapat Anda akses. Pilih tindakan untuk langsung menuju modul sumber.",
-      actions: actions.slice(0, 3),
+      actions: safeActions,
     };
   }
 
@@ -311,6 +329,6 @@ export function buildDashboardBriefing(
     eyebrow: "RITME KERJA",
     title: "Belum ada tindak lanjut prioritas yang terdeteksi",
     description: "Tidak berarti pekerjaan sudah selesai seluruhnya. Lanjutkan pembaruan rutin, catat perkembangan, dan periksa kembali saat ada informasi baru.",
-    actions: actions.slice(0, 3),
+    actions: [],
   };
 }
