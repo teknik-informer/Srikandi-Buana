@@ -117,22 +117,34 @@ export default function IndonesianAddressFields({ value, onChange, disabled = fa
       {error && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm" role="status">
           <p className="font-medium">Pilihan wilayah belum tersedia</p>
-          <p className="mt-1 text-muted-foreground">{error} Alamat tetap bisa dicatat manual di bawah.</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {([
-              ["provinceName", "Provinsi", value.provinceName],
-              ["regencyName", "Kabupaten / kota", value.regencyName],
-              ["districtName", "Kecamatan", value.districtName],
-              ["villageName", "Desa / kelurahan", value.villageName],
-            ] as const).map(([key, label, current]) => (
-              <Field key={key}>
-                <FieldLabel htmlFor={"profile-manual-" + key}>{label} (manual)</FieldLabel>
-                <Input id={"profile-manual-" + key} value={current} maxLength={120} disabled={disabled} onChange={event => onChange({ ...value, [key]: event.target.value, ...(key === "provinceName" ? { provinceCode: "", regencyCode: "", districtCode: "", villageCode: "" } : key === "regencyName" ? { regencyCode: "", districtCode: "", villageCode: "" } : key === "districtName" ? { districtCode: "", villageCode: "" } : { villageCode: "" }) })} />
-              </Field>
-            ))}
-          </div>
+          <p className="mt-1 text-muted-foreground">{error} Anda tetap dapat melengkapi alamat secara manual.</p>
         </div>
       )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {([
+          ["provinceCode", "provinceName", "Provinsi"],
+          ["regencyCode", "regencyName", "Kabupaten / kota"],
+          ["districtCode", "districtName", "Kecamatan"],
+          ["villageCode", "villageName", "Desa / kelurahan"],
+        ] as const).filter(([code]) => !value[code]).map(([code, name, label]) => (
+          <Field key={name}>
+            <FieldLabel htmlFor={"profile-manual-" + name}>{label} (isi manual bila perlu)</FieldLabel>
+            <Input
+              id={"profile-manual-" + name}
+              value={value[name]}
+              maxLength={120}
+              disabled={disabled}
+              onChange={event => onChange({
+                ...value,
+                [name]: event.target.value,
+                ...(name === "provinceName" ? { provinceCode: "", regencyCode: "", regencyName: "", districtCode: "", districtName: "", villageCode: "", villageName: "" } :
+                  name === "regencyName" ? { regencyCode: "", districtCode: "", districtName: "", villageCode: "", villageName: "" } :
+                  name === "districtName" ? { districtCode: "", villageCode: "", villageName: "" } : { villageCode: "" }),
+              })}
+            />
+          </Field>
+        ))}
+      </div>
     </div>
   );
 }
