@@ -360,6 +360,38 @@ export default function EnterpriseMonitoring({
         </Alert>
       )}
 
+      <section aria-labelledby="monitoring-next-step-title">
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border bg-muted/60">
+                <ClipboardCheck className="size-5 text-primary" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Langkah berikutnya</p>
+                {visibleIssues[0] ? (
+                  <>
+                    <h2 id="monitoring-next-step-title" className="mt-1 font-semibold">{visibleIssues[0].title}</h2>
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">{visibleIssues[0].detail}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Saran awal berdasarkan tingkat perhatian dan catatan yang dapat Anda akses. Periksa sumber sebelum mengambil keputusan.</p>
+                  </>
+                ) : (
+                  <>
+                    <h2 id="monitoring-next-step-title" className="mt-1 font-semibold">Belum ada perhatian prioritas yang terdeteksi</h2>
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">Lanjutkan pencatatan rutin dan tinjau kembali setelah ada pembaruan. Ketiadaan temuan otomatis bukan pengganti pemeriksaan petugas.</p>
+                  </>
+                )}
+              </div>
+            </div>
+            {visibleIssues[0] && (
+              <Button variant="outline" asChild className="shrink-0">
+                <Link href={recordHref(visibleIssues[0].row)}>Periksa sumber</Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
       <section className="space-y-3" aria-labelledby="monitoring-system-title">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
