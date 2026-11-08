@@ -1064,6 +1064,9 @@ export default function ManagementDashboard({
                 {tasks.length} tugas sesuai filter · perubahan status disimpan
                 ke database.
               </p>
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/dashboard/tindaklanjut">Buka daftar tugas</Link>
+              </Button>
             </div>
             <div className="grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-4">
               {taskStatuses.map((status) => {
@@ -1302,7 +1305,7 @@ export default function ManagementDashboard({
                       type="button"
                       aria-label={label + (count ? ", " + count + " catatan" : ", tidak ada catatan")}
                       aria-pressed={selected}
-                      onClick={() => setSelectedCalendarDate(day.date)}
+                      onClick={() => { setSelectedCalendarDate(day.date); if (!day.inMonth) setCalendarMonthKey(day.date.slice(0, 7)); }}
                       className={"flex min-h-14 flex-col items-start justify-between rounded-lg border p-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 sm:min-h-20 " + (selected ? "border-primary bg-primary/5 ring-1 ring-primary" : "") + (!day.inMonth ? " text-muted-foreground/60" : "")}
                     >
                       <span className={today ? "font-bold text-primary" : "font-medium"}>{day.day}</span>
