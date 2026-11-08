@@ -103,6 +103,9 @@ export default function WorkspaceProgressChart({
   const maxModuleCount = Math.max(1, ...moduleCounts.map((item) => item.count));
   const hasTimeline = months.some((month) => month.created > 0 || month.updated > 0);
   const hasRecords = scopedRows.length > 0;
+  const sixMonthCreated = months.reduce((total, month) => total + month.created, 0);
+  const sixMonthUpdated = months.reduce((total, month) => total + month.updated, 0);
+  const leadingModule = moduleCounts.find((item) => item.count > 0) || null;
   const programChartRows = useMemo(
     () => (programEvaluations || []).map((program) => ({
       program: program.programName,
@@ -125,6 +128,22 @@ export default function WorkspaceProgressChart({
           <Activity className="size-3.5 text-primary" aria-hidden="true" />
           {loading ? "Memuat data" : scopedRows.length.toLocaleString("id-ID") + " catatan dalam akses"}
         </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3" aria-label="Ringkasan analisis enam bulan">
+        <div className="rounded-xl border bg-card p-3">
+          <p className="text-xs text-muted-foreground">Catatan baru · 6 bulan</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{loading ? "…" : sixMonthCreated.toLocaleString("id-ID")}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-3">
+          <p className="text-xs text-muted-foreground">Catatan diperbarui · 6 bulan</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{loading ? "…" : sixMonthUpdated.toLocaleString("id-ID")}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-3">
+          <p className="text-xs text-muted-foreground">Modul dengan catatan terbanyak</p>
+          <p className="mt-1 truncate text-base font-semibold">{loading ? "…" : leadingModule?.label || "Belum ada catatan"}</p>
+          <p className="text-xs text-muted-foreground">{loading ? " " : (leadingModule?.count || 0).toLocaleString("id-ID") + " catatan"}</p>
+        </div>
       </div>
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,1fr)]">
