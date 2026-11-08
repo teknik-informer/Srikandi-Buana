@@ -15,7 +15,7 @@ test("all seven workspaces receive data-led briefings", () => {
     assert.match(experience, new RegExp('case "' + id + '"'));
   }
   assert.match(overview, /buildDashboardBriefing\(dashboard\.id, snapshot, dashboard\.features\.map/);
-  assert.match(overview, /ARAH TINDAKAN BERDASARKAN DATA/);
+  assert.match(experience, /ARAH TINDAKAN BERDASARKAN DATA/);
   assert.match(overview, /Ruang ini membantu Anda memahami kondisi/);
 });
 
@@ -43,6 +43,8 @@ test("workspace overview distinguishes attention, steady and limited access stat
   assert.match(overview, /Sesuai hak akses/);
   assert.match(overview, /Tidak ada perubahan data yang dilakukan/);
   assert.match(overview, /featureIcons/);
+  assert.match(overview, /Aktivitas yang baru tercatat/);
+  assert.match(overview, /recentRecords/);
 });
 
 test("help centre searches template names, descriptions, categories and field names", () => {
