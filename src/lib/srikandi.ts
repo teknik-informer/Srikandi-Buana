@@ -35,7 +35,7 @@ function addFormPreset(kind: string, options: string[], fields: Field[]) {
     key: "formPreset",
     label: "Jenis formulir",
     options,
-    required: true,
+    required: false,
     helpText: "Pilih jenis catatan. Kolom khusus hanya muncul untuk jenis formulir yang dipilih.",
   });
   module.fields.push(...fields);
