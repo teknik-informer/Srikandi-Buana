@@ -90,7 +90,7 @@ export default function WorkspaceShell({
             aria-label="Akun dan tindakan utama"
           >
             <DashboardMegaMenu section={section} user={user} compact />
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild aria-label="Buka Pusat Bantuan" title="Pusat Bantuan">
               <Link href="/dashboard/panduan" aria-label="Buka Pusat Bantuan" title="Pusat Bantuan">
                 <BookOpen className="size-4" aria-hidden="true" />
                 <span className="sr-only">Pusat Bantuan</span>
