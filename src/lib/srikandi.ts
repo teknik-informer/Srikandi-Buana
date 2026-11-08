@@ -44,6 +44,7 @@ function addFormPreset(kind: string, options: string[], fields: Field[]) {
 const whenPreset = (field: string, equals: string) => ({ field, equals });
 
 addFormPreset("kegiatan", ["standard", "tot-session-record"], [
+  { key: "trainingPartner", label: "Penyelenggara/mitra ToT", required: true, visibleWhen: whenPreset("formPreset", "tot-session-record") },
   { key: "endDate", label: "Tanggal selesai", type: "date", visibleWhen: whenPreset("formPreset", "tot-session-record") },
   { key: "groupRepresentatives", label: "Perwakilan kelompok yang hadir", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
   { key: "objectives", label: "Tujuan pembelajaran yang disampaikan", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
@@ -90,6 +91,7 @@ addFormPreset("kemitraan", ["standard", "partner-engagement-log", "program-prepa
 ]);
 
 addFormPreset("register", ["standard", "partner-document-register"], [
+  { key: "partnerName", label: "Nama mitra", required: true, visibleWhen: whenPreset("formPreset", "partner-document-register") },
   { key: "documentType", label: "Jenis dokumen", options: ["Undangan/pemberitahuan", "Materi pelatihan", "Formulir pendataan", "Panduan teknis", "Proposal", "MoU/PKS/Perjanjian", "Anggaran", "Template laporan", "Standar/annex", "Lainnya"], visibleWhen: whenPreset("formPreset", "partner-document-register") },
   { key: "documentStatus", label: "Status dokumen", options: ["Belum diminta", "Diminta", "Dijanjikan", "Diterima", "Perlu konfirmasi versi", "Diverifikasi keaslian/sumber", "Tidak berlaku"], required: true, visibleWhen: whenPreset("formPreset", "partner-document-register") },
   { key: "sourcePerson", label: "Pemberi/pengirim dokumen", visibleWhen: whenPreset("formPreset", "partner-document-register") },
