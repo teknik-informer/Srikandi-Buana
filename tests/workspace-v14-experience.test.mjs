@@ -7,6 +7,8 @@ const overview = read("src/app/_components/enterprise-dashboard-overview.tsx");
 const experience = read("src/lib/workspace-experience.ts");
 const help = read("src/app/_components/help-center.tsx");
 const shell = read("src/app/_components/workspace-shell.tsx");
+const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
+const reports = read("src/app/_components/enterprise-reports.tsx");
 const workflow = read(".github/workflows/quality.yml");
 const pkg = JSON.parse(read("package.json"));
 
@@ -62,8 +64,24 @@ test("help remains reachable from every authenticated workspace page", () => {
   assert.match(shell, /aria-label="Buka Pusat Bantuan"/);
 });
 
+test("Monitoring highlights its first actionable finding without claiming an automatic decision", () => {
+  assert.match(monitoring, /Langkah berikutnya/);
+  assert.match(monitoring, /visibleIssues\[0\]/);
+  assert.match(monitoring, /Periksa sumber/);
+  assert.match(monitoring, /bukan keputusan/);
+});
+
+test("Reports teaches users how to select, review and share source-backed reports", () => {
+  assert.match(reports, /Cara menggunakan pusat laporan/);
+  assert.match(reports, /Pilih bidang/);
+  assert.match(reports, /Tentukan periode/);
+  assert.match(reports, /Tinjau sebelum dibagikan/);
+});
+
 test("Next.js ESLint runs as a separate CI quality gate", () => {
   assert.match(pkg.scripts.lint, /^eslint src\/app\/_components\/enterprise-dashboard-overview\.tsx/);
+  assert.match(pkg.scripts.lint, /src\/app\/_components\/enterprise-monitoring\.tsx/);
+  assert.match(pkg.scripts.lint, /src\/app\/_components\/enterprise-reports\.tsx/);
   assert.match(pkg.scripts.lint, /src\/lib\/workspace-experience\.ts$/);
   assert.match(workflow, /name: ESLint changed v14 workspace experience files/);
   assert.match(workflow, /run: npm run lint/);
