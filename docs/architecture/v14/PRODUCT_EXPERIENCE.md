@@ -48,6 +48,18 @@ Halaman Monitoring memiliki analisis grafik khusus, tidak hanya mengandalkan rin
 
 Semua data grafik diturunkan dari record yang lolos izin baca dan penyamaran field sesuai role. Kategori beban tindak lanjut dapat saling tumpang tindih sehingga tidak dijumlahkan sebagai total unik. Jumlah laporan bukan persentase target tercapai; sinyal kendala bukan pengukuran tingkat keparahan. Laporan memandu pengguna memilih bidang, periode, meninjau sumber, lalu mencetak/mengekspor hasil sesuai hak akses.
 
+### Profil pribadi, CV, dan data sensitif
+
+Menu **Akun Saya** membedakan identitas keanggotaan yang telah diverifikasi dari preferensi dan riwayat pribadi akun:
+- Nama lengkap resmi tetap mengikuti catatan anggota terverifikasi; koreksi ejaan/identitas harus melalui proses pemeriksaan Sekretariat.
+- Nama tampilan dan nama panggilan dicatat terpisah.
+- CV mendukung ringkasan diri, alamat domisili berjenjang, kontak, pendidikan, pengalaman kerja, pengalaman organisasi/relawan, keahlian, hobi/minat, bahasa, serta sertifikasi/pelatihan.
+- Alamat memilih provinsi, kabupaten/kota, kecamatan, dan desa/kelurahan melalui kode wilayah resmi. Nama wilayah tetap dapat diisi manual saat layanan daftar wilayah tidak tersedia.
+- Profil CV tersimpan per akun dan tidak otomatis dipublikasikan. Nomor telepon utama disinkronkan ke kolom kontak pada catatan anggota yang tertaut; bidang CV lain tidak mengubah status verifikasi, jabatan, atau hak akses.
+- NIK dan rekening bersifat opsional, memerlukan persetujuan terpisah, dienkripsi dengan AES-256-GCM dan AAD per pemilik/akun, serta API hanya mengembalikan status tersimpan dan tampilan tersamarkan. Tidak boleh ditempatkan pada catatan anggota umum atau diekspor ke laporan rutin.
+- Bila kunci enkripsi server tidak tersedia, penyimpanan NIK/rekening harus gagal tertutup (fail closed); jangan mengganti enkripsi dengan penyimpanan teks biasa.
+- Pengguna dapat mencabut persetujuan untuk menghapus nilai sensitif yang tersimpan. Setiap perubahan profil dicatat dalam audit tanpa menyalin nilai NIK atau rekening ke log.
+
 ### Pusat Bantuan
 
 Pusat Bantuan adalah pusat dokumentasi, bukan menu input. Pencarian template mencakup nama, deskripsi, kategori, serta nama kolom; setiap panduan tetap menunjuk ke modul pemilik data. Panduan dapat dibuka dari header seluruh halaman dashboard.
