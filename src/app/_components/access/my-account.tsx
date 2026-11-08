@@ -50,9 +50,9 @@ export default function MyAccount() {
       .finally(() => { if (!request.signal.aborted) setLoading(false); });
   }
   useEffect(() => {
-    const initial = window.setTimeout(() => load(), 0);
+    const initial = setTimeout(() => load(), 0);
     return () => {
-      window.clearTimeout(initial);
+      clearTimeout(initial);
       current.current?.abort();
     };
   }, []);
