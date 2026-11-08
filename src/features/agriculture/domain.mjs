@@ -89,7 +89,7 @@ export function resolveAssuranceState(input = {}) {
       ["evidenceId", "Bukti resmi wajib ditautkan."],
     ];
     const missing = required.filter(([key]) => !nonEmpty(input[key])).map(([, message]) => message);
-    if (!isValidDay(input.verifiedAt) && !isValidTimestamp(input.verifiedAt)) {
+    if (nonEmpty(input.verifiedAt) && !isValidDay(input.verifiedAt) && !isValidTimestamp(input.verifiedAt)) {
       missing.push("Tanggal verifikasi eksternal harus berupa tanggal yang valid.");
     }
     if (input.expiresOn && !isValidDay(input.expiresOn)) {
