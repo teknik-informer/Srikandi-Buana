@@ -27,6 +27,10 @@ Semua tujuh dashboard menampilkan ringkasan tindakan kontekstual:
 
 Tindakan dibatasi ke modul yang terlihat pada dashboard role pengguna. Saat tidak ada data yang boleh digunakan sebagai dasar rekomendasi, UI menjelaskan batas tersebut alih-alih menyatakan tidak ada masalah.
 
+### Umpan aktivitas dan kendali pembaruan
+
+Setiap ringkasan dashboard menampilkan beberapa catatan terbaru yang dapat dibuka ke modul sumber. Pengurutan menggunakan waktu pembaruan/pencatatan dari record yang tersedia, bukan membuat peristiwa sintetis. Pengguna dapat meminta pemuatan ulang secara manual; tidak ada polling agresif yang mengganggu pekerjaan.
+
 ### Pusat Bantuan
 
 Pusat Bantuan adalah pusat dokumentasi, bukan menu input. Pencarian template mencakup nama, deskripsi, kategori, serta nama kolom; setiap panduan tetap menunjuk ke modul pemilik data. Panduan dapat dibuka dari header seluruh halaman dashboard.
