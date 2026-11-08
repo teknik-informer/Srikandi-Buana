@@ -18,7 +18,8 @@ type Account = {
   user: { accountId: string; avatarUrl?: string; email: string; displayName: string; role: Role; position: string; programIds: string[] };
   profile: { name: string; dusun: string; phone: string; status: string; verification: string };
   cv: AccountCV;
-  privateSummary: PrivateProfileSummary;
+  privateSummary: PrivateProfileSummary | null;
+  privateStorageReady: boolean;
 };
 export default function MyAccount() {
   const [data, setData] = useState<Account | null>(null),
@@ -38,7 +39,7 @@ export default function MyAccount() {
       .then(({ response: r, data: d }) => {
         if (request.signal.aborted) return;
         if (!r.ok) throw Error(d?.error || "Informasi akun belum dapat dimuat.");
-        if (!d?.user || !d.profile || !d.cv || !d.privateSummary) throw Error("Respons akun belum lengkap. Muat ulang sebelum melanjutkan.");
+        if (!d?.user || !d.profile || !d.cv || typeof d.privateStorageReady !== "boolean") throw Error("Respons akun belum lengkap. Muat ulang sebelum melanjutkan.");
         setData(d);
       })
       .catch((e) => {
@@ -97,11 +98,12 @@ export default function MyAccount() {
         memberName={data.profile.name}
         initialCV={data.cv}
         initialPrivateSummary={data.privateSummary}
+        privateStorageReady={data.privateStorageReady}
         onSaved={(payload) => setData(current => current ? {
           ...current,
           user: payload.user ? { ...current.user, ...payload.user } : current.user,
           cv: payload.cv || current.cv,
-          privateSummary: payload.privateSummary || current.privateSummary,
+          privateSummary: payload.privateSummary === undefined ? current.privateSummary : payload.privateSummary,
         } : current)}
       />}
       <Card>
