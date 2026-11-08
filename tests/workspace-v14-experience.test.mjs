@@ -16,7 +16,8 @@ test("all seven workspaces receive data-led briefings", () => {
   for (const id of ["ecosystem", "management", "administration", "finance", "commerce", "publication", "system"]) {
     assert.match(experience, new RegExp('case "' + id + '"'));
   }
-  assert.match(overview, /buildDashboardBriefing\(dashboard\.id, snapshot, dashboard\.features\.map/);
+  assert.match(overview, /buildDashboardBriefing\(dashboard\.id, snapshot, availableFeatureIds\)/);
+  assert.match(overview, /getVisibleEnterpriseDashboards\(user\.role\)/);
   assert.match(experience, /ARAH TINDAKAN BERDASARKAN DATA/);
   assert.match(overview, /Ruang ini membantu Anda memahami kondisi/);
 });
