@@ -68,7 +68,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => {
     let objectUrl = "";
-    const schedule = window.setTimeout(() => {
+    const schedule = setTimeout(() => {
       if (!selected) {
         setPreview("");
         return;
@@ -77,7 +77,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
       setPreview(objectUrl);
     }, 0);
     return () => {
-      window.clearTimeout(schedule);
+      clearTimeout(schedule);
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [selected]);
