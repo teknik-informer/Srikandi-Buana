@@ -247,3 +247,134 @@ export async function buildV14RecordSyncStatements(
     return [];
   }
 }
+
+
+const attendanceStatus = (value: unknown) => {
+  switch (value) {
+    case "Hadir penuh": return "present_full";
+    case "Hadir sebagian": return "present_partial";
+    case "Izin": return "excused";
+    case "Tidak hadir": return "absent";
+    default: return "unmarked";
+  }
+};
+
+const photoConsentStatus = (value: unknown) => {
+  switch (value) {
+    case "Setuju sesuai tujuan": return "granted_for_stated_purpose";
+    case "Tidak setuju": return "declined";
+    default: return "not_asked";
+  }
+};
+
+/** Keeps the normalized attendee register aligned with its one legacy activity attendance record. */
+export async function buildV14AttendanceSyncStatements(
+  db: NeonDatabase,
+  input: {
+    owner: string;
+    actorId: string;
+    attendanceRecordId: string;
+    eventId: string;
+    memberStatuses: Record<string, string>;
+    externalParticipants: Array<{
+      name: string;
+      organisation: string;
+      role: string;
+      attendanceStatus: string;
+      photoConsent: string;
+    }>;
+    now: string;
+  },
+): Promise<PreparedStatement[]> {
+  try {
+    const schema = await db.prepare(
+      "SELECT to_regclass('workspace_v14.organizations') AS relation, to_regclass('workspace_v14.activity_attendance') AS attendance",
+    ).first();
+    if (!schema?.relation || !schema?.attendance) return [];
+
+    const organization = await db.prepare(
+      "SELECT id FROM workspace_v14.organizations WHERE source_owner_user_id=?",
+    ).bind(input.owner).first();
+    if (!organization?.id) return [];
+    const organizationId = String(organization.id);
+
+    const activity = await db.prepare(
+      "SELECT id FROM workspace_v14.activities WHERE organization_id=? AND source_legacy_record_id=?",
+    ).bind(organizationId, input.eventId).first();
+    if (!activity?.id) return [];
+    const activityId = String(activity.id);
+    const statements: PreparedStatement[] = [];
+
+    for (const [memberRecordId, status] of Object.entries(input.memberStatuses)) {
+      const member = await db.prepare(
+        "SELECT id FROM workspace_v14.member_profiles WHERE organization_id=? AND source_legacy_record_id=?",
+      ).bind(organizationId, memberRecordId).first();
+      if (!member?.id) continue;
+      const memberProfileId = String(member.id);
+      statements.push(db.prepare(`
+        INSERT INTO workspace_v14.activity_attendance (
+          id,organization_id,activity_id,member_profile_id,participant_type,display_name,
+          attendance_status,photo_consent_status,created_at,updated_at
+        )
+        SELECT ?,?,?,?,?,m.display_name,?,?,?::timestamptz,?::timestamptz
+        FROM workspace_v14.member_profiles m
+        WHERE m.id=? AND m.organization_id=?
+        ON CONFLICT (id) DO UPDATE SET
+          display_name=excluded.display_name,
+          attendance_status=excluded.attendance_status,
+          photo_consent_status=excluded.photo_consent_status,
+          updated_at=excluded.updated_at
+      `).bind(
+        stableId("v14:attendance-member", input.attendanceRecordId + ":" + memberRecordId),
+        organizationId, activityId, memberProfileId, "member",
+        attendanceStatus(status), "not_asked", input.now, input.now,
+        memberProfileId, organizationId,
+      ));
+    }
+
+    // External participants are a roster attached to this legacy attendance record.
+    // Replacing only the external rows for this activity keeps one canonical list.
+    statements.push(db.prepare(
+      "DELETE FROM workspace_v14.activity_attendance WHERE organization_id=? AND activity_id=? AND participant_type='external'",
+    ).bind(organizationId, activityId));
+
+    input.externalParticipants.forEach((person, index) => {
+      statements.push(db.prepare(`
+        INSERT INTO workspace_v14.activity_attendance (
+          id,organization_id,activity_id,participant_type,display_name,organization_name,
+          participant_role,attendance_status,photo_consent_status,created_at,updated_at
+        ) VALUES (?,?,?,'external',?,?,?,?,?,?::timestamptz,?::timestamptz)
+      `).bind(
+        stableId("v14:attendance-external", input.attendanceRecordId + ":" + (index + 1)),
+        organizationId, activityId,
+        clean(person.name, 160) || "Peserta eksternal",
+        clean(person.organisation, 180),
+        clean(person.role, 120),
+        attendanceStatus(person.attendanceStatus),
+        photoConsentStatus(person.photoConsent),
+        input.now, input.now,
+      ));
+    });
+
+    statements.push(db.prepare(`
+      INSERT INTO workspace_v14.legacy_record_map (
+        id,organization_id,source_schema,source_table,source_id,source_kind,
+        source_checksum,target_domain,target_id,migration_status
+      ) VALUES (?,?, 'public','records',?,'kehadiran',md5(?),'activity_attendance',?,'transformed')
+      ON CONFLICT (organization_id,source_schema,source_table,source_id) DO UPDATE SET
+        source_checksum=excluded.source_checksum,
+        target_domain='activity_attendance',
+        target_id=excluded.target_id,
+        migration_status='transformed',
+        reconciled_at=NULL
+    `).bind(
+      stableId("legacy-record", input.attendanceRecordId),
+      organizationId, input.attendanceRecordId,
+      json({ eventId: input.eventId, memberStatuses: input.memberStatuses, externalParticipants: input.externalParticipants }),
+      activityId,
+    ));
+    return statements;
+  } catch {
+    return [];
+  }
+}
