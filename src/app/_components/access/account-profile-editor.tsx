@@ -67,10 +67,19 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
 
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => {
-    if (!selected) { setPreview(""); return; }
-    const objectUrl = URL.createObjectURL(selected);
-    setPreview(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
+    let objectUrl = "";
+    const schedule = window.setTimeout(() => {
+      if (!selected) {
+        setPreview("");
+        return;
+      }
+      objectUrl = URL.createObjectURL(selected);
+      setPreview(objectUrl);
+    }, 0);
+    return () => {
+      window.clearTimeout(schedule);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [selected]);
 
   function committed(profile: ProfileIdentity) {
