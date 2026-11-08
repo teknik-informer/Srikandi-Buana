@@ -1106,7 +1106,7 @@ export default function Workspace({
                           </NativeSelect>
                           <input type="hidden" name="formPreset" value={formPreset} />
                         </>
-                      ) : f.key === "fileId" ? (<ImagePicker id={f.key} name={f.key} files={files} defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={saving} />) : ["fileId", "attachmentId"].includes(f.key) ? (
+                      ) : f.key === "fileId" ? (<ImagePicker id={f.key} name={f.key} files={files} defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={saving} />) : ["fileId", "attachmentId", "signedAgreementFileId"].includes(f.key) ? (
                         <NativeSelect
                           id={f.key}
                           name={f.key}
@@ -1124,10 +1124,7 @@ export default function Workspace({
                             .filter(
                               (file) =>
                                 !file.deleted_at &&
-                                (f.key === "attachmentId" ||
-                                  ["image/png", "image/jpeg"].includes(
-                                    file.mime,
-                                  )),
+                                (f.key !== "fileId" || ["image/png", "image/jpeg"].includes(file.mime)),
                             )
                             .map((file) => (
                               <NativeSelectOption key={file.id} value={file.id}>
