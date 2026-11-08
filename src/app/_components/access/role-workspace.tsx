@@ -682,7 +682,7 @@ export default function RoleWorkspace({
                         </NativeSelect>
                         <input type="hidden" name="formPreset" value={formPreset} />
                       </>
-                    ) : f.key === "fileId" ? (<ImagePicker id={"edit-" + f.key} name={f.key} files={files} defaultValue={String(editor?.row?.data[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={busy} />) : ["attachmentId", "fileId"].includes(f.key) ? (
+                    ) : f.key === "fileId" ? (<ImagePicker id={"edit-" + f.key} name={f.key} files={files} defaultValue={String(editor?.row?.data[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={busy} />) : ["attachmentId", "fileId", "signedAgreementFileId"].includes(f.key) ? (
                       <NativeSelect
                         id={"edit-" + f.key}
                         name={f.key}
@@ -696,10 +696,7 @@ export default function RoleWorkspace({
                           .filter(
                             (file) =>
                               !file.deleted_at &&
-                              (f.key === "attachmentId" ||
-                                ["image/png", "image/jpeg"].includes(
-                                  file.mime,
-                                )),
+                              (f.key !== "fileId" || ["image/png", "image/jpeg"].includes(file.mime)),
                           )
                           .map((file) => (
                             <NativeSelectOption key={file.id} value={file.id}>
