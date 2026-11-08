@@ -22,6 +22,7 @@ import { recordHref } from "@/lib/management-insights";
 import { buildDashboardBriefing } from "@/lib/workspace-experience";
 import type { Principal } from "@/lib/permissions";
 import { WorkspaceMetric } from "./workspace-ui";
+import WorkspaceProgressChart from "./workspace-progress-chart";
 import { modules } from "@/lib/srikandi";
 
 const eyebrows: Record<EnterpriseDashboardId, string> = {
@@ -245,6 +246,13 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
           {loading ? Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-32" />) : metrics.map((m) => <WorkspaceMetric key={m.title} title={m.title} value={m.value} note={m.note} icon={m.icon} />)}
         </div>
       </section>
+
+      <WorkspaceProgressChart
+        rows={rows}
+        features={dashboard.features}
+        dashboardLabel={dashboard.label}
+        loading={loading}
+      />
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
         <Card className="min-w-0">
