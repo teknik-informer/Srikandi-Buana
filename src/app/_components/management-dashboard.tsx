@@ -5,6 +5,8 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   ClipboardList,
   FileCheck2,
@@ -101,6 +103,8 @@ export default function ManagementDashboard({
   const [assignee, setAssignee] = useState("all");
   const [range, setRange] = useState("30");
   const [taskLimit, setTaskLimit] = useState(12);
+  const [calendarMonthKey, setCalendarMonthKey] = useState("");
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState("");
   const meetingTaskLocks = useRef(new Set<string>());
   const programTaskLocks = useRef(new Set<string>());
   const [editor, setEditor] = useState<Row | "new" | null>(null);
@@ -151,6 +155,43 @@ export default function ManagementDashboard({
           String(item.row.data.location || ""),
       ),
   );
+  const activeCalendarMonth = calendarMonthKey || view.today.slice(0, 7);
+  const selectedDate = selectedCalendarDate || view.today;
+  const [calendarYear, calendarMonthNumber] = activeCalendarMonth.split("-").map(Number);
+  const monthStart = new Date(Date.UTC(calendarYear, calendarMonthNumber - 1, 1));
+  const monthLeadingDays = (monthStart.getUTCDay() + 6) % 7;
+  const calendarDays = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(Date.UTC(calendarYear, calendarMonthNumber - 1, 1 - monthLeadingDays + index));
+    return {
+      date: date.toISOString().slice(0, 10),
+      day: date.getUTCDate(),
+      inMonth: date.getUTCMonth() === calendarMonthNumber - 1,
+    };
+  });
+  const calendarEntries = view.rows.flatMap((row) => {
+    const rawDate = row.kind === "kegiatan"
+      ? row.data.date
+      : row.kind === "tindaklanjut"
+        ? row.data.dueDate
+        : null;
+    if (!validDate(rawDate)) return [];
+    return [{
+      row,
+      date: String(rawDate),
+      type: row.kind === "kegiatan" ? "Kegiatan" : "Tenggat tugas",
+    }];
+  }).filter((item) => item.date.slice(0, 7) === activeCalendarMonth);
+  const selectedCalendarEntries = calendarEntries
+    .filter((item) => item.date === selectedDate)
+    .sort((a, b) => a.type.localeCompare(b.type) || String(a.row.data.name || "").localeCompare(String(b.row.data.name || "")));
+  const calendarMonthLabel = new Date(Date.UTC(calendarYear, calendarMonthNumber - 1, 1))
+    .toLocaleDateString("id-ID", { month: "long", year: "numeric", timeZone: "UTC" });
+  function shiftCalendarMonth(offset: number) {
+    const next = new Date(Date.UTC(calendarYear, calendarMonthNumber - 1 + offset, 1));
+    const key = next.toISOString().slice(0, 7);
+    setCalendarMonthKey(key);
+    setSelectedCalendarDate(key + "-01");
+  }
   const issues = view.issues.filter((issue) =>
     matches(
       issue.title +
@@ -809,6 +850,7 @@ export default function ManagementDashboard({
             <TabsTrigger value="overview">Ikhtisar</TabsTrigger>
             {taskAccess && <TabsTrigger value="tasks">Papan tugas</TabsTrigger>}
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="calendar">Kalender</TabsTrigger>
             {qualityAccess && (
               <TabsTrigger value="quality">Kualitas data</TabsTrigger>
             )}
@@ -1215,6 +1257,87 @@ export default function ManagementDashboard({
                 <p className="py-8 text-center text-sm text-muted-foreground">
                   Tidak ada agenda yang cocok. Catat kegiatan atau tetapkan
                   tenggat tugas melalui modul yang tersedia.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="calendar" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">Kalender kegiatan dan tenggat</CardTitle>
+                  <CardDescription>
+                    Berasal dari catatan kegiatan dan tugas yang sama. Kalender ini tidak membuat salinan jadwal terpisah.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="icon" className="min-h-11 min-w-11" aria-label="Bulan sebelumnya" onClick={() => shiftCalendarMonth(-1)}>
+                    <ChevronLeft aria-hidden="true" />
+                  </Button>
+                  <p className="min-w-32 text-center text-sm font-semibold capitalize">{calendarMonthLabel}</p>
+                  <Button type="button" variant="outline" size="icon" className="min-h-11 min-w-11" aria-label="Bulan berikutnya" onClick={() => shiftCalendarMonth(1)}>
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                  <Button type="button" variant="ghost" className="min-h-11" onClick={() => { setCalendarMonthKey(view.today.slice(0, 7)); setSelectedCalendarDate(view.today); }}>
+                    Hari ini
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground" aria-hidden="true">
+                {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((day) => <div key={day} className="py-2">{day}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-1" role="group" aria-label="Tanggal pada kalender kegiatan">
+                {calendarDays.map((day) => {
+                  const count = calendarEntries.filter((item) => item.date === day.date).length;
+                  const today = day.date === view.today;
+                  const selected = day.date === selectedDate;
+                  const label = new Date(day.date + "T12:00:00Z").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+                  return (
+                    <button
+                      key={day.date}
+                      type="button"
+                      aria-label={label + (count ? ", " + count + " catatan" : ", tidak ada catatan")}
+                      aria-pressed={selected}
+                      onClick={() => setSelectedCalendarDate(day.date)}
+                      className={"flex min-h-14 flex-col items-start justify-between rounded-lg border p-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 sm:min-h-20 " + (selected ? "border-primary bg-primary/5 ring-1 ring-primary" : "") + (!day.inMonth ? " text-muted-foreground/60" : "")}
+                    >
+                      <span className={today ? "font-bold text-primary" : "font-medium"}>{day.day}</span>
+                      {count > 0 ? <Badge variant="secondary" className="max-w-full px-1.5 text-[10px]">{count} catatan</Badge> : <span className="text-[10px] text-transparent">.</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Catatan pada {dateID(selectedDate)}</CardTitle>
+              <CardDescription>Klik catatan untuk membuka data sumber pada modul pemiliknya.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {selectedCalendarEntries.map((item) => (
+                <Link
+                  key={item.row.id}
+                  href={recordHref(item.row)}
+                  className="flex min-h-14 items-center justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{item.type}</Badge>
+                      <p className="text-sm font-semibold">{String(item.row.data.name || item.type)}</p>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{String(item.row.data.pic || item.row.data.location || "Penanggung jawab/lokasi belum ditetapkan")}</p>
+                  </div>
+                  <ArrowUpRight size={16} className="shrink-0" aria-hidden="true" />
+                </Link>
+              ))}
+              {!selectedCalendarEntries.length && (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Belum ada kegiatan atau tenggat tercatat pada tanggal ini.
                 </p>
               )}
             </CardContent>
