@@ -26,13 +26,15 @@ CREATE INDEX IF NOT EXISTS workspace_v14_organizations_parent
 CREATE TABLE IF NOT EXISTS workspace_v14.organization_units (
   id TEXT PRIMARY KEY,
   organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
-  parent_unit_id TEXT REFERENCES workspace_v14.organization_units(id) ON DELETE RESTRICT,
+  parent_unit_id TEXT,
   name TEXT NOT NULL,
   unit_type TEXT NOT NULL DEFAULT 'team',
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive','archived')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (id, organization_id),
+  FOREIGN KEY (parent_unit_id, organization_id)
+    REFERENCES workspace_v14.organization_units(id, organization_id) ON DELETE RESTRICT,
   CHECK (parent_unit_id IS NULL OR parent_unit_id <> id)
 );
 CREATE INDEX IF NOT EXISTS workspace_v14_units_org
@@ -77,7 +79,9 @@ CREATE TABLE IF NOT EXISTS workspace_v14.role_grants (
   granted_by TEXT REFERENCES public.users(id) ON DELETE RESTRICT,
   revoked_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CHECK (valid_until IS NULL OR valid_until >= valid_from)
+  CHECK (valid_until IS NULL OR valid_until >= valid_from),
+  FOREIGN KEY (organization_id, user_id)
+    REFERENCES workspace_v14.organization_memberships(organization_id, user_id) ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS workspace_v14_role_grants_active
   ON workspace_v14.role_grants(organization_id,user_id,role_key,valid_until)
@@ -528,6 +532,220 @@ CREATE TABLE IF NOT EXISTS workspace_v14.legacy_record_map (
 );
 CREATE INDEX IF NOT EXISTS workspace_v14_legacy_map_status
   ON workspace_v14.legacy_record_map(organization_id,migration_status,target_domain);
+
+
+-- Locations and plots keep geospatial data purpose-limited and permission-aware.
+CREATE TABLE IF NOT EXISTS workspace_v14.sites (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  site_type TEXT NOT NULL CHECK (site_type IN ('farm','plot','warehouse','processing_site','office','collection_point','other')),
+  name TEXT NOT NULL,
+  village TEXT,
+  district TEXT,
+  province TEXT,
+  country_code CHAR(2),
+  geodata_status TEXT NOT NULL DEFAULT 'not_collected'
+    CHECK (geodata_status IN ('not_collected','consent_pending','collected_restricted','reviewed','verified')),
+  latitude NUMERIC(10,7),
+  longitude NUMERIC(10,7),
+  location_precision TEXT,
+  location_evidence_id TEXT,
+  access_classification TEXT NOT NULL DEFAULT 'restricted'
+    CHECK (access_classification IN ('public','organization','programme','restricted')),
+  attributes JSONB NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(attributes) = 'object'),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (id,organization_id),
+  CHECK ((latitude IS NULL AND longitude IS NULL) OR (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180))
+);
+CREATE INDEX IF NOT EXISTS workspace_v14_sites_search
+  ON workspace_v14.sites(organization_id,site_type,name);
+
+CREATE TABLE IF NOT EXISTS workspace_v14.farm_plots (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  site_id TEXT NOT NULL,
+  member_profile_id TEXT,
+  plot_code TEXT NOT NULL,
+  area_value NUMERIC(20,4),
+  area_unit TEXT,
+  production_practice JSONB NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(production_practice) = 'object'),
+  mapping_consent_status TEXT NOT NULL DEFAULT 'not_requested'
+    CHECK (mapping_consent_status IN ('not_requested','granted','declined','withdrawn')),
+  verification_status TEXT NOT NULL DEFAULT 'unverified'
+    CHECK (verification_status IN ('unverified','pending','reviewed','verified','rejected')),
+  evidence_document_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (site_id,organization_id)
+    REFERENCES workspace_v14.sites(id,organization_id) ON DELETE RESTRICT,
+  FOREIGN KEY (member_profile_id,organization_id)
+    REFERENCES workspace_v14.member_profiles(id,organization_id) ON DELETE RESTRICT,
+  UNIQUE (organization_id,plot_code),
+  UNIQUE (id,organization_id),
+  CHECK (area_value IS NULL OR area_value > 0)
+);
+
+-- Every physical lot change records the input and output lots. The application
+-- must compare quantities in the same product form, unit, site and time window.
+CREATE TABLE IF NOT EXISTS workspace_v14.supply_lot_transformations (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  site_id TEXT,
+  transformation_type TEXT NOT NULL
+    CHECK (transformation_type IN ('drying','hulling','grading','splitting','merging','blending','repacking','processing','other')),
+  occurred_at TIMESTAMPTZ NOT NULL,
+  actor_user_id TEXT REFERENCES public.users(id) ON DELETE RESTRICT,
+  description TEXT NOT NULL DEFAULT '',
+  process_reference TEXT,
+  evidence_document_id TEXT,
+  verification_status TEXT NOT NULL DEFAULT 'recorded'
+    CHECK (verification_status IN ('recorded','reviewed','verified','disputed')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (site_id,organization_id)
+    REFERENCES workspace_v14.sites(id,organization_id) ON DELETE RESTRICT,
+  UNIQUE (id,organization_id)
+);
+CREATE TABLE IF NOT EXISTS workspace_v14.supply_lot_transformation_lines (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  transformation_id TEXT NOT NULL,
+  lot_id TEXT NOT NULL,
+  flow_direction TEXT NOT NULL CHECK (flow_direction IN ('input','output')),
+  product_form TEXT NOT NULL,
+  quantity NUMERIC(20,4) NOT NULL CHECK (quantity > 0),
+  unit_of_measure TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (transformation_id,organization_id)
+    REFERENCES workspace_v14.supply_lot_transformations(id,organization_id) ON DELETE RESTRICT,
+  FOREIGN KEY (lot_id,organization_id)
+    REFERENCES workspace_v14.supply_lots(id,organization_id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS workspace_v14_lot_transformation_lines
+  ON workspace_v14.supply_lot_transformation_lines(organization_id,transformation_id,flow_direction);
+
+CREATE TABLE IF NOT EXISTS workspace_v14.quality_observations (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  lot_id TEXT NOT NULL,
+  sample_code TEXT,
+  observed_at TIMESTAMPTZ NOT NULL,
+  observation_type TEXT NOT NULL CHECK (observation_type IN ('visual','moisture','grade','cupping','laboratory','food_safety','other')),
+  method_or_standard TEXT,
+  method_version TEXT,
+  result_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (result_status IN ('pending','pass','conditional','fail','not_applicable')),
+  metrics JSONB NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(metrics) = 'object'),
+  assessor TEXT,
+  evidence_document_id TEXT,
+  reviewed_by TEXT REFERENCES public.users(id) ON DELETE RESTRICT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (lot_id,organization_id)
+    REFERENCES workspace_v14.supply_lots(id,organization_id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS workspace_v14_quality_lot
+  ON workspace_v14.quality_observations(organization_id,lot_id,observed_at DESC);
+
+-- Market references, buyer offers and realised sales are separate records.
+CREATE TABLE IF NOT EXISTS workspace_v14.market_quotes (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  quote_type TEXT NOT NULL
+    CHECK (quote_type IN ('global_benchmark','national_reference','local_quote','buyer_offer','farm_gate_quote','realised_sale')),
+  commodity TEXT NOT NULL,
+  product_form TEXT NOT NULL,
+  grade TEXT,
+  price_amount NUMERIC(20,4) NOT NULL CHECK (price_amount >= 0),
+  currency CHAR(3) NOT NULL,
+  price_unit TEXT NOT NULL,
+  market_location TEXT,
+  quoted_at TIMESTAMPTZ NOT NULL,
+  valid_until TIMESTAMPTZ,
+  source_name TEXT NOT NULL,
+  source_reference TEXT,
+  counterparty_partner_id TEXT,
+  evidence_document_id TEXT,
+  verification_status TEXT NOT NULL DEFAULT 'unverified'
+    CHECK (verification_status IN ('unverified','source_checked','verified','disputed')),
+  created_by TEXT REFERENCES public.users(id) ON DELETE RESTRICT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (counterparty_partner_id,organization_id)
+    REFERENCES workspace_v14.partner_organizations(id,organization_id) ON DELETE RESTRICT,
+  CHECK (valid_until IS NULL OR valid_until >= quoted_at),
+  CHECK (quote_type <> 'realised_sale' OR (evidence_document_id IS NOT NULL AND verification_status = 'verified'))
+);
+CREATE INDEX IF NOT EXISTS workspace_v14_market_quotes_compare
+  ON workspace_v14.market_quotes(organization_id,commodity,product_form,quote_type,quoted_at DESC);
+
+-- MEAL indicator definitions and measurements keep baseline, target and actual
+-- separate; the platform never fabricates zero values for missing observations.
+CREATE TABLE IF NOT EXISTS workspace_v14.impact_indicators (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  programme_id TEXT NOT NULL,
+  indicator_code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  definition TEXT NOT NULL,
+  unit_of_measure TEXT NOT NULL,
+  disaggregation JSONB NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(disaggregation) = 'array'),
+  baseline_value NUMERIC(20,4),
+  baseline_date DATE,
+  target_value NUMERIC(20,4),
+  target_date DATE,
+  indicator_version TEXT NOT NULL DEFAULT '1',
+  approved_status TEXT NOT NULL DEFAULT 'draft' CHECK (approved_status IN ('draft','approved','retired')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (programme_id,organization_id)
+    REFERENCES workspace_v14.programmes(id,organization_id) ON DELETE RESTRICT,
+  UNIQUE (organization_id,programme_id,indicator_code,indicator_version),
+  UNIQUE (id,organization_id)
+);
+CREATE TABLE IF NOT EXISTS workspace_v14.indicator_observations (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  indicator_id TEXT NOT NULL,
+  observed_value NUMERIC(20,4) NOT NULL,
+  observed_at DATE NOT NULL,
+  disaggregation JSONB NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(disaggregation) = 'object'),
+  evidence_document_id TEXT,
+  data_quality_status TEXT NOT NULL DEFAULT 'unverified'
+    CHECK (data_quality_status IN ('unverified','reviewed','verified','rejected')),
+  collected_by TEXT REFERENCES public.users(id) ON DELETE RESTRICT,
+  verified_by TEXT REFERENCES public.users(id) ON DELETE RESTRICT,
+  verified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (indicator_id,organization_id)
+    REFERENCES workspace_v14.impact_indicators(id,organization_id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS workspace_v14_indicator_observations_period
+  ON workspace_v14.indicator_observations(organization_id,indicator_id,observed_at);
+
+-- Safeguarding information is intentionally separate from member and general
+-- programme data. Access must be explicitly granted and never inferred from role
+-- visibility of ordinary dashboard records.
+CREATE TABLE IF NOT EXISTS workspace_v14.safeguarding_cases (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES workspace_v14.organizations(id) ON DELETE RESTRICT,
+  case_reference TEXT NOT NULL,
+  case_type TEXT NOT NULL CHECK (case_type IN ('safeguarding','harassment','exploitation','retaliation','child_protection','other')),
+  severity TEXT NOT NULL DEFAULT 'unclassified' CHECK (severity IN ('unclassified','low','medium','high','critical')),
+  status TEXT NOT NULL DEFAULT 'received' CHECK (status IN ('received','triage','referred','investigating','actioned','closed','withdrawn')),
+  access_scope JSONB NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(access_scope) = 'array'),
+  reporter_reference TEXT,
+  incident_date DATE,
+  reported_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  summary_ciphertext BYTEA,
+  response_plan_ciphertext BYTEA,
+  restricted_evidence_document_id TEXT,
+  assigned_to TEXT REFERENCES public.users(id) ON DELETE RESTRICT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (organization_id,case_reference)
+);
+CREATE INDEX IF NOT EXISTS workspace_v14_safeguarding_cases_restricted
+  ON workspace_v14.safeguarding_cases(organization_id,status,severity,reported_at DESC);
 
 -- Stable tenant mapping from existing root workspace owners. Names stay NULL:
 -- do not infer or fabricate an organization's registered/legal name.
