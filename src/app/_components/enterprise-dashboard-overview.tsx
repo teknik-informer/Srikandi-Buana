@@ -126,7 +126,14 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const { rows, files, loading, error, load } = useWorkspaceData();
   const snapshot = useMemo(() => buildEnterpriseMonitoring(rows, files, user), [rows, files, user]);
   const metrics = useMemo(() => dashboardMetrics(dashboard.id, snapshot), [dashboard.id, snapshot]);
-  const briefing = useMemo(() => buildDashboardBriefing(dashboard.id, snapshot, dashboard.features.map((feature) => feature.id)), [dashboard.id, snapshot]);
+  const availableFeatureIds = useMemo(
+    () => dashboard.features.map((feature) => feature.id),
+    [dashboard.features],
+  );
+  const briefing = useMemo(
+    () => buildDashboardBriefing(dashboard.id, snapshot, availableFeatureIds),
+    [dashboard.id, snapshot, availableFeatureIds],
+  );
   const utilities = getVisibleEnterpriseUtilities(user.role);
   const issues = snapshot.issues.slice(0, 5);
   const recentRecords = useMemo(
