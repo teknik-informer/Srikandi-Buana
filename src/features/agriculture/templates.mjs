@@ -398,7 +398,7 @@ export const futureModules = Object.freeze([
 export const templateDestinations = Object.freeze({
   "partner-engagement-log": { route: "/dashboard/kemitraan", label: "Kemitraan", inputStatus: "existing_domain_form" },
   "tot-session-record": { route: "/dashboard/kegiatan", label: "Agenda Kegiatan", inputStatus: "existing_domain_form" },
-  "tot-attendance-roster": { route: "/dashboard/kehadiran", label: "Daftar Hadir", inputStatus: "field_mapping_pending" },
+  "tot-attendance-roster": { route: "/dashboard/kehadiran", label: "Daftar Hadir", inputStatus: "existing_domain_form" },
   "tot-action-plan": { route: "/dashboard/tindaklanjut", label: "Tugas dan Tindak Lanjut", inputStatus: "existing_domain_form" },
   "partner-document-register": { route: "/dashboard/register", label: "Register Dokumen", inputStatus: "existing_domain_form" },
   "program-preparation-checklist": { route: "/dashboard/kemitraan", label: "Kemitraan", inputStatus: "existing_domain_form" },
