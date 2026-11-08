@@ -22,6 +22,7 @@ import { recordHref } from "@/lib/management-insights";
 import { buildDashboardBriefing } from "@/lib/workspace-experience";
 import type { Principal } from "@/lib/permissions";
 import { WorkspaceMetric } from "./workspace-ui";
+import { modules } from "@/lib/srikandi";
 
 const eyebrows: Record<EnterpriseDashboardId, string> = {
   ecosystem: "LAYANAN TERPADU",
@@ -128,6 +129,12 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const briefing = useMemo(() => buildDashboardBriefing(dashboard.id, snapshot, dashboard.features.map((feature) => feature.id)), [dashboard.id, snapshot]);
   const utilities = getVisibleEnterpriseUtilities(user.role);
   const issues = snapshot.issues.slice(0, 5);
+  const recentRecords = useMemo(
+    () => [...rows]
+      .sort((a, b) => Date.parse(b.updated || b.created || "") - Date.parse(a.updated || a.created || ""))
+      .slice(0, 4),
+    [rows],
+  );
   const firstFeature = dashboard.features[0];
   const AppearanceIcon = briefingAppearance[briefing.state].icon;
 
@@ -272,6 +279,40 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
             <div className="rounded-lg bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">Perubahan data tetap dilakukan melalui modul sumber agar riwayat, bukti, dan pemeriksaan terjaga.</div>
           </CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-3" aria-labelledby="recent-workspace-records-title">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 id="recent-workspace-records-title" className="text-base font-semibold">Aktivitas yang baru tercatat</h2>
+            <p className="text-sm text-muted-foreground">Catatan terbaru yang berada dalam lingkup akses Anda. Pilih catatan untuk membuka sumbernya.</p>
+          </div>
+          <Badge variant="outline">{loading ? "…" : recentRecords.length + " catatan terbaru"}</Badge>
+        </div>
+        {loading ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-28" />)}
+          </div>
+        ) : recentRecords.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {recentRecords.map((row) => (
+              <Link key={row.id} href={recordHref(row)} className="group min-w-0 rounded-xl border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">{modules[row.kind]?.title || row.kind}</span>
+                  <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                </div>
+                <h3 className="mt-3 line-clamp-2 font-semibold">{String(row.data.name || "Catatan tanpa judul")}</h3>
+                <p className="mt-2 text-xs text-muted-foreground">{row.updated ? "Diperbarui " : "Dicatat "}{dateLabel(row.updated || row.created || null)}</p>
+                {row.data.status ? <p className="mt-2 text-xs text-muted-foreground">Status: {String(row.data.status)}</p> : null}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed p-5">
+            <p className="text-sm font-medium">Belum ada catatan untuk ditampilkan</p>
+            <p className="mt-1 text-sm text-muted-foreground">Saat aktivitas baru dicatat pada modul yang dapat Anda akses, pembaruan terbaru akan muncul di sini.</p>
+          </div>
+        )}
       </section>
 
       <section className="space-y-3" aria-label={"Modul " + dashboard.label}>
