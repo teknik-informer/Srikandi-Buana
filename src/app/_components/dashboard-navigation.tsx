@@ -29,6 +29,7 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   ChevronDown,
+  ClipboardList,
   Files,
   FileText,
   Grid2X2,
@@ -105,7 +106,7 @@ export default function DashboardNavigation({ section, user }: { section: string
               </SidebarMenuButton>
             </SidebarMenuItem>
             {utilities.map((item) => {
-              const Icon = item.id === "monitoring" ? Activity : FileText;
+              const Icon = item.id === "monitoring" ? Activity : item.id === "pengembangan" ? ClipboardList : FileText;
               return (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton asChild isActive={section === item.id} tooltip={item.label}>
