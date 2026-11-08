@@ -78,6 +78,17 @@ const templateNotes: Record<string, string> = {
 
 export default function HelpCenter({ role }: { role: Role }) {
   const guide = roleGuides[role];
+  const [templateQuery, setTemplateQuery] = useState("");
+  const filteredTemplates = useMemo(() => {
+    const query = templateQuery.trim().toLocaleLowerCase("id-ID");
+    if (!query) return operationalTemplates;
+    return operationalTemplates.filter((template) => [
+      template.name,
+      template.description,
+      template.category,
+      ...template.fields.map((field) => field.label + " " + field.key),
+    ].join(" ").toLocaleLowerCase("id-ID").includes(query));
+  }, [templateQuery]);
   return (
     <main className="workspace-page space-y-8" aria-labelledby="help-centre-title">
       <header className="space-y-3">
