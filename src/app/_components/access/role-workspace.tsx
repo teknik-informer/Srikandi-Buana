@@ -60,6 +60,13 @@ import WorkspaceShell from "../workspace-shell";
 import MyAccount from "./my-account";
 import ManagementDashboard from "../management-dashboard";
 
+import RecordTable from "../record-table";
+import {
+  WorkspacePageHeader,
+  WorkspaceSearch,
+  StatusBadge,
+} from "../workspace-ui";
+
 const formPresetLabels: Record<string, string> = {
   standard: "Formulir umum",
   "tot-session-record": "Laporan Training of Trainers (ToT)",
@@ -69,12 +76,6 @@ const formPresetLabels: Record<string, string> = {
   "member-intake-basic": "Pendataan dasar anggota",
   "tot-action-plan": "Rencana aksi pasca-ToT",
 };
-import RecordTable from "../record-table";
-import {
-  WorkspacePageHeader,
-  WorkspaceSearch,
-  StatusBadge,
-} from "../workspace-ui";
 export default function RoleWorkspace({
   user,
   section,
