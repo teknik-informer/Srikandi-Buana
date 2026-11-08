@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { canReadRecord, canReadSection, visibleRecord, type Principal } from "@/lib/permissions";
-import { dateID, modules } from "@/lib/srikandi";
+import { modules } from "@/lib/srikandi";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
 import { recordHref, taskStatus } from "@/lib/management-insights";
 import type { WorkspaceAudit, WorkspaceFile } from "@/lib/workspace-types";
@@ -441,7 +441,7 @@ export default function EnterpriseMonitoring({
     for (const issue of snapshot.issues) {
       const key = issue.row.kind;
       const current = grouped.get(key) || {
-        label: modules[key]?.label || key.replaceAll("_", " "),
+        label: modules[key]?.title || key.replaceAll("_", " "),
         warning: 0,
         info: 0,
       };
