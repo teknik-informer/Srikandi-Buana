@@ -103,6 +103,15 @@ export default function WorkspaceProgressChart({
   const maxModuleCount = Math.max(1, ...moduleCounts.map((item) => item.count));
   const hasTimeline = months.some((month) => month.created > 0 || month.updated > 0);
   const hasRecords = scopedRows.length > 0;
+  const programChartRows = useMemo(
+    () => (programEvaluations || []).map((program) => ({
+      program: program.programName,
+      reports: program.reportCount,
+      openTasks: program.openTasks.length,
+      blocked: Number(program.blocked),
+    })),
+    [programEvaluations],
+  );
 
   return (
     <section className="space-y-3" aria-labelledby="workspace-progress-title">
