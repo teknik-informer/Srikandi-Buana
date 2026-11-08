@@ -27,3 +27,16 @@ test("the internal Help Centre does not replace the public help page", () => {
   assert.ok(publicHelp.includes('InformationPage slug'));
   assert.ok(internalPage.includes('<HelpCenter role={admin.role} />'));
 });
+
+test("calendar and Kanban are views over existing activity and task records", () => {
+  const management = read("src/app/_components/management-dashboard.tsx");
+  assert.ok(management.includes('row.kind === "kegiatan"'));
+  assert.ok(management.includes('row.data.date'));
+  assert.ok(management.includes('row.kind === "tindaklanjut"'));
+  assert.ok(management.includes('row.data.dueDate'));
+  assert.ok(management.includes('href={recordHref(item.row)}'));
+  assert.ok(management.includes('<TabsTrigger value="calendar">Kalender</TabsTrigger>'));
+  assert.ok(management.includes('<TabsContent value="tasks"'));
+  assert.ok(management.includes("Buka daftar tugas"));
+  assert.ok(!management.includes("calendar_events"));
+});
