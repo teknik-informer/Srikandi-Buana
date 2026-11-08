@@ -29,7 +29,7 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   ChevronDown,
-  ClipboardList,
+  BookOpen,
   Files,
   FileText,
   Grid2X2,
@@ -106,7 +106,7 @@ export default function DashboardNavigation({ section, user }: { section: string
               </SidebarMenuButton>
             </SidebarMenuItem>
             {utilities.map((item) => {
-              const Icon = item.id === "monitoring" ? Activity : item.id === "pengembangan" ? ClipboardList : FileText;
+              const Icon = item.id === "monitoring" ? Activity : FileText;
               return (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton asChild isActive={section === item.id} tooltip={item.label}>
@@ -205,6 +205,9 @@ export default function DashboardNavigation({ section, user }: { section: string
         </SidebarGroup>
         <div className="dashboard-nav-shortcut">
           <span>AKSES CEPAT</span>
+          <Link href="/dashboard/panduan" onClick={() => setOpenMobile(false)} aria-current={section === "panduan" ? "page" : undefined}>
+            <BookOpen size={14} /> Pusat Bantuan
+          </Link>
           <Link href="/" target="_blank" rel="noopener noreferrer">
             Lihat situs publik <ArrowUpRight size={14} />
           </Link>
@@ -290,7 +293,7 @@ export function DashboardMegaMenu({
           </DialogClose>
           <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih ruang kerja, monitoring, laporan atau katalog pengembangan sesuai kewenangan akun Anda.
+            Pilih ruang kerja, monitoring, laporan, atau Pusat Bantuan sesuai kewenangan akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -352,6 +355,9 @@ export function DashboardMegaMenu({
             </div>
           )}
           <div className="dashboard-mega-footer">
+            <Link href="/dashboard/panduan" onClick={() => setOpen(false)}>
+              <BookOpen size={14} /> Pusat Bantuan
+            </Link>
             <Link href="/dashboard" onClick={() => setOpen(false)}>
               Kembali ke Pusat Kendali
             </Link>
