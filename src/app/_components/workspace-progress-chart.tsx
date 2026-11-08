@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { NavItem } from "@/lib/navigation-config";
 import type { Row } from "@/lib/srikandi";
+import type { ProgramEvaluation } from "@/lib/program-evaluation";
 
 type MonthPoint = {
   month: string;
@@ -26,6 +27,9 @@ type MonthPoint = {
 const chartConfig = {
   created: { label: "Catatan baru", color: "var(--color-chart-2)" },
   updated: { label: "Catatan diperbarui", color: "var(--color-chart-4)" },
+  reports: { label: "Laporan tercatat", color: "var(--color-chart-2)" },
+  openTasks: { label: "Tugas terbuka", color: "var(--color-chart-4)" },
+  blocked: { label: "Program terkendala", color: "var(--color-chart-5)" },
 } satisfies ChartConfig;
 
 function validTimestamp(value: unknown): number | null {
@@ -190,6 +194,37 @@ export default function WorkspaceProgressChart({
           </CardContent>
         </Card>
       </div>
+
+      {programEvaluations ? (
+        <Card className="min-w-0">
+          <CardHeader>
+            <CardTitle className="text-base">Perkembangan program kerja</CardTitle>
+            <CardDescription>Perbandingan laporan yang sudah tercatat, tugas terbuka, dan program dengan kendala berdasarkan data yang dapat diakses.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="h-[340px] animate-pulse rounded-lg bg-muted/60" aria-label="Grafik program sedang dimuat" />
+            ) : programChartRows.length ? (
+              <>
+                <ChartContainer config={chartConfig} className="h-[340px] w-full aspect-auto">
+                  <BarChart data={programChartRows} layout="vertical" margin={{ top: 4, right: 12, left: 4, bottom: 4 }} accessibilityLayer>
+                    <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="program" width={138} tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                    <Tooltip cursor={{ fill: "var(--muted)", opacity: 0.45 }} content={<ChartTooltipContent />} />
+                    <Bar dataKey="reports" fill="var(--color-reports)" radius={[0, 4, 4, 0]} maxBarSize={12} />
+                    <Bar dataKey="openTasks" fill="var(--color-openTasks)" radius={[0, 4, 4, 0]} maxBarSize={12} />
+                    <Bar dataKey="blocked" fill="var(--color-blocked)" radius={[0, 4, 4, 0]} maxBarSize={12} />
+                  </BarChart>
+                </ChartContainer>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">Jumlah laporan bukan persentase target tercapai. Program tanpa laporan tidak otomatis berarti tidak berjalan; lengkapi laporan periode dan bukti capaian pada modul sumber.</p>
+              </>
+            ) : (
+              <div className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Belum ada program yang termasuk dalam lingkup akses akun ini.</div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </section>
   );
 }
