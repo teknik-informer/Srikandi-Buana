@@ -20,7 +20,7 @@ test("all seven workspaces receive data-led briefings", () => {
 });
 
 test("briefing recommendations are derived from real scoped metrics", () => {
-  assert.match(experience, /snapshot\.operational\?\.overdueTasks/);
+  assert.match(experience, /work\?\.overdueTasks/);
   assert.match(experience, /snapshot\.membership\?\.needsVerification/);
   assert.match(experience, /snapshot\.administration\?\.needsReview/);
   assert.match(experience, /finance\?\.invalidTransactions/);
