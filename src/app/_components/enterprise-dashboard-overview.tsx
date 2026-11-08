@@ -2,10 +2,13 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
-  Activity, AlertTriangle, ArrowUpRight, CalendarClock, CheckCircle2,
-  ClipboardCheck, Clock3, FileCheck2, FileText, LayoutGrid, Newspaper,
-  ShieldCheck, Users, Wallet,
+  Activity, AlertTriangle, ArrowUpRight, Bell, BookOpen, BriefcaseBusiness,
+  CalendarClock, CalendarDays, Camera, CheckCircle2, ClipboardCheck, FileCheck2,
+  FileText, Files, FolderCheck, Handshake, Landmark, LayoutGrid, Megaphone,
+  MessagesSquare, PackageCheck, Settings2, ShieldCheck, ShoppingBag, Sprout,
+  Users, Wallet,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +19,7 @@ import { getVisibleEnterpriseUtilities, type EnterpriseDashboard, type Enterpris
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
 import { recordHref } from "@/lib/management-insights";
+import { buildDashboardBriefing } from "@/lib/workspace-experience";
 import type { Principal } from "@/lib/permissions";
 import { WorkspaceMetric } from "./workspace-ui";
 
@@ -27,6 +31,39 @@ const eyebrows: Record<EnterpriseDashboardId, string> = {
   commerce: "USAHA & RANTAI PASOK",
   publication: "INFORMASI PUBLIK",
   system: "KONFIGURASI & AKUN",
+};
+
+const featureIcons: Record<string, LucideIcon> = {
+  portal: Users, notifikasi: Bell, program: CalendarDays, laporan_program: FileCheck2,
+  tindaklanjut: ClipboardCheck, kegiatan: CalendarClock, kehadiran: Users,
+  musyawarah: MessagesSquare, pengajuan: FileText, enterprise: ShieldCheck,
+  anggota: Users, pengurus: BriefcaseBusiness, persetujuan: ShieldCheck,
+  surat: FileText, register: FolderCheck, sumber: BookOpen, kelembagaan: Files,
+  transkripsi: FileCheck2, dokumen: Files, kas: Wallet, akuntansi: Landmark,
+  aset: PackageCheck, penjualan: ShoppingBag, lotkopi: Sprout, usaha: Sprout,
+  kemitraan: Handshake, publikasi: Megaphone, galeri: Camera,
+  pesan: MessagesSquare, akun: ShieldCheck, "akun-saya": Users, pengaturan: Settings2,
+};
+
+const briefingAppearance = {
+  attention: {
+    border: "border-amber-500/30",
+    background: "from-amber-500/10 via-card to-card",
+    badge: "warning" as const,
+    icon: AlertTriangle,
+  },
+  steady: {
+    border: "border-emerald-500/25",
+    background: "from-emerald-500/10 via-card to-card",
+    badge: "success" as const,
+    icon: CheckCircle2,
+  },
+  limited: {
+    border: "border-border",
+    background: "from-muted/70 via-card to-card",
+    badge: "secondary" as const,
+    icon: ShieldCheck,
+  },
 };
 
 function dateLabel(value: string | null) {
@@ -48,7 +85,7 @@ function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildE
     case "ecosystem": return [
       { title: "Anggota terdata", value: s.membership?.total ?? "—", note: s.membership ? s.membership.active + " berstatus aktif" : "Di luar kewenangan akun", icon: Users },
       { title: "Perlu verifikasi", value: s.membership?.needsVerification ?? "—", note: "Data anggota yang belum terverifikasi", icon: ShieldCheck },
-      { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: s.visibleRecords + " catatan dalam ruang lingkup akses", icon: Clock3 },
+      { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: s.visibleRecords + " catatan dalam ruang lingkup akses", icon: CalendarClock },
     ];
     case "management": return [
       { title: "Tugas terbuka", value: s.operational?.openTasks ?? "—", note: (s.operational?.overdueTasks ?? 0) + " melewati tenggat", icon: ClipboardCheck },
@@ -59,7 +96,7 @@ function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildE
     case "administration": return [
       { title: "Anggota terdata", value: s.membership?.total ?? "—", note: s.membership ? s.membership.needsVerification + " menunggu verifikasi" : "Tidak tersedia untuk akun ini", icon: Users },
       { title: "Dokumen terdaftar", value: s.administration?.documents ?? "—", note: (s.administration?.needsReview ?? 0) + " memerlukan pemeriksaan", icon: FileText },
-      { title: "Lampiran bermasalah", value: s.administration?.missingAttachments ?? "—", note: "Referensi lampiran tidak tersedia pada arsip", icon: FileCheck2 },
+      { title: "Lampiran bermasalah", value: s.administration?.missingAttachments ?? "—", note: "Referensi lampiran tidak tersedia pada arsip", icon: Files },
     ];
     case "finance": return [
       { title: "Transaksi tercatat", value: s.finance?.transactions ?? "—", note: (s.finance?.missingEvidence ?? 0) + " tanpa bukti lampiran", icon: Wallet },
@@ -67,19 +104,19 @@ function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildE
       { title: "Transaksi perlu pemeriksaan", value: s.finance?.invalidTransactions ?? "—", note: "Nilai transaksi yang tidak lolos validasi", icon: AlertTriangle },
     ];
     case "commerce": return [
-      { title: "Lot penerimaan", value: s.business?.lots ?? "—", note: (s.business?.lotsOnHold ?? 0) + " ditahan/menunggu pemeriksaan", icon: Activity },
-      { title: "Kemitraan tercatat", value: s.business?.partnerships ?? "—", note: "Catatan kemitraan yang dapat diakses", icon: Users },
-      { title: "Rencana usaha", value: s.business?.businessPlans ?? "—", note: "Kajian dan rencana usaha tercatat", icon: FileText },
+      { title: "Lot penerimaan", value: s.business?.lots ?? "—", note: (s.business?.lotsOnHold ?? 0) + " ditahan/menunggu pemeriksaan", icon: Sprout },
+      { title: "Kemitraan tercatat", value: s.business?.partnerships ?? "—", note: "Catatan kemitraan yang dapat diakses", icon: Handshake },
+      { title: "Rencana usaha", value: s.business?.businessPlans ?? "—", note: "Kajian dan rencana usaha tercatat", icon: ShoppingBag },
     ];
     case "publication": return [
-      { title: "Konten terbit", value: s.publication?.published ?? "—", note: (s.publication?.drafts ?? 0) + " konten masih draf", icon: Newspaper },
-      { title: "Dokumentasi galeri", value: s.publication?.galleryItems ?? "—", note: "Item galeri yang tercatat", icon: FileText },
+      { title: "Konten terbit", value: s.publication?.published ?? "—", note: (s.publication?.drafts ?? 0) + " konten masih draf", icon: Megaphone },
+      { title: "Dokumentasi galeri", value: s.publication?.galleryItems ?? "—", note: "Item galeri yang tercatat", icon: Camera },
       { title: "Izin perlu diperiksa", value: s.publication?.permissionNeedsReview ?? "—", note: "Media dengan status izin belum jelas", icon: ShieldCheck },
     ];
     case "system": return [
       { title: "Temuan kualitas data", value: s.qualityFindings, note: s.warningFindings + " peringatan · " + s.infoFindings + " pengingat", icon: AlertTriangle },
-      { title: "Catatan dalam akses", value: s.visibleRecords, note: "Data yang terlihat sesuai kewenangan akun", icon: FileText },
-      { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Perubahan data terbaru yang dapat diakses", icon: Clock3 },
+      { title: "Catatan dalam akses", value: s.visibleRecords, note: "Data yang terlihat sesuai kewenangan akun", icon: Files },
+      { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Perubahan data terbaru yang dapat diakses", icon: CalendarClock },
     ];
   }
 }
@@ -88,8 +125,11 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const { rows, files, loading, error, load } = useWorkspaceData();
   const snapshot = useMemo(() => buildEnterpriseMonitoring(rows, files, user), [rows, files, user]);
   const metrics = useMemo(() => dashboardMetrics(dashboard.id, snapshot), [dashboard.id, snapshot]);
+  const briefing = useMemo(() => buildDashboardBriefing(dashboard.id, snapshot), [dashboard.id, snapshot]);
   const utilities = getVisibleEnterpriseUtilities(user.role);
   const issues = snapshot.issues.slice(0, 5);
+  const firstFeature = dashboard.features[0];
+  const AppearanceIcon = briefingAppearance[briefing.state].icon;
 
   return (
     <main className="workspace-page" aria-labelledby="dashboard-overview-title">
@@ -99,14 +139,85 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
           <h1 id="dashboard-overview-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard {dashboard.label}</h1>
           <Badge variant="outline">{dashboard.features.length} modul tersedia</Badge>
         </div>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{dashboard.description} Ringkasan dihitung dari catatan yang dapat diakses oleh akun Anda.</p>
+        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{dashboard.description} Ruang ini membantu Anda memahami kondisi, menentukan langkah, dan menyelesaikan pekerjaan dari data yang dapat diakses.</p>
       </header>
 
-      {error && <Alert variant="destructive"><AlertTriangle /><AlertTitle>Data belum berhasil dimuat</AlertTitle><AlertDescription className="flex flex-wrap items-center justify-between gap-3"><span>{error}</span><Button size="sm" variant="outline" onClick={() => void load()}>Coba muat ulang</Button></AlertDescription></Alert>}
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertTitle>Data belum berhasil dimuat</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>{error}</span>
+            <Button size="sm" variant="outline" onClick={() => void load()}>Coba muat ulang</Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <section
+        className={"overflow-hidden rounded-2xl border bg-gradient-to-br p-4 shadow-sm sm:p-6 " + briefingAppearance[briefing.state].border + " " + briefingAppearance[briefing.state].background}
+        aria-labelledby="workspace-briefing-title"
+        aria-live="polite"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 max-w-3xl">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex size-9 items-center justify-center rounded-xl border bg-background/80 text-primary">
+                <AppearanceIcon className="size-4" aria-hidden="true" />
+              </span>
+              <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground">{briefing.eyebrow}</p>
+              <Badge variant={briefingAppearance[briefing.state].badge}>
+                {briefing.state === "attention" ? "Perlu tindak lanjut" : briefing.state === "steady" ? "Ritme terjaga" : "Sesuai hak akses"}
+              </Badge>
+            </div>
+            <h2 id="workspace-briefing-title" className="text-xl font-semibold tracking-tight sm:text-2xl">{briefing.title}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{briefing.description}</p>
+          </div>
+          <div className="rounded-xl border bg-background/75 px-3 py-2 text-right">
+            <p className="text-xs text-muted-foreground">Catatan dalam akses</p>
+            <p className="text-2xl font-semibold tabular-nums">{loading ? "…" : snapshot.visibleRecords}</p>
+            <p className="text-xs text-muted-foreground">Pembaruan: {dateLabel(snapshot.latestUpdate)}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {loading ? (
+            Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-28" />)
+          ) : briefing.actions.length ? (
+            briefing.actions.map((action, index) => (
+              <Link
+                key={action.id}
+                href={action.href}
+                className="group flex min-h-32 flex-col justify-between rounded-xl border bg-background/85 p-4 transition-colors hover:border-primary/50 hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-xs font-semibold tracking-wide text-muted-foreground">LANGKAH 0{index + 1}</span>
+                  <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+                </div>
+                <div className="mt-3">
+                  <h3 className="font-semibold">{action.title}</h3>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">{action.detail}</p>
+                  <span className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-primary">{action.actionLabel}</span>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <div className="rounded-xl border border-dashed bg-background/70 p-4 md:col-span-2 xl:col-span-3">
+              <p className="text-sm font-medium">{briefing.state === "limited" ? "Butuh akses atau sumber data?" : "Pertahankan pembaruan yang konsisten."}</p>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                {briefing.state === "limited" ? "Anda tetap dapat membuka modul yang diizinkan. Hubungi pengelola untuk meninjau penugasan bila diperlukan." : "Catat pekerjaan saat terjadi agar tim dapat melihat perkembangan tanpa menunggu rekap manual."}
+              </p>
+              {firstFeature && <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-primary hover:underline" href={firstFeature.href}>{firstFeature.label}<ArrowUpRight size={15} aria-hidden="true" /></Link>}
+            </div>
+          )}
+        </div>
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+          Rekomendasi ini berasal dari data aktual yang terlihat oleh akun Anda. Tidak ada perubahan data yang dilakukan dari kartu ringkasan ini.
+        </p>
+      </section>
 
       <section className="space-y-3" aria-label={"Ringkasan " + dashboard.label}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div><h2 className="text-base font-semibold">Ringkasan operasional</h2><p className="text-sm text-muted-foreground">Angka aktual sesuai hak akses, bukan data contoh.</p></div>
+          <div><h2 className="text-base font-semibold">Kondisi saat ini</h2><p className="text-sm text-muted-foreground">Pahami angka sebelum menentukan tindakan. Nilai yang tidak tersedia tidak ditampilkan sebagai nol.</p></div>
           <span className="text-xs text-muted-foreground">{loading ? "Memuat data…" : "Diperbarui " + dateLabel(snapshot.latestUpdate)}</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -116,26 +227,71 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
         <Card className="min-w-0">
-          <CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div className="space-y-1"><CardTitle className="text-base">Prioritas yang perlu ditindaklanjuti</CardTitle><CardDescription>Temuan berasal dari kelengkapan dan status catatan yang tersedia.</CardDescription></div><Badge variant="outline">{snapshot.issues.length} temuan</Badge></div></CardHeader>
+          <CardHeader>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <CardTitle className="text-base">Hal yang perlu diketahui</CardTitle>
+                <CardDescription>Temuan berasal dari kelengkapan dan status catatan yang tersedia. Buka catatan sumber untuk memeriksa konteksnya.</CardDescription>
+              </div>
+              <Badge variant="outline">{snapshot.issues.length} temuan</Badge>
+            </div>
+          </CardHeader>
           <CardContent className="space-y-3">
-            {loading ? <Skeleton className="h-28 w-full" /> : issues.length ? issues.map((issue) => <Link key={issue.id} href={recordHref(issue.row)} className="flex min-h-16 items-start justify-between gap-3 rounded-xl border p-3 transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><span className="min-w-0"><span className="block text-sm font-medium">{issue.title}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{issue.detail}</span></span><ArrowUpRight size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" /></Link>) : <div className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Belum ada temuan pada catatan yang dapat diakses. Periksa kembali setelah ada pembaruan data.</div>}
+            {loading ? <Skeleton className="h-28 w-full" /> : issues.length ? issues.map((issue) => (
+              <Link key={issue.id} href={recordHref(issue.row)} className="flex min-h-16 items-start justify-between gap-3 rounded-xl border p-3 transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{issue.title}</span>
+                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">{issue.detail}</span>
+                </span>
+                <ArrowUpRight size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+              </Link>
+            )) : (
+              <div className="rounded-xl border border-dashed p-5">
+                <div className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />Tidak ada temuan prioritas yang terdeteksi</div>
+                <p className="mt-2 text-sm leading-5 text-muted-foreground">Pemeriksaan ini hanya mencakup catatan yang dapat diakses saat ini. Lanjutkan pembaruan agar kondisi tetap relevan.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card className="min-w-0">
-          <CardHeader><CardTitle className="text-base">Akses kerja cepat</CardTitle><CardDescription>Menu lintas dashboard sesuai peran Anda.</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Pintu bantuan dan pemantauan</CardTitle>
+            <CardDescription>Temukan panduan kerja atau pantau kondisi lintas bidang.</CardDescription>
+          </CardHeader>
           <CardContent className="space-y-2">
-            {utilities.map((item) => <Link key={item.id} href={item.href} className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><span className="min-w-0"><span className="block font-medium">{item.label}</span><span className="block text-xs text-muted-foreground">{item.description}</span></span><ArrowUpRight size={16} className="shrink-0" aria-hidden="true" /></Link>)}
-            <div className="rounded-lg bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">Perubahan data tetap dilakukan melalui modul sumber agar riwayat dan pemeriksaan terjaga.</div>
+            {utilities.map((item) => (
+              <Link key={item.id} href={item.href} className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                <span className="min-w-0"><span className="block font-medium">{item.label}</span><span className="block text-xs text-muted-foreground">{item.description}</span></span>
+                <ArrowUpRight size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+              </Link>
+            ))}
+            <Link href="/dashboard/panduan" className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+              <span className="flex min-w-0 items-center gap-2"><BookOpen className="size-4 shrink-0 text-primary" aria-hidden="true" /><span><span className="block font-medium">Pusat Bantuan</span><span className="block text-xs text-muted-foreground">Panduan sesuai peran dan cara menggunakan modul.</span></span></span>
+              <ArrowUpRight size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+            </Link>
+            <div className="rounded-lg bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">Perubahan data tetap dilakukan melalui modul sumber agar riwayat, bukti, dan pemeriksaan terjaga.</div>
           </CardContent>
         </Card>
       </section>
 
       <section className="space-y-3" aria-label={"Modul " + dashboard.label}>
-        <div><h2 className="text-base font-semibold">Modul kerja</h2><p className="text-sm text-muted-foreground">Buka modul sumber untuk membuat, memeriksa, atau memperbarui catatan.</p></div>
+        <div><h2 className="text-base font-semibold">Ruang kerja Anda</h2><p className="text-sm text-muted-foreground">Setiap modul memiliki tujuan tersendiri. Pilih area di bawah untuk melanjutkan pekerjaan.</p></div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {dashboard.features.map((feature) => {
             const label = user.role === "anggota" && feature.id === "anggota" ? "Data saya" : feature.label;
-            return <Link key={feature.id} href={feature.href} className="group flex min-h-32 flex-col justify-between rounded-2xl border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><div className="flex items-start justify-between gap-3"><div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><LayoutGrid size={18} aria-hidden="true" /></div><ArrowUpRight size={16} className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" /></div><div className="mt-4"><h3 className="font-semibold">{label}</h3><p className="mt-1 text-sm leading-5 text-muted-foreground">{feature.description}</p></div></Link>;
+            const Icon = featureIcons[feature.id] ?? LayoutGrid;
+            return (
+              <Link key={feature.id} href={feature.href} className="group flex min-h-36 flex-col justify-between rounded-2xl border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex size-10 items-center justify-center rounded-xl border bg-primary/5 text-primary"><Icon size={19} aria-hidden="true" /></span>
+                  <ArrowUpRight size={16} className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+                </div>
+                <div className="mt-4">
+                  <h3 className="font-semibold">{label}</h3>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">{feature.description}</p>
+                </div>
+              </Link>
+            );
           })}
         </div>
       </section>
