@@ -339,7 +339,7 @@ assert.equal(timeoutForm.dataset.unsaved,'true');assert(!timeoutForm.didReset);
 assert.equal(find(timedAccountTree,n=>n.type==='fieldset').props.disabled,false);assert.equal(deadlineTimers.size,0);
 // Timed-out reads surface recovery instead of keeping a skeleton indefinitely.
 const timedProfile=await harness('src/app/_components/access/my-account.tsx',{...deadlines,fetch:stall});
-const profileRender=()=>timedProfile.render(()=>timedProfile.exports.default());profileRender();timedProfile.effects();await expire(25000);
+const profileRender=()=>timedProfile.render(()=>timedProfile.exports.default());profileRender();timedProfile.effects();await new Promise(r=>setImmediate(r));await expire(25000);
 const profileTree=profileRender();assert(allNodes(profileTree).some(n=>React.Children.toArray(n.props?.children).some(c=>typeof c==='string'&&c.includes('Data terlalu lama merespons'))));
 assert(allNodes(profileTree).some(n=>n.props?.children==='Coba lagi'));assert.equal(deadlineTimers.size,0);
 const timedMessages=await harness('src/lib/message-data.ts',{...deadlines,fetch:stall});
