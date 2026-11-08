@@ -131,7 +131,11 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const issues = snapshot.issues.slice(0, 5);
   const recentRecords = useMemo(
     () => [...rows]
-      .sort((a, b) => Date.parse(b.updated || b.created || "") - Date.parse(a.updated || a.created || ""))
+      .sort((a, b) => {
+        const aDate = Date.parse(a.updated || a.created || "");
+        const bDate = Date.parse(b.updated || b.created || "");
+        return (Number.isFinite(bDate) ? bDate : 0) - (Number.isFinite(aDate) ? aDate : 0);
+      })
       .slice(0, 4),
     [rows],
   );
