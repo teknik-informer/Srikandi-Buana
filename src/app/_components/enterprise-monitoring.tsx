@@ -31,13 +31,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canReadRecord, canReadSection, type Principal } from "@/lib/permissions";
+import { canReadRecord, canReadSection, visibleRecord, type Principal } from "@/lib/permissions";
 import { dateID } from "@/lib/srikandi";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
-import { recordHref } from "@/lib/management-insights";
+import { recordHref, taskStatus } from "@/lib/management-insights";
 import type { WorkspaceAudit, WorkspaceFile } from "@/lib/workspace-types";
 import type { Row } from "@/lib/srikandi";
 import { StatusBadge, WorkspaceMetric, WorkspacePageHeader } from "./workspace-ui";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 
 type Probe = {
   state: "checking" | "ok" | "error";
@@ -50,6 +59,32 @@ type SystemHealth = {
   database: Probe;
   checkedAt: string | null;
 };
+
+const monitoringChartConfig = {
+  tasks: { label: "Tugas baru", color: "var(--color-chart-2)" },
+  reports: { label: "Laporan program", color: "var(--color-chart-4)" },
+  activities: { label: "Agenda baru", color: "var(--color-chart-5)" },
+  count: { label: "Jumlah", color: "var(--color-chart-2)" },
+  warning: { label: "Peringatan", color: "var(--color-chart-5)" },
+  info: { label: "Pengingat", color: "var(--color-chart-3)" },
+  openTasks: { label: "Tugas terbuka", color: "var(--color-chart-2)" },
+  programReports: { label: "Laporan tercatat", color: "var(--color-chart-4)" },
+  blocked: { label: "Program terkendala", color: "var(--color-chart-5)" },
+} satisfies ChartConfig;
+
+function jakartaMonthKey(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date(timestamp));
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return year && month ? year + "-" + month : null;
+}
 
 const checkingProbe: Probe = {
   state: "checking",
@@ -338,6 +373,104 @@ export default function EnterpriseMonitoring({
     .sort((a, b) => Number(b.severity === "warning") - Number(a.severity === "warning"))
     .slice(0, 12);
 
+  // The same record-level permissions and field redaction used by operational
+  // summaries are applied before chart data is derived.
+  const chartRows = useMemo(
+    () => rows.filter((row) => canReadRecord(user, row)).map((row) => visibleRecord(user, row) as Row),
+    [rows, user],
+  );
+
+  const activityTrend = useMemo(() => {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(now);
+    const year = Number(parts.find((part) => part.type === "year")?.value);
+    const month = Number(parts.find((part) => part.type === "month")?.value);
+    const buckets = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(Date.UTC(year, month - 6 + index, 1));
+      const key = date.getUTCFullYear() + "-" + String(date.getUTCMonth() + 1).padStart(2, "0");
+      return {
+        key,
+        label: new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: "UTC" }).format(date),
+        tasks: 0,
+        reports: 0,
+        activities: 0,
+      };
+    });
+    const byMonth = new Map(buckets.map((bucket) => [bucket.key, bucket]));
+    for (const row of chartRows) {
+      const key = jakartaMonthKey(row.created);
+      const bucket = key ? byMonth.get(key) : undefined;
+      if (!bucket) continue;
+      if (row.kind === "tindaklanjut") bucket.tasks += 1;
+      if (row.kind === "laporan_program") bucket.reports += 1;
+      if (row.kind === "kegiatan") bucket.activities += 1;
+    }
+    return buckets;
+  }, [chartRows]);
+
+  const taskStatusData = useMemo(() => {
+    const counts = new Map<string, number>([
+      ["Belum dimulai", 0],
+      ["Berjalan", 0],
+      ["Selesai", 0],
+      ["Ditunda", 0],
+    ]);
+    for (const row of chartRows.filter((item) => item.kind === "tindaklanjut")) {
+      const status = taskStatus(row);
+      counts.set(status, (counts.get(status) || 0) + 1);
+    }
+    return Array.from(counts, ([label, count]) => ({ label, count }));
+  }, [chartRows]);
+
+  const attentionData = operational ? [
+    { label: "Melewati tenggat", count: operational.overdueTasks },
+    { label: "Jatuh tempo hari ini", count: operational.dueToday },
+    { label: "Tanpa penanggung jawab", count: operational.tasksWithoutAssignee },
+    { label: "Tanpa tanggal tenggat", count: operational.tasksWithoutDueDate },
+    { label: "Menunggu verifikasi", count: operational.tasksAwaitingVerification },
+    { label: "Perlu perbaikan", count: operational.tasksNeedingCorrection },
+    { label: "Kegiatan lewat tanggal", count: operational.unresolvedPastActivities },
+  ] : [];
+
+  const qualityByModule = useMemo(() => {
+    const grouped = new Map<string, { label: string; warning: number; info: number }>();
+    for (const issue of snapshot.issues) {
+      const key = issue.row.kind;
+      const current = grouped.get(key) || {
+        label: modules[key]?.label || key.replaceAll("_", " "),
+        warning: 0,
+        info: 0,
+      };
+      if (issue.severity === "warning") current.warning += 1;
+      else current.info += 1;
+      grouped.set(key, current);
+    }
+    return Array.from(grouped.values())
+      .sort((a, b) => (b.warning + b.info) - (a.warning + a.info) || a.label.localeCompare(b.label, "id"))
+      .slice(0, 8);
+  }, [snapshot.issues]);
+
+  const programChartRows = useMemo(
+    () => snapshot.programEvaluations
+      .map((program) => ({
+        program: program.programName,
+        programReports: program.reportCount,
+        openTasks: program.openTasks.length,
+        blocked: Number(program.blocked),
+      }))
+      .filter((program) => program.programReports > 0 || program.openTasks > 0 || program.blocked > 0)
+      .sort((a, b) =>
+        (b.programReports + b.openTasks + b.blocked) - (a.programReports + a.openTasks + a.blocked) ||
+        a.program.localeCompare(b.program, "id"),
+      )
+      .slice(0, 8),
+    [snapshot.programEvaluations],
+  );
+
   return (
     <div className="workspace-page min-w-0">
       <WorkspacePageHeader
@@ -444,6 +577,146 @@ export default function EnterpriseMonitoring({
             note={"Catatan terlihat sesuai hak akses · terakhir diperbarui " + displayDate(snapshot.latestUpdate)}
             icon={Clock3}
           />
+        </div>
+      </section>
+
+      <section className="space-y-3" aria-labelledby="monitoring-analytics-title">
+        <div>
+          <h2 id="monitoring-analytics-title" className="text-base font-semibold">Analisis grafik monitoring</h2>
+          <p className="text-sm text-muted-foreground">Indikator lintas modul untuk membaca ritme kerja, kondisi tugas, kualitas pencatatan, dan perkembangan program dalam cakupan akses Anda.</p>
+        </div>
+        <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+          <Card className="min-w-0">
+            <CardHeader>
+              <CardTitle className="text-base">Tren aktivitas operasional</CardTitle>
+              <CardDescription>Catatan tugas, laporan program, dan agenda baru selama enam bulan terakhir berdasarkan tanggal dibuat.</CardDescription>
+            </CardHeader>
+            <CardContent className="min-w-0">
+              {loading ? (
+                <Skeleton className="h-[260px] w-full" />
+              ) : activityTrend.some((item) => item.tasks + item.reports + item.activities > 0) ? (
+                <ChartContainer config={monitoringChartConfig} className="h-[260px] w-full aspect-auto">
+                  <BarChart data={activityTrend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} accessibilityLayer>
+                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={34} />
+                    <Tooltip cursor={{ fill: "var(--muted)", opacity: 0.45 }} content={<ChartTooltipContent />} />
+                    <Bar dataKey="tasks" fill="var(--color-tasks)" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                    <Bar dataKey="reports" fill="var(--color-reports)" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                    <Bar dataKey="activities" fill="var(--color-activities)" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="flex min-h-[260px] items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada catatan tugas, laporan program, atau agenda baru dalam enam bulan terakhir.</div>
+              )}
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Grafik menghitung tanggal pembuatan catatan, bukan tanggal kegiatan atau bukti bahwa program telah selesai.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="min-w-0">
+            <CardHeader>
+              <CardTitle className="text-base">Status pekerjaan</CardTitle>
+              <CardDescription>Distribusi seluruh tugas yang dapat Anda akses menurut status pencatatan saat ini.</CardDescription>
+            </CardHeader>
+            <CardContent className="min-w-0">
+              {loading ? (
+                <Skeleton className="h-[260px] w-full" />
+              ) : taskStatusData.some((item) => item.count > 0) ? (
+                <ChartContainer config={monitoringChartConfig} className="h-[260px] w-full aspect-auto">
+                  <BarChart data={taskStatusData} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 4 }} accessibilityLayer>
+                    <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="label" width={112} tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                    <Tooltip cursor={{ fill: "var(--muted)", opacity: 0.45 }} content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="var(--color-count)" radius={[0, 4, 4, 0]} maxBarSize={22} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="flex min-h-[260px] items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada tugas yang tercatat pada ruang lingkup akses ini.</div>
+              )}
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Status “Selesai” mengikuti isian tugas. Pengesahan hasil tetap dihitung terpisah pada indikator verifikasi.</p>
+            </CardContent>
+          </Card>
+
+          {operational && (
+            <Card className="min-w-0">
+              <CardHeader>
+                <CardTitle className="text-base">Beban tindak lanjut</CardTitle>
+                <CardDescription>Jumlah kondisi yang perlu diperhatikan agar pengurus dapat menentukan prioritas tindakan.</CardDescription>
+              </CardHeader>
+              <CardContent className="min-w-0">
+                {loading ? (
+                  <Skeleton className="h-[280px] w-full" />
+                ) : attentionData.some((item) => item.count > 0) ? (
+                  <ChartContainer config={monitoringChartConfig} className="h-[280px] w-full aspect-auto">
+                    <BarChart data={attentionData} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 4 }} accessibilityLayer>
+                      <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
+                      <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                      <YAxis type="category" dataKey="label" width={148} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
+                      <Tooltip cursor={{ fill: "var(--muted)", opacity: 0.45 }} content={<ChartTooltipContent />} />
+                      <Bar dataKey="count" fill="var(--color-count)" radius={[0, 4, 4, 0]} maxBarSize={20} />
+                    </BarChart>
+                  </ChartContainer>
+                ) : (
+                  <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Tidak ada kondisi tindak lanjut yang terhitung pada data saat ini.</div>
+                )}
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">Kategori dapat saling tumpang tindih; misalnya satu tugas dapat terlambat sekaligus belum memiliki penanggung jawab. Jumlah batang tidak dijumlahkan menjadi total unik.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="min-w-0">
+            <CardHeader>
+              <CardTitle className="text-base">Kualitas data per bagian</CardTitle>
+              <CardDescription>Perbandingan temuan peringatan dan pengingat berdasarkan modul sumber.</CardDescription>
+            </CardHeader>
+            <CardContent className="min-w-0">
+              {loading ? (
+                <Skeleton className="h-[280px] w-full" />
+              ) : qualityByModule.length ? (
+                <ChartContainer config={monitoringChartConfig} className="h-[280px] w-full aspect-auto">
+                  <BarChart data={qualityByModule} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 4 }} accessibilityLayer>
+                    <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="label" width={118} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
+                    <Tooltip cursor={{ fill: "var(--muted)", opacity: 0.45 }} content={<ChartTooltipContent />} />
+                    <Bar dataKey="warning" stackId="quality" fill="var(--color-warning)" radius={[0, 3, 3, 0]} maxBarSize={20} />
+                    <Bar dataKey="info" stackId="quality" fill="var(--color-info)" radius={[0, 3, 3, 0]} maxBarSize={20} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada temuan kualitas data dari aturan pemeriksaan yang tersedia.</div>
+              )}
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Satu catatan dapat memiliki lebih dari satu temuan. Ini adalah jumlah temuan, bukan jumlah catatan bermasalah yang unik.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="min-w-0 xl:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Pemantauan perkembangan program</CardTitle>
+              <CardDescription>Perbandingan laporan yang tercatat, tugas aktif, dan sinyal kendala dari laporan terbaru. Tidak digunakan untuk menyimpulkan persentase target tercapai.</CardDescription>
+            </CardHeader>
+            <CardContent className="min-w-0">
+              {loading ? (
+                <Skeleton className="h-[300px] w-full" />
+              ) : programChartRows.length ? (
+                <ChartContainer config={monitoringChartConfig} className="h-[300px] w-full aspect-auto">
+                  <BarChart data={programChartRows} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 4 }} accessibilityLayer>
+                    <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="program" width={150} tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
+                    <Tooltip cursor={{ fill: "var(--muted)", opacity: 0.45 }} content={<ChartTooltipContent />} />
+                    <Bar dataKey="programReports" fill="var(--color-programReports)" radius={[0, 3, 3, 0]} maxBarSize={12} />
+                    <Bar dataKey="openTasks" fill="var(--color-openTasks)" radius={[0, 3, 3, 0]} maxBarSize={12} />
+                    <Bar dataKey="blocked" fill="var(--color-blocked)" radius={[0, 3, 3, 0]} maxBarSize={12} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada laporan atau tugas program dalam data yang dapat diakses.</div>
+              )}
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Nilai laporan dan tugas adalah jumlah catatan. Sinyal kendala bernilai 1 per program dengan kendala pada laporan terbaru, bukan ukuran tingkat keparahan kendala.</p>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
