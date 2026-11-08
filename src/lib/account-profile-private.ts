@@ -10,6 +10,15 @@ export type PrivateAccountData = {
   bankConsentAt: string;
 };
 
+export function isPrivateProfileEncryptionConfigured() {
+  try {
+    encryptionKey();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function encryptionKey() {
   const raw = process.env.PROFILE_DATA_ENCRYPTION_KEY;
   if (!raw) throw new Error("Kunci enkripsi data pribadi belum diaktifkan pada server.");
