@@ -22,8 +22,9 @@ test("account profile is an editable CV with repeatable professional and persona
   assert.match(editor, /updateCV\("volunteer", \[\.\.\.cv\.volunteer, emptyExperience\(\)\]\)/);
   assert.match(editor, /updateCV\("certifications", \[\.\.\.cv\.certifications, emptyCertification\(\)\]\)/);
   assert.match(editor, /updateCV\("languages", \[\.\.\.cv\.languages, emptyLanguage\(\)\]\)/);
-  assert.match(editor, /initialCV=\{data\.cv\}/);
-  assert.match(editor, /initialPrivateSummary=\{data\.privateSummary\}/);
+  assert.match(accountPage, /initialCV=\{data\.cv\}/);
+  assert.match(accountPage, /initialPrivateSummary=\{data\.privateSummary\}/);
+  assert.match(accountPage, /privateStorageReady=\{data\.privateStorageReady\}/);
 });
 
 test("verified membership identity stays read-only while personal display identity remains separate", () => {
@@ -107,7 +108,8 @@ test("profile CV data is normalized, bounded and validates dates and URLs", () =
   assert.match(data, /list\(raw\.volunteer, 20/);
   assert.match(data, /list\(raw\.certifications, 20/);
   assert.match(data, /https:/);
-  assert.match(data, /Tanggal lahir tidak valid/);
+  assert.match(data, /date\(personal\.birthDate, "Tanggal lahir"\)/);
+  assert.match(data, /label \+ " tidak valid\."/);
   assert.match(data, /RT harus berupa angka/);
   assert.match(data, /Kode pos harus lima digit/);
 });
