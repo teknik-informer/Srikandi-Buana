@@ -1,6 +1,7 @@
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { env } from "@/lib/runtime";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { buildV14AttendanceSyncStatements } from "@/lib/workspace-v14-sync";
 
 const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
@@ -168,6 +169,16 @@ export async function PUT(req: Request) {
     const id = "attendance-" + raw.eventId;
     const now = new Date().toISOString();
 
+    const normalizedAttendance = await buildV14AttendanceSyncStatements(env.DB, {
+      owner: user.userId,
+      actorId: user.accountId,
+      attendanceRecordId: id,
+      eventId: raw.eventId,
+      memberStatuses: memberStatusMap,
+      externalParticipants,
+      now,
+    });
+
     await env.DB.batch([
       env.DB.prepare(
         "INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'kehadiran',?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated=excluded.updated WHERE records.owner=excluded.owner",
@@ -181,6 +192,7 @@ export async function PUT(req: Request) {
         "Daftar hadir: " + data.name,
         now,
       ),
+      ...normalizedAttendance,
     ]);
 
     return json({
