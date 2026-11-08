@@ -31,7 +31,7 @@
     "test:navigation:compat": "node --test tests/navigation-compatibility.mjs",
     "test:terminology": "node --test tests/terminology-consistency.mjs",
     "test:ecosystem": "node --test tests/ecosystem-*.test.mjs tests/workspace-v14-*.test.mjs",
-    "lint": "eslint src/app/_components/enterprise-dashboard-overview.tsx src/app/_components/enterprise-monitoring.tsx src/app/_components/enterprise-reports.tsx src/app/_components/help-center.tsx src/app/_components/workspace-shell.tsx src/lib/workspace-experience.ts"
+    "lint": "eslint src/app/_components/enterprise-dashboard-overview.tsx src/app/_components/workspace-progress-chart.tsx src/app/_components/enterprise-monitoring.tsx src/app/_components/enterprise-reports.tsx src/app/_components/help-center.tsx src/app/_components/workspace-shell.tsx src/lib/workspace-experience.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
