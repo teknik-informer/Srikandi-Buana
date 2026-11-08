@@ -4,7 +4,7 @@
 
 SRIKANDI BUANA is an internal, non-commercial organizational workspace. The seven dashboard domains organize access to existing operational modules; the dashboard summaries are computed from records visible to the signed-in user. Production currently remains on the separately deployed v11.5 release.
 
-**Dokumen aktif v14:** [Arsitektur v14](docs/ARSITEKTUR_v14.md) · [Gerbang rilis v14](docs/RELEASE_v14.md). Dokumen v11.5 yang masih berada di repositori adalah referensi historis untuk baseline lama.
+**Dokumen aktif v14:** [Arsitektur v14](docs/ARSITEKTUR_v14.md) · [Pengalaman produk v14](docs/architecture/v14/PRODUCT_EXPERIENCE.md) · [Gerbang rilis v14](docs/RELEASE_v14.md). Dokumen v11.5 yang masih berada di repositori adalah referensi historis untuk baseline lama.
 
 ## v14 workspace structure
 
@@ -38,6 +38,7 @@ npm run test:navigation:compat
 npm run test:terminology
 npm run test:integration:staging
 npm run typecheck
+npm run lint
 npm test
 npm run build
 ```
