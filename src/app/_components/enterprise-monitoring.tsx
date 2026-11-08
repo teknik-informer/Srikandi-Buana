@@ -179,9 +179,14 @@ export default function EnterpriseMonitoring({
   }, []);
 
   useEffect(() => {
-    void checkSystem();
+    // Defer the first probe so the effect only schedules synchronization work;
+    // state updates happen from the scheduled callback, not during the effect.
+    const initial = window.setTimeout(() => void checkSystem(), 0);
     const interval = window.setInterval(() => void checkSystem(), 60_000);
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
   }, [checkSystem]);
 
   if (loading) {
