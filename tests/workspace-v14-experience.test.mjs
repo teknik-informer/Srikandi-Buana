@@ -62,6 +62,9 @@ test("dashboard progress chart derives six-month trends from role-scoped source 
   assert.match(progressChart, /Catatan baru/);
   assert.match(progressChart, /Catatan diperbarui/);
   assert.match(progressChart, /workspace-equalizer-fill/);
+  assert.match(progressChart, /sixMonthCreated/);
+  assert.match(progressChart, /sixMonthUpdated/);
+  assert.match(progressChart, /leadingModule/);
   assert.match(progressChart, /Belum ada aktivitas dalam enam bulan terakhir/);
   assert.doesNotMatch(progressChart, /Math\.random|faker|mockData|dummyData/i);
   assert.match(progressChart, /bukan persentase keberhasilan program/);
