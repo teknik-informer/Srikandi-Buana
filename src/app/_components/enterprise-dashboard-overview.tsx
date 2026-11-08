@@ -63,7 +63,7 @@ function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildE
     ];
     case "finance": return [
       { title: "Transaksi tercatat", value: s.finance?.transactions ?? "—", note: (s.finance?.missingEvidence ?? 0) + " tanpa bukti lampiran", icon: Wallet },
-      { title: "Saldo buku kas", value: s.finance?.balanceSafe ? rupiah(s.finance.balance) : "Perlu rekonsiliasi", note: s.finance?.balanceSafe ? "Dari transaksi terbaca dan tervalidasi" : "Saldo disembunyikan bila data belum lengkap/tidak valid", icon: CheckCircle2 },
+      { title: "Saldo buku kas", value: !s.finance ? "—" : s.finance.balanceSafe ? rupiah(s.finance.balance) : "Perlu rekonsiliasi", note: !s.finance ? "Data keuangan tidak termasuk kewenangan akun ini" : s.finance.balanceSafe ? "Dari transaksi terbaca dan tervalidasi" : "Saldo disembunyikan bila data belum lengkap/tidak valid", icon: CheckCircle2 },
       { title: "Transaksi perlu pemeriksaan", value: s.finance?.invalidTransactions ?? "—", note: "Nilai transaksi yang tidak lolos validasi", icon: AlertTriangle },
     ];
     case "commerce": return [
