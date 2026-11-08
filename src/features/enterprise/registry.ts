@@ -111,6 +111,12 @@ export const enterpriseUtilities: readonly NavItem[] = [
     description: "Lihat laporan operasional, keanggotaan, administrasi, usaha, publikasi, dan keuangan sesuai hak akses.",
     href: "/dashboard/laporan",
   },
+  {
+    id: "pengembangan",
+    label: "Template & Pengembangan",
+    description: "Lihat template operasional yang disiapkan dan peta modul yang akan dikembangkan.",
+    href: "/dashboard/pengembangan",
+  },
 ];
 
 export const dashboardRouteIds = enterpriseDashboards.map((dashboard) => dashboard.id);
