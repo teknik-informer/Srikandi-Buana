@@ -313,13 +313,23 @@ export function buildDashboardBriefing(
   });
 
   if (safeActions.length) {
+    const routineOnly = new Set([
+      "system-routine",
+      "finance-routine",
+      "administration-routine",
+      "publication-routine",
+      "commerce-routine",
+      "plan-next-activity",
+      "open-notifications",
+    ]);
+    const hasPriorityActions = actions.some((action) => !routineOnly.has(action.id));
     return {
-      state: actions.some((action) => action.id !== "system-routine" && action.id !== "finance-routine" && action.id !== "administration-routine" && action.id !== "publication-routine" && action.id !== "commerce-routine" && action.id !== "plan-next-activity" && action.id !== "open-notifications")
-        ? "attention"
-        : "steady",
-      eyebrow: "ARAH TINDAKAN BERDASARKAN DATA",
-      title: "Mari selesaikan hal yang paling berdampak",
-      description: "Saran berikut dihitung dari catatan aktual yang dapat Anda akses. Pilih tindakan untuk langsung menuju modul sumber.",
+      state: hasPriorityActions ? "attention" : "steady",
+      eyebrow: hasPriorityActions ? "ARAH TINDAKAN BERDASARKAN DATA" : "RITME KERJA",
+      title: hasPriorityActions ? "Mari selesaikan hal yang paling berdampak" : "Teruskan ritme kerja yang baik",
+      description: hasPriorityActions
+        ? "Saran berikut dihitung dari catatan aktual yang dapat Anda akses. Pilih tindakan untuk langsung menuju modul sumber."
+        : "Belum ada tindak lanjut prioritas yang terdeteksi. Lanjutkan pembaruan rutin agar informasi tetap relevan dan mudah ditindaklanjuti.",
       actions: safeActions,
     };
   }
