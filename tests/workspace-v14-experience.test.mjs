@@ -88,6 +88,21 @@ test("help remains reachable from every authenticated workspace page", () => {
   assert.match(shell, /aria-label="Buka Pusat Bantuan"/);
 });
 
+test("Monitoring includes dedicated data-backed analytics across operational dimensions", () => {
+  assert.match(monitoring, /Analisis grafik monitoring/);
+  assert.match(monitoring, /Tren aktivitas operasional/);
+  assert.match(monitoring, /Status pekerjaan/);
+  assert.match(monitoring, /Beban tindak lanjut/);
+  assert.match(monitoring, /Kualitas data per bagian/);
+  assert.match(monitoring, /Pemantauan perkembangan program/);
+  assert.match(monitoring, /canReadRecord\(user, row\)/);
+  assert.match(monitoring, /visibleRecord\(user, row\)/);
+  assert.match(monitoring, /program\.reportCount/);
+  assert.match(monitoring, /program\.openTasks\.length/);
+  assert.match(monitoring, /jumlah temuan/);
+  assert.doesNotMatch(monitoring, /Math\.random|faker|mockData|dummyData/i);
+});
+
 test("Monitoring highlights its first actionable finding without claiming an automatic decision", () => {
   assert.match(monitoring, /Langkah berikutnya/);
   assert.match(monitoring, /visibleIssues\[0\]/);
