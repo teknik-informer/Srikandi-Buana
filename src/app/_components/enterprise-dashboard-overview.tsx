@@ -92,7 +92,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const issues = snapshot.issues.slice(0, 5);
 
   return (
-    <main className="workspace-page space-y-7" aria-labelledby="dashboard-overview-title">
+    <main className="workspace-page" aria-labelledby="dashboard-overview-title">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{eyebrows[dashboard.id]}</p>
         <div className="flex flex-wrap items-center gap-3">
