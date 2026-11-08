@@ -87,7 +87,7 @@ export default function AgencyRoadmap() {
               </CardHeader>
               <CardContent>
                 <details className="group rounded-lg border px-3 py-2">
-                  <summary className="cursor-pointer text-sm font-medium">
+                  <summary className="flex min-h-11 cursor-pointer items-center rounded-md text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2">
                     Lihat struktur isian ({template.fields.length})
                   </summary>
                   <div className="mt-3 space-y-3">
