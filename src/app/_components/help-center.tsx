@@ -243,8 +243,12 @@ export default function HelpCenter({ role }: { role: Role }) {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/privasi">Kebijakan privasi</Link>
-            <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/persetujuan">Persetujuan data</Link>
-            <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/dokumen">Arsip berkas</Link>
+            {(["admin", "ketua", "sekretaris"] as Role[]).includes(role) && (
+              <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/persetujuan">Persetujuan data</Link>
+            )}
+            {(["admin", "sekretaris", "bendahara", "koordinator"] as Role[]).includes(role) && (
+              <Link className="text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/dokumen">Arsip berkas</Link>
+            )}
           </CardContent>
         </Card>
         <Card>
