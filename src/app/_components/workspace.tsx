@@ -101,6 +101,15 @@ import {
   WorkspaceEmptyState,
   StatusBadge,
 } from "./workspace-ui";
+const formPresetLabels: Record<string, string> = {
+  standard: "Formulir umum",
+  "tot-session-record": "Laporan Training of Trainers (ToT)",
+  "partner-engagement-log": "Catatan penjajakan mitra",
+  "program-preparation-checklist": "Kesiapan program sebelum perjanjian",
+  "partner-document-register": "Register dokumen mitra",
+  "member-intake-basic": "Pendataan dasar anggota",
+  "tot-action-plan": "Rencana aksi pasca-ToT",
+};
 const href = (id: string) =>
   id === "profil"
     ? "/profil"
