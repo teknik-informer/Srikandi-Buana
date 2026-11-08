@@ -237,10 +237,24 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
               <Button type="button" variant="outline" onClick={() => changeSelection([])}>Kosongkan tanda</Button>
             </div>
             <div className="attendance-members">
-              {visibleMembers.map((m) => <label key={m.id}>
-                <input type="checkbox" checked={selected.includes(m.id)} onChange={(e) => changeSelection(e.target.checked ? [...selected, m.id] : selected.filter((id) => id !== m.id))} />
-                <span><strong>{String(m.data.name)}</strong><small>{String(m.data.dusun)} · {String(m.data.role)}</small></span>
-              </label>)}
+              {visibleMembers.map((m) => (
+                <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 border-b py-2">
+                  <span className="min-w-0 flex-1">
+                    <strong className="block">{String(m.data.name)}</strong>
+                    <small className="text-muted-foreground">{String(m.data.dusun)} · {String(m.data.role)}</small>
+                  </span>
+                  <NativeSelect
+                    aria-label={"Status kehadiran " + String(m.data.name)}
+                    className="min-w-40"
+                    value={memberStatuses[m.id] || "Belum ditandai"}
+                    onChange={(e) => changeMemberStatus(m.id, e.target.value)}
+                  >
+                    {memberAttendanceStates.map((status) => (
+                      <NativeSelectOption key={status} value={status}>{status}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+              ))}
               {!members.length && <p>Tambahkan anggota pada menu Keanggotaan terlebih dahulu.</p>}
               {!!members.length && !visibleMembers.length && <p role="status">Anggota tidak ditemukan. Coba kata lain.</p>}
             </div>
