@@ -52,3 +52,15 @@ test("dashboard routes require an authenticated user and enforce role visibility
   assert.match(route, /canReadSection\(admin, active\)/);
   assert.match(route, /EnterpriseDashboardOverview dashboard=\{visibleDashboard\} user=\{admin\}/);
 });
+
+test("v14 package metadata and release documentation stay aligned", () => {
+  const pkg = JSON.parse(read("package.json"));
+  const lock = JSON.parse(read("package-lock.json"));
+  const readme = read("README.md");
+  assert.equal(pkg.version, "14.0.0-beta.1");
+  assert.equal(lock.version, pkg.version);
+  assert.equal(lock.packages[""].version, pkg.version);
+  assert.match(readme, /Enterprise Workspace v14\.0\.0-beta\.1/);
+  assert.match(readme, /docs\/ARSITEKTUR_v14\.md/);
+  assert.match(readme, /docs\/RELEASE_v14\.md/);
+});
