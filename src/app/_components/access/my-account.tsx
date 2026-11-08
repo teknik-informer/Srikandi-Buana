@@ -50,8 +50,11 @@ export default function MyAccount() {
       .finally(() => { if (!request.signal.aborted) setLoading(false); });
   }
   useEffect(() => {
-    load();
-    return () => current.current?.abort();
+    const initial = window.setTimeout(() => load(), 0);
+    return () => {
+      window.clearTimeout(initial);
+      current.current?.abort();
+    };
   }, []);
   async function change(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
