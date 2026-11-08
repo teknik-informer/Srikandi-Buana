@@ -51,7 +51,7 @@ test("partner access requires an active unexpired program-scoped grant", () => {
     grant: {
       active: true, expiresAt: "2026-12-01T00:00:00.000Z",
       organisationId: "org-1", resources: ["report"], actions: ["read"],
-      programIds: ["program-1"], siteIds: [],
+      programIds: ["program-1"], siteIds: ["site-1"],
     },
     now,
   };
@@ -80,6 +80,34 @@ test("partner grants cannot expose personal records without specific approval", 
   assert.equal(authorizeAgencyAction({
     ...request, grant: { ...request.grant, personalDataApproved: true },
   }).allowed, true);
+});
+
+test("partner grants must include the exact assigned site", () => {
+  const request = {
+    principal: principal("partner_viewer"),
+    resource: "report", action: "read",
+    record: record({ containsPersonalData: false }),
+    grant: {
+      active: true, expiresAt: "2026-12-01T00:00:00.000Z",
+      organisationId: "org-1", resources: ["report"], actions: ["read"],
+      programIds: ["program-1"], siteIds: ["site-2"],
+    },
+    now,
+  };
+  assert.equal(authorizeAgencyAction(request).allowed, false);
+});
+
+test("basic person data requires a role with explicit person-read authority", () => {
+  assert.equal(authorizeAgencyAction({
+    principal: principal("field_enumerator"),
+    resource: "person", action: "read",
+    record: record({ containsPersonalData: true, personalDataClass: "basic" }), now,
+  }).allowed, true);
+  assert.equal(authorizeAgencyAction({
+    principal: principal("executive"),
+    resource: "person", action: "read",
+    record: record({ containsPersonalData: true, personalDataClass: "basic" }), now,
+  }).allowed, false);
 });
 
 test("platform administrators cannot browse business data by default", () => {
