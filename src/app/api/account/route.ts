@@ -11,6 +11,7 @@ import {
   encryptPrivateAccountData,
   emptyPrivateAccountData,
   summarizePrivateAccountData,
+  isPrivateProfileEncryptionConfigured,
 } from "@/lib/account-profile-private";
 
 const accountCVKey = (accountId: string) => "account-profile-v1:" + accountId;
@@ -44,6 +45,7 @@ async function storedAccountProfile(owner: string, accountId: string): Promise<S
 async function privateSummaryFor(stored: StoredProfile, owner: string, accountId: string) {
   const encrypted = stored.privateProfile;
   if (!encrypted?.nonce || !encrypted.tag || !encrypted.ciphertext) return summarizePrivateAccountData(emptyPrivateAccountData());
+  if (!isPrivateProfileEncryptionConfigured()) return null;
   return summarizePrivateAccountData(decryptPrivateAccountData({
     nonce: encrypted.nonce,
     tag: encrypted.tag,
@@ -70,6 +72,7 @@ export async function GET() {
       } catch { /* Keep the verified identity if an optional display preference is malformed. */ }
     }
     const cv = normalizeAccountCV(stored.cv, String(memberData.phone || ""));
+    const privateStorageReady = isPrivateProfileEncryptionConfigured();
     const privateSummary = await privateSummaryFor(stored, u.userId, u.accountId);
     return json({
       user: {
@@ -90,6 +93,7 @@ export async function GET() {
       },
       cv,
       privateSummary,
+      privateStorageReady,
     });
   } catch {
     return json({ error: "Profil pribadi belum dapat dimuat. Coba lagi atau hubungi administrator bila masalah berlanjut." }, 503);
@@ -127,41 +131,56 @@ export async function PATCH(request: Request) {
 
       const member = await memberProfile(u.userId, u.memberId);
       const cv = normalizeAccountCV(raw.cv, String(member?.data.phone || ""));
-      const privateInput = normalizePrivateProfileInput(raw.privateProfile);
       const previous = await storedAccountProfile(u.userId, u.accountId);
-      let privateData = emptyPrivateAccountData();
-      if (previous.privateProfile?.nonce && previous.privateProfile.tag && previous.privateProfile.ciphertext) {
-        privateData = decryptPrivateAccountData({
-          nonce: previous.privateProfile.nonce,
-          tag: previous.privateProfile.tag,
-          ciphertext: previous.privateProfile.ciphertext,
-        }, u.userId, u.accountId);
-      }
+      const privateStorageReady = isPrivateProfileEncryptionConfigured();
+      let stored: StoredProfile = { version: 1, cv };
+      let privateSummary = await privateSummaryFor(previous, u.userId, u.accountId);
 
-      if (!privateInput.nikConsent) {
-        privateData.nik = "";
-        privateData.nikConsentAt = "";
-      } else if (privateInput.nik) {
-        privateData.nik = privateInput.nik;
-        privateData.nikConsentAt = privateData.nikConsentAt || now;
-      }
-      if (!privateInput.bankConsent) {
-        privateData.bankName = "";
-        privateData.accountHolder = "";
-        privateData.accountNumber = "";
-        privateData.bankConsentAt = "";
-      } else if (privateInput.accountNumber) {
-        privateData.bankName = privateInput.bankName;
-        privateData.accountHolder = privateInput.accountHolder;
-        privateData.accountNumber = privateInput.accountNumber;
-        privateData.bankConsentAt = privateData.bankConsentAt || now;
-      }
+      if (privateStorageReady) {
+        const privateInput = normalizePrivateProfileInput(raw.privateProfile);
+        let privateData = emptyPrivateAccountData();
+        if (previous.privateProfile?.nonce && previous.privateProfile.tag && previous.privateProfile.ciphertext) {
+          privateData = decryptPrivateAccountData({
+            nonce: previous.privateProfile.nonce,
+            tag: previous.privateProfile.tag,
+            ciphertext: previous.privateProfile.ciphertext,
+          }, u.userId, u.accountId);
+        }
 
-      const hasPrivateData = Boolean(privateData.nik || privateData.accountNumber);
-      const privateProfile = hasPrivateData
-        ? encryptPrivateAccountData(privateData, u.userId, u.accountId)
-        : null;
-      const stored: StoredProfile = { version: 1, cv, ...(privateProfile ? { privateProfile } : {}) };
+        if (!privateInput.nikConsent) {
+          privateData.nik = "";
+          privateData.nikConsentAt = "";
+        } else if (privateInput.nik) {
+          privateData.nik = privateInput.nik;
+          privateData.nikConsentAt = privateData.nikConsentAt || now;
+        }
+        if (!privateInput.bankConsent) {
+          privateData.bankName = "";
+          privateData.accountHolder = "";
+          privateData.accountNumber = "";
+          privateData.bankConsentAt = "";
+        } else if (privateInput.accountNumber) {
+          privateData.bankName = privateInput.bankName;
+          privateData.accountHolder = privateInput.accountHolder;
+          privateData.accountNumber = privateInput.accountNumber;
+          privateData.bankConsentAt = privateData.bankConsentAt || now;
+        }
+
+        const hasPrivateData = Boolean(privateData.nik || privateData.accountNumber);
+        const privateProfile = hasPrivateData
+          ? encryptPrivateAccountData(privateData, u.userId, u.accountId)
+          : null;
+        stored = { version: 1, cv, ...(privateProfile ? { privateProfile } : {}) };
+        privateSummary = summarizePrivateAccountData(privateData);
+      } else {
+        // CV edits remain available without encryption configuration. Existing
+        // ciphertext is preserved byte-for-byte and is never overwritten or
+        // downgraded to plaintext while the server key is unavailable.
+        if (raw.privateProfile !== undefined) {
+          return json({ error: "Penyimpanan NIK dan rekening sedang dikunci sampai kunci enkripsi server dikonfigurasi. Data CV biasa tetap dapat disimpan." }, 503);
+        }
+        if (previous.privateProfile) stored.privateProfile = previous.privateProfile;
+      }
 
       const statements = [
         env.DB.prepare("INSERT INTO settings(key,owner,data,updated) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated=excluded.updated WHERE settings.owner=excluded.owner")
@@ -181,7 +200,8 @@ export async function PATCH(request: Request) {
         ok: true,
         user: { accountId: u.accountId, displayName: u.displayName, avatarUrl: u.avatarUrl || "" },
         cv,
-        privateSummary: summarizePrivateAccountData(privateData),
+        privateSummary,
+        privateStorageReady,
       });
     }
 
