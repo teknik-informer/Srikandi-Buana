@@ -31,6 +31,10 @@ Tindakan dibatasi ke modul yang terlihat pada dashboard role pengguna. Saat tida
 
 Setiap ringkasan dashboard menampilkan beberapa catatan terbaru yang dapat dibuka ke modul sumber. Pengurutan menggunakan waktu pembaruan/pencatatan dari record yang tersedia, bukan membuat peristiwa sintetis. Pengguna dapat meminta pemuatan ulang secara manual; tidak ada polling agresif yang mengganggu pekerjaan.
 
+### Monitoring dan Laporan
+
+Monitoring membedakan pemeriksaan keterjangkauan API/database dari indikator operasional dan temuan kualitas data. Temuan teratas disajikan sebagai titik mulai yang dapat dibuka ke catatan sumber; temuan adalah petunjuk pemeriksaan, bukan keputusan otomatis bahwa catatan salah. Laporan memandu pengguna memilih bidang, periode, meninjau sumber, lalu mencetak/mengekspor hasil sesuai hak akses.
+
 ### Pusat Bantuan
 
 Pusat Bantuan adalah pusat dokumentasi, bukan menu input. Pencarian template mencakup nama, deskripsi, kategori, serta nama kolom; setiap panduan tetap menunjuk ke modul pemilik data. Panduan dapat dibuka dari header seluruh halaman dashboard.
