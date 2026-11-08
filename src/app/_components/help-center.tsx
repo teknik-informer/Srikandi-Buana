@@ -153,6 +153,7 @@ export default function HelpCenter({ role }: { role: Role }) {
             Pencarian mencakup judul, penjelasan, kategori, dan kolom template.
           </p>
         </div>
+        <p className="sr-only" aria-live="polite">{filteredTemplates.length} panduan ditemukan.</p>
 
         <Card className="border-amber-500/30">
           <CardHeader>
@@ -177,7 +178,7 @@ export default function HelpCenter({ role }: { role: Role }) {
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 xl:grid-cols-2" aria-live="polite">
+        <div className="grid gap-4 xl:grid-cols-2">
           {filteredTemplates.length ? filteredTemplates.map((template) => {
             const destination = templateDestinations[template.id];
             return (
