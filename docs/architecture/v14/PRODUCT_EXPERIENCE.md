@@ -33,7 +33,7 @@ Setiap ringkasan dashboard menampilkan beberapa catatan terbaru yang dapat dibuk
 
 ### Grafik perkembangan dan equalizer
 
-Setiap dashboard menampilkan tren enam bulan catatan baru dan catatan yang diperbarui, serta perbandingan jumlah catatan menurut modul yang terlihat oleh role. Grafik menggunakan timestamp `created` dan `updated` dari API catatan yang sudah menerapkan penyaringan kepemilikan dan kebijakan akses. Equalizer adalah animasi visual yang menghormati `prefers-reduced-motion`; angka selalu ditampilkan dan grafik memiliki kondisi kosong. Tren ini mengukur ritme pencatatan, bukan keberhasilan program, dampak sosial, atau tingkat penyelesaian. Indikator outcome harus dibangun terpisah dari target/capaian yang memiliki definisi dan bukti sumber.
+Setiap dashboard menampilkan tren enam bulan catatan baru dan catatan yang diperbarui, serta perbandingan jumlah catatan menurut modul yang terlihat oleh role. Grafik menggunakan timestamp `created` dan `updated` dari API catatan yang sudah menerapkan penyaringan kepemilikan dan kebijakan akses. Equalizer adalah animasi visual yang menghormati `prefers-reduced-motion`; angka selalu ditampilkan dan grafik memiliki kondisi kosong. Tren ini mengukur ritme pencatatan, bukan keberhasilan program, dampak sosial, atau tingkat penyelesaian. Dashboard Manajemen juga membandingkan jumlah laporan tercatat, tugas terbuka, dan program terkendala per program berdasarkan evaluasi yang sudah dibatasi hak akses. Indikator outcome/target-capaian tetap harus dibangun terpisah dari nilai sumber dan bukti yang terdefinisi.
 
 ### Monitoring dan Laporan
 
