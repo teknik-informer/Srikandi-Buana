@@ -125,7 +125,9 @@ Acceptance:
 
 ## Initial pilot choice
 
-The first live pilot should be the one program for which SRIKANDI BUANA has an actual written offer/agreement, named contact, scope, target participants, budget and reporting requirements. CARE/SUCAFINA women-farmer economic empowerment is an especially relevant candidate based on their published KUPM program model; Rainforest Alliance readiness is a parallel standards/traceability track; Ministry compatibility is a local institutional track. The application must not assume that the group has been accepted into any one of these programs or copy another group's targets.
+The group has clarified that current partner engagement is at Training of Trainers (ToT) / early engagement stage, not a signed programme agreement. The first usable workflow is therefore a **ToT and pre-agreement records pack**, not an active grant-management module. Capture actual ToT sessions, attendance, learning notes, agreed action plans, partner contacts and incoming documents. Keep targets, budget and participant eligibility unassigned until written partner guidance exists.
+
+After the first actual agreement is received and reviewed, the group can select the first live programme pilot. CARE/SUCAFINA women's economic empowerment may be a relevant candidate to examine based on public programme information; Rainforest Alliance readiness can be a parallel standards/traceability track; Ministry compatibility is a local institutional track. The application must not assume that the group has been accepted into any programme or copy another group's targets.
 
 ## Cross-stage release gates
 
