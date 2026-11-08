@@ -84,7 +84,7 @@ const restrictedResources = new Set([
   "precise_plot_geometry", "health_record",
 ]);
 const separationActions = new Set([
-  "approve", "verify", "reconcile", "release_payment", "publish",
+  "approve", "approve_transaction", "verify", "reconcile", "release_payment", "publish",
   "approve_export", "close_finding", "close_program",
 ]);
 const scopeLimitedRoles = new Set([
@@ -114,7 +114,7 @@ function grantAllows(grant, request, now) {
   if (grant.organisationId !== request.record.organisationId) return false;
   if (!has(grant.resources, request.resource) || !has(grant.actions, request.action)) return false;
   if (request.record.programId && !has(grant.programIds, String(request.record.programId))) return false;
-  if (request.record.siteId && grant.siteIds?.length && !has(grant.siteIds, String(request.record.siteId))) return false;
+  if (request.record.siteId && !has(grant.siteIds, String(request.record.siteId))) return false;
   if (restrictedResources.has(request.resource) && grant.restrictedDataApproved !== true) return false;
   if (request.record.containsPersonalData === true && grant.personalDataApproved !== true) return false;
   return true;
@@ -159,7 +159,11 @@ export function authorizeAgencyAction(request = {}) {
   }
 
   if (principal.role === "member") {
-    const ownRecord = sameActor(record.personId, principal.personId);
+    const ownPerson = sameActor(record.personId, principal.personId)
+      || sameActor(record.participantPersonId, principal.personId);
+    const enrolledPerson = request.resource === "program"
+      && has(record.enrolledPersonIds, String(principal.personId));
+    const ownRecord = ownPerson || enrolledPerson;
     const permission = request.resource + "." + request.action;
     if (!ownRecord || !permissionSets.member.includes(permission)) {
       return deny("Anggota hanya dapat mengakses layanan dan data miliknya sendiri.");
@@ -178,9 +182,11 @@ export function authorizeAgencyAction(request = {}) {
   if (restrictedResources.has(request.resource)) {
     return deny("Sumber daya ini memerlukan mandat akses khusus yang belum tersedia untuk peran ini.");
   }
-  if (request.action === "read" && record.containsPersonalData === true
-    && principal.role !== "executive") {
-    return deny("Data personal memerlukan hak akses yang lebih spesifik.");
+  if (record.containsPersonalData === true
+    && !(request.resource === "person"
+      && permissionSets[principal.role]?.includes("person.read")
+      && record.personalDataClass === "basic")) {
+    return deny("Data personal memerlukan kewenangan eksplisit dan kelas data yang sesuai.");
   }
   if (separationActions.has(request.action)
     && (sameActor(record.createdBy, principal.accountId)
