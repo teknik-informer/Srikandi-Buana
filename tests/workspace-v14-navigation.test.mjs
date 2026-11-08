@@ -40,3 +40,19 @@ test("calendar and Kanban are views over existing activity and task records", ()
   assert.ok(management.includes("Buka daftar tugas"));
   assert.ok(!management.includes("calendar_events"));
 });
+
+test("ToT attendance records members and external facilitators in one protected attendance record", () => {
+  const ui = read("src/app/_components/attendance.tsx");
+  const api = read("src/app/api/attendance/route.ts");
+  const catalogue = read("src/features/agriculture/templates.mjs");
+  assert.ok(ui.includes("memberStatuses"));
+  assert.ok(ui.includes("memberAttendanceStates"));
+  assert.ok(ui.includes("externalParticipants"));
+  assert.ok(ui.includes("photoConsent"));
+  assert.ok(ui.includes("memberStatusJson"));
+  assert.ok(api.includes("externalParticipantsJson"));
+  assert.ok(api.includes("memberStatusJson"));
+  assert.ok(api.includes("attendanceStates"));
+  assert.ok(api.includes("photoConsentStates"));
+  assert.ok(catalogue.includes('"tot-attendance-roster": { route: "/dashboard/kehadiran", label: "Daftar Hadir", inputStatus: "existing_domain_form" }'));
+});
