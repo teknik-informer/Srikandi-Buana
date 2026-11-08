@@ -1,0 +1,138 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import type { ProfileAddress } from "@/lib/account-profile-data";
+
+type Region = { code: string; name: string };
+type Props = { value: ProfileAddress; onChange: (value: ProfileAddress) => void; disabled?: boolean };
+
+async function loadRegions(level: string, parent = "", signal?: AbortSignal): Promise<Region[]> {
+  const params = new URLSearchParams({ level });
+  if (parent) params.set("parent", parent);
+  const response = await fetch("/api/regions?" + params.toString(), { cache: "force-cache", signal });
+  const payload = await response.json() as { data?: Region[]; error?: string };
+  if (!response.ok || !Array.isArray(payload.data)) throw new Error(payload.error || "Daftar wilayah belum dapat dimuat.");
+  return payload.data;
+}
+
+export default function IndonesianAddressFields({ value, onChange, disabled = false }: Props) {
+  const [provinces, setProvinces] = useState<Region[]>([]);
+  const [regencies, setRegencies] = useState<Region[]>([]);
+  const [districts, setDistricts] = useState<Region[]>([]);
+  const [villages, setVillages] = useState<Region[]>([]);
+  const [loading, setLoading] = useState({ provinces: true, regencies: false, districts: false, villages: false });
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(current => ({ ...current, provinces: true }));
+    loadRegions("provinces", "", controller.signal)
+      .then(setProvinces)
+      .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar provinsi belum tersedia."); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, provinces: false })); });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!value.provinceCode) { setRegencies([]); return; }
+    const controller = new AbortController();
+    setLoading(current => ({ ...current, regencies: true }));
+    loadRegions("regencies", value.provinceCode, controller.signal)
+      .then(setRegencies)
+      .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar kabupaten/kota belum tersedia."); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, regencies: false })); });
+    return () => controller.abort();
+  }, [value.provinceCode]);
+
+  useEffect(() => {
+    if (!value.regencyCode) { setDistricts([]); return; }
+    const controller = new AbortController();
+    setLoading(current => ({ ...current, districts: true }));
+    loadRegions("districts", value.regencyCode, controller.signal)
+      .then(setDistricts)
+      .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar kecamatan belum tersedia."); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, districts: false })); });
+    return () => controller.abort();
+  }, [value.regencyCode]);
+
+  useEffect(() => {
+    if (!value.districtCode) { setVillages([]); return; }
+    const controller = new AbortController();
+    setLoading(current => ({ ...current, villages: true }));
+    loadRegions("villages", value.districtCode, controller.signal)
+      .then(setVillages)
+      .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Daftar desa/kelurahan belum tersedia."); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(current => ({ ...current, villages: false })); });
+    return () => controller.abort();
+  }, [value.districtCode]);
+
+  const selectRegion = (level: "province" | "regency" | "district" | "village", code: string) => {
+    const options = level === "province" ? provinces : level === "regency" ? regencies : level === "district" ? districts : villages;
+    const selected = options.find(item => item.code === code);
+    if (level === "province") onChange({ ...value, provinceCode: code, provinceName: selected?.name || "", regencyCode: "", regencyName: "", districtCode: "", districtName: "", villageCode: "", villageName: "", postalCode: "" });
+    if (level === "regency") onChange({ ...value, regencyCode: code, regencyName: selected?.name || "", districtCode: "", districtName: "", villageCode: "", villageName: "", postalCode: "" });
+    if (level === "district") onChange({ ...value, districtCode: code, districtName: selected?.name || "", villageCode: "", villageName: "", postalCode: "" });
+    if (level === "village") onChange({ ...value, villageCode: code, villageName: selected?.name || "" });
+  };
+
+  const regionSelect = (id: string, label: string, selectedCode: string, options: Region[], loadingState: boolean, level: "province" | "regency" | "district" | "village", hint: string) => (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <NativeSelect id={id} className="w-full" value={selectedCode} disabled={disabled || loadingState || (level !== "province" && !value[level === "regency" ? "provinceCode" : level === "district" ? "regencyCode" : "districtCode"])} onChange={event => selectRegion(level, event.target.value)}>
+        <NativeSelectOption value="">{loadingState ? "Memuat daftar…" : "Pilih " + label.toLowerCase()}</NativeSelectOption>
+        {selectedCode && !options.some(item => item.code === selectedCode) && <NativeSelectOption value={selectedCode}>{level === "province" ? value.provinceName : level === "regency" ? value.regencyName : level === "district" ? value.districtName : value.villageName} (tersimpan)</NativeSelectOption>}
+        {options.map(item => <NativeSelectOption key={item.code} value={item.code}>{item.name}</NativeSelectOption>)}
+      </NativeSelect>
+      <FieldDescription>{hint}</FieldDescription>
+    </Field>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="profile-address-street">Nama jalan, dusun, kampung, atau patokan</FieldLabel>
+          <Input id="profile-address-street" value={value.street} onChange={event => onChange({ ...value, street: event.target.value })} maxLength={240} autoComplete="street-address" disabled={disabled} />
+        </Field>
+        {regionSelect("profile-address-province", "Provinsi", value.provinceCode, provinces, loading.provinces, "province", "Daftar wilayah administratif Indonesia.")}
+        {regionSelect("profile-address-regency", "Kabupaten / kota", value.regencyCode, regencies, loading.regencies, "regency", "Pilih setelah provinsi ditentukan.")}
+        {regionSelect("profile-address-district", "Kecamatan", value.districtCode, districts, loading.districts, "district", "Pilih setelah kabupaten/kota ditentukan.")}
+        {regionSelect("profile-address-village", "Desa / kelurahan", value.villageCode, villages, loading.villages, "village", "Pilih setelah kecamatan ditentukan.")}
+        <Field>
+          <FieldLabel htmlFor="profile-address-rt">RT</FieldLabel>
+          <Input id="profile-address-rt" inputMode="numeric" value={value.rt} onChange={event => onChange({ ...value, rt: event.target.value.replace(/\D/g, "").slice(0,3) })} maxLength={3} disabled={disabled} />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="profile-address-rw">RW</FieldLabel>
+          <Input id="profile-address-rw" inputMode="numeric" value={value.rw} onChange={event => onChange({ ...value, rw: event.target.value.replace(/\D/g, "").slice(0,3) })} maxLength={3} disabled={disabled} />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="profile-address-postal">Kode pos</FieldLabel>
+          <Input id="profile-address-postal" inputMode="numeric" value={value.postalCode} onChange={event => onChange({ ...value, postalCode: event.target.value.replace(/\D/g, "").slice(0,5) })} maxLength={5} autoComplete="postal-code" disabled={disabled} />
+        </Field>
+      </div>
+      {error && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm" role="status">
+          <p className="font-medium">Pilihan wilayah belum tersedia</p>
+          <p className="mt-1 text-muted-foreground">{error} Alamat tetap bisa dicatat manual di bawah.</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {([
+              ["provinceName", "Provinsi", value.provinceName],
+              ["regencyName", "Kabupaten / kota", value.regencyName],
+              ["districtName", "Kecamatan", value.districtName],
+              ["villageName", "Desa / kelurahan", value.villageName],
+            ] as const).map(([key, label, current]) => (
+              <Field key={key}>
+                <FieldLabel htmlFor={"profile-manual-" + key}>{label} (manual)</FieldLabel>
+                <Input id={"profile-manual-" + key} value={current} maxLength={120} disabled={disabled} onChange={event => onChange({ ...value, [key]: event.target.value, ...(key === "provinceName" ? { provinceCode: "", regencyCode: "", districtCode: "", villageCode: "" } : key === "regencyName" ? { regencyCode: "", districtCode: "", villageCode: "" } : key === "districtName" ? { districtCode: "", villageCode: "" } : { villageCode: "" }) })} />
+              </Field>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
