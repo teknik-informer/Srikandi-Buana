@@ -3,16 +3,25 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
 const nav=read('src/lib/navigation-config.ts'), mods=read('src/lib/srikandi.ts');
+const registry=read('src/features/enterprise/registry.ts');
+const access=read('src/features/identity/access-policy.ts');
 const navLabels=new Map([...nav.matchAll(/admin\('([^']+)','([^']+)','[^']+'\)/g)].map(m=>[m[1],m[2]]));
 const labels={
  anggota:'Keanggotaan', pengurus:'Struktur Organisasi', musyawarah:'Rapat dan Notulen', persetujuan:'Persetujuan Data',
  tindaklanjut:'Tugas dan Tindak Lanjut', kegiatan:'Agenda Kegiatan', kas:'Buku Kas', usaha:'Perencanaan Usaha',
  aset:'Inventaris Aset', lotkopi:'Penerimaan Kopi', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
  register:'Register Dokumen', transkripsi:'Verifikasi Informasi', publikasi:'Manajemen Konten',galeri:'Galeri Foto',
- portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional',laporan:'Laporan Kas',surat:'Surat Masuk dan Keluar',laporan_program:'Laporan Perkembangan Program'
+ portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional',laporan:'Laporan',surat:'Surat Masuk dan Keluar',laporan_program:'Laporan Perkembangan Program'
 };
 test('Nama halaman utama konsisten dengan fungsinya',()=>{
- for(const [id,label] of Object.entries(labels))assert.equal(navLabels.get(id),label,`label untuk ${id}`);
+ for(const [id,label] of Object.entries(labels)) {
+  if(id === 'laporan') {
+   assert.ok(registry.includes('id: "laporan"'), 'laporan remains a cross-workspace utility');
+   assert.ok(registry.includes('label: "Laporan"'), 'reports utility has a clear label');
+  } else {
+   assert.equal(navLabels.get(id),label,`label untuk ${id}`);
+  }
+ }
 });
 test('Nama modul database cocok dengan menu pengguna',()=>{
  for(const id of ['anggota','pengurus','musyawarah','persetujuan','tindaklanjut','kegiatan','kas','usaha','aset','lotkopi','kelembagaan','register','transkripsi','publikasi','galeri','surat','laporan_program']){
@@ -27,5 +36,8 @@ test('Tidak mengubah nilai status yang disimpan pada database',()=>{
  for(const s of ['Draf','Terbit','Pemasukan','Pengeluaran','Perlu verifikasi','Disepakati'])assert.ok(mods.includes(`"${s}"`),s);
 });
 test('Menu publik tidak terpengaruh dan tidak ada menu tanpa endpoint',()=>{
- const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,34); // 29 existing + 3 ecosystem + 2 operational workflow destinations
+ const ids=[...navLabels.keys(),'laporan','panduan'];
+ assert.equal(new Set(ids).size,ids.length);
+ assert.equal(ids.length,34);
+ assert.ok(access.includes("'panduan'"), 'the help centre route is not lost when removed from workspace groups');
 });
