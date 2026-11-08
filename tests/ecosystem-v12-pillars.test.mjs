@@ -75,15 +75,15 @@ test("monitoring, reports and template roadmap are standalone shortcuts with rol
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("admin"), (item) => item.id),
-    ["monitoring", "laporan"],
+    ["monitoring", "laporan", "pengembangan"],
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("anggota"), (item) => item.id),
-    ["monitoring", "laporan"],
+    ["monitoring", "laporan", "pengembangan"],
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("ketua"), (item) => item.id),
-    ["monitoring", "laporan"],
+    ["monitoring", "laporan", "pengembangan"],
   );
   assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
   assert.equal(registry.getEnterpriseFeature("laporan")?.href, "/dashboard/laporan");
