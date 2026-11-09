@@ -54,7 +54,7 @@ test("supplier bill posting requires three-way match and exact source data",()=>
 
 test("three-way match does not create inventory valuation or tolerate unapproved price differences",()=>{
  assert.doesNotMatch(api,/inventory_value|stock_valuation|inventory_asset/i);
- assert.match(api,/Selisih harga, pajak, ongkir, diskon/);
+ assert.match(ui,/Selisih harga, pajak, ongkir, dan diskon/);
  assert.match(ui,/tidak otomatis menambah nilai persediaan/);
 });
 
