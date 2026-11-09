@@ -9,7 +9,7 @@ const navLabels=new Map([...nav.matchAll(/admin\('([^']+)','([^']+)','[^']+'\)/g
 const labels={
  anggota:'Keanggotaan', pengurus:'Struktur Organisasi', musyawarah:'Rapat dan Notulen', persetujuan:'Persetujuan Data',
  tindaklanjut:'Tugas dan Tindak Lanjut', kegiatan:'Agenda Kegiatan', kas:'Buku Kas', usaha:'Perencanaan Usaha',
- aset:'Inventaris Aset', lotkopi:'Penerimaan Kopi', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
+ aset:'Inventaris Aset', inventaris:'Inventaris & Kartu Stok', lotkopi:'Penerimaan Kopi', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
  register:'Register Dokumen', transkripsi:'Verifikasi Informasi', publikasi:'Manajemen Konten',galeri:'Galeri Foto',
  portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional',laporan:'Laporan',surat:'Surat Masuk dan Keluar',laporan_program:'Laporan Perkembangan Program'
 };
@@ -38,6 +38,7 @@ test('Tidak mengubah nilai status yang disimpan pada database',()=>{
 test('Menu publik tidak terpengaruh dan tidak ada menu tanpa endpoint',()=>{
  const ids=[...navLabels.keys(),'laporan','panduan'];
  assert.equal(new Set(ids).size,ids.length);
- assert.equal(ids.length,34);
+ assert.equal(ids.length,35);
  assert.ok(access.includes("'panduan'"), 'the help centre route is not lost when removed from workspace groups');
+ assert.ok(fs.existsSync('src/app/dashboard/inventaris/page.tsx'), 'inventory navigation has a real endpoint');
 });
