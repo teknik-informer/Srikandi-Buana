@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { AlertCircle, BookOpen, CheckCircle2, ClipboardCheck, FileText, Plus, RefreshCw, Send, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, ClipboardCheck, FileText, Plus, RefreshCw, Send, ShieldCheck } from "lucide-react";
 
 type PolicyType =
   | "membership_dues"
@@ -56,7 +56,7 @@ const input = "w-full rounded-lg border border-input bg-background px-3 py-2.5 t
 const button = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50";
 const secondary = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50";
 
-async function request(path:string, method:"GET"|"POST"|"PATCH"="GET", payload?:Record<string,unknown>) {
+async function request(method:"GET"|"POST"|"PATCH"="GET", payload?:Record<string,unknown>) {
   const response = await fetch("/api/ecosystem/member-finance/policies", {
     method,
     credentials:"same-origin",
@@ -96,7 +96,7 @@ export default function MemberFinancePolicies({role}:{role:string}) {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await request("","GET");
+      const data = await request("GET");
       setPolicies(Array.isArray(data.policies) ? data.policies : []);
       setDocuments(Array.isArray(data.approvalDocuments) ? data.approvalDocuments : []);
       setError("");
@@ -115,7 +115,7 @@ export default function MemberFinancePolicies({role}:{role:string}) {
     setError("");
     setMessage("");
     try {
-      const result = await request("","POST",{
+      const result = await request("POST",{
         action:"create",
         policyCode:form.policyCode,
         policyVersion:form.policyVersion,
@@ -139,7 +139,7 @@ export default function MemberFinancePolicies({role}:{role:string}) {
     setError("");
     setMessage("");
     try {
-      await request("","PATCH",{action:"submit",id});
+      await request("PATCH",{action:"submit",id});
       setMessage("Kebijakan diajukan. Pengesahan masih menunggu Ketua atau Administrator.");
       await reload();
     } catch (cause) {
@@ -160,7 +160,7 @@ export default function MemberFinancePolicies({role}:{role:string}) {
     setError("");
     setMessage("");
     try {
-      await request("","PATCH",{
+      await request("PATCH",{
         action:"approve",
         id,
         approvalDocumentId:value.documentId,
@@ -182,7 +182,7 @@ export default function MemberFinancePolicies({role}:{role:string}) {
     setError("");
     setMessage("");
     try {
-      await request("","PATCH",{action:"reject",id});
+      await request("PATCH",{action:"reject",id});
       setMessage("Kebijakan ditolak. Perbaikan harus diajukan sebagai versi baru.");
       await reload();
     } catch (cause) {
