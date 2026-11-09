@@ -4,10 +4,12 @@ import {consumeRateLimit} from '@/lib/rate-limit';
 import {balancedLines} from '@/features/finance/validation.mjs';
 import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
+import {ensureDefaultLedgerAccounts} from '@/features/finance/record-posting';
 export const dynamic='force-dynamic';
 const canRead=(role:string)=>['admin','ketua','bendahara'].includes(role),canWrite=(role:string)=>['admin','bendahara'].includes(role);
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!canRead(c.user.role))return json({error:'Akses akuntansi dibatasi.'},403);
  try{
+ await ensureDefaultLedgerAccounts(c.db,c.user.userId);
  if(new URL(request.url).searchParams.get('format')==='csv'){
   const result=await c.db.prepare('SELECT e.posted_date,e.reference,e.memo,a.code,a.name,l.debit,l.credit FROM ledger_entries e JOIN ledger_lines l ON l.entry_id=e.id AND l.owner=e.owner JOIN ledger_accounts a ON a.id=l.account_id AND a.owner=e.owner WHERE e.owner=? ORDER BY e.posted_date,e.created,e.id,a.code LIMIT 5000').bind(c.user.userId).all();
   const lines=[['Tanggal','Referensi','Uraian','Kode akun','Akun','Debit (Rp)','Kredit (Rp)'],...result.results.map(r=>[String(r.posted_date),String(r.reference),String(r.memo),String(r.code),String(r.name),String(r.debit),String(r.credit)])];
