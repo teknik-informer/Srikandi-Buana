@@ -201,6 +201,51 @@ export default function HelpCenter({ role }: { role: Role }) {
         </p>
       </section>
 
+      {(["admin", "ketua", "bendahara"] as Role[]).includes(role) && (
+        <section className="space-y-4" aria-labelledby="finance-erp-guide-title">
+          <div className="flex flex-wrap items-center gap-2">
+            <BookOpen className="size-5 text-primary" aria-hidden="true" />
+            <h2 id="finance-erp-guide-title" className="text-xl font-semibold">Panduan ERP Keuangan Terpadu</h2>
+            <Badge variant="outline">Alur Buku Kas → Buku Besar</Badge>
+          </div>
+          <p className="max-w-4xl text-sm leading-6 text-muted-foreground">
+            SRIKANDI BUANA mengadopsi alur pencatatan sederhana seperti Manager.io ke dalam satu aplikasi. Setiap transaksi operasional tetap dicatat pada modul asalnya, lalu transaksi kas yang baru disimpan membentuk jurnal debit-kredit secara otomatis.
+          </p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Cara mencatat transaksi dengan benar</CardTitle>
+              <CardDescription>Jangan memilih akun hanya berdasarkan kata “masuk” atau “keluar”. Pilih berdasarkan hakikat transaksi dan bukti yang tersedia.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-3">
+              <article className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground">01 · CATAT SUMBER</p>
+                <h3 className="mt-2 font-semibold">Buku Kas</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Isi tanggal, uraian, pemasukan/pengeluaran, nominal, pos dana Organisasi/Program/Usaha, dan referensi bukti.</p>
+                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/kas">Buka Buku Kas <ArrowUpRight size={14} aria-hidden="true" /></Link>
+              </article>
+              <article className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground">02 · PETAKAN AKUN</p>
+                <h3 className="mt-2 font-semibold">Pilih akun lawan</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Setoran simpanan anggota masuk ke kewajiban; pendapatan penjualan ke pendapatan; pelunasan piutang ke piutang; pembelian peralatan ke aset bila sesuai kebijakan.</p>
+                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/akuntansi">Lihat daftar akun <ArrowUpRight size={14} aria-hidden="true" /></Link>
+              </article>
+              <article className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground">03 · PERIKSA HASIL</p>
+                <h3 className="mt-2 font-semibold">Buku Besar & laporan</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Periksa debit-kredit, neraca saldo, posisi keuangan, dan surplus/defisit. Jurnal yang sudah diposting dikoreksi dengan jurnal pembalik, bukan dihapus.</p>
+                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/akuntansi">Buka Akuntansi <ArrowUpRight size={14} aria-hidden="true" /></Link>
+              </article>
+            </CardContent>
+          </Card>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <p className="font-semibold">Perhatian sebelum laporan digunakan</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Buku Kas lama belum otomatis masuk ke Buku Besar. Saldo awal harus dimasukkan melalui jurnal pembukaan berdasarkan rekonsiliasi dan persetujuan. Pesanan katalog bukan bukti pembayaran; persediaan, pembelian, penjualan, simpan-pinjam, serta penggajian masih memerlukan subledger dan kebijakan tersendiri.
+            </p>
+          </div>
+        </section>
+      )}
+
       <section id="template" className="space-y-4 scroll-mt-24" aria-labelledby="template-guide-title">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
