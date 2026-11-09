@@ -150,9 +150,9 @@ export default function HelpCenter({ role }: { role: Role }) {
               { title: "Program & pemberdayaan", detail: "Keahlian, pendidikan, pengalaman, minat, wilayah, dan kebutuhan membantu koordinator menyusun calon peserta, pelatihan, pendampingan, serta evaluasi program.", href: "/dashboard/program", status: "Referensi operasional" },
               { title: "Aset & sarana anggota", detail: "Catat lahan, alat, sarana produksi milik anggota secara terpisah dari inventaris kelompok. Aset kelompok yang dipinjamkan memiliki penanggung jawab dan bukti serah terima.", href: "/dashboard/aset", status: "Perlu verifikasi lapangan" },
               { title: "Iuran & simpanan", detail: "Iuran mengikuti keputusan musyawarah. Tabungan dibentuk dari mutasi setoran, penarikan, dan koreksi yang tercatat; saldo tidak diedit manual.", href: "/dashboard/kas", status: "Menunggu kebijakan" },
-              { title: "Simpan pinjam", detail: "Permohonan, pemeriksaan, persetujuan, perjanjian, pencairan, angsuran, dan pelunasan harus memiliki bukti serta otorisasi. Profil tidak menjadi skor kredit otomatis.", href: "/dashboard/pengajuan", status: "Rancangan alur" },
-              { title: "Gaji, honor & tunjangan", detail: "Hak pembayaran harus bersumber dari penugasan, periode, dasar tarif, hasil pekerjaan, sumber dana, dan persetujuan. Jabatan atau sertifikat saja tidak otomatis menimbulkan hak bayar.", href: "/dashboard/akuntansi", status: "Menunggu kebijakan" },
-              { title: "Pembayaran & audit", detail: "Setiap pembayaran memiliki nomor referensi, pemeriksa, penyetuju, bukti, status, dan rekonsiliasi jurnal. Koreksi dilakukan dengan transaksi pembalik, bukan menghapus sejarah.", href: "/dashboard/akuntansi", status: "Kontrol wajib" },
+              { title: "Simpan pinjam", detail: "Permohonan, pemeriksaan, persetujuan, perjanjian, pencairan, angsuran, dan pelunasan harus memiliki bukti serta otorisasi. Profil tidak menjadi skor kredit otomatis.", status: "Belum aktif" },
+              { title: "Gaji, honor & tunjangan", detail: "Hak pembayaran harus bersumber dari penugasan, periode, dasar tarif, hasil pekerjaan, sumber dana, dan persetujuan. Jabatan atau sertifikat saja tidak otomatis menimbulkan hak bayar.", status: "Belum aktif" },
+              { title: "Pembayaran & audit", detail: "Setiap pembayaran memiliki nomor referensi, pemeriksa, penyetuju, bukti, status, dan rekonsiliasi jurnal. Koreksi dilakukan dengan transaksi pembalik, bukan menghapus sejarah.", status: "Perlu integrasi transaksi" },
             ].map((item) => (
               <article key={item.title} className="min-w-0 rounded-xl border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -160,9 +160,13 @@ export default function HelpCenter({ role }: { role: Role }) {
                   <Badge variant="outline">{item.status}</Badge>
                 </div>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p>
-                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4" href={item.href}>
-                  Buka ruang kerja terkait <ArrowUpRight size={14} aria-hidden="true" />
-                </Link>
+                {item.href ? (
+                  <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4" href={item.href}>
+                    Buka ruang kerja terkait <ArrowUpRight size={14} aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <p className="mt-3 text-xs font-medium text-muted-foreground">Alur belum tersedia untuk transaksi nyata.</p>
+                )}
               </article>
             ))}
           </CardContent>
