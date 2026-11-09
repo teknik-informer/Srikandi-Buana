@@ -13,15 +13,16 @@ const id=()=>crypto.randomUUID();
 export async function GET(request:Request){
  const c=await required(request);if(c.error)return c.error;if(!canRead(c.user.role))return json({error:'Akses pengadaan dibatasi.'},403);
  try{
-  const [suppliers,bills,accounts,requests,orders,receipts]=await Promise.all([
+  const [suppliers,bills,accounts,requests,orders,receipts,orderLines]=await Promise.all([
    c.db.prepare('SELECT id,supplier_code,name,contact_name,email,phone,address,payment_terms_days,active,created,updated FROM commerce_suppliers WHERE owner=? ORDER BY active DESC,name LIMIT 500').bind(c.user.userId).all(),
    c.db.prepare(`SELECT b.id,b.supplier_id,s.name AS supplier_name,s.supplier_code,b.supplier_invoice_number,b.bill_number,b.issue_date,b.due_date,b.description,b.total_amount,b.paid_total,(b.total_amount-b.paid_total) AS outstanding_amount,b.status,b.created,b.updated,a.code AS expense_code,a.name AS expense_name,(SELECT COUNT(*) FROM commerce_purchase_bill_payments p WHERE p.bill_id=b.id AND p.owner=b.owner) AS payment_count FROM commerce_purchase_bills b JOIN commerce_suppliers s ON s.id=b.supplier_id AND s.owner=b.owner JOIN ledger_accounts a ON a.id=b.expense_account_id AND a.owner=b.owner WHERE b.owner=? ORDER BY b.due_date,b.created DESC LIMIT 300`).bind(c.user.userId).all(),
    c.db.prepare("SELECT id,code,name,category,active FROM ledger_accounts WHERE owner=? AND active=TRUE ORDER BY code").bind(c.user.userId).all(),
    c.db.prepare(`SELECT r.*, (SELECT COUNT(*) FROM commerce_purchase_request_lines l WHERE l.request_id=r.id AND l.owner=r.owner) AS line_count FROM commerce_purchase_requests r WHERE r.owner=? ORDER BY r.created DESC LIMIT 200`).bind(c.user.userId).all(),
    c.db.prepare(`SELECT o.*,s.name AS supplier_name,(SELECT COUNT(*) FROM commerce_purchase_order_lines l WHERE l.purchase_order_id=o.id AND l.owner=o.owner) AS line_count,(SELECT COALESCE(SUM(quantity-received_quantity),0) FROM commerce_purchase_order_lines l WHERE l.purchase_order_id=o.id AND l.owner=o.owner) AS remaining_quantity FROM commerce_purchase_orders o JOIN commerce_suppliers s ON s.id=o.supplier_id AND s.owner=o.owner WHERE o.owner=? ORDER BY o.created DESC LIMIT 200`).bind(c.user.userId).all(),
-   c.db.prepare(`SELECT g.id,g.receipt_number,g.received_date,g.delivery_reference,g.purchase_order_id,o.order_number FROM commerce_goods_receipts g JOIN commerce_purchase_orders o ON o.id=g.purchase_order_id AND o.owner=g.owner WHERE g.owner=? ORDER BY g.created DESC LIMIT 200`).bind(c.user.userId).all()
+   c.db.prepare(`SELECT g.id,g.receipt_number,g.received_date,g.delivery_reference,g.purchase_order_id,o.order_number FROM commerce_goods_receipts g JOIN commerce_purchase_orders o ON o.id=g.purchase_order_id AND o.owner=g.owner WHERE g.owner=? ORDER BY g.created DESC LIMIT 200`).bind(c.user.userId).all(),
+   c.db.prepare(`SELECT l.id,l.purchase_order_id,l.item_name,l.unit,l.quantity,l.received_quantity,(l.quantity-l.received_quantity) AS remaining_quantity,l.unit_cost,o.order_number FROM commerce_purchase_order_lines l JOIN commerce_purchase_orders o ON o.id=l.purchase_order_id AND o.owner=l.owner WHERE l.owner=? AND o.status IN ('approved','partially_received') AND l.received_quantity<l.quantity ORDER BY o.order_date,l.created`).bind(c.user.userId).all()
   ]);
-  return json({suppliers:suppliers.results,bills:bills.results,accounts:accounts.results,requests:requests.results,purchaseOrders:orders.results,goodsReceipts:receipts.results});
+  return json({suppliers:suppliers.results,bills:bills.results,accounts:accounts.results,requests:requests.results,purchaseOrders:orders.results,goodsReceipts:receipts.results,orderLines:orderLines.results});
  }catch(e){return errorReply(e)}
 }
 export async function POST(request:Request){
