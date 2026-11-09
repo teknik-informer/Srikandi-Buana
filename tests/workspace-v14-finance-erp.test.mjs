@@ -166,7 +166,7 @@ test("sales invoices can only be issued for completed orders and post receivable
   assert.match(route, /String\(order\.status\) !== "completed"/);
   assert.match(route, /byCode\.get\("120002"\)/);
   assert.match(route, /byCode\.get\("410003"\)/);
-  assert.match(route, /UNIQUE/);
+  assert.match(read("migrations/012_sales_invoices_and_receipts.sql"), /UNIQUE \\(owner, order_id\\)/);
   assert.match(route, /Faktur hanya dapat diterbitkan setelah pesanan berstatus Selesai/);
   assert.match(route, /commerce_sales_invoice_sequences/);
   assert.match(route, /INSERT INTO commerce_sales_invoices/);
