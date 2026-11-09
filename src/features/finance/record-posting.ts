@@ -18,18 +18,26 @@ const SYSTEM_ACCOUNTS: readonly AccountSpec[] = [
   { code: "110001", name: "Kas Organisasi", category: "asset" },
   { code: "110002", name: "Kas Program", category: "asset" },
   { code: "110003", name: "Kas Usaha", category: "asset" },
-  { code: "410001", name: "Penerimaan Organisasi", category: "revenue" },
-  { code: "410002", name: "Penerimaan Program", category: "revenue" },
-  { code: "410003", name: "Penerimaan Usaha", category: "revenue" },
+  { code: "120001", name: "Piutang Simpan Pinjam Anggota", category: "asset" },
+  { code: "130001", name: "Persediaan Usaha", category: "asset" },
+  { code: "140001", name: "Peralatan dan Aset Tetap", category: "asset" },
+  { code: "210001", name: "Simpanan Anggota", category: "liability" },
+  { code: "210002", name: "Dana Titipan Program", category: "liability" },
+  { code: "210003", name: "Utang Usaha", category: "liability" },
+  { code: "310001", name: "Modal Kelompok", category: "equity" },
+  { code: "410001", name: "Pendapatan Organisasi", category: "revenue" },
+  { code: "410002", name: "Pendapatan Program", category: "revenue" },
+  { code: "410003", name: "Pendapatan Penjualan Usaha", category: "revenue" },
   { code: "510001", name: "Beban Organisasi", category: "expense" },
   { code: "510002", name: "Beban Program", category: "expense" },
   { code: "510003", name: "Beban Usaha", category: "expense" },
+  { code: "510004", name: "Beban Operasional Produksi", category: "expense" },
 ];
 
-const FUND_CODES: Record<string, { cash: string; revenue: string; expense: string }> = {
-  Organisasi: { cash: "110001", revenue: "410001", expense: "510001" },
-  Program: { cash: "110002", revenue: "410002", expense: "510002" },
-  Usaha: { cash: "110003", revenue: "410003", expense: "510003" },
+const FUND_CODES: Record<string, { cash: string }> = {
+  Organisasi: { cash: "110001" },
+  Program: { cash: "110002" },
+  Usaha: { cash: "110003" },
 };
 
 /**
@@ -123,15 +131,30 @@ export async function buildCashLedgerPostingStatements(
   const accounts = await ensureDefaultLedgerAccounts(db, owner, now);
   const byCode = new Map(accounts.map((account) => [account.code, account]));
   const cash = byCode.get(fundCodes.cash);
-  const counter = byCode.get(type === "Pemasukan" ? fundCodes.revenue : fundCodes.expense);
-  if (!cash || !counter) throw new Error("Akun otomatis Buku Kas belum lengkap.");
+  if (!cash) throw new Error("Akun kas untuk pos dana ini belum lengkap.");
+
+  const counterAccountId = String(data.counterAccountId ?? "");
+  if (!counterAccountId) {
+    throw new Error("Pilih akun lawan transaksi agar jurnal tidak salah klasifikasi.");
+  }
+  const counter = await db.prepare(
+    "SELECT id,code,name,category,active FROM ledger_accounts WHERE id=? AND owner=? AND active=TRUE",
+  ).bind(counterAccountId, owner).first();
+  const allowedCounterCategories = type === "Pemasukan"
+    ? ["asset", "liability", "equity", "revenue"]
+    : ["asset", "liability", "equity", "expense"];
+  if (!counter || !allowedCounterCategories.includes(String(counter.category)) || String(counter.id) === cash.id) {
+    throw new Error(type === "Pemasukan"
+      ? "Akun lawan untuk penerimaan harus berupa aset, kewajiban, modal, atau pendapatan; bukan kas sumber yang sama."
+      : "Akun lawan untuk pengeluaran harus berupa aset, kewajiban, modal, atau beban; bukan kas sumber yang sama.");
+  }
 
   const reference = "KAS-" + sourceId;
   const existing = await db.prepare(
     "SELECT id,posted_date,memo FROM ledger_entries WHERE owner=? AND reference=?",
   ).bind(owner, reference).first();
 
-  const memo = (type + " Buku Kas · " + description).slice(0, 500);
+  const memo = (type + " Buku Kas · " + description + " · " + String(counter.code) + " " + String(counter.name)).slice(0, 500);
   const expectedLines = type === "Pemasukan"
     ? [
         { accountId: cash.id, debit: amount, credit: 0 },
