@@ -83,6 +83,9 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   }
  }
  if(body.kind==="aset"){
+  const assetQuantity=Number(data.quantity);
+  if(!Number.isFinite(assetQuantity)||assetQuantity<=0||assetQuantity>1000000)return json({error:"Jumlah aset harus berupa angka lebih dari nol dan tidak melebihi 1.000.000."},400);
+  data.quantity=String(assetQuantity);
   const allowedOwnership=["Milik kelompok","Milik anggota","Belum diklasifikasi"];
   let ownership=String(data.assetOwnership||"").trim();
   if(!ownership&&edit)ownership="Belum diklasifikasi";
