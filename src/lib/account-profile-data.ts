@@ -230,3 +230,31 @@ export function normalizePrivateProfileInput(value: unknown) {
     bankConsent: raw.bankConsent === true,
   };
 }
+
+
+/**
+ * A deliberately minimized, non-sensitive snapshot for authorized member-facing
+ * workflows. Never include NIK, bank account, birth date, gender, personal email,
+ * phone, website, LinkedIn, or raw free-text CV narratives in this projection.
+ * Domain modules may use these signals to prepare a review, never to auto-approve
+ * a programme, asset allocation, loan, salary, allowance, or payment.
+ */
+export function deriveMemberOperationalProfile(cv: AccountCV) {
+  return {
+    schemaVersion: 1,
+    preferredName: cv.personal.preferredName,
+    skills: cv.skills,
+    education: cv.education.map(({ level, field, startYear, endYear }) => ({
+      level, field, startYear, endYear,
+    })),
+    experience: cv.experience.map(({ organization, title, current, startDate, endDate }) => ({
+      organization, title, current, startDate, endDate,
+    })),
+    volunteer: cv.volunteer.map(({ organization, title, current, startDate, endDate }) => ({
+      organization, title, current, startDate, endDate,
+    })),
+    languages: cv.languages,
+    certifications: cv.certifications.map(({ name, issuer, year }) => ({ name, issuer, year })),
+    interests: cv.hobbies,
+  };
+}

@@ -101,3 +101,12 @@ Data keanggotaan terhubung menjadi sumber identitas resmi: nama lengkap, peran/j
 Saat anggota memperbarui profil, nomor telepon, nama panggilan, alamat dusun/jalan, desa/kelurahan, dan snapshot alamat berjenjang diselaraskan ke record keanggotaan yang tertaut. Saat Sekretariat memperbarui nama, peran, status, telepon, dusun, atau desa melalui modul Keanggotaan, perubahan tersebut menjadi nilai yang dibaca kembali oleh profil akun. Metadata alamat yang dikelola melalui profil dipertahankan saat record keanggotaan diedit; bila desa diubah secara manual, kode wilayah dan kode pos lama dikosongkan agar tidak menyisakan hierarki yang keliru.
 
 Perubahan akun juga menjalankan sinkronisasi ke proyeksi data v14. NIK dan rekening tetap berada di penyimpanan privat terenkripsi akun dan tidak disalin ke record keanggotaan. Akun tanpa tautan member_id ditandai belum terhubung dan tidak mengubah data anggota mana pun.
+
+
+## Dampak profil anggota terhadap operasional
+
+Profil CV menyediakan ringkasan operasional minimal untuk pencocokan program, pelatihan, peran, dan penugasan. Ringkasan tersebut terdiri dari tingkat/bidang pendidikan, keahlian, jabatan/pengalaman, pengalaman relawan, bahasa, sertifikasi, dan minat. Data ini bukan skor atau keputusan otomatis. Data privat seperti NIK dan nomor rekening tidak disalin ke record anggota maupun proyeksi operasional.
+
+Relasi anggota-program sudah disediakan oleh workspace_v14.programme_enrolments; relasi anggota-lahan sudah disediakan oleh workspace_v14.farm_plots. Migrasi additive 010_member_impact_finance.sql menyiapkan relasi deklarasi aset milik anggota, penugasan inventaris kelompok, iuran, tabungan, pinjaman/angsuran, penugasan jasa, kompensasi, dan pembayaran. File migrasi belum diterapkan ke database Preview/Production; penerapan memerlukan rehearsal dan persetujuan terpisah.
+
+Makalah Administrasi KWT yang menjadi dasar mencantumkan iuran dan tabungan anggota, tetapi tidak memberikan aturan gaji, tunjangan, atau pinjaman. Karena itu seluruh kebijakan keuangan lanjutan harus menjadi versi kebijakan organisasi yang disetujui dan memiliki bukti. Transaksi hanya boleh diposting setelah pemeriksaan, otorisasi dan jurnal.

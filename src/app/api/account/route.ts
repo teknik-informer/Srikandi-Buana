@@ -5,7 +5,7 @@ import { hashPassword, verifyPassword } from "@/lib/password.mjs";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { json, sameOrigin } from "@/lib/account-access";
-import { normalizeAccountCV, normalizePrivateProfileInput, type ProfileAddress } from "@/lib/account-profile-data";
+import { deriveMemberOperationalProfile, normalizeAccountCV, normalizePrivateProfileInput, type ProfileAddress } from "@/lib/account-profile-data";
 import { buildV14RecordSyncStatements } from "@/lib/workspace-v14-sync";
 import {
   decryptPrivateAccountData,
@@ -233,6 +233,7 @@ export async function PATCH(request: Request) {
         village: cv.address.villageName,
         preferredName: cv.personal.preferredName,
         profileAddressJson: JSON.stringify(cv.address),
+        profileOperationalJson: JSON.stringify(deriveMemberOperationalProfile(cv)),
       } : null;
       const statements = [
         env.DB.prepare("INSERT INTO settings(key,owner,data,updated) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated=excluded.updated WHERE settings.owner=excluded.owner")

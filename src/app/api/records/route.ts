@@ -83,7 +83,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   if(body.kind==="anggota"){
    // CV-owned values remain attached to the member record even when an administrator
    // edits the standard membership form, which does not expose these profile fields.
-   for(const key of ["preferredName","village","profileAddressJson"] as const){
+   for(const key of ["preferredName","village","profileAddressJson","profileOperationalJson"] as const){
     if(data[key]===undefined&&oldData[key]!==undefined)data[key]=String(oldData[key]);
    }
    if(typeof oldData.profileAddressJson==="string"){

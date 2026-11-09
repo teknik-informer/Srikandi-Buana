@@ -12,6 +12,8 @@ const privateCrypto = read("src/lib/account-profile-private.ts");
 const accountPage = read("src/app/_components/access/my-account.tsx");
 const membershipApi = read("src/app/api/records/route.ts");
 const auth = read("src/lib/auth.ts");
+const migration = read("migrations/010_member_impact_finance.sql");
+const architecture = read("docs/architecture/v14/MEMBER_360_INTEGRATION.md");
 
 test("account profile is an editable CV with repeatable professional and personal sections", () => {
   for (const label of [
@@ -106,6 +108,10 @@ test("profile and membership synchronize shared fields in both directions", () =
   assert.match(accountApi, /village: cv\.address\.villageName/);
   assert.match(accountApi, /preferredName: cv\.personal\.preferredName/);
   assert.match(accountApi, /profileAddressJson: JSON\.stringify\(cv\.address\)/);
+  assert.match(accountApi, /profileOperationalJson: JSON\.stringify\(deriveMemberOperationalProfile\(cv\)\)/);
+  assert.match(membershipApi, /profileOperationalJson/);
+  assert.match(data, /deriveMemberOperationalProfile/);
+  assert.doesNotMatch(data.slice(data.indexOf("export function deriveMemberOperationalProfile")), /birthDate|gender|accountNumber|nik|emailSecondary|phone|website|linkedin/);
   assert.match(accountApi, /buildV14RecordSyncStatements/);
   assert.match(accountApi, /linked: Boolean\(member\)/);
   assert.match(membershipApi, /profileAddressJson/);
@@ -128,4 +134,23 @@ test("profile CV data is normalized, bounded and validates dates and URLs", () =
   assert.match(data, /label \+ " tidak valid\."/);
   assert.match(data, /RT harus berupa angka/);
   assert.match(data, /Kode pos harus lima digit/);
+});
+
+
+test("member impact finance schema links assets, programmes, savings, loans and compensation to member profiles", () => {
+  for (const name of [
+    "member_asset_declarations", "member_asset_assignments",
+    "member_financial_policies", "member_contributions",
+    "member_savings_accounts", "member_savings_transactions",
+    "member_payments", "member_loans", "member_loan_installments",
+    "member_service_engagements", "member_compensation_items",
+  ]) assert.ok(migration.includes("workspace_v14." + name), "Missing member impact table: " + name);
+  assert.match(migration, /REFERENCES workspace_v14\.member_profiles\(id,organization_id\)/);
+  assert.match(migration, /REFERENCES workspace_v14\.inventory_items\(id,organization_id\)/);
+  assert.match(migration, /REFERENCES workspace_v14\.programmes\(id,organization_id\)/);
+  assert.match(migration, /ledger_entry_id TEXT REFERENCES public\.ledger_entries\(id\)/);
+  assert.match(migration, /destination_account_ref/);
+  assert.doesNotMatch(migration, /account_number|bank_account_number|nik\s+TEXT/i);
+  assert.match(architecture, /Buku Tabungan Anggota/);
+  assert.match(architecture, /keputusan akhir tetap melalui persetujuan/);
 });
