@@ -63,12 +63,26 @@ Jurnal tidak menebak akun dari uraian. Bendahara memilih akun lawan dan bertangg
 - Catatan Buku Kas lama tidak dibukukan otomatis. Catatan historis harus ditinjau satu per satu, tentukan akun lawan dari bukti, lalu simpan kembali untuk membuat jurnal sumber. Jangan mengubah nominal/tanggal hanya untuk memaksa rekonsiliasi.
 - Laporan saat ini hanya mencakup jurnal yang telah diposting. Periode sebelum tanggal cut-off, rekonsiliasi bank, dan saldo awal yang belum dimasukkan tidak boleh ditampilkan seolah-olah telah lengkap.
 
-## Batas integrasi perdagangan
+## Faktur penjualan dan piutang usaha
 
-- Pesanan katalog saat ini mencatat permintaan, reservasi stok, dan status proses. Status pesanan **bukan bukti pembayaran**.
-- Pengakuan pendapatan, piutang pelanggan, retur, harga pokok penjualan, pembelian pemasok, dan utang usaha memerlukan dokumen/integrasi subledger tersendiri sebelum dijalankan otomatis.
-- Stok produk dagang saat ini memiliki riwayat perubahan, tetapi belum menjadi nilai persediaan akuntansi. Jangan menganggap kuantitas stok sebagai nilai rupiah persediaan.
-- Penerimaan kas yang terkait pesanan harus didukung bukti dan dipetakan ke akun yang tepat; pesanan tidak boleh otomatis diklaim lunas.
+Migration `012_sales_invoices_and_receipts.sql` menambahkan subledger faktur dan penerimaan kas yang terhubung ke Buku Besar.
+
+Alur:
+1. Pesanan harus berstatus **Selesai** (barang/jasa telah dipenuhi) sebelum Administrator menerbitkan faktur.
+2. Setiap pesanan hanya boleh memiliki satu faktur dalam organisasi. Nomor faktur dibuat berurutan per bulan dan per organisasi.
+3. Penerbitan faktur membuat jurnal **Debit Piutang Dagang (120002), Kredit Pendapatan Penjualan Usaha (410003)**. Tidak ada pajak yang ditambahkan otomatis.
+4. Saat pelanggan membayar, Bendahara mencatat Pemasukan pos Usaha pada Buku Kas, memilih akun lawan Piutang Dagang, lalu memilih faktur yang benar.
+5. Sistem membuat jurnal **Debit Kas Usaha (110003), Kredit Piutang Dagang (120002)** dan mutasi penerimaan faktur dalam transaksi database yang sama. Trigger database menjaga saldo piutang dan menolak pembayaran berlebih.
+
+Faktur memiliki nomor unik per organisasi/periode, detail faktur tidak dapat diedit setelah terbit, penerimaan bersifat append-only, dan satu catatan kas tidak dapat dipakai untuk melunasi beberapa faktur. Pembayaran yang sudah diterima tidak bisa dilepas dari faktur tanpa alur koreksi yang disetujui.
+
+## Batas integrasi perdagangan berikutnya
+
+- Pesanan katalog tetap merupakan permintaan/reservasi stok. Status pesanan **bukan bukti pembayaran** dan tidak langsung membuat pendapatan.
+- Faktur dan piutang penjualan sudah tersedia. Retur penjualan, nota kredit, diskon, pajak, harga pokok penjualan (COGS), pembelian pemasok, dan utang usaha belum dijalankan otomatis.
+- Stok produk dagang memiliki riwayat kuantitas, tetapi belum menjadi nilai persediaan akuntansi. Jangan menganggap jumlah stok sebagai nilai rupiah persediaan.
+- Faktur saat ini menggunakan nilai pesanan tersimpan; perubahan harga/biaya tidak disisipkan otomatis setelah pesanan dibuat.
+
 
 ## Fitur yang belum boleh dianggap aktif
 
