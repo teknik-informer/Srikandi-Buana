@@ -9,7 +9,32 @@ import {randomUUID,createHash} from 'node:crypto';
 import {hashPassword} from '../src/lib/password.mjs';
 const require=createRequire(import.meta.url),hash=s=>createHash('sha256').update(s).digest('hex');
 let failProfileCommit=false;
-const mem=newDb();mem.public.registerFunction({name:'decode',args:[DataType.text,DataType.text],returns:DataType.bytea,implementation:(value,encoding)=>Buffer.from(value,encoding)});mem.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});mem.public.none(readFileSync('migrations/001_initial.sql','utf8'));mem.public.none(readFileSync('migrations/002_roles.sql','utf8'));mem.public.none(readFileSync('migrations/003_message_consent.sql','utf8'));mem.public.none(readFileSync('migrations/004_enterprise_operations.sql','utf8'));const {Pool}=mem.adapters.createPg(),pool=new Pool();
+const mem=newDb();mem.public.registerFunction({name:'decode',args:[DataType.text,DataType.text],returns:DataType.bytea,implementation:(value,encoding)=>Buffer.from(value,encoding)});mem.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});mem.public.none(readFileSync('migrations/001_initial.sql','utf8'));mem.public.none(readFileSync('migrations/002_roles.sql','utf8'));mem.public.none(readFileSync('migrations/003_message_consent.sql','utf8'));mem.public.none(readFileSync('migrations/004_enterprise_operations.sql','utf8'));
+mem.public.none(`
+CREATE TABLE ledger_accounts (
+ id TEXT PRIMARY KEY, owner TEXT NOT NULL REFERENCES users(id), code TEXT NOT NULL,
+ name TEXT NOT NULL, category TEXT NOT NULL, active BOOLEAN NOT NULL DEFAULT TRUE,
+ created TEXT NOT NULL, UNIQUE(owner,code), UNIQUE(id,owner)
+);
+CREATE TABLE ledger_entries (
+ id TEXT PRIMARY KEY, owner TEXT NOT NULL REFERENCES users(id), actor_id TEXT NOT NULL REFERENCES users(id),
+ posted_date TEXT NOT NULL, memo TEXT NOT NULL, reference TEXT NOT NULL, created TEXT NOT NULL,
+ UNIQUE(id,owner), UNIQUE(owner,reference)
+);
+CREATE TABLE ledger_lines (
+ id TEXT PRIMARY KEY, owner TEXT NOT NULL REFERENCES users(id), entry_id TEXT NOT NULL,
+ account_id TEXT NOT NULL, debit BIGINT NOT NULL DEFAULT 0, credit BIGINT NOT NULL DEFAULT 0,
+ CHECK((debit>0 AND credit=0) OR (credit>0 AND debit=0)),
+ FOREIGN KEY(entry_id,owner) REFERENCES ledger_entries(id,owner),
+ FOREIGN KEY(account_id,owner) REFERENCES ledger_accounts(id,owner)
+);
+CREATE TABLE ledger_reversals (
+ id TEXT PRIMARY KEY, owner TEXT NOT NULL REFERENCES users(id), original_entry_id TEXT NOT NULL,
+ reversal_entry_id TEXT NOT NULL, actor_id TEXT NOT NULL REFERENCES users(id), created TEXT NOT NULL,
+ UNIQUE(owner,original_entry_id), UNIQUE(owner,reversal_entry_id)
+);
+`);
+const {Pool}=mem.adapters.createPg(),pool=new Pool();
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});const translate=compat.exports.postgresStatement;
 // pg-mem cannot execute data-modifying CTEs. Only this SQL primitive is emulated;
 // the unmodified activation/reset SQL is separately exercised on the isolated Neon branch.
@@ -29,7 +54,9 @@ function jar(){const values=new Map();return {values,options:null,get(k){return 
 async function load(path,cookies){if(!cache.has(path)){const out=await build({entryPoints:[path],bundle:true,write:false,platform:'node',format:'cjs',packages:'external',plugins:[{name:'isolated-db',setup(b){b.onLoad({filter:/\/lib\/runtime\.ts$/},()=>({contents:'export const env=globalThis.testEnv;',loader:'ts'}))}}]});cache.set(path,out.outputFiles[0].text)}const module={exports:{}};vm.runInNewContext(cache.get(path),{module,exports:module.exports,testEnv:{DB,BUCKET},require(name){if(name==='next/headers')return {cookies:async()=>cookies};if(name==='server-only')return {};return require(name)},process:{env:{...process.env,ADMIN_EMAIL:testEmail,APP_URL:'https://test.local',NODE_ENV:'production'}},crypto,Response,Request,Headers,URL,Buffer,TextEncoder,TextDecoder,Uint8Array,File,console});return module.exports}
 function req(path,method='GET',data,origin='https://test.local'){return new Request('https://test.local'+path,{method,headers:{origin,'Content-Type':'application/json','x-vercel-forwarded-for':'198.51.100.42'},...(data===undefined?{}:{body:JSON.stringify(data)})})}
 const owner=randomUUID(),password='Password-uji-aman-123',now=new Date().toISOString(),ownerJar=jar();
+const counterAccountId=randomUUID();
 await prepare('INSERT INTO users(id,email,password_hash,full_name,created,workspace_owner,role) VALUES(?,?,?,?,?,?,?)').bind(owner,testEmail,await hashPassword(password),'Synthetic owner',now,owner,'admin').run();
+await prepare('INSERT INTO ledger_accounts(id,owner,code,name,category,active,created) VALUES(?,?,?,?,?,?,?)').bind(counterAccountId,owner,'410099','Fixture receipt account','revenue',true,now).run();
 const token=randomUUID();await prepare('INSERT INTO sessions(token_hash,user_id,expires,created) VALUES(?,?,?,?)').bind(hash(token),owner,new Date(Date.now()+3600000).toISOString(),now).run();ownerJar.values.set('__Host-srikandi_session',token);
 const accountAdmin=await load('src/app/api/accounts/route.ts',ownerJar),recordsAdmin=await load('src/app/api/records/route.ts',ownerJar),created=[];
 const deadlineData={name:'Synthetic deadline fixture',period:'Usulan rapat',dueDate:'2026-12-10',priority:'Tinggi',pic:'Synthetic assignee',status:'Belum dimulai',programId:'9'};
@@ -55,7 +82,7 @@ for(const endpoint of ['accounts','export','settings','source-document','source-
 for(const role of ['ketua','sekretaris','bendahara','koordinator']){const mid=await member('Synthetic '+role),inv=await invite(mid,role);assert.equal(inv.response.status,200);const a=await activate(inv);assert.equal(a.response.status,200);const auth=await load('src/lib/auth.ts',a.j),u=await auth.getAuthenticatedUser();created.push(u.accountId);const records=await load('src/app/api/records/route.ts',a.j);const rd=await (await records.GET(req('/api/records'))).json();assert.equal(rd.records.some(r=>r.id===privateId),['ketua','bendahara'].includes(role));const result=await records.POST(req('/api/records','POST',{kind:'program',data:{name:'Assigned program',programId:role==='sekretaris'?'3':'1',status:'Rancangan',notes:''}}));assert.equal(result.status,['sekretaris','koordinator'].includes(role)?200:403);
  if(role==='koordinator'){assert.equal((await records.POST(req('/api/records','POST',{kind:'program',data:{name:'Forbidden',programId:'2',status:'Rancangan'}}))).status,403);assert.equal((await records.PUT(req('/api/records','PUT',{kind:'kegiatan',id:eventId,data:{name:'Moved out of scope',date:'2026-12-01',location:'Test',programId:'2'}}))).status,403);const activity=await records.POST(req('/api/records','POST',{kind:'kegiatan',data:{name:'Within assignment',date:'2026-12-01',location:'Test',programId:'1',status:'Direncanakan'}}));assert.equal(activity.status,200,await activity.text())}
  if(role==='sekretaris'){const attend=await load('src/app/api/attendance/route.ts',a.j);assert.equal((await attend.PUT(req('/api/attendance','PUT',{eventId,memberIds:[mid],notes:'Fixture attendance'}))).status,200)}
- if(role==='bendahara'){const cash=await records.POST(req('/api/records','POST',{kind:'kas',data:{name:'Test receipt',date:'2026-11-02',type:'Pemasukan',amount:100,fund:'Organisasi',notes:'Synthetic approved receipt'}}));assert.equal(cash.status,200,await cash.text());assert.equal((await records.POST(req('/api/records','POST',{kind:'anggota',data:{name:'Forbidden',dusun:'Test'}}))).status,403)}
+ if(role==='bendahara'){const cash=await records.POST(req('/api/records','POST',{kind:'kas',data:{name:'Test receipt',date:'2026-11-02',type:'Pemasukan',amount:100,fund:'Organisasi',counterAccountId,notes:'Synthetic approved receipt'}}));assert.equal(cash.status,200,await cash.text());assert.equal((await records.POST(req('/api/records','POST',{kind:'anggota',data:{name:'Forbidden',dusun:'Test'}}))).status,403)}
  const roleProfile=await load('src/app/api/account/route.ts',a.j);const ownName=req('/api/account','PATCH',{action:'profile',displayName:'Synthetic display '+role});ownName.headers.set('x-profile-account',u.accountId);assert.equal((await roleProfile.PATCH(ownName)).status,200,role+' can edit display name');
  const roleAvatar=await load('src/app/api/account/avatar/route.ts',a.j);const rolePhoto=new FormData();rolePhoto.append('file',new File([await require('sharp')({create:{width:2,height:2,channels:3,background:'white'}}).png().toBuffer()],'photo.png'));assert.equal((await roleAvatar.POST(new Request('https://test.local/api/account/avatar',{method:'POST',headers:{origin:'https://test.local','x-profile-account':u.accountId},body:rolePhoto}))).status,200,role+' can edit own photo');
  // Changes revoke active sessions immediately.
