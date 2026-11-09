@@ -82,6 +82,50 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
    data.assignedMemberName="";
   }
  }
+ if(body.kind==="aset"){
+  const allowedOwnership=["Milik kelompok","Milik anggota","Belum diklasifikasi"];
+  let ownership=String(data.assetOwnership||"").trim();
+  if(!ownership&&edit)ownership="Belum diklasifikasi";
+  if(!ownership||!allowedOwnership.includes(ownership)||(!edit&&ownership==="Belum diklasifikasi"))return json({error:"Tentukan kepemilikan aset: milik kelompok atau milik anggota."},400);
+  data.assetOwnership=ownership;
+  const ownerId=String(data.memberOwnerId||"").trim();
+  if(ownership==="Milik anggota"){
+   if(!ownerId)return json({error:"Pilih anggota pemilik untuk aset milik anggota."},400);
+   const owner=await c.db!.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(ownerId,c.user!.userId).first();
+   if(!owner)return json({error:"Pemilik aset tidak ditemukan dalam data kelompok ini."},400);
+   let ownerData:Data;
+   try{ownerData=JSON.parse(String(owner.data)) as Data;}catch{return json({error:"Data pemilik aset perlu diperiksa."},409);}
+   data.memberOwnerId=ownerId;
+   data.memberOwnerName=String(ownerData.name||"").slice(0,160);
+  }else{
+   data.memberOwnerId="";
+   data.memberOwnerName="";
+  }
+  const custody=String(data.custodyStatus||"Tidak dipinjamkan");
+  if(!["Tidak dipinjamkan","Dipinjam","Perawatan","Rusak","Hilang"].includes(custody))return json({error:"Status pemakaian aset tidak dikenal."},400);
+  data.custodyStatus=custody;
+  const custodianId=String(data.custodianMemberId||"").trim();
+  if(custody==="Dipinjam"){
+   if(ownership!=="Milik kelompok")return json({error:"Peminjaman internal hanya berlaku untuk aset milik kelompok."},400);
+   if(!custodianId)return json({error:"Pilih anggota aktif yang menerima aset."},400);
+   const custodian=await c.db!.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(custodianId,c.user!.userId).first();
+   if(!custodian)return json({error:"Anggota penerima aset tidak ditemukan."},400);
+   let custodianData:Data;
+   try{custodianData=JSON.parse(String(custodian.data)) as Data;}catch{return json({error:"Data anggota penerima perlu diperiksa."},409);}
+   if(String(custodianData.status||"")!=="Aktif")return json({error:"Aset hanya dapat diserahkan kepada anggota berstatus Aktif."},409);
+   data.custodianMemberId=custodianId;
+   data.custodianMemberName=String(custodianData.name||"").slice(0,160);
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(data.issuedAt||"")))return json({error:"Tanggal serah-terima wajib diisi saat aset dipinjam."},400);
+  }else{
+   data.custodianMemberId="";
+   data.custodianMemberName="";
+  }
+  const issuedAt=String(data.issuedAt||"");
+  const expectedReturnAt=String(data.expectedReturnAt||"");
+  const returnedAt=String(data.returnedAt||"");
+  if(expectedReturnAt&&issuedAt&&expectedReturnAt<issuedAt)return json({error:"Rencana pengembalian tidak boleh sebelum tanggal serah-terima."},400);
+  if(returnedAt&&issuedAt&&returnedAt<issuedAt)return json({error:"Tanggal pengembalian aktual tidak boleh sebelum serah-terima."},400);
+ }
  if(body.kind==='galeri'&&data.status==='Terbit'&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin publikasi foto sebelum menerbitkan. Simpan sebagai Draf jika izin belum tersedia.'},400);if(body.kind==='publikasi'&&data.status==='Terbit'&&data.fileId&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin foto sampul sebelum menerbitkan konten. Hapus foto sampul jika tidak digunakan.'},400);if(!canWriteRecord(c.user!,{id:body.id||'',kind:body.kind,data}))return json({error:'Anda tidak memiliki izin mengubah data ini.'},403);const readableFiles=c.user!.role==='admin'?null:await allowedFileIds(c.user!);if(readableFiles&&[data.fileId,data.attachmentId,data.signedAgreementFileId].some(id=>id&&!readableFiles.has(String(id))))return json({error:'Berkas di luar hak akses Anda.'},403);if(data.fileId){const file=await c.db!.prepare("SELECT mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.fileId,c.user!.userId).first();if(!file||!["image/png","image/jpeg"].includes(String(file.mime)))return json({error:"Pilih foto JPG/PNG yang tersedia di arsip akun Anda."},400);}
  if(data.attachmentId){const attachment=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.attachmentId,c.user!.userId).first();if(!attachment)return json({error:"Lampiran tidak tersedia di arsip Anda."},400);}
  if(data.signedAgreementFileId){const agreement=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.signedAgreementFileId,c.user!.userId).first();if(!agreement)return json({error:"Bukti perjanjian tidak tersedia pada arsip organisasi."},400);}
