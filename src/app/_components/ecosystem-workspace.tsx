@@ -41,7 +41,44 @@ export function AccountingWorkspace({role}:{role:string}){
  const canWrite=role==='admin'||role==='bendahara';const trial=accounts.map(a=>({id:a.id,code:a.code,name:a.name,debit:Math.max(0,Number(a.debit)-Number(a.credit)),credit:Math.max(0,Number(a.credit)-Number(a.debit))}));const trialTotals=trial.reduce((sum,a)=>({debit:sum.debit+a.debit,credit:sum.credit+a.credit}),{debit:0,credit:0});const statements=calculateFinanceStatements(accounts) as unknown as FinanceStatements;const journalDebit=journal.lines.reduce((sum,line)=>sum+line.debit,0);const journalCredit=journal.lines.reduce((sum,line)=>sum+line.credit,0);const journalBalanced=journal.lines.length>=2&&journalDebit>0&&journalDebit===journalCredit&&journal.lines.every(line=>line.accountId&&((line.debit>0&&line.credit===0)||(line.credit>0&&line.debit===0)))&&new Set(journal.lines.map(line=>line.accountId)).size===journal.lines.length;const reload=useCallback(async()=>{try{if(canWrite)await api('ledger',{action:'initialize'});const data=await api('ledger');setAccounts(data.accounts);setEntries(data.entries);setError('')}catch(e){setError(e instanceof Error?e.message:'Data tidak dapat dimuat.')}},[canWrite]);useEffect(()=>{void reload()},[reload]);
  function downloadFinanceCsv(filename:string, rows:Array<Array<string|number>>){
   const quote=(value:string|number)=>{
-   const safe=String(value??"").replace(/^[=+@\\-]/,"' function updateJournalLine(id:string,patch:Partial<{accountId:string;debit:number;credit:number}>){
+   const safe=String(value??"").replace(/^[=+@-]/,"'$&");
+   return '"'+safe.replaceAll('"','""')+'"';
+  };
+  const csv="\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\r\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const anchor=document.createElement("a");
+  anchor.href=url;anchor.download=filename;anchor.click();URL.revokeObjectURL(url);
+ }
+ function exportActivity(){
+  downloadFinanceCsv("srikandi-laporan-aktivitas-keuangan.csv",[
+   ["Laporan Aktivitas Keuangan","SRIKANDI BUANA"],
+   ["Dasar","Saldo jurnal yang sudah diposting; Buku Kas lama yang belum dibukukan tidak termasuk."],
+   ["Kategori","Kode akun","Nama akun","Saldo (Rp)"],
+   ...statements.accounts.revenue.map(a=>["Pendapatan",a.code,a.name,a.balance]),
+   ["Total Pendapatan","","",statements.totals.revenue],
+   ...statements.accounts.expense.map(a=>["Beban",a.code,a.name,a.balance]),
+   ["Total Beban","","",statements.totals.expense],
+   [statements.surplus>=0?"Surplus kumulatif":"Defisit kumulatif","","",statements.surplus],
+  ]);
+ }
+ function exportPosition(){
+  downloadFinanceCsv("srikandi-laporan-posisi-keuangan.csv",[
+   ["Laporan Posisi Keuangan","SRIKANDI BUANA"],
+   ["Dasar","Saldo jurnal yang sudah diposting; periksa saldo awal dan rekonsiliasi sebelum digunakan sebagai laporan final."],
+   ["Kategori","Kode akun","Nama akun","Saldo (Rp)"],
+   ...statements.accounts.asset.map(a=>["Aset",a.code,a.name,a.balance]),
+   ["Total Aset","","",statements.totals.asset],
+   ...statements.accounts.liability.map(a=>["Kewajiban",a.code,a.name,a.balance]),
+   ["Total Kewajiban","","",statements.totals.liability],
+   ...statements.accounts.equity.map(a=>["Modal",a.code,a.name,a.balance]),
+   ["Total Modal","","",statements.totals.equity],
+   [statements.surplus>=0?"Surplus kumulatif":"Defisit kumulatif","","",statements.surplus],
+   ["Modal termasuk surplus/defisit","","",statements.equityIncludingSurplus],
+   ["Selisih aset - kewajiban - modal termasuk surplus/defisit","","",statements.difference],
+   ["Status persamaan","","",statements.isBalanced?"Seimbang":"Perlu pemeriksaan"],
+  ]);
+ }
+ function updateJournalLine(id:string,patch:Partial<{accountId:string;debit:number;credit:number}>){
   setJournal(current=>({...current,lines:current.lines.map(line=>line.id===id?{...line,...patch}:line)}));
  }
  function addJournalLine(){
