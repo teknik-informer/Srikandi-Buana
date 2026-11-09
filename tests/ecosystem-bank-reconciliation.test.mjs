@@ -19,6 +19,9 @@ test("statement rows match only exact signed amounts on the selected ledger acco
   assert.match(api, /e\.posted_date BETWEEN \? AND \?/);
   assert.match(api, /Number\(line\.signed_amount\)!==Number\(ledger\.signed_amount\)/);
   assert.match(api, /matched_ledger_line_id/);
+  assert.match(api, /Mutasi rekening dicocokkan/);
+  assert.match(api, /Mutasi rekening ditambahkan/);
+  assert.match(api, /Periode rekonsiliasi dibuat/);
   assert.match(migration, /finance_bank_statement_lines_unique_match/);
   assert.match(migration, /finance_bank_reconciliations_unique_period/);
   assert.match(migration, /finance_bank_statement_lines_unique_reference/);
