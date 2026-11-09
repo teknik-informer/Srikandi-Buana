@@ -58,17 +58,41 @@ CREATE TABLE IF NOT EXISTS commerce_goods_receipt_lines (
 );
 CREATE INDEX IF NOT EXISTS commerce_goods_receipts_order ON commerce_goods_receipts(owner,purchase_order_id,received_date);
 CREATE OR REPLACE FUNCTION srikandi_apply_goods_receipt() RETURNS trigger AS $$
-DECLARE line commerce_purchase_order_lines%ROWTYPE;
+DECLARE line commerce_purchase_order_lines%ROWTYPE; po_status TEXT;
 BEGIN
+ SELECT status INTO po_status FROM commerce_purchase_orders WHERE id=(SELECT purchase_order_id FROM commerce_purchase_order_lines WHERE id=NEW.purchase_order_line_id AND owner=NEW.owner) AND owner=NEW.owner FOR UPDATE;
+ IF po_status NOT IN ('approved','partially_received') THEN RAISE EXCEPTION 'Purchase order is not approved for receiving.'; END IF;
  SELECT * INTO line FROM commerce_purchase_order_lines
  WHERE id=NEW.purchase_order_line_id AND owner=NEW.owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Purchase order line not found.'; END IF;
  IF line.received_quantity + NEW.quantity > line.quantity THEN RAISE EXCEPTION 'Goods receipt exceeds ordered quantity.'; END IF;
  UPDATE commerce_purchase_order_lines SET received_quantity=received_quantity+NEW.quantity
  WHERE id=NEW.purchase_order_line_id AND owner=NEW.owner;
+ UPDATE commerce_purchase_orders SET status=CASE WHEN NOT EXISTS(SELECT 1 FROM commerce_purchase_order_lines l WHERE l.purchase_order_id=commerce_purchase_orders.id AND l.owner=commerce_purchase_orders.owner AND l.received_quantity<l.quantity) THEN 'received' ELSE 'partially_received' END,updated=now()
+ WHERE id=(SELECT purchase_order_id FROM commerce_purchase_order_lines WHERE id=NEW.purchase_order_line_id AND owner=NEW.owner) AND owner=NEW.owner;
  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS srikandi_goods_receipt_apply ON commerce_goods_receipt_lines;
 CREATE TRIGGER srikandi_goods_receipt_apply BEFORE INSERT ON commerce_goods_receipt_lines
  FOR EACH ROW EXECUTE FUNCTION srikandi_apply_goods_receipt();
+
+-- Purchase orders become immutable after approval; receipt history is append-only.
+CREATE OR REPLACE FUNCTION srikandi_guard_procurement_changes() RETURNS trigger AS $$
+DECLARE po_status TEXT;
+BEGIN
+ IF TG_TABLE_NAME='commerce_purchase_order_lines' THEN
+  SELECT status INTO po_status FROM commerce_purchase_orders WHERE id=COALESCE(NEW.purchase_order_id,OLD.purchase_order_id) AND owner=COALESCE(NEW.owner,OLD.owner);
+  IF po_status<>'pending_approval' THEN RAISE EXCEPTION 'Approved purchase order lines are immutable.'; END IF;
+ ELSIF TG_TABLE_NAME='commerce_goods_receipts' OR TG_TABLE_NAME='commerce_goods_receipt_lines' THEN
+  RAISE EXCEPTION 'Goods receipt records are append-only.';
+ END IF;
+ RETURN COALESCE(NEW,OLD);
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS srikandi_po_line_guard ON commerce_purchase_order_lines;
+CREATE TRIGGER srikandi_po_line_guard BEFORE UPDATE OR DELETE ON commerce_purchase_order_lines FOR EACH ROW EXECUTE FUNCTION srikandi_guard_procurement_changes();
+DROP TRIGGER IF EXISTS srikandi_receipt_header_guard ON commerce_goods_receipts;
+CREATE TRIGGER srikandi_receipt_header_guard BEFORE UPDATE OR DELETE ON commerce_goods_receipts FOR EACH ROW EXECUTE FUNCTION srikandi_guard_procurement_changes();
+DROP TRIGGER IF EXISTS srikandi_receipt_line_guard ON commerce_goods_receipt_lines;
+CREATE TRIGGER srikandi_receipt_line_guard BEFORE UPDATE OR DELETE ON commerce_goods_receipt_lines FOR EACH ROW EXECUTE FUNCTION srikandi_guard_procurement_changes();
