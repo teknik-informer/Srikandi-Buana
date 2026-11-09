@@ -1,47 +1,49 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+const api=readFileSync("src/app/api/ecosystem/purchases/route.ts","utf8");
+const migration=readFileSync("migrations/015_procurement_workflow.sql","utf8");
+const ui=readFileSync("src/app/_components/ecosystem-workspace.tsx","utf8");
 
-const api = readFileSync("src/app/api/ecosystem/purchases/route.ts", "utf8");
-const migration = readFileSync("migrations/014_supplier_bills.sql", "utf8");
-const ui = readFileSync("src/app/_components/ecosystem-workspace.tsx", "utf8");
-
-test("supplier and payable API is role restricted and organization scoped", () => {
-  assert.match(api, /canRead\(c\.user\.role\)/);
-  assert.match(api, /canWrite\(c\.user\.role\)/);
-  assert.match(api, /WHERE owner=\?/);
-  assert.match(api, /WHERE id=\? AND owner=\?/);
-  assert.match(api, /commerce_suppliers/);
-  assert.match(api, /commerce_purchase_bills/);
+test("procurement workflow is organization-scoped and role restricted",()=>{
+ assert.match(api,/canRead\(c\.user\.role\)/);
+ assert.match(api,/canWrite\(c\.user\.role\)/);
+ assert.match(api,/canApprove\(c\.user\.role\)/);
+ assert.match(api,/WHERE id=\? AND owner=\?/);
+ assert.match(migration,/UNIQUE\(owner,request_number\)/);
+ assert.match(migration,/UNIQUE\(owner,order_number\)/);
 });
 
-test("supplier bills post a balanced expense and trade payable journal", () => {
-  assert.match(api, /category='expense'/);
-  assert.match(api, /code==='210003'/);
-  assert.match(api, /Tagihan pemasok/);
-  assert.match(api, /ledger_lines/);
-  assert.match(api, /Tagihan pemasok dibukukan/);
+test("purchase requisitions require bounded item lines and approval before PO creation",()=>{
+ assert.match(api,/b\.action==='request'/);
+ assert.match(api,/lines\.length<1\|\|lines\.length>50/);
+ assert.match(api,/req\.status!=='approved'/);
+ assert.match(api,/Pengaju tidak boleh menyetujui/);
+ assert.match(api,/Pembuat Purchase Order tidak boleh menyetujui/);
 });
 
-test("supplier payments reduce payables and credit only active organization cash accounts", () => {
-  assert.match(api, /category='asset'/);
-  assert.match(api, /Pembayaran utang/);
-  assert.match(api, /commerce_purchase_bill_payments/);
-  assert.match(migration, /FOR UPDATE/);
-  assert.match(migration, /next_paid > bill.total_amount/);
-  assert.match(migration, /paid_total=next_paid/);
-  assert.match(migration, /UNIQUE\(owner,client_request_id\)/);
+test("purchase order and receipt lifecycle prevents excess and unapproved receipts",()=>{
+ assert.match(api,/pending_approval/);
+ assert.match(api,/action==='approve-order'/);
+ assert.match(api,/action==='receive'/);
+ assert.match(api,/Number\(line\.received_quantity\)\+qty>Number\(line\.quantity\)/);
+ assert.match(migration,/Purchase order is not approved for receiving/);
+ assert.match(migration,/Goods receipt exceeds ordered quantity/);
+ assert.match(migration,/Approved purchase order lines are immutable/);
+ assert.match(migration,/Goods receipt records are append-only/);
+ assert.match(migration,/to_jsonb\(NEW\)-'received_quantity'/);
 });
 
-test("supplier bill payments have a database-enforced overpayment guard and status projection", () => {
-  assert.match(migration, /srikandi_supplier_bill_payment_apply/);
-  assert.match(migration, /partially_paid/);
-  assert.match(migration, /'paid'/);
+test("goods receipt is operational evidence and does not fabricate inventory valuation",()=>{
+ assert.match(api,/Penerimaan barang dicatat/);
+ assert.doesNotMatch(api,/inventory_value|stock_valuation|inventory_asset/i);
+ assert.match(ui,/tidak otomatis menambah nilai persediaan/);
 });
 
-test("purchases workspace includes supplier, bill and payment flows", () => {
-  assert.match(ui, /Pembelian & Utang Usaha/);
-  assert.match(ui, /Data Pemasok/);
-  assert.match(ui, /Catat Tagihan Pemasok/);
-  assert.match(ui, /Posting pembayaran utang/);
+test("procurement UI exposes requisition, maker-checker PO and goods receipt workflows",()=>{
+ assert.match(ui,/Ajukan Kebutuhan/);
+ assert.match(ui,/Buat Purchase Order/);
+ assert.match(ui,/Setujui PO/);
+ assert.match(ui,/Catat Penerimaan Barang/);
+ assert.match(ui,/Riwayat Penerimaan/);
 });
