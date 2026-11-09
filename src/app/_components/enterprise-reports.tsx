@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { canReadSection, type Principal } from "@/lib/permissions";
 import { createCSV } from "@/lib/csv";
 import { modules, type Row } from "@/lib/srikandi";
+import type { AssetMovement } from "@/lib/workspace-types";
 import {
   getVisibleReportGroups,
   selectReportRows,
@@ -301,7 +302,7 @@ function ProgramEvaluationPanel({
   );
 }
 
-function AssetCustodyReport({ rows }: { rows: Row[] }) {
+function AssetCustodyReport({ rows, movements = [] }: { rows: Row[]; movements?: AssetMovement[] }) {
   const assets = rows.filter((row) => row.kind === "aset");
   const groupAssets = assets.filter((row) => row.data.assetOwnership === "Milik kelompok");
   const memberAssets = assets.filter((row) => row.data.assetOwnership === "Milik anggota");
@@ -348,6 +349,28 @@ function AssetCustodyReport({ rows }: { rows: Row[] }) {
               </TableBody>
             </Table>
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Riwayat serah-terima dan pengembalian</CardTitle>
+          <CardDescription>Jejak peristiwa yang tercatat di ledger v14. Riwayat tidak direkonstruksi untuk transaksi lama yang tidak memiliki bukti tanggal.</CardDescription>
+        </CardHeader>
+        <CardContent className="divide-y p-0">
+          {movements.slice(0, 30).map((event) => (
+            <div key={event.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge value={event.event_type === "issued" ? "Diserahkan" : event.event_type === "returned" ? "Dikembalikan" : event.event_type === "maintenance" ? "Perawatan" : event.event_type === "damaged" ? "Rusak" : event.event_type === "lost" ? "Hilang" : "Perubahan status"} />
+                  <span className="text-xs text-muted-foreground">{event.member_name}</span>
+                </div>
+                <p className="text-sm font-medium">{event.asset_name}</p>
+                <p className="text-sm text-muted-foreground">{event.notes || "Tidak ada catatan tambahan."}</p>
+              </div>
+              <span className="shrink-0 text-xs text-muted-foreground">{new Date(event.occurred_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "medium", timeStyle: "short" })}</span>
+            </div>
+          ))}
+          {!movements.length && <p className="p-6 text-center text-sm text-muted-foreground">Belum ada riwayat pergerakan yang tersedia dari database terhubung.</p>}
         </CardContent>
       </Card>
     </section>
@@ -475,9 +498,11 @@ function ReportTable({ group, rows }: { group: ReportGroup; rows: Row[] }) {
 export default function EnterpriseReports({
   rows,
   user,
+  assetMovements = [],
 }: {
   rows: Row[];
   user: Principal;
+  assetMovements?: AssetMovement[];
 }) {
   const groups = useMemo(() => getVisibleReportGroups(user), [user]);
   const [active, setActive] = useState<ReportGroupId>("operasional");
@@ -609,7 +634,7 @@ export default function EnterpriseReports({
               ) : (
                 <>
                   {group.id === "operasional" && <ProgramEvaluationPanel rows={rows} user={user} month={month} />}
-                  {group.id === "usaha" && <AssetCustodyReport rows={data} />}
+                  {group.id === "usaha" && <AssetCustodyReport rows={data} movements={assetMovements} />}
                   <ReportTable group={group} rows={data} />
                 </>
               )}
