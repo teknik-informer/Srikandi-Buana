@@ -112,3 +112,61 @@ DROP TRIGGER IF EXISTS srikandi_three_way_bill_line_guard ON commerce_purchase_b
 CREATE TRIGGER srikandi_three_way_bill_line_guard
   BEFORE UPDATE OR DELETE ON commerce_purchase_bill_lines
   FOR EACH ROW EXECUTE FUNCTION srikandi_guard_three_way_match_records();
+
+-- Derived invoice counters are the only permitted mutations to received order/receipt lines.
+CREATE OR REPLACE FUNCTION srikandi_guard_procurement_changes() RETURNS trigger AS $$
+DECLARE po_status TEXT;
+BEGIN
+ IF TG_TABLE_NAME='commerce_purchase_order_lines' THEN
+  SELECT status INTO po_status FROM commerce_purchase_orders
+   WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.purchase_order_id ELSE NEW.purchase_order_id END
+     AND owner=CASE WHEN TG_OP='DELETE' THEN OLD.owner ELSE NEW.owner END;
+  IF po_status<>'pending_approval' THEN
+   IF TG_OP='UPDATE' AND (to_jsonb(NEW)-'received_quantity'-'invoiced_quantity')=(to_jsonb(OLD)-'received_quantity'-'invoiced_quantity') THEN RETURN NEW; END IF;
+   RAISE EXCEPTION 'Approved purchase order lines are immutable.';
+  END IF;
+ ELSIF TG_TABLE_NAME='commerce_goods_receipt_lines' THEN
+  IF TG_OP='UPDATE' AND (to_jsonb(NEW)-'invoiced_quantity')=(to_jsonb(OLD)-'invoiced_quantity') THEN RETURN NEW; END IF;
+  RAISE EXCEPTION 'Goods receipt line evidence is append-only.';
+ ELSIF TG_TABLE_NAME='commerce_goods_receipts' THEN
+  RAISE EXCEPTION 'Goods receipt headers are append-only.';
+ END IF;
+ IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+ RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION srikandi_verify_three_way_bill_total() RETURNS trigger AS $$
+DECLARE bill commerce_purchase_bills%ROWTYPE; line_count BIGINT; matched_total BIGINT;
+BEGIN
+ SELECT * INTO bill FROM commerce_purchase_bills WHERE id=NEW.bill_id AND owner=NEW.owner;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Supplier bill header not found.'; END IF;
+ SELECT COUNT(*),COALESCE(SUM(line_total),0) INTO line_count,matched_total
+  FROM commerce_purchase_bill_lines WHERE bill_id=bill.id AND owner=bill.owner;
+ IF line_count<1 OR matched_total<>bill.total_amount THEN
+  RAISE EXCEPTION 'Supplier invoice lines must fully equal the supplier bill total.';
+ END IF;
+ RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS srikandi_three_way_bill_total_check ON commerce_purchase_bill_lines;
+CREATE CONSTRAINT TRIGGER srikandi_three_way_bill_total_check
+ AFTER INSERT ON commerce_purchase_bill_lines DEFERRABLE INITIALLY DEFERRED
+ FOR EACH ROW EXECUTE FUNCTION srikandi_verify_three_way_bill_total();
+CREATE OR REPLACE FUNCTION srikandi_verify_matched_bill_has_lines() RETURNS trigger AS $$
+DECLARE line_count BIGINT; matched_total BIGINT;
+BEGIN
+ IF NEW.match_status='matched' THEN
+  SELECT COUNT(*),COALESCE(SUM(line_total),0) INTO line_count,matched_total
+   FROM commerce_purchase_bill_lines WHERE bill_id=NEW.id AND owner=NEW.owner;
+  IF line_count<1 OR matched_total<>NEW.total_amount THEN
+   RAISE EXCEPTION 'Matched supplier bill requires invoice lines that equal the header total.';
+  END IF;
+ END IF;
+ RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS srikandi_matched_bill_has_lines ON commerce_purchase_bills;
+CREATE CONSTRAINT TRIGGER srikandi_matched_bill_has_lines
+ AFTER INSERT ON commerce_purchase_bills DEFERRABLE INITIALLY DEFERRED
+ FOR EACH ROW EXECUTE FUNCTION srikandi_verify_matched_bill_has_lines();
