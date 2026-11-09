@@ -29,6 +29,8 @@ export function recordFieldText(
     return String(row.data.custodianMemberName || "Anggota pemegang belum tercatat");
   if (field.key === "counterAccountId")
     return String(row.data.counterAccountName || "Akun lawan belum tercatat");
+  if (field.key === "relatedInvoiceId")
+    return String(row.data.relatedInvoiceNumber || "Bukan pembayaran faktur");
   if (field.key === "fileId")
     return (
       files.find((file) => file.id === value && !file.deleted_at)?.name ||
