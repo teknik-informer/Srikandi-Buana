@@ -5,15 +5,15 @@ import { readFileSync } from "node:fs";
 const api = readFileSync("src/app/api/ecosystem/ledger/route.ts", "utf8");
 const ui = readFileSync("src/app/_components/ecosystem-workspace.tsx", "utf8");
 
-test("cash and bank transfers are restricted to two distinct active organization asset accounts", () => {
+test("cash transfers are restricted to distinct active organization fund accounts", () => {
   assert.match(api, /if\(b\.action==='transfer'\)/);
   assert.match(api, /fromId===toId/);
-  assert.match(api, /category\)!=='asset'/);
+  assert.match(api, /code IN \('110001','110002','110003'\)/);
   assert.match(api, /owner=\? AND active=TRUE/);
-  assert.match(api, /Transfer hanya boleh menggunakan dua akun aset aktif/);
+  assert.match(api, /Transfer hanya boleh menggunakan akun Kas Organisasi/);
 });
 
-test("cash and bank transfers post a balanced double-entry journal and audit event", () => {
+test("cash transfers post a balanced double-entry journal and audit event", () => {
   assert.match(api, /INSERT INTO ledger_entries/);
   assert.match(api, /VALUES\(\?\,\?\,\?\,\?\,\?\,\?\,\?\)/);
   assert.match(api, /toId,amount,0/);
@@ -22,9 +22,9 @@ test("cash and bank transfers post a balanced double-entry journal and audit eve
   assert.match(api, /reference='TRF-'/);
 });
 
-test("accounting workspace exposes a real transfer form using active asset accounts", () => {
-  assert.match(ui, /Transfer Kas & Bank/);
+test("accounting workspace exposes a real transfer form using the three configured cash funds", () => {
+  assert.match(ui, /Transfer Antar Pos Kas/);
   assert.match(ui, /action:'transfer'/);
-  assert.match(ui, /accounts\.filter\(a=>a\.active&&a\.category==='asset'\)/);
+  assert.match(ui, /accounts\.filter\(a=>a\.active&&\['110001','110002','110003'\]\.includes\(a\.code\)\)/);
   assert.match(ui, /Posting transfer/);
 });
