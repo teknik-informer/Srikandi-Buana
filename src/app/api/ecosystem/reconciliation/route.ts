@@ -74,8 +74,7 @@ export async function POST(request:Request){
   if(b.action==='finalize'){
    const summary=await c.db.prepare('SELECT COUNT(*) AS total,COUNT(matched_ledger_line_id) AS matched,COALESCE(SUM(signed_amount),0) AS net FROM finance_bank_statement_lines WHERE reconciliation_id=? AND owner=?').bind(reconciliationId,c.user.userId).first();
    const expected=Number(head.opening_balance)+Number(summary?.net??0);
-   if(expected!==Number(b.closingBalance??expected))return json({error:'Perhitungan saldo mutasi tidak sama dengan saldo akhir.'},409);
-   const current=await c.db.prepare('SELECT closing_balance FROM finance_bank_reconciliations WHERE id=? AND owner=?').bind(reconciliationId,c.user.userId).first();
+      const current=await c.db.prepare('SELECT closing_balance FROM finance_bank_reconciliations WHERE id=? AND owner=?').bind(reconciliationId,c.user.userId).first();
    if(expected!==Number(current?.closing_balance))return json({error:'Saldo akhir tidak sama dengan saldo awal ditambah seluruh mutasi rekening.'},409);
    if(Number(summary?.total??0)!==Number(summary?.matched??0))return json({error:'Masih ada mutasi rekening yang belum dipasangkan dengan jurnal.'},409);
    await c.db.prepare("UPDATE finance_bank_reconciliations SET status='reconciled',reconciled_at=? WHERE id=? AND owner=? AND status='draft'").bind(now,reconciliationId,c.user.userId).run();
