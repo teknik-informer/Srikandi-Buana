@@ -47,9 +47,9 @@ export async function POST(request:Request){const c=await required(request,true)
   if(!/^[a-f0-9-]{36}$/i.test(fromId)||!/^[a-f0-9-]{36}$/i.test(toId)||fromId===toId||!Number.isSafeInteger(amount)||amount<=0||amount>1_000_000_000_000||!memo||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(postedDate)||Number.isNaN(Date.parse(postedDate))||new Date(postedDate).toISOString().slice(0,10)!==postedDate){
    return json({error:'Lengkapi tanggal, uraian, dua akun kas/bank berbeda, dan nominal transfer yang valid.'},400);
   }
-  const selected=await c.db.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE owner=? AND active=TRUE AND id IN (?,?)").bind(c.user.userId,fromId,toId).all();
+  const selected=await c.db.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE owner=? AND active=TRUE AND code IN ('110001','110002','110003') AND id IN (?,?)").bind(c.user.userId,fromId,toId).all();
   if(selected.results.length!==2||selected.results.some(a=>String(a.category)!=='asset')){
-   return json({error:'Transfer hanya boleh menggunakan dua akun aset aktif milik organisasi ini.'},400);
+   return json({error:'Transfer hanya boleh menggunakan akun Kas Organisasi, Kas Program, atau Kas Usaha yang aktif.'},400);
   }
   const byId=new Map(selected.results.map(a=>[String(a.id),a]));
   const from=byId.get(fromId),to=byId.get(toId);
