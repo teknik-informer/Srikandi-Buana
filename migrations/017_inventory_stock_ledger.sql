@@ -169,17 +169,9 @@ $$ LANGUAGE plpgsql;
 -- Validate that a selected stock location always belongs to the same organization as the receipt owner.
 CREATE OR REPLACE FUNCTION srikandi_guard_goods_receipt_location()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
-DECLARE org_id TEXT; location_org TEXT; needs_location BOOLEAN;
+DECLARE org_id TEXT; location_org TEXT;
 BEGIN
  SELECT id INTO org_id FROM workspace_v14.organizations WHERE source_owner_user_id=NEW.owner;
- SELECT EXISTS (
-  SELECT 1 FROM commerce_purchase_order_lines l
-  WHERE l.purchase_order_id=NEW.purchase_order_id AND l.owner=NEW.owner
-    AND l.inventory_item_id IS NOT NULL
- ) INTO needs_location;
- IF needs_location AND NEW.inventory_location_id IS NULL THEN
-  RAISE EXCEPTION 'A stock location is required for stock-tracked goods receipts.';
- END IF;
  IF NEW.inventory_location_id IS NOT NULL THEN
   SELECT organization_id INTO location_org FROM workspace_v14.inventory_locations WHERE id=NEW.inventory_location_id AND active=TRUE;
   IF org_id IS NULL OR location_org IS NULL OR location_org<>org_id THEN
