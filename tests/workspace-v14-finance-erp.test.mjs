@@ -65,3 +65,13 @@ test("cash records and CSV exports use the readable counter-account label rather
   assert.match(table, /row\.data\.counterAccountName/);
   assert.match(workspace, /counterAccountId:"counterAccountName"/);
 });
+
+test("journal history returns its debit and credit account lines for review", () => {
+  const api = read("src/app/api/ecosystem/ledger/route.ts");
+  const ui = read("src/app/_components/ecosystem-workspace.tsx");
+  assert.match(api, /json_agg\(json_build_object\('accountId',l\.account_id,'code',a\.code,'name',a\.name,'debit',l\.debit,'credit',l\.credit\)/);
+  assert.match(api, /WHERE l\.entry_id=e\.id AND l\.owner=e\.owner/);
+  assert.match(ui, /function journalLines\(entry:Entry\):EntryLine\[\]/);
+  assert.match(ui, /Debit "\+money\(Number\(line\.debit\)\)/);
+  assert.match(ui, /Kredit "\+money\(Number\(line\.credit\)\)/);
+});
