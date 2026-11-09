@@ -91,6 +91,31 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   data.counterAccountName=String(counter.name||"").slice(0,160);
   data.counterAccountCode=String(counter.code||"").slice(0,8);
   data.counterAccountCategory=String(counter.category||"").slice(0,20);
+
+  const relatedInvoiceId=String(data.relatedInvoiceId||"").trim();
+  const existingReceipt=edit&&body.id
+    ? await c.db!.prepare("SELECT invoice_id,amount,received_date FROM commerce_sales_invoice_receipts WHERE owner=? AND cash_record_id=?").bind(c.user!.userId,String(body.id)).first()
+    : null;
+  if(existingReceipt&&!relatedInvoiceId)return json({error:"Penerimaan faktur sudah tercatat dan tidak dapat diputus dari faktur."},409);
+  if(String(counter.code)==="120002"&&!relatedInvoiceId)return json({error:"Pilih faktur yang dibayar saat menggunakan akun Piutang Dagang."},400);
+  if(relatedInvoiceId){
+   if(String(data.type)!=="Pemasukan"||String(data.fund)!=="Usaha"||String(counter.code)!=="120002")return json({error:"Pembayaran faktur harus berupa Pemasukan pos Usaha dengan akun lawan Piutang Dagang."},400);
+   const invoice=await c.db!.prepare("SELECT id,invoice_number,customer_name,issue_date,total_amount,paid_total,status FROM commerce_sales_invoices WHERE id=? AND owner=?").bind(relatedInvoiceId,c.user!.userId).first();
+   if(!invoice)return json({error:"Faktur tidak ditemukan pada organisasi ini."},404);
+   if(String(invoice.issue_date).slice(0,10)>String(data.date))return json({error:"Tanggal penerimaan tidak boleh sebelum tanggal faktur."},400);
+   if(existingReceipt){
+    const same=String(existingReceipt.invoice_id)===relatedInvoiceId&&Number(existingReceipt.amount)===Number(data.amount)&&String(existingReceipt.received_date).slice(0,10)===String(data.date);
+    if(!same)return json({error:"Penerimaan faktur sudah dibukukan. Faktur, tanggal, dan nominal tidak dapat diubah."},409);
+   }else{
+    const outstanding=Number(invoice.total_amount)-Number(invoice.paid_total);
+    if(!["issued","partially_paid"].includes(String(invoice.status))||!Number.isSafeInteger(outstanding)||outstanding<=0||Number(data.amount)>outstanding)return json({error:"Nominal penerimaan melebihi sisa piutang atau faktur sudah lunas."},409);
+   }
+   data.relatedInvoiceNumber=String(invoice.invoice_number||"").slice(0,40);
+   data.relatedInvoiceCustomerName=String(invoice.customer_name||"").slice(0,160);
+  }else{
+   data.relatedInvoiceNumber="";
+   data.relatedInvoiceCustomerName="";
+  }
  }
  if(body.kind==="tindaklanjut"){
   const assignedMemberId=String(data.assignedMemberId||"").trim();
