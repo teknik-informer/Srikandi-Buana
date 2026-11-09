@@ -197,7 +197,7 @@ function statementForMapping(
         SELECT ?,?,?,?,?, 'issued', ?,?::timestamptz,NULLIF(?,'')::timestamptz,NULLIF(?,'')::timestamptz,?,?::jsonb,?::timestamptz,?::timestamptz
         WHERE EXISTS (SELECT 1 FROM workspace_v14.member_profiles WHERE id=? AND organization_id=?)
         ON CONFLICT (id) DO UPDATE SET
-          assignment_status='issued',purpose=excluded.purpose,issued_at=excluded.issued_at,
+          inventory_item_id=excluded.inventory_item_id,member_profile_id=excluded.member_profile_id,\n          assignment_status='issued',purpose=excluded.purpose,issued_at=excluded.issued_at,
           expected_return_at=excluded.expected_return_at,returned_at=NULL,
           issued_by=excluded.issued_by,evidence_json=excluded.evidence_json,updated_at=excluded.updated_at
       `).bind(
