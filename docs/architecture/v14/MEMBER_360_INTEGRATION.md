@@ -173,3 +173,22 @@ Aset berstatus **Milik kelompok** diproyeksikan ke `workspace_v14.inventory_item
 - Riwayat lama tidak direkonstruksi sebagai peristiwa historis karena tanggal dan bukti historis belum tentu tersedia. Peristiwa mulai dicatat ketika perubahan aset baru disimpan setelah fitur aktif.
 
 Status QA: tabel, dua indeks timeline, dan trigger immutable telah diverifikasi. Target DATABASE_URL Preview belum dibuktikan menunjuk branch QA, sehingga belum boleh mengklaim fitur database sudah teruji melalui deployment Preview.
+
+
+## 12. Monitoring, laporan, dan timeline aset
+
+Monitoring dan Pusat Laporan menggunakan catatan inventaris yang sudah lolos pembatasan akses record. Indikator yang dihitung secara terpisah:
+
+- aset milik kelompok;
+- aset milik anggota (bukan kekayaan kelompok);
+- kepemilikan belum diklasifikasi;
+- aset kelompok yang sedang dipinjam;
+- peminjaman yang melewati rencana pengembalian;
+- peminjaman tanpa tanggal pengembalian;
+- aset rusak/hilang dan aset yang memerlukan perawatan.
+
+Temuan terlambat, tanpa tanggal kembali, rusak/hilang, perawatan, dan kepemilikan belum jelas masuk ke Pusat Perhatian sebagai pengingat untuk petugas. Sistem tidak mengubah status, menagih, atau menjatuhkan sanksi secara otomatis.
+
+API `GET /api/records` membaca maksimal 50 peristiwa ledger terbaru hanya jika pengguna berhak membaca modul aset dan tabel ledger, inventaris, profil anggota, serta organisasi tersedia pada database runtime. Query dibatasi oleh `organization_id`; deployment legacy tanpa tabel ledger tetap berfungsi tanpa error. Monitoring dan Laporan menampilkan timeline yang tersedia dari ledger tersebut.
+
+**Batas data:** angka status terkini berasal dari record inventaris lama. Timeline berasal dari `member_asset_movement_events` dan hanya memuat peristiwa yang benar-benar tercatat setelah integrasi aktif. Data lama tidak dianggap sebagai riwayat serah-terima historis. Status QA pada branch Neon tersanitasi tidak membuktikan bahwa DATABASE_URL Preview menunjuk ke branch yang sama.
