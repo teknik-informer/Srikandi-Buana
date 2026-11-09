@@ -160,3 +160,16 @@ Tanpa keputusan tersebut, modul hanya boleh menyimpan rancangan/draft dan tidak 
 ## 11. Kesimpulan
 
 Profil anggota harus menjadi sumber referensi operasional, bukan daftar biodata terpisah. Dampak aplikasi tercapai saat setiap program, aset, kewajiban, tabungan, pinjaman, penugasan, kompensasi, dan pembayaran terhubung kepada ID anggota yang sama, mempunyai bukti, kebijakan, otorisasi, dan jejak audit. Dengan pendekatan ini, administrasi KWT menjadi alat untuk memperkuat kelas belajar, unit produksi, kerja sama, dan kesejahteraan anggota tanpa mengorbankan privasi maupun akuntabilitas.
+
+## Riwayat pergerakan aset kelompok (migration 011)
+
+Aset berstatus **Milik kelompok** diproyeksikan ke `workspace_v14.inventory_items` dengan tautan sumber `source_legacy_asset_id`. Aset **Milik anggota** tidak masuk inventaris kelompok. Perubahan status pinjam/pengembalian disinkronkan bersama perubahan record terlindungi dalam satu batch database.
+
+- `member_asset_assignments` menyimpan status penugasan/peminjaman terkini.
+- `member_asset_movement_events` menyimpan peristiwa serah-terima/pengembalian sebagai riwayat append-only; koreksi dilakukan dengan peristiwa baru, bukan mengubah/menghapus peristiwa lama.
+- Peristiwa menyimpan status asal/tujuan, waktu, aktor, anggota pemegang, catatan, dan referensi bukti yang tersedia.
+- Peminjaman hanya dapat dinormalisasi jika profil anggota tujuan sudah tersinkron pada organisasi yang sama. Jika relasi belum ada, sinkronisasi tidak membuat assignment palsu.
+- Migration 011 diterapkan hanya pada branch QA tersanitasi `srikandi-v12-sanitized-qa-20261106`; belum ada migrasi atau perubahan data di Production.
+- Riwayat lama tidak direkonstruksi sebagai peristiwa historis karena tanggal dan bukti historis belum tentu tersedia. Peristiwa mulai dicatat ketika perubahan aset baru disimpan setelah fitur aktif.
+
+Status QA: tabel, dua indeks timeline, dan trigger immutable telah diverifikasi. Target DATABASE_URL Preview belum dibuktikan menunjuk branch QA, sehingga belum boleh mengklaim fitur database sudah teruji melalui deployment Preview.
