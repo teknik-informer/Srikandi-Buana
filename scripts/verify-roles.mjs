@@ -33,6 +33,11 @@ CREATE TABLE ledger_reversals (
  reversal_entry_id TEXT NOT NULL, actor_id TEXT NOT NULL REFERENCES users(id), created TEXT NOT NULL,
  UNIQUE(owner,original_entry_id), UNIQUE(owner,reversal_entry_id)
 );
+CREATE TABLE commerce_sales_invoice_receipts (
+ id TEXT PRIMARY KEY, owner TEXT NOT NULL, invoice_id TEXT NOT NULL, cash_record_id TEXT NOT NULL,
+ ledger_entry_id TEXT NOT NULL, amount BIGINT NOT NULL, received_date DATE NOT NULL,
+ actor_id TEXT NOT NULL, created TIMESTAMPTZ NOT NULL
+);
 `);
 const {Pool}=mem.adapters.createPg(),pool=new Pool();
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});const translate=compat.exports.postgresStatement;
