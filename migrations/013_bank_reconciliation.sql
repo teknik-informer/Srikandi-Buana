@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS finance_bank_reconciliations (
 );
 CREATE INDEX IF NOT EXISTS finance_bank_reconciliations_owner_period
   ON finance_bank_reconciliations(owner,period_end DESC,created DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS finance_bank_reconciliations_unique_period
+  ON finance_bank_reconciliations(owner,account_id,period_start,period_end);
 
 CREATE TABLE IF NOT EXISTS finance_bank_statement_lines (
   id TEXT PRIMARY KEY,
@@ -41,6 +43,9 @@ CREATE TABLE IF NOT EXISTS finance_bank_statement_lines (
 );
 CREATE INDEX IF NOT EXISTS finance_bank_statement_lines_reconciliation
   ON finance_bank_statement_lines(owner,reconciliation_id,transaction_date,created);
+CREATE UNIQUE INDEX IF NOT EXISTS finance_bank_statement_lines_unique_reference
+  ON finance_bank_statement_lines(owner,reconciliation_id,reference)
+  WHERE reference IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS finance_bank_statement_lines_unique_match
   ON finance_bank_statement_lines(owner,matched_ledger_line_id)
   WHERE matched_ledger_line_id IS NOT NULL;
