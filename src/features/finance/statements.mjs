@@ -45,13 +45,17 @@ export function calculateFinanceStatements(accounts = []) {
   const surplus = totals.revenue - totals.expense;
   const equityIncludingSurplus = totals.equity + surplus;
   const difference = totals.asset - totals.liability - equityIncludingSurplus;
+  const hasJournalActivity = accounts.some((account) =>
+    Number(account?.debit ?? 0) > 0 || Number(account?.credit ?? 0) > 0,
+  );
 
   return {
+    hasJournalActivity,
     accounts: grouped,
     totals,
     surplus,
     equityIncludingSurplus,
     difference,
-    isBalanced: Math.abs(difference) < 0.5,
+    isBalanced: hasJournalActivity && Math.abs(difference) < 0.5,
   };
 }
