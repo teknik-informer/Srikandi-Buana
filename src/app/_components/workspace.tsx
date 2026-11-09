@@ -95,6 +95,7 @@ import SiteSettingsEditor from "./site-settings-editor";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
+import MemberImpactOverview from "./member-impact-overview";
 import {
   WorkspacePageHeader,
   WorkspaceSearch,
@@ -580,6 +581,7 @@ export default function Workspace({
                 pendukungnya.
               </p>
             )}
+            {section === "anggota" && <MemberImpactOverview rows={rows} />}
             <Box
               title={module.title}
               description={
