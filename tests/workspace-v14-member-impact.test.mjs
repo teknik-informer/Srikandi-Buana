@@ -12,6 +12,8 @@ test("follow-up tasks can be assigned to an active member record", () => {
   assert.ok(fields.includes('key:"assignedMemberId",label:"Anggota pelaksana (opsional)",type:"member"'));
   assert.match(workspace, /f\.type === "member"/);
   assert.match(workspace, /members\s*\.filter\(\(member\) => member\.data\.status === "Aktif"\)/);
+  assert.match(table, /row\.data\.assignedMemberName/);
+  assert.match(workspace, /f\.key === "assignedMemberId" \? r\.data\.assignedMemberName/);
 });
 
 test("task assignment is validated server-side against the same group's active membership", () => {
