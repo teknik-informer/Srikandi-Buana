@@ -92,7 +92,7 @@ export async function GET() {
         for (const key of [
           "provinceCode", "provinceName", "regencyCode", "regencyName",
           "districtCode", "districtName", "villageCode", "postalCode",
-        ]) address[key] = "";
+        ] as const) address[key] = "";
       }
       address.villageName = village;
     }
