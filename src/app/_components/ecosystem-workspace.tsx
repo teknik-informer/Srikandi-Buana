@@ -7,7 +7,7 @@ type Product={id:string;sku:string;name:string;description:string;unit:string;pr
 type Order={id:string;product_name:string;buyer_name:string;quantity:number;unit_price:number;total:number;status:string;created:string};
 type Account={id:string;code:string;name:string;category:string;debit:number;credit:number;active:boolean};
 type StatementAccount={id:string;code:string;name:string;balance:number};
-type FinanceStatements={accounts:Record<'asset'|'liability'|'equity'|'revenue'|'expense',StatementAccount[]>;totals:Record<'asset'|'liability'|'equity'|'revenue'|'expense',number>;surplus:number;equityIncludingSurplus:number;difference:number;isBalanced:boolean};
+type FinanceStatements={hasJournalActivity:boolean;accounts:Record<'asset'|'liability'|'equity'|'revenue'|'expense',StatementAccount[]>;totals:Record<'asset'|'liability'|'equity'|'revenue'|'expense',number>;surplus:number;equityIncludingSurplus:number;difference:number;isBalanced:boolean};
 type EntryLine={accountId:string;code:string;name:string;debit:number|string;credit:number|string};
 type Entry={id:string;posted_date:string;memo:string;reference:string;correction_count:number|string;lines?:EntryLine[]|string|null};
 type StockMovement={id:string;sku:string;name:string;change_amount:number;stock_before:number;stock_after:number;created:string};
@@ -138,7 +138,7 @@ export function AccountingWorkspace({role}:{role:string}){
    <div className="flex items-center justify-between gap-3 border-t pt-3"><span className="text-sm font-semibold">Modal + surplus/defisit</span><strong className="text-base tabular-nums">{money(statements.equityIncludingSurplus)}</strong></div>
   </div>
   <p role={statements.isBalanced?"status":"alert"} className={statements.isBalanced?"mt-4 rounded-lg border p-3 text-xs text-muted-foreground":"mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100"}>
-   {statements.isBalanced?"Persamaan posisi keuangan seimbang berdasarkan jurnal yang tercatat.":"Selisih posisi keuangan "+money(statements.difference)+". Periksa jurnal, saldo awal, dan pemetaan akun sebelum menggunakan laporan."}
+   {!statements.hasJournalActivity?"Belum ada jurnal yang diposting. Laporan belum mencerminkan saldo awal dan belum dapat digunakan sebagai posisi keuangan kelompok.":statements.isBalanced?"Persamaan posisi keuangan seimbang berdasarkan jurnal yang tercatat.":"Selisih posisi keuangan "+money(statements.difference)+". Periksa jurnal, saldo awal, dan pemetaan akun sebelum menggunakan laporan."}
   </p>
  </article>
 </section>
