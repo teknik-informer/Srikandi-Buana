@@ -240,7 +240,7 @@ export default function HelpCenter({ role }: { role: Role }) {
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="font-semibold">Perhatian sebelum laporan digunakan</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Buku Kas lama belum otomatis masuk ke Buku Besar. Saldo awal harus dimasukkan melalui jurnal pembukaan berdasarkan rekonsiliasi dan persetujuan. Pesanan katalog bukan bukti pembayaran; persediaan, pembelian, penjualan, simpan-pinjam, serta penggajian masih memerlukan subledger dan kebijakan tersendiri.
+              Buku Kas lama belum otomatis masuk ke Buku Besar. Saldo awal harus dimasukkan melalui jurnal pembukaan berdasarkan rekonsiliasi dan persetujuan. Pesanan harus berstatus Selesai sebelum faktur diterbitkan. Faktur mencatat Piutang Dagang; saat pelanggan membayar, catat Pemasukan pos Usaha di Buku Kas, pilih akun Piutang Dagang, lalu hubungkan ke faktur yang benar. Faktur tidak otomatis lunas. Persediaan bernilai, harga pokok penjualan, pembelian pemasok/utang usaha, simpan-pinjam, dan penggajian masih memerlukan subledger atau kebijakan tersendiri.
             </p>
           </div>
         </section>
