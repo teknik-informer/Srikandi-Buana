@@ -111,6 +111,7 @@ export async function buildCashLedgerPostingStatements(
   const amount = Number(data.amount ?? 0);
   const postedDate = String(data.date ?? "");
   const description = String(data.name ?? "").trim();
+  const relatedInvoiceId = String(data.relatedInvoiceId ?? "").trim();
 
   if (!sourceId || !description || !["Pemasukan", "Pengeluaran"].includes(type)) {
     throw new Error("Jenis, uraian, dan identitas transaksi Buku Kas harus lengkap sebelum diposting.");
@@ -118,7 +119,7 @@ export async function buildCashLedgerPostingStatements(
   if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 1_000_000_000_000) {
     throw new Error("Nominal Buku Kas harus berupa bilangan bulat positif yang valid.");
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(postedDate) ||
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(postedDate) ||
       Number.isNaN(Date.parse(postedDate)) ||
       new Date(postedDate).toISOString().slice(0, 10) !== postedDate) {
     throw new Error("Tanggal transaksi Buku Kas tidak valid.");
@@ -150,10 +151,55 @@ export async function buildCashLedgerPostingStatements(
       : "Akun lawan untuk pengeluaran harus berupa aset, kewajiban, modal, atau beban; bukan kas sumber yang sama.");
   }
 
+  if (String(counter.code) === "120002" && !relatedInvoiceId) {
+    throw new Error("Akun Piutang Dagang harus dihubungkan ke faktur yang dibayar.");
+  }
+  if (relatedInvoiceId && (type !== "Pemasukan" || fund !== "Usaha" || String(counter.code) !== "120002")) {
+    throw new Error("Pembayaran faktur harus berupa Pemasukan pos Usaha dengan akun lawan Piutang Dagang.");
+  }
+
   const reference = "KAS-" + sourceId;
   const existing = await db.prepare(
     "SELECT id,posted_date,memo FROM ledger_entries WHERE owner=? AND reference=?",
   ).bind(owner, reference).first();
+
+  const existingReceipt = await db.prepare(
+    "SELECT invoice_id,amount,received_date FROM commerce_sales_invoice_receipts WHERE owner=? AND cash_record_id=?",
+  ).bind(owner, sourceId).first();
+
+  if (existingReceipt && !relatedInvoiceId) {
+    throw new Error("Penerimaan faktur sudah tercatat dan tidak dapat diputus dari faktur. Gunakan jurnal koreksi yang disetujui.");
+  }
+
+  let invoice: Record<string, unknown> | null = null;
+  if (relatedInvoiceId) {
+    invoice = await db.prepare(
+      "SELECT id,invoice_number,issue_date,total_amount,paid_total,status FROM commerce_sales_invoices WHERE id=? AND owner=?",
+    ).bind(relatedInvoiceId, owner).first() as Record<string, unknown> | null;
+
+    if (!invoice) throw new Error("Faktur tidak ditemukan pada organisasi ini.");
+    if (String(invoice.issue_date).slice(0, 10) > postedDate) {
+      throw new Error("Tanggal penerimaan tidak boleh sebelum tanggal faktur.");
+    }
+
+    if (existingReceipt) {
+      const sameReceipt =
+        String(existingReceipt.invoice_id) === relatedInvoiceId &&
+        Number(existingReceipt.amount) === amount &&
+        String(existingReceipt.received_date).slice(0, 10) === postedDate;
+      if (!sameReceipt) {
+        throw new Error("Penerimaan faktur sudah dibukukan. Faktur, nominal, dan tanggal penerimaan tidak dapat diubah.");
+      }
+    } else {
+      const outstanding = Number(invoice.total_amount) - Number(invoice.paid_total);
+      if (!["issued", "partially_paid"].includes(String(invoice.status)) ||
+          !Number.isSafeInteger(outstanding) ||
+          outstanding <= 0 ||
+          amount > outstanding) {
+        throw new Error("Nominal penerimaan melebihi sisa piutang atau faktur sudah lunas.");
+      }
+    }
+  }
 
   const memo = (type + " Buku Kas · " + description + " · " + String(counter.code) + " " + String(counter.name)).slice(0, 500);
   const expectedLines = type === "Pemasukan"
@@ -165,6 +211,19 @@ export async function buildCashLedgerPostingStatements(
         { accountId: String(counter.id), debit: amount, credit: 0 },
         { accountId: cash.id, debit: 0, credit: amount },
       ];
+
+  const receiptStatement = (ledgerEntryId: string): PreparedStatement | null => {
+    if (!relatedInvoiceId || existingReceipt) return null;
+    return db.prepare(`
+      INSERT INTO commerce_sales_invoice_receipts(
+        id,owner,invoice_id,cash_record_id,ledger_entry_id,amount,
+        received_date,actor_id,created
+      ) VALUES(?,?,?,?,?,?,?::date,?,?::timestamptz)
+    `).bind(
+      crypto.randomUUID(),owner,relatedInvoiceId,sourceId,ledgerEntryId,
+      amount,postedDate,actorId,now,
+    );
+  };
 
   if (existing) {
     const lines = await db.prepare(
@@ -182,7 +241,8 @@ export async function buildCashLedgerPostingStatements(
       line.credit === expected[index].credit,
     );
     if (String(existing.posted_date) === postedDate && String(existing.memo) === memo && sameLines) {
-      return [];
+      const receipt = receiptStatement(String(existing.id));
+      return receipt ? [receipt] : [];
     }
     throw new Error(
       "Transaksi ini sudah dibukukan. Tanggal, uraian, jenis, pos dana, dan nominal tidak dapat diubah agar jurnal tetap utuh. Catat transaksi penyesuaian terpisah untuk koreksi.",
@@ -217,5 +277,7 @@ export async function buildCashLedgerPostingStatements(
     ),
   ];
 
+  const receipt = receiptStatement(entryId);
+  if (receipt) statements.push(receipt);
   return statements;
 }
