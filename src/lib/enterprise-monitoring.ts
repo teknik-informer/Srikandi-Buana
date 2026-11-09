@@ -168,6 +168,7 @@ export function buildEnterpriseMonitoring(
     } else if (row.data.custodyStatus === "Perawatan" || row.data.condition === "Perlu perawatan") {
       issues.push({ id: row.id + "-asset-maintenance", row, title: "Aset memerlukan perawatan", detail: "Catat pemeriksaan, penanggung jawab, dan status setelah perawatan.", severity: "info" });
     }
+    return issues;
   });
   for (const row of unclassifiedAssets) {
     assetIssues.push({ id: row.id + "-asset-ownership", row, title: "Kepemilikan aset belum diklasifikasi", detail: "Pastikan apakah barang milik kelompok atau milik anggota sebelum menghitung inventaris.", severity: "info" });
