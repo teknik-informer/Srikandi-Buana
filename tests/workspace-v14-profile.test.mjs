@@ -145,9 +145,9 @@ test("member impact finance schema links assets, programmes, savings, loans and 
     "member_payments", "member_loans", "member_loan_installments",
     "member_service_engagements", "member_compensation_items",
   ]) assert.ok(migration.includes("workspace_v14." + name), "Missing member impact table: " + name);
-  assert.match(migration, /REFERENCES workspace_v14\.member_profiles\(id,organization_id\)/);
-  assert.match(migration, /REFERENCES workspace_v14\.inventory_items\(id,organization_id\)/);
-  assert.match(migration, /REFERENCES workspace_v14\.programmes\(id,organization_id\)/);
+  assert.match(migration, /REFERENCES workspace_v14\.member_profiles\(id,\s*organization_id\)/);
+  assert.match(migration, /REFERENCES workspace_v14\.inventory_items\(id,\s*organization_id\)/);
+  assert.match(migration, /REFERENCES workspace_v14\.programmes\(id,\s*organization_id\)/);
   assert.match(migration, /ledger_entry_id TEXT REFERENCES public\.ledger_entries\(id\)/);
   assert.match(migration, /destination_account_ref/);
   assert.doesNotMatch(migration, /account_number|bank_account_number|nik\s+TEXT/i);
