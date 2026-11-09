@@ -81,6 +81,15 @@ The Finance workspace should become a coherent ERP workspace, not a second disco
 - Extend current order → invoice → receipt flow with quotations, customer/supplier master data, supplier bills, purchase orders, goods receipts, credit notes, and payables.
 - Define one posting map per transaction type and test balanced journal/idempotency.
 
+### Phase C implementation status
+- Supplier master data, supplier bills, payments, purchase requisitions, approval, Purchase Orders, and goods receipts are implemented in `/api/ecosystem/purchases` and the commerce workspace.
+- Purchase requisitions require explicit approval by ketua/admin. The requester cannot approve their own request; the PO creator cannot approve their own PO. Goods receipts support partial delivery, are append-only, and cannot exceed the ordered quantity.
+- Supplier invoice three-way matching is implemented in migration `016_purchase_three_way_match.sql`. A new bill must select the same supplier's partially/fully received PO and invoice one or more actual goods-receipt lines. Each invoice line must match the PO unit price, must not predate the receipt, and cannot exceed the quantity received or previously uninvoiced. The invoice header total must equal the sum of matched lines exactly before the payable journal can commit.
+- The database locks PO/receipt quantity counters during invoice-line insertion, records append-only match evidence, blocks edits to posted bill source data, and keeps legacy bills explicitly labelled `legacy_unmatched`. Existing bills are not silently given fabricated PO/receipt links.
+- Tax, freight, discounts, price variances, and tolerance/exception approvals are not auto-accepted; the current match policy requires exact unit-price and total equality. Any exception process must be explicitly approved before implementation.
+- Migration 014, 015, and 016 have been applied only to the sanitized QA branch `srikandi-v12-sanitized-qa-20261106`. No procurement fixtures or transaction data were seeded. Production remains untouched.
+- Still not implemented: purchase order print/email, attachments/evidence upload, inventory capitalization/valuation, supplier credit notes, and automated due-date reminders. Purchases currently post to a selected expense account; do not treat a goods receipt as an inventory valuation.
+
 ### Phase D — inventory and fixed assets
 - Add item master, stock movement ledger, stock count, and valuation only after the valuation method is approved.
 - Link purchasing, sales, and production/operations to stock movements.
