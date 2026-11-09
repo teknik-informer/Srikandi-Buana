@@ -9,7 +9,6 @@ export const dynamic='force-dynamic';
 const canRead=(role:string)=>['admin','ketua','bendahara'].includes(role),canWrite=(role:string)=>['admin','bendahara'].includes(role);
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!canRead(c.user.role))return json({error:'Akses akuntansi dibatasi.'},403);
  try{
- await ensureDefaultLedgerAccounts(c.db,c.user.userId);
  if(new URL(request.url).searchParams.get('format')==='csv'){
   const result=await c.db.prepare('SELECT e.posted_date,e.reference,e.memo,a.code,a.name,l.debit,l.credit FROM ledger_entries e JOIN ledger_lines l ON l.entry_id=e.id AND l.owner=e.owner JOIN ledger_accounts a ON a.id=l.account_id AND a.owner=e.owner WHERE e.owner=? ORDER BY e.posted_date,e.created,e.id,a.code LIMIT 5000').bind(c.user.userId).all();
   const lines=[['Tanggal','Referensi','Uraian','Kode akun','Akun','Debit (Rp)','Kredit (Rp)'],...result.results.map(r=>[String(r.posted_date),String(r.reference),String(r.memo),String(r.code),String(r.name),String(r.debit),String(r.credit)])];
@@ -20,6 +19,10 @@ export async function GET(request:Request){const c=await required(request);if(c.
 export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!canWrite(c.user.role))return json({error:'Pencatatan jurnal hanya untuk bendahara atau administrator.'},403);
  try{const b=await readJsonObject(request,9000),now=new Date().toISOString();
  if(!await consumeRateLimit(c.db,'ledger:write:'+c.user.accountId,120,3600000))return json({error:'Batas pencatatan per jam telah tercapai.'},429);
+ if(b.action==='initialize'){
+  const accounts=await ensureDefaultLedgerAccounts(c.db,c.user.userId,now);
+  return json({ok:true,accounts:accounts.map(a=>({id:a.id,code:a.code,name:a.name,category:a.category}))},201);
+ }
  if(b.action==='reverse'){
   if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id))return json({error:'Nomor jurnal tidak valid.'},400);
   const old=await c.db.prepare('SELECT e.id,e.memo FROM ledger_entries e WHERE e.id=? AND e.owner=? AND NOT EXISTS(SELECT 1 FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id)').bind(b.id,c.user.userId).first();
