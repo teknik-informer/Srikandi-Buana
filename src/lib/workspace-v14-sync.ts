@@ -247,7 +247,7 @@ function statementForMapping(
         ON CONFLICT (id) DO NOTHING
       `).bind(
         eventId,organizationId,assignmentId,itemId,oldProfileId,
-        nextStatus === "Hilang" ? "lost" : nextStatus === "Rusak" ? "damaged" : "returned",
+        nextStatus === "Hilang" ? "lost" : nextStatus === "Rusak" ? "damaged" : nextStatus === "Perawatan" ? "maintenance" : "returned",
         nextStatus,source.now,source.actorId,
         clean(source.data.notes,1000) || "Status penguasaan aset diperbarui",
         json([source.data.evidenceFileId,source.data.attachmentId].filter(Boolean)),
