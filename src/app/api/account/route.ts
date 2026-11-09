@@ -5,7 +5,7 @@ import { hashPassword, verifyPassword } from "@/lib/password.mjs";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { json, sameOrigin } from "@/lib/account-access";
-import { normalizeAccountCV, normalizePrivateProfileInput } from "@/lib/account-profile-data";
+import { normalizeAccountCV, normalizePrivateProfileInput, type ProfileAddress } from "@/lib/account-profile-data";
 import { buildV14RecordSyncStatements } from "@/lib/workspace-v14-sync";
 import {
   decryptPrivateAccountData,
@@ -84,7 +84,7 @@ export async function GET() {
         // Keep the last valid account CV if a legacy membership address is malformed.
       }
     }
-    const address = { ...normalizedCV.address, ...(memberAddress || {}) };
+    const address: ProfileAddress = { ...normalizedCV.address, ...(memberAddress as Partial<ProfileAddress> | null || {}) };
     if (member) address.street = String(memberData.dusun || "");
     if (member && typeof memberData.village === "string") {
       const village = memberData.village;
@@ -226,7 +226,7 @@ export async function PATCH(request: Request) {
         if (previous.privateProfile) stored.privateProfile = previous.privateProfile;
       }
 
-      const updatedMember = member ? {
+      const updatedMember: Record<string, unknown> | null = member ? {
         ...member.data,
         phone: cv.contact.phone,
         dusun: cv.address.street,
@@ -261,7 +261,7 @@ export async function PATCH(request: Request) {
           })
         : [];
       await env.DB.batch([...statements, ...normalizedMemberWrites]);
-      const membershipData = updatedMember || member?.data || null;
+      const membershipData: Record<string, unknown> | null = updatedMember || member?.data || null;
       return json({
         ok: true,
         user: { accountId: u.accountId, displayName: u.displayName, avatarUrl: u.avatarUrl || "" },
