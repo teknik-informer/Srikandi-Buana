@@ -119,7 +119,7 @@ export async function buildCashLedgerPostingStatements(
   if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 1_000_000_000_000) {
     throw new Error("Nominal Buku Kas harus berupa bilangan bulat positif yang valid.");
   }
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(postedDate) ||
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(postedDate) ||
       Number.isNaN(Date.parse(postedDate)) ||
       new Date(postedDate).toISOString().slice(0, 10) !== postedDate) {
     throw new Error("Tanggal transaksi Buku Kas tidak valid.");
