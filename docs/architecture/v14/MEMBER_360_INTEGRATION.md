@@ -58,7 +58,15 @@ Aset milik anggota tidak boleh dicampur menjadi aset organisasi. Aset yang dipin
 
 Data wilayah, keahlian, pendidikan, pengalaman, minat, komoditas, lahan, dan kebutuhan menjadi filter awal untuk menyiapkan daftar calon peserta. Sistem menyajikan alasan kecocokan dan data yang belum lengkap. Koordinator memeriksa persyaratan program, ketersediaan, persetujuan, dan bukti sebelum menetapkan status. Keputusan akhir tetap melalui persetujuan koordinator/pengurus yang berwenang; sistem hanya membantu menyiapkan bahan pemeriksaan. Programme enrolments yang sudah tersedia menjadi relasi keanggotaan-program.
 
-### 5.3 Iuran, tabungan, simpan-pinjam
+### 5.3 Penugasan anggota dan tindak lanjut
+
+- Tugas dapat dihubungkan ke satu ID anggota dari Buku Induk, bukan hanya mengetik nama pelaksana.
+- Pilihan penugasan hanya menampilkan anggota berstatus aktif; API memeriksa ulang bahwa ID anggota benar-benar berada pada kelompok yang sama dan masih aktif.
+- Nama pelaksana disimpan sebagai snapshot untuk keterbacaan catatan, sedangkan ID anggota menjadi referensi relasional. Koordinator/penanggung jawab umum tetap dapat dicatat terpisah.
+- Penugasan tidak otomatis menghasilkan honorarium atau hak pembayaran. Hasil pekerjaan tetap memerlukan bukti dan verifikasi sesuai kewenangan.
+- Penugasan lama yang belum memiliki ID anggota tetap dapat dibaca dan tidak dipaksa dikonversi.
+
+### 5.4 Iuran, tabungan, simpan-pinjam
 
 - Iuran adalah kewajiban sesuai keputusan musyawarah dan versi kebijakan.
 - Tabungan memiliki akun dan mutasi deposit/penarikan/koreksi. Saldo dihitung dari transaksi yang sudah diposting, bukan angka yang diedit manual.
@@ -66,7 +74,7 @@ Data wilayah, keahlian, pendidikan, pengalaman, minat, komoditas, lahan, dan keb
 - Biaya administrasi atau bentuk imbal jasa tidak boleh diasumsikan. Hanya nilai dari kebijakan yang disahkan dan tercantum pada perjanjian yang boleh dipakai.
 - Setiap transaksi keuangan harus mempunyai nomor referensi, bukti, status, petugas, dan tautan jurnal.
 
-### 5.4 Gaji, honorarium, tunjangan, insentif
+### 5.5 Gaji, honorarium, tunjangan, insentif
 
 Aplikasi membedakan:
 - gaji/kompensasi berkala berdasarkan perikatan kerja yang benar-benar ada;
@@ -77,7 +85,7 @@ Aplikasi membedakan:
 
 CV dan keahlian hanya membantu pencocokan kompetensi/penugasan. Hak bayar tidak muncul hanya karena seseorang mempunyai pendidikan, jabatan, atau sertifikat; harus ada penugasan, periode, dasar tarif, verifikasi pekerjaan, dan persetujuan.
 
-### 5.5 Pembayaran
+### 5.6 Pembayaran
 
 Pembayaran menjadi proses terpisah dari pengajuan hak. Tahapan: draft, diajukan, diperiksa, disetujui, diposting, dibayar, direkonsiliasi. Koreksi memakai transaksi pembalik, bukan mengubah bukti yang telah dibayar. Data rekening penuh tidak dikirim ke tabel transaksi; pembayaran memakai referensi privat dan hanya menampilkan nilai tersamar.
 
