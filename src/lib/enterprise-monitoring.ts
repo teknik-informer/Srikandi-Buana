@@ -125,11 +125,27 @@ export function buildEnterpriseMonitoring(
       }
     : null;
 
+  const groupAssets = assets.filter((row) => row.data.assetOwnership === "Milik kelompok");
+  const memberOwnedAssets = assets.filter((row) => row.data.assetOwnership === "Milik anggota");
+  const unclassifiedAssets = assets.filter((row) => !["Milik kelompok", "Milik anggota"].includes(String(row.data.assetOwnership || "")));
+  const borrowedAssets = groupAssets.filter((row) => row.data.custodyStatus === "Dipinjam");
+  const overdueAssets = borrowedAssets.filter((row) => validDate(row.data.expectedReturnAt) && String(row.data.expectedReturnAt) < today);
+  const assetsWithoutReturnDate = borrowedAssets.filter((row) => !validDate(row.data.expectedReturnAt));
+  const damagedAssets = groupAssets.filter((row) => ["Rusak", "Hilang"].includes(String(row.data.custodyStatus)) || row.data.condition === "Rusak");
+  const maintenanceAssets = groupAssets.filter((row) => row.data.custodyStatus === "Perawatan" || row.data.condition === "Perlu perawatan");
   const business = {
     assets: assets.length,
+    groupAssets: groupAssets.length,
+    memberOwnedAssets: memberOwnedAssets.length,
+    unclassifiedAssets: unclassifiedAssets.length,
+    borrowedAssets: borrowedAssets.length,
+    overdueAssets: overdueAssets.length,
+    assetsWithoutReturnDate: assetsWithoutReturnDate.length,
+    damagedAssets: damagedAssets.length,
+    maintenanceAssets: maintenanceAssets.length,
     assetsNeedAttention: count(
-      assets,
-      (row) => ["Perlu perawatan", "Rusak", "Perlu verifikasi"].includes(String(row.data.condition)),
+      groupAssets,
+      (row) => ["Perlu perawatan", "Rusak", "Perlu verifikasi"].includes(String(row.data.condition)) || ["Perawatan", "Rusak", "Hilang"].includes(String(row.data.custodyStatus)),
     ),
     lots: lots.length,
     lotsOnHold: count(
