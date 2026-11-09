@@ -69,3 +69,33 @@ test("purchase UI maps stock items and directs stock receipts into a location",(
  assert.match(purchaseUi,/clientRequestId:receiveForm\.clientRequestId/);
  assert.match(purchaseUi,/menambah kartu stok/);
 });
+
+test("inter-location transfers post paired immutable movements atomically",()=>{
+ const migration=readFileSync("migrations/018_inventory_transfers_stocktakes.sql","utf8");
+ assert.match(migration,/CREATE TABLE IF NOT EXISTS workspace_v14\.inventory_transfers/);
+ assert.match(migration,/CREATE TABLE IF NOT EXISTS workspace_v14\.inventory_transfer_lines/);
+ assert.match(migration,/apply_inventory_transfer_line/);
+ assert.match(migration,/transfer_out/);
+ assert.match(migration,/transfer_in/);
+ assert.match(migration,/Both transfer locations must be active/);
+ assert.match(api,/action==='transfer'/);
+ assert.match(api,/sourceLocationId===destinationLocationId/);
+ assert.match(ui,/Transfer Antar Lokasi/);
+ assert.match(ui,/Riwayat Transfer/);
+});
+
+test("stocktake snapshots are maker-checker approved and stale counts require recount",()=>{
+ const migration=readFileSync("migrations/018_inventory_transfers_stocktakes.sql","utf8");
+ assert.match(migration,/inventory_stocktakes/);
+ assert.match(migration,/inventory_stocktake_lines/);
+ assert.match(migration,/Stocktake approval requires a different authorized reviewer/);
+ assert.match(migration,/current_quantity IS DISTINCT FROM line\.system_quantity/);
+ assert.match(migration,/NEW\.status:='recount_required'/);
+ assert.match(migration,/inventory_stocktake_line/);
+ assert.match(api,/action==='stocktake'/);
+ assert.match(api,/action==='approve-stocktake'/);
+ assert.match(api,/Pembuat stok opname tidak boleh menyetujui/);
+ assert.match(ui,/Stok Opname & Pengajuan Selisih/);
+ assert.match(ui,/Persetujuan Stok Opname/);
+ assert.match(ui,/Perlu hitung ulang/);
+});

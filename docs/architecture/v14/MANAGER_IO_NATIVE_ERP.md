@@ -131,3 +131,8 @@ The Finance workspace should become a coherent ERP workspace, not a second disco
 - Reports reconcile to their source ledgers and disclose missing opening balances or unclosed periods.
 - CSV/PDF exports are role-scoped and mask sensitive identifiers.
 - The full workflow is tested on Preview with a real authorized test account before production release.
+
+- Inter-location transfers and controlled physical stocktakes are implemented in migration `018_inventory_transfers_stocktakes.sql`. A transfer line inserts an outgoing and incoming immutable quantity movement in the same transaction; both locations must be active in the same organization and the source location cannot go negative.
+- Physical stocktake submissions preserve the system quantity snapshot, the observed count, location, counter and submission evidence. Approval is restricted to an admin/ketua reviewer different from the submitter. The database re-locks each item and compares its live location balance with the snapshot before posting any adjustment. If a movement occurred after counting, the submission becomes `recount_required` and no variance is posted.
+- Transfer and stocktake records remain quantity-only and do not calculate value, cost, COGS, depreciation or general-ledger entries. Storefront sales deduction remains a separate integration task: legacy commerce catalogue stock must first be explicitly reconciled and mapped to normalized inventory to avoid double-decrementing two stock ledgers.
+- Migration 018 is intended for the sanitized QA branch only. Production remains untouched; the schema migration and rollback-only smoke tests must be verified before any release request.
