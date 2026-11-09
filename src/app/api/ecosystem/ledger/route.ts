@@ -38,6 +38,30 @@ export async function POST(request:Request){const c=await required(request,true)
   ]);
   return json({ok:true,id,corrects:b.id},201);
  }
+ if(b.action==='transfer'){
+  const fromId=typeof b.fromAccountId==='string'?b.fromAccountId:'';
+  const toId=typeof b.toAccountId==='string'?b.toAccountId:'';
+  const amount=Number(b.amount);
+  const postedDate=typeof b.postedDate==='string'?b.postedDate:'';
+  const memo=textField(b.memo,500);
+  if(!/^[a-f0-9-]{36}$/i.test(fromId)||!/^[a-f0-9-]{36}$/i.test(toId)||fromId===toId||!Number.isSafeInteger(amount)||amount<=0||amount>1_000_000_000_000||!memo||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(postedDate)||Number.isNaN(Date.parse(postedDate))||new Date(postedDate).toISOString().slice(0,10)!==postedDate){
+   return json({error:'Lengkapi tanggal, uraian, dua akun kas/bank berbeda, dan nominal transfer yang valid.'},400);
+  }
+  const selected=await c.db.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE owner=? AND active=TRUE AND id IN (?,?)").bind(c.user.userId,fromId,toId).all();
+  if(selected.results.length!==2||selected.results.some(a=>String(a.category)!=='asset')){
+   return json({error:'Transfer hanya boleh menggunakan dua akun aset aktif milik organisasi ini.'},400);
+  }
+  const byId=new Map(selected.results.map(a=>[String(a.id),a]));
+  const from=byId.get(fromId),to=byId.get(toId);
+  const id=crypto.randomUUID(),reference='TRF-'+id;
+  await c.db.batch([
+   c.db.prepare('INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(?,?,?,?,?,?,?)').bind(id,c.user.userId,c.user.accountId,postedDate,memo,reference,now),
+   c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,id,toId,amount,0),
+   c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,id,fromId,0,amount),
+   c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Transfer kas/bank diposting',String(from.code)+' '+String(from.name)+' → '+String(to.code)+' '+String(to.name)+' · Rp '+String(amount),now)
+  ]);
+  return json({ok:true,id,reference},201);
+ }
  if(b.action==='account'){
  const code=typeof b.code==='string'?b.code.trim():null,name=textField(b.name,160),category=b.category;
  if(!code||!/^\d{3,8}$/.test(code)||!name||!['asset','liability','equity','revenue','expense'].includes(String(category)))return json({error:'Kode, nama, atau kategori akun tidak valid.'},400);
