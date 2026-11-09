@@ -1141,6 +1141,31 @@ export default function Workspace({
                               </NativeSelectOption>
                             ))}
                         </NativeSelect>
+                      ) : f.type === "member" ? (
+                        <>
+                          <NativeSelect
+                            id={f.key}
+                            name={f.key}
+                            defaultValue={String(
+                              editor.row?.data[f.key] ??
+                                editor.initial?.[f.key] ??
+                                "",
+                            )}
+                          >
+                            <NativeSelectOption value="">Belum ditetapkan</NativeSelectOption>
+                            {members
+                              .filter((member) => member.data.status === "Aktif")
+                              .sort((a, b) => String(a.data.name).localeCompare(String(b.data.name), "id"))
+                              .map((member) => (
+                                <NativeSelectOption key={member.id} value={member.id}>
+                                  {String(member.data.name)} · {String(member.data.dusun || "Wilayah belum dicatat")}
+                                </NativeSelectOption>
+                              ))}
+                          </NativeSelect>
+                          <p className="text-xs text-muted-foreground">
+                            {f.helpText || "Penugasan hanya dapat diberikan kepada anggota aktif."}
+                          </p>
+                        </>
                       ) : f.options ? (
                         <NativeSelect
                           id={f.key}
