@@ -79,18 +79,6 @@ export async function ensureDefaultLedgerAccounts(
   return rows.results as AccountRow[];
 }
 
-function fingerprint(data: Data): Promise<string> {
-  const canonical = JSON.stringify({
-    date: String(data.date ?? ""),
-    type: String(data.type ?? ""),
-    fund: String(data.fund ?? ""),
-    amount: Number(data.amount ?? 0),
-    name: String(data.name ?? "").trim(),
-  });
-  return crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical)).then((buffer) =>
-    Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, "0")).join(""),
-  );
-}
 
 /**
  * Converts a newly recorded cash-book transaction into one balanced journal.
