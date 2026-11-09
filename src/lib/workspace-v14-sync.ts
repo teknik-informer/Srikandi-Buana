@@ -333,9 +333,10 @@ export async function buildV14RecordSyncStatements(
 ): Promise<PreparedStatement[]> {
   try {
     const schema = await db.prepare(
-      "SELECT to_regclass('workspace_v14.organizations') AS relation, to_regclass('workspace_v14.legacy_record_map') AS lineage",
+      "SELECT to_regclass('workspace_v14.organizations') AS relation, to_regclass('workspace_v14.legacy_record_map') AS lineage, to_regclass('workspace_v14.member_asset_assignments') AS asset_assignments, to_regclass('workspace_v14.member_asset_movement_events') AS asset_history, EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='workspace_v14' AND table_name='inventory_items' AND column_name='source_legacy_asset_id') AS asset_source_column",
     ).first();
     if (!schema?.relation || !schema?.lineage) return [];
+    if (source.kind === "aset" && (!schema.asset_assignments || !schema.asset_history || !schema.asset_source_column)) return [];
 
     const organization = await db.prepare(
       "SELECT id FROM workspace_v14.organizations WHERE source_owner_user_id=?",
