@@ -159,6 +159,6 @@ export function AccountingWorkspace({role}:{role:string}){
  <div className="flex flex-wrap items-center gap-2"><strong className="font-semibold">{e.memo}</strong>{e.reference.startsWith("KAS-")&&<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Dari Buku Kas</span>}<span className="text-xs text-muted-foreground">{e.posted_date} · {e.reference}</span><span className="ml-auto">{canWrite&&Number(e.correction_count)===0&&<button type="button" disabled={busy} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-primary disabled:opacity-50" onClick={()=>void reverse(e)}><RotateCcw size={13}/> Buat koreksi</button>}{Number(e.correction_count)>0&&<span className="text-xs text-muted-foreground">Koreksi tercatat</span>}</span></div>
  <div className="mt-3 space-y-1.5 border-t pt-3">{journalLines(e).map(line=><div key={line.accountId} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 text-xs"><span className="min-w-0 truncate text-muted-foreground">{line.code} · {line.name}</span><span className="tabular-nums">{Number(line.debit)>0?"Debit "+money(Number(line.debit)):"—"}</span><span className="tabular-nums">{Number(line.credit)>0?"Kredit "+money(Number(line.credit)):"—"}</span></div>)}</div>
  </article>)}</div>}</section>
- <MemberFinancePolicies role={role}/>
+ <MemberFinancePolicies role={role} />
  </div>
 }
