@@ -84,6 +84,14 @@ export async function PUT(req:Request){return save(req,true)}
 async function save(req:Request,edit:boolean){try{const c=await context(req,true);if(c.error)return c.error;
  if(Number(req.headers.get("content-length")||0)>40000)return json({error:"Formulir terlalu besar."},413);
  const body=await readJsonObject(req,40000) as {kind:string;id?:string;data:unknown;expectedUpdated?:string};const data=validate(body.kind,body.data);
+ if(body.kind==="kas"){
+  const counterAccountId=String(data.counterAccountId||"");
+  const counter=await c.db!.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE id=? AND owner=? AND active=TRUE").bind(counterAccountId,c.user!.userId).first();
+  if(!counter)return json({error:"Pilih akun lawan transaksi yang aktif pada daftar akun kelompok."},400);
+  data.counterAccountName=String(counter.name||"").slice(0,160);
+  data.counterAccountCode=String(counter.code||"").slice(0,8);
+  data.counterAccountCategory=String(counter.category||"").slice(0,20);
+ }
  if(body.kind==="tindaklanjut"){
   const assignedMemberId=String(data.assignedMemberId||"").trim();
   if(assignedMemberId){
