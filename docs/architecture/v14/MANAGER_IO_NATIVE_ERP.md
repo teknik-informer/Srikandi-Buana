@@ -75,7 +75,7 @@ The Finance workspace should become a coherent ERP workspace, not a second disco
 - Cash-fund transfer form is implemented for the three configured cash funds, checks available ledger balance, and posts a balanced journal plus audit event.
 - Bank reconciliation schema and API are implemented additively in `migrations/013_bank_reconciliation.sql` and `/api/ecosystem/reconciliation`.
 - The finance workspace supports statement-line entry, exact ledger matching, balance arithmetic checks, and period locking. It does not import CSV statements yet, does not auto-match fuzzy references, and does not reconcile historical periods automatically.
-- Migration 013 is committed to the feature branch only; it has not been applied to QA or Production.
+- Migration 013 is committed to the feature branch and applied to the sanitized QA branch `srikandi-v12-sanitized-qa-20261106`; tables, unique indexes, and lock triggers were verified. No statement or ledger data was migrated. Production remains untouched.
 
 ### Phase C — sales and purchasing
 - Extend current order → invoice → receipt flow with quotations, customer/supplier master data, supplier bills, purchase orders, goods receipts, credit notes, and payables.
