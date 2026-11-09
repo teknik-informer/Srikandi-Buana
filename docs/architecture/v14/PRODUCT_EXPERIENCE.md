@@ -92,3 +92,12 @@ Pusat Bantuan adalah pusat dokumentasi, bukan menu input. Pencarian template men
 8. Build, typecheck, ESLint, regression, dan security gate lulus sebelum perubahan dipromosikan.
 9. QA browser dengan role uji yang sah tetap wajib; test statis atau HTTP 200 tidak menggantikannya.
 10. ESLint dijalankan pada komponen v14 yang berubah. Lint seluruh repositori masih memiliki temuan historis di area lain; temuan tersebut tidak boleh disembunyikan dan harus diselesaikan bertahap melalui backlog terpisah.
+
+
+## Sinkronisasi profil akun dan keanggotaan
+
+Data keanggotaan terhubung menjadi sumber identitas resmi: nama lengkap, peran/jabatan, status, dan status verifikasi dibaca dari record anggota. Nama tampilan akun tetap merupakan preferensi antarmuka dan tidak menggantikan nama resmi.
+
+Saat anggota memperbarui profil, nomor telepon, nama panggilan, alamat dusun/jalan, desa/kelurahan, dan snapshot alamat berjenjang diselaraskan ke record keanggotaan yang tertaut. Saat Sekretariat memperbarui nama, peran, status, telepon, dusun, atau desa melalui modul Keanggotaan, perubahan tersebut menjadi nilai yang dibaca kembali oleh profil akun. Metadata alamat yang dikelola melalui profil dipertahankan saat record keanggotaan diedit; bila desa diubah secara manual, kode wilayah dan kode pos lama dikosongkan agar tidak menyisakan hierarki yang keliru.
+
+Perubahan akun juga menjalankan sinkronisasi ke proyeksi data v14. NIK dan rekening tetap berada di penyimpanan privat terenkripsi akun dan tidak disalin ke record keanggotaan. Akun tanpa tautan member_id ditandai belum terhubung dan tidak mengubah data anggota mana pun.

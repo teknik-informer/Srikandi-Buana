@@ -25,10 +25,12 @@ import {
 import { toast } from "sonner";
 
 type ProfileUser = ProfileIdentity & { email: string; role: Role; position: string };
-type SavedPayload = { user?: ProfileIdentity; cv?: AccountCV; privateSummary?: PrivateProfileSummary | null; privateStorageReady?: boolean; error?: string };
+type MembershipSummary = { name: string; dusun: string; phone: string; status: string; verification: string; linked: boolean };
+type SavedPayload = { user?: ProfileIdentity; profile?: MembershipSummary; cv?: AccountCV; privateSummary?: PrivateProfileSummary | null; privateStorageReady?: boolean; error?: string };
 type Props = {
   user: ProfileUser;
   memberName: string;
+  membershipLinked: boolean;
   initialCV: AccountCV;
   initialPrivateSummary: PrivateProfileSummary | null;
   privateStorageReady: boolean;
@@ -48,7 +50,7 @@ function EntryActions({ onAdd, label }: { onAdd: () => void; label: string }) {
   return <Button type="button" variant="outline" size="sm" onClick={onAdd}><Plus className="size-4" />{label}</Button>;
 }
 
-export default function AccountProfileEditor({ user, memberName, initialCV, initialPrivateSummary, privateStorageReady, onSaved }: Props) {
+export default function AccountProfileEditor({ user, memberName, membershipLinked, initialCV, initialPrivateSummary, privateStorageReady, onSaved }: Props) {
   const [displayName, setDisplayName] = useState(user.displayName);
   const [cv, setCV] = useState<AccountCV>(() => ({ ...emptyAccountCV, ...initialCV }));
   const [privateSummary, setPrivateSummary] = useState<PrivateProfileSummary | null>(initialPrivateSummary);
@@ -195,7 +197,7 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
     <Card className="min-w-0 lg:col-span-2">
       <CardHeader>
         <CardTitle>Profil pribadi & CV</CardTitle>
-        <CardDescription>Lengkapi identitas, alamat berjenjang, kontak, pengalaman, pendidikan, dan kemampuan. Data ini milik akun Anda sendiri.</CardDescription>
+        <CardDescription>Lengkapi identitas, alamat berjenjang, kontak, pengalaman, pendidikan, dan kemampuan. Data keanggotaan yang terhubung akan diperbarui bersama profil ini.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-7">
         <div className="flex min-w-0 flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:flex-row sm:items-center sm:p-5">
@@ -203,8 +205,8 @@ export default function AccountProfileEditor({ user, memberName, initialCV, init
           <div className="min-w-0 flex-1 space-y-2">
             <p className="break-words text-xl font-semibold tracking-tight">{user.displayName}</p>
             <p className="break-all text-sm text-muted-foreground">{user.email}</p>
-            <div className="flex flex-wrap gap-2"><Badge variant="secondary">{roles[user.role]}</Badge>{user.position && <Badge variant="outline">{user.position}</Badge>}</div>
-            <p className="text-xs text-muted-foreground">Nama resmi keanggotaan: <strong>{memberName || user.displayName}</strong>. Koreksi nama resmi mengikuti verifikasi Sekretariat.</p>
+            <div className="flex flex-wrap gap-2"><Badge variant="secondary">{roles[user.role]}</Badge>{user.position && <Badge variant="outline">{user.position}</Badge>}<Badge variant={membershipLinked ? "outline" : "secondary"}>{membershipLinked ? "Terhubung ke keanggotaan" : "Belum terhubung"}</Badge></div>
+            <p className="text-xs text-muted-foreground">Nama resmi keanggotaan: <strong>{memberName || user.displayName}</strong>. Nama resmi, jabatan/peran, status, dan verifikasi mengikuti data keanggotaan. Telepon, nama panggilan, dan alamat diselaraskan saat profil disimpan.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto">
             <form ref={photoForm} data-protect-unsaved onSubmit={savePhoto} className="flex flex-wrap gap-2" aria-label="Ubah foto profil">

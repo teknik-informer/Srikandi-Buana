@@ -10,6 +10,8 @@ const regionApi = read("src/app/api/regions/route.ts");
 const data = read("src/lib/account-profile-data.ts");
 const privateCrypto = read("src/lib/account-profile-private.ts");
 const accountPage = read("src/app/_components/access/my-account.tsx");
+const membershipApi = read("src/app/api/records/route.ts");
+const auth = read("src/lib/auth.ts");
 
 test("account profile is an editable CV with repeatable professional and personal sections", () => {
   for (const label of [
@@ -98,10 +100,21 @@ test("profile API is authenticated, same-origin, owner-scoped and size-limited",
   assert.match(accountApi, /access_audit/);
 });
 
-test("saving the CV only syncs the ordinary phone field to the linked member record", () => {
-  assert.match(accountApi, /updatedMember = \{ \.\.\.member\.data, phone: cv\.contact\.phone \}/);
-  assert.match(accountApi, /kind='anggota'/);
-  assert.doesNotMatch(accountApi, /updatedMember[^;]*(?:nik|accountNumber|bankName)/);
+test("profile and membership synchronize shared fields in both directions", () => {
+  assert.match(accountApi, /phone: cv\.contact\.phone/);
+  assert.match(accountApi, /dusun: cv\.address\.street/);
+  assert.match(accountApi, /village: cv\.address\.villageName/);
+  assert.match(accountApi, /preferredName: cv\.personal\.preferredName/);
+  assert.match(accountApi, /profileAddressJson: JSON\.stringify\(cv\.address\)/);
+  assert.match(accountApi, /buildV14RecordSyncStatements/);
+  assert.match(accountApi, /linked: Boolean\(member\)/);
+  assert.match(membershipApi, /profileAddressJson/);
+  assert.match(membershipApi, /for\(const key of \["preferredName","village","profileAddressJson"\]/);
+  assert.match(auth, /membership\?\.name/);
+  assert.match(auth, /membership\?\.role/);
+  assert.match(accountPage, /membershipLinked=\{data\.profile\.linked\}/);
+  assert.match(accountPage, /profile: payload\.profile \|\| current\.profile/);
+  assert.doesNotMatch(accountApi, /nik: cv\.|bankName: cv\.|accountNumber: cv\./);
 });
 
 test("profile CV data is normalized, bounded and validates dates and URLs", () => {

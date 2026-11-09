@@ -80,6 +80,29 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   previousRecordData=oldData;
   if(!canWriteRecord(c.user!,{id:String(old.id),kind:body.kind,data:oldData}))return json({error:'Data di luar penugasan Anda.'},403);
   if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
+  if(body.kind==="anggota"){
+   // CV-owned values remain attached to the member record even when an administrator
+   // edits the standard membership form, which does not expose these profile fields.
+   for(const key of ["preferredName","village","profileAddressJson"] as const){
+    if(data[key]===undefined&&oldData[key]!==undefined)data[key]=String(oldData[key]);
+   }
+   if(typeof oldData.profileAddressJson==="string"){
+    try{
+     const parsed=JSON.parse(oldData.profileAddressJson);
+     if(parsed&&typeof parsed==="object"&&!Array.isArray(parsed)){
+      const address=parsed as Record<string,unknown>;
+      if(String(oldData.dusun||"")!==String(data.dusun||""))address.street=String(data.dusun||"");
+      if(String(oldData.village||"")!==String(data.village||"")){
+       for(const key of ["provinceCode","provinceName","regencyCode","regencyName","districtCode","districtName","villageCode","postalCode"])address[key]="";
+       address.villageName=String(data.village||"");
+      }
+      data.profileAddressJson=JSON.stringify(address);
+     }
+    }catch{
+     // Do not discard an older address snapshot if it cannot be parsed.
+    }
+   }
+  }
   if(body.kind==="tindaklanjut"){
    previousTaskData=oldData;
    if(c.user!.role!=="admin"&&c.user!.role!=="ketua"){

@@ -6,6 +6,7 @@ import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { json, sameOrigin } from "@/lib/account-access";
 import { normalizeAccountCV, normalizePrivateProfileInput } from "@/lib/account-profile-data";
+import { buildV14RecordSyncStatements } from "@/lib/workspace-v14-sync";
 import {
   decryptPrivateAccountData,
   encryptPrivateAccountData,
@@ -72,13 +73,45 @@ export async function GET() {
       } catch { /* Keep the verified identity if an optional display preference is malformed. */ }
     }
     const normalizedCV = normalizeAccountCV(stored.cv, String(memberData.phone || ""));
-    const cv = {
+    let memberAddress: Record<string, unknown> | null = null;
+    if (typeof memberData.profileAddressJson === "string") {
+      try {
+        const parsed = JSON.parse(memberData.profileAddressJson);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          memberAddress = parsed as Record<string, unknown>;
+        }
+      } catch {
+        // Keep the last valid account CV if a legacy membership address is malformed.
+      }
+    }
+    const address = { ...normalizedCV.address, ...(memberAddress || {}) };
+    if (member) address.street = String(memberData.dusun || "");
+    if (member && typeof memberData.village === "string") {
+      const village = memberData.village;
+      if (village !== String(address.villageName || "")) {
+        for (const key of [
+          "provinceCode", "provinceName", "regencyCode", "regencyName",
+          "districtCode", "districtName", "villageCode", "postalCode",
+        ]) address[key] = "";
+      }
+      address.villageName = village;
+    }
+    const cv = normalizeAccountCV({
       ...normalizedCV,
-      address: {
-        ...normalizedCV.address,
-        street: normalizedCV.address.street || String(memberData.dusun || ""),
+      personal: {
+        ...normalizedCV.personal,
+        preferredName: typeof memberData.preferredName === "string"
+          ? memberData.preferredName
+          : normalizedCV.personal.preferredName,
       },
-    };
+      contact: {
+        ...normalizedCV.contact,
+        phone: member && memberData.phone !== undefined
+          ? String(memberData.phone || "")
+          : normalizedCV.contact.phone,
+      },
+      address,
+    });
     const privateStorageReady = isPrivateProfileEncryptionConfigured();
     const privateSummary = await privateSummaryFor(stored, u.userId, u.accountId);
     return json({
@@ -95,8 +128,9 @@ export async function GET() {
         name: String(memberData.name || u.fullName),
         dusun: String(memberData.dusun || ""),
         phone: String(memberData.phone || ""),
-        status: String(memberData.status || "Aktif"),
-        verification: String(memberData.verification || "Terverifikasi"),
+        status: member ? String(memberData.status || "Perlu verifikasi") : "Tidak terhubung",
+        verification: member ? String(memberData.verification || "Perlu verifikasi") : "—",
+        linked: Boolean(member),
       },
       cv,
       privateSummary,
@@ -138,6 +172,9 @@ export async function PATCH(request: Request) {
 
       const member = await memberProfile(u.userId, u.memberId);
       const cv = normalizeAccountCV(raw.cv, String(member?.data.phone || ""));
+      if (member && !cv.address.street.trim()) {
+        return json({ error: "Alamat jalan/dusun wajib diisi karena merupakan bagian dari identitas keanggotaan." }, 400);
+      }
       const previous = await storedAccountProfile(u.userId, u.accountId);
       const privateStorageReady = isPrivateProfileEncryptionConfigured();
       let stored: StoredProfile = { version: 1, cv };
@@ -189,23 +226,53 @@ export async function PATCH(request: Request) {
         if (previous.privateProfile) stored.privateProfile = previous.privateProfile;
       }
 
+      const updatedMember = member ? {
+        ...member.data,
+        phone: cv.contact.phone,
+        dusun: cv.address.street,
+        village: cv.address.villageName,
+        preferredName: cv.personal.preferredName,
+        profileAddressJson: JSON.stringify(cv.address),
+      } : null;
       const statements = [
         env.DB.prepare("INSERT INTO settings(key,owner,data,updated) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated=excluded.updated WHERE settings.owner=excluded.owner")
           .bind(accountCVKey(u.accountId), u.userId, JSON.stringify(stored), now),
         env.DB.prepare("INSERT INTO access_audit(id,owner,actor,action,target,created) VALUES(?,?,?,?,?,?)")
-          .bind(crypto.randomUUID(), u.userId, u.accountId, "Profil pribadi dan CV diperbarui", "Profil akun " + u.accountId, now),
+          .bind(
+            crypto.randomUUID(), u.userId, u.accountId,
+            member ? "Profil akun diselaraskan dengan keanggotaan" : "Profil pribadi dan CV diperbarui",
+            "Profil akun " + u.accountId, now,
+          ),
       ];
-      if (member && String(member.data.phone || "") !== cv.contact.phone) {
-        const updatedMember = { ...member.data, phone: cv.contact.phone };
+      if (member && updatedMember) {
         statements.push(
           env.DB.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='anggota'")
             .bind(JSON.stringify(updatedMember), now, u.memberId, u.userId),
         );
       }
-      await env.DB.batch(statements);
+      const normalizedMemberWrites = member && updatedMember && u.memberId
+        ? await buildV14RecordSyncStatements(env.DB, {
+            owner: u.userId,
+            actorId: u.accountId,
+            id: u.memberId,
+            kind: "anggota",
+            data: updatedMember,
+            now,
+          })
+        : [];
+      await env.DB.batch([...statements, ...normalizedMemberWrites]);
+      const membershipData = updatedMember || member?.data || null;
       return json({
         ok: true,
         user: { accountId: u.accountId, displayName: u.displayName, avatarUrl: u.avatarUrl || "" },
+        profile: {
+          name: String(membershipData?.name || u.fullName),
+          dusun: String(membershipData?.dusun || cv.address.street || ""),
+          phone: String(membershipData?.phone || ""),
+          status: member ? String(membershipData?.status || "Perlu verifikasi") : "Tidak terhubung",
+          verification: member ? String(membershipData?.verification || "Perlu verifikasi") : "—",
+          linked: Boolean(member),
+        },
         cv,
         privateSummary,
         privateStorageReady,

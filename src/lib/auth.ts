@@ -12,9 +12,18 @@ export async function getAuthenticatedUser():Promise<Principal|null>{
  const user=await env.DB.prepare('SELECT u.id,u.email,u.full_name,u.role,u.workspace_owner,u.member_id,u.position,u.program_ids,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role FROM sessions s JOIN users u ON u.id=s.user_id JOIN users o ON o.id=u.workspace_owner WHERE s.token_hash=? AND s.expires>? AND u.enabled=TRUE').bind(digest(token),new Date().toISOString()).first();
  if(!user||!user.owner_enabled||user.owner_role!=='admin'||String(user.owner_email).toLowerCase()!==process.env.ADMIN_EMAIL.trim().toLowerCase()||!(String(user.role) in roles))return null;
  if(user.role==='admin'&&(user.id!==user.workspace_owner||String(user.email).toLowerCase()!==process.env.ADMIN_EMAIL.trim().toLowerCase()))return null;
- if(user.role!=='admin'){const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(user.member_id,user.workspace_owner).first();if(!member)return null;const d=JSON.parse(String(member.data));if(d.status!=='Aktif'||d.verification!=='Terverifikasi')return null;}
+ let membership:Record<string,unknown>|null=null;
+ if(user.role!=='admin'){
+  const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(user.member_id,user.workspace_owner).first();
+  if(!member)return null;
+  const d=JSON.parse(String(member.data)) as Record<string,unknown>;
+  if(d.status!=='Aktif'||d.verification!=='Terverifikasi')return null;
+  membership=d;
+ }
  let programIds:string[]=[];try{const v=JSON.parse(String(user.program_ids));if(Array.isArray(v))programIds=v.filter((p:unknown)=>typeof p==='string')}catch{return null}
  const profile=await getAccountProfile(String(user.workspace_owner),String(user.id));
- return {accountId:String(user.id),userId:String(user.workspace_owner),email:String(user.email),displayName:profile.displayName||String(user.full_name),avatarUrl:profile.avatarUrl,fullName:String(user.full_name),role:user.role as Role,memberId:user.member_id?String(user.member_id):null,position:String(user.position||''),programIds};
+ const fullName=typeof membership?.name==='string'&&membership.name.trim()?membership.name:String(user.full_name);
+ const position=typeof membership?.role==='string'&&membership.role.trim()?membership.role:String(user.position||'');
+ return {accountId:String(user.id),userId:String(user.workspace_owner),email:String(user.email),displayName:profile.displayName||fullName,avatarUrl:profile.avatarUrl,fullName,role:user.role as Role,memberId:user.member_id?String(user.member_id):null,position,programIds};
 }
 export async function createSession(userId:string,remember:boolean){if(!env.DB)throw Error('Database belum tersedia.');const token=randomBytes(32).toString('base64url'),maxAge=remember?30*86400:8*3600;await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires,created) VALUES(?,?,?,?)').bind(digest(token),userId,new Date(Date.now()+maxAge*1000).toISOString(),new Date().toISOString()).run();const jar=await cookies();jar.set(sessionCookie,token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge});return token}
