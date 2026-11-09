@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useState,type FormEvent} from 'react';
-import {AlertTriangle,ArrowDownToLine,ArrowUpFromLine,Boxes,ClipboardList,Package,Plus,RefreshCw,Warehouse} from 'lucide-react';
+import {AlertTriangle,Boxes,ClipboardList,Package,Plus,RefreshCw,Warehouse} from 'lucide-react';
 
 type InventoryItem={id:string;sku:string;name:string;item_type:string;unit_of_measure:string;reorder_level:number|string;on_hand:number|string;reorder_warning:boolean;location_count:number|string};
 type Location={id:string;location_code:string;name:string;location_type:string;active:boolean;notes:string|null;item_count:number|string};
