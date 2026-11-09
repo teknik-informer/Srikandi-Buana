@@ -38,7 +38,7 @@ export async function POST(request:Request){
    const duplicate=await c.db.prepare("SELECT id FROM finance_bank_reconciliations WHERE owner=? AND account_id=? AND period_start=? AND period_end=?").bind(c.user.userId,accountId,start,end).first();
    if(duplicate)return json({error:'Rekonsiliasi untuk akun dan periode tersebut sudah tersedia.'},409);
    const id=crypto.randomUUID();
-   await c.db.prepare('INSERT INTO finance_bank_reconciliations(id,owner,account_id,period_start,period_end,opening_balance,closing_balance,actor_id,created) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,c.user.userId,accountId,start,end,opening,closing,c.user.accountId,now).run();
+   await c.db.batch([c.db.prepare('INSERT INTO finance_bank_reconciliations(id,owner,account_id,period_start,period_end,opening_balance,closing_balance,actor_id,created) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,c.user.userId,accountId,start,end,opening,closing,c.user.accountId,now),c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Periode rekonsiliasi dibuat',String(start)+' s.d. '+String(end),now)]);
    return json({ok:true,id},201);
   }
   const reconciliationId=typeof b.reconciliationId==='string'?b.reconciliationId:'';
@@ -50,7 +50,7 @@ export async function POST(request:Request){
    const date=b.transactionDate,description=textField(b.description,300),reference=textField(b.reference,100),amount=Number(b.signedAmount);
    if(!validDate(date)||String(date)<String(head.period_start).slice(0,10)||String(date)>String(head.period_end).slice(0,10)||!description||!Number.isSafeInteger(amount)||amount===0||Math.abs(amount)>1_000_000_000_000)return json({error:'Tanggal, uraian, dan nominal mutasi harus valid serta berada dalam periode.'},400);
    const id=crypto.randomUUID();
-   await c.db.prepare('INSERT INTO finance_bank_statement_lines(id,owner,reconciliation_id,transaction_date,description,reference,signed_amount,created) VALUES(?,?,?,?,?,?,?,?)').bind(id,c.user.userId,reconciliationId,date,description,reference||null,amount,now).run();
+   await c.db.batch([c.db.prepare('INSERT INTO finance_bank_statement_lines(id,owner,reconciliation_id,transaction_date,description,reference,signed_amount,created) VALUES(?,?,?,?,?,?,?,?)').bind(id,c.user.userId,reconciliationId,date,description,reference||null,amount,now),c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Mutasi rekening ditambahkan',String(date)+' · '+description.slice(0,160)+' · Rp '+String(amount),now)]);
    return json({ok:true,id},201);
   }
   if(b.action==='match'){
@@ -63,16 +63,17 @@ export async function POST(request:Request){
    if(Number(line.signed_amount)!==Number(ledger.signed_amount))return json({error:'Nominal mutasi tidak sama dengan nominal jurnal. Periksa tanggal, akun, dan arah debit/kredit.'},409);
    const duplicate=await c.db.prepare('SELECT id FROM finance_bank_statement_lines WHERE owner=? AND matched_ledger_line_id=?').bind(c.user.userId,ledgerLineId).first();
    if(duplicate)return json({error:'Baris jurnal tersebut sudah dipasangkan dengan mutasi lain.'},409);
-   await c.db.prepare('UPDATE finance_bank_statement_lines SET matched_ledger_line_id=? WHERE id=? AND owner=? AND matched_ledger_line_id IS NULL').bind(ledgerLineId,statementLineId,c.user.userId).run();
+   await c.db.batch([c.db.prepare('UPDATE finance_bank_statement_lines SET matched_ledger_line_id=? WHERE id=? AND owner=? AND matched_ledger_line_id IS NULL').bind(ledgerLineId,statementLineId,c.user.userId),c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Mutasi rekening dicocokkan','Mutasi '+statementLineId+' dengan baris buku besar '+ledgerLineId,now)]);
    return json({ok:true});
   }
   if(b.action==='unmatch'){
    const statementLineId=typeof b.statementLineId==='string'?b.statementLineId:'';
-   await c.db.prepare('UPDATE finance_bank_statement_lines SET matched_ledger_line_id=NULL WHERE id=? AND reconciliation_id=? AND owner=? AND matched_ledger_line_id IS NOT NULL').bind(statementLineId,reconciliationId,c.user.userId).run();
+   await c.db.batch([c.db.prepare('UPDATE finance_bank_statement_lines SET matched_ledger_line_id=NULL WHERE id=? AND reconciliation_id=? AND owner=? AND matched_ledger_line_id IS NOT NULL').bind(statementLineId,reconciliationId,c.user.userId),c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Pencocokan mutasi dibatalkan','Mutasi '+statementLineId,now)]);
    return json({ok:true});
   }
   if(b.action==='finalize'){
    const summary=await c.db.prepare('SELECT COUNT(*) AS total,COUNT(matched_ledger_line_id) AS matched,COALESCE(SUM(signed_amount),0) AS net FROM finance_bank_statement_lines WHERE reconciliation_id=? AND owner=?').bind(reconciliationId,c.user.userId).first();
+   if(Number(summary?.total??0)<1)return json({error:'Tambahkan mutasi rekening sebelum mengunci periode.'},409);
    const expected=Number(head.opening_balance)+Number(summary?.net??0);
       const current=await c.db.prepare('SELECT closing_balance FROM finance_bank_reconciliations WHERE id=? AND owner=?').bind(reconciliationId,c.user.userId).first();
    if(expected!==Number(current?.closing_balance))return json({error:'Saldo akhir tidak sama dengan saldo awal ditambah seluruh mutasi rekening.'},409);
