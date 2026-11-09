@@ -170,3 +170,18 @@ DROP TRIGGER IF EXISTS srikandi_matched_bill_has_lines ON commerce_purchase_bill
 CREATE CONSTRAINT TRIGGER srikandi_matched_bill_has_lines
  AFTER INSERT ON commerce_purchase_bills DEFERRABLE INITIALLY DEFERRED
  FOR EACH ROW EXECUTE FUNCTION srikandi_verify_matched_bill_has_lines();
+
+-- Keep supplier bill source/match facts immutable while payment projection fields may advance.
+CREATE OR REPLACE FUNCTION srikandi_guard_supplier_bill_header() RETURNS trigger AS $$
+BEGIN
+ IF TG_OP='DELETE' THEN RAISE EXCEPTION 'Posted supplier bills cannot be deleted.'; END IF;
+ IF (to_jsonb(NEW)-'paid_total'-'status'-'updated')<>(to_jsonb(OLD)-'paid_total'-'status'-'updated') THEN
+  RAISE EXCEPTION 'Posted supplier bill source and match data are immutable.';
+ END IF;
+ RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS srikandi_supplier_bill_header_guard ON commerce_purchase_bills;
+CREATE TRIGGER srikandi_supplier_bill_header_guard
+ BEFORE UPDATE OR DELETE ON commerce_purchase_bills
+ FOR EACH ROW EXECUTE FUNCTION srikandi_guard_supplier_bill_header();
