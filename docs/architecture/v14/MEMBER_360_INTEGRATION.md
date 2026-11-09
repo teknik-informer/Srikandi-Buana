@@ -8,7 +8,7 @@ Prinsip utama: **satu identitas anggota, banyak catatan operasional yang terhubu
 
 ## 2. Dasar dari makalah Administrasi KWT
 
-Makalah sumber membagi administrasi menjadi administrasi kegiatan dan administrasi keuangan. Administrasi kegiatan mencakup Buku Induk Anggota, Buku Kegiatan, Buku Tamu, Notulen, Produktivitas dan Hasil Produksi, Surat, Ekspedisi, Kepemilikan Sarana/Prasarana Anggota, Luas Lahan Garapan, Pengurus, dan Daftar Hadir. Administrasi keuangan mencakup Buku Kas, Iuran Anggota, Tabungan Anggota, Inventaris, Penjualan, dan Pembelian.
+Makalah sumber membagi administrasi menjadi administrasi kegiatan dan administrasi keuangan. Administrasi kegiatan mencakup Buku Induk Anggota, Buku Kegiatan, Buku Tamu, Notulen, Produktivitas dan Hasil Produksi, Surat, Ekspedisi, Kepemilikan Sarana/Prasarana Anggota, Luas Lahan Garapan, Pengurus, dan Daftar Hadir. Administrasi keuangan mencakup Buku Kas, Iuran Anggota, Buku Tabungan Anggota, Inventaris, Penjualan, dan Pembelian.
 
 Makalah juga menyebut perangkat perencanaan seperti RDK, RDKK dan RUA serta biodata anggota, monografi, dan peta wilayah. KWT dijelaskan sebagai kelas belajar, unit produksi usahatani, dan wahana kerja sama. Dengan demikian, hubungan profil anggota dengan program, lahan, sarana, produksi, dan keuangan merupakan penguatan langsung dari administrasi yang disarankan.
 
