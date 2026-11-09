@@ -56,7 +56,7 @@ Aset milik anggota tidak boleh dicampur menjadi aset organisasi. Aset yang dipin
 
 ### 5.2 Program dan pemberdayaan
 
-Data wilayah, keahlian, pendidikan, pengalaman, minat, komoditas, lahan, dan kebutuhan menjadi filter awal untuk menyiapkan daftar calon peserta. Sistem menyajikan alasan kecocokan dan data yang belum lengkap. Koordinator memeriksa persyaratan program, ketersediaan, persetujuan, dan bukti sebelum menetapkan status. Programme enrolments yang sudah tersedia menjadi relasi keanggotaan-program.
+Data wilayah, keahlian, pendidikan, pengalaman, minat, komoditas, lahan, dan kebutuhan menjadi filter awal untuk menyiapkan daftar calon peserta. Sistem menyajikan alasan kecocokan dan data yang belum lengkap. Koordinator memeriksa persyaratan program, ketersediaan, persetujuan, dan bukti sebelum menetapkan status. Keputusan akhir tetap melalui persetujuan koordinator/pengurus yang berwenang; sistem hanya membantu menyiapkan bahan pemeriksaan. Programme enrolments yang sudah tersedia menjadi relasi keanggotaan-program.
 
 ### 5.3 Iuran, tabungan, simpan-pinjam
 
