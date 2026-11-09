@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { balancedLines } from "../src/features/finance/validation.mjs";
 
 const read = (path) => readFileSync(path, "utf8");
 
@@ -74,4 +75,28 @@ test("journal history returns its debit and credit account lines for review", ()
   assert.match(ui, /function journalLines\(entry:Entry\):EntryLine\[\]/);
   assert.match(ui, /Debit "\+money\(Number\(line\.debit\)\)/);
   assert.match(ui, /Kredit "\+money\(Number\(line\.credit\)\)/);
+});
+
+test("general journals support multiple unique accounts and enforce equal debit and credit totals", () => {
+  const workspace = read("src/app/_components/ecosystem-workspace.tsx");
+  const api = read("src/app/api/ecosystem/ledger/route.ts");
+  assert.match(workspace, /lines:\[\{id:'opening-debit'/);
+  assert.match(workspace, /function addJournalLine\(\)/);
+  assert.match(workspace, /function removeJournalLine\(id:string\)/);
+  assert.match(workspace, /new Set\(journal\.lines\.map\(line=>line\.accountId\)\)\.size===journal\.lines\.length/);
+  assert.match(workspace, /lines:journal\.lines\.map\(\(\{id,\.\.\.line\}\)=>line\)/);
+  assert.match(api, /!balancedLines\(b\.lines\)/);
+
+  const a="11111111-1111-4111-8111-111111111111";
+  const b="22222222-2222-4222-8222-222222222222";
+  const c="33333333-3333-4333-8333-333333333333";
+  assert.equal(balancedLines([
+    {accountId:a,debit:100,credit:0},
+    {accountId:b,debit:50,credit:0},
+    {accountId:c,debit:0,credit:150},
+  ]),true);
+  assert.equal(balancedLines([
+    {accountId:a,debit:100,credit:0},
+    {accountId:b,debit:0,credit:90},
+  ]),false);
 });
