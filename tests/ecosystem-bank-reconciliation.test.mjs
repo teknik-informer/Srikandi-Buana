@@ -20,6 +20,8 @@ test("statement rows match only exact signed amounts on the selected ledger acco
   assert.match(api, /Number\(line\.signed_amount\)!==Number\(ledger\.signed_amount\)/);
   assert.match(api, /matched_ledger_line_id/);
   assert.match(migration, /finance_bank_statement_lines_unique_match/);
+  assert.match(migration, /finance_bank_reconciliations_unique_period/);
+  assert.match(migration, /finance_bank_statement_lines_unique_reference/);
 });
 
 test("reconciled periods and statement lines are locked and cannot be deleted", () => {
