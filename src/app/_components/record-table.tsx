@@ -23,6 +23,10 @@ export function recordFieldText(
   if (value === undefined || value === null || value === "") return "—";
   if (field.key === "assignedMemberId")
     return String(row.data.assignedMemberName || "Anggota terhubung");
+  if (field.key === "memberOwnerId")
+    return String(row.data.memberOwnerName || "Pemilik anggota belum tercatat");
+  if (field.key === "custodianMemberId")
+    return String(row.data.custodianMemberName || "Anggota pemegang belum tercatat");
   if (field.key === "fileId")
     return (
       files.find((file) => file.id === value && !file.deleted_at)?.name ||
