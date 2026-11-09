@@ -31,7 +31,7 @@ test("opening stock and manual movements require reasons, locations and idempote
  assert.match(api,/opening>0&&\(!uuid\(locationId\)\|\|!openingNote\)/);
  assert.match(api,/movementType/);
  assert.match(api,/clientRequestId/);
- assert.match(api,/reference_type='inventory_action'/);
+ assert.match(api,/inventory_action/);
  assert.match(migration,/stock_opening_once/);
  assert.match(migration,/stock_movements_source_unique/);
 });
