@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const api=readFileSync("src/app/api/ecosystem/purchases/route.ts","utf8");
 const procurement=readFileSync("migrations/015_procurement_workflow.sql","utf8");
 const matching=readFileSync("migrations/016_purchase_three_way_match.sql","utf8");
+const inventory=readFileSync("migrations/017_inventory_stock_ledger.sql","utf8");
 const ui=readFileSync("src/app/_components/ecosystem-workspace.tsx","utf8");
 
 test("procurement workflow is organization-scoped and role restricted",()=>{
@@ -50,6 +51,9 @@ test("supplier bill posting requires three-way match and exact source data",()=>
  assert.match(matching,/DEFERRABLE INITIALLY DEFERRED/);
  assert.match(matching,/Supplier invoice lines must fully equal the supplier bill total/);
  assert.match(matching,/Posted supplier bill source and match data are immutable/);
+ assert.match(inventory,/goods_receipt_line/);
+ assert.match(inventory,/inventory_location_id/);
+ assert.match(inventory,/workspace_v14\.stock_movements/);
 });
 
 test("three-way match does not create inventory valuation or tolerate unapproved price differences",()=>{
