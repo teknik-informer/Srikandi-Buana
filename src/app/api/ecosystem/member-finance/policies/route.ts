@@ -213,6 +213,31 @@ export async function PATCH(request: Request) {
       return json({ ok: true, status: "approved" });
     }
 
+    if (body.action === "reject") {
+      if (!["admin", "ketua"].includes(c.user.role)) {
+        return json({ error: "Penolakan kebijakan hanya dapat dilakukan Ketua atau Administrator." }, 403);
+      }
+      const result = await c.db.prepare(`
+        WITH changed AS (
+          UPDATE workspace_v14.member_financial_policies
+          SET policy_status='rejected',updated_at=?::timestamptz
+          WHERE id=? AND organization_id=? AND policy_status='submitted'
+          RETURNING policy_code,policy_version
+        ), logged AS (
+          INSERT INTO audit(id,owner,action,title,created)
+          SELECT ?,?,'Kebijakan keuangan ditolak / perlu revisi',
+                 policy_code || ' v' || policy_version,?::timestamptz
+          FROM changed
+          RETURNING id
+        )
+        SELECT policy_code,policy_version FROM changed
+      `).bind(
+        now,body.id,orgId,crypto.randomUUID(),c.user.userId,now,
+      ).first();
+      if (!result) return json({ error: "Hanya kebijakan yang sedang menunggu persetujuan yang dapat ditolak." }, 409);
+      return json({ ok: true, status: "rejected" });
+    }
+
     return json({ error: "Tindakan kebijakan tidak dikenal." }, 400);
   } catch (error) {
     if (error instanceof RequestBodyError) return json({ error: error.message }, error.status);
