@@ -207,3 +207,27 @@ DROP TRIGGER IF EXISTS srikandi_goods_receipt_idempotency_guard ON commerce_good
 CREATE TRIGGER srikandi_goods_receipt_idempotency_guard
  BEFORE INSERT ON commerce_goods_receipts
  FOR EACH ROW EXECUTE FUNCTION srikandi_guard_goods_receipt_idempotency();
+
+-- Keep purchase order item mappings inside the PO owner's organization and unit system.
+CREATE OR REPLACE FUNCTION srikandi_guard_purchase_order_inventory_item()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE org_id TEXT; item workspace_v14.inventory_items%ROWTYPE;
+BEGIN
+ IF NEW.inventory_item_id IS NULL THEN RETURN NEW; END IF;
+ SELECT id INTO org_id FROM workspace_v14.organizations WHERE source_owner_user_id=NEW.owner;
+ IF org_id IS NULL THEN RAISE EXCEPTION 'Organization workspace has not been initialized.'; END IF;
+ SELECT * INTO item FROM workspace_v14.inventory_items
+  WHERE id=NEW.inventory_item_id AND organization_id=org_id;
+ IF NOT FOUND OR item.item_type='equipment' THEN
+  RAISE EXCEPTION 'Selected stock item is not available to this organization.';
+ END IF;
+ IF lower(trim(item.unit_of_measure))<>lower(trim(NEW.unit)) THEN
+  RAISE EXCEPTION 'Purchase order unit differs from the selected inventory item unit.';
+ END IF;
+ RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS srikandi_purchase_order_inventory_item_guard ON commerce_purchase_order_lines;
+CREATE TRIGGER srikandi_purchase_order_inventory_item_guard
+ BEFORE INSERT OR UPDATE OF inventory_item_id,unit,owner ON commerce_purchase_order_lines
+ FOR EACH ROW EXECUTE FUNCTION srikandi_guard_purchase_order_inventory_item();
