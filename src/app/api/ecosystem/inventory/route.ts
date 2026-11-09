@@ -106,12 +106,13 @@ export async function POST(request:Request){
    const itemsById=new Map(stockItems.results.map((x:Record<string,unknown>)=>[String(x.id),x]));
    const transferId=id(),number='TRF-'+transferDate.replaceAll('-','')+'-'+transferId.slice(0,6).toUpperCase();
    const statements=[c.db.prepare(`INSERT INTO workspace_v14.inventory_transfers(id,organization_id,transfer_number,source_location_id,destination_location_id,transfer_date,note,client_request_id,status,created_by_user_id,created_at)
-    VALUES(?,?,?,?,?,?,?,?,'posted',?,?::timestamptz)`).bind(transferId,org,number,sourceLocationId,destinationLocationId,transferDate,note,clientRequestId,actor,now)];
+    VALUES(?,?,?,?,?,?,?,?,'draft',?,?::timestamptz)`).bind(transferId,org,number,sourceLocationId,destinationLocationId,transferDate,note,clientRequestId,actor,now)];
    for(const line of clean){
     const item=itemsById.get(String(line.inventoryItemId)) as Record<string,unknown>;
     statements.push(c.db.prepare(`INSERT INTO workspace_v14.inventory_transfer_lines(id,organization_id,transfer_id,inventory_item_id,quantity,unit_of_measure,created_at)
      VALUES(?,?,?,?,?,?,?::timestamptz)`).bind(id(),org,transferId,line.inventoryItemId,line.quantity,String(item.unit_of_measure),now));
    }
+   statements.push(c.db.prepare("UPDATE workspace_v14.inventory_transfers SET status='posted' WHERE id=? AND organization_id=? AND status='draft'").bind(transferId,org));
    statements.push(c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(id(),owner,'Transfer stok dicatat',number+' · '+String(clean.length)+' barang',now));
    await c.db.batch(statements);
    return json({ok:true,id:transferId,transferNumber:number},201);
@@ -137,12 +138,13 @@ export async function POST(request:Request){
    const balancesById=new Map(snapshots.results.map((x:Record<string,unknown>)=>[String(x.inventory_item_id),Number(x.system_quantity)]));
    const stocktakeId=id(),number='OPN-'+countDate.replaceAll('-','')+'-'+stocktakeId.slice(0,6).toUpperCase();
    const statements=[c.db.prepare(`INSERT INTO workspace_v14.inventory_stocktakes(id,organization_id,count_number,location_id,count_date,status,note,client_request_id,created_by_user_id,submitted_at,created_at,updated_at)
-    VALUES(?,?,?,?,?,'submitted',?,?,?,?::timestamptz,?::timestamptz,?::timestamptz)`).bind(stocktakeId,org,number,locationId,countDate,note,clientRequestId,actor,now,now,now)];
+    VALUES(?,?,?,?,?,'draft',?,?,?,?::timestamptz,?::timestamptz,?::timestamptz)`).bind(stocktakeId,org,number,locationId,countDate,note,clientRequestId,actor,now,now,now)];
    for(const line of clean){
     const item=itemsById.get(String(line.inventoryItemId)) as Record<string,unknown>;
     statements.push(c.db.prepare(`INSERT INTO workspace_v14.inventory_stocktake_lines(id,organization_id,stocktake_id,inventory_item_id,system_quantity,counted_quantity,unit_of_measure,note,created_at)
      VALUES(?,?,?,?,?,?,?,?,?::timestamptz)`).bind(id(),org,stocktakeId,line.inventoryItemId,balancesById.get(String(line.inventoryItemId))??0,line.countedQuantity,String(item.unit_of_measure),line.lineNote||null,now));
    }
+   statements.push(c.db.prepare("UPDATE workspace_v14.inventory_stocktakes SET status='submitted',submitted_at=?::timestamptz,updated_at=?::timestamptz WHERE id=? AND organization_id=? AND status='draft'").bind(now,now,stocktakeId,org));
    statements.push(c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(id(),owner,'Hasil stok opname diajukan',number+' · '+String(clean.length)+' barang',now));
    await c.db.batch(statements);
    return json({ok:true,id:stocktakeId,countNumber:number,status:'submitted'},201);

@@ -99,3 +99,16 @@ test("stocktake snapshots are maker-checker approved and stale counts require re
  assert.match(ui,/Persetujuan Stok Opname/);
  assert.match(ui,/Perlu hitung ulang/);
 });
+
+test("inventory documents freeze line evidence at posting and submission",()=>{
+ const migration=readFileSync("migrations/019_inventory_document_lifecycle.sql","utf8");
+ const api=readFileSync("src/app/api/ecosystem/inventory/route.ts","utf8");
+ assert.match(migration,/status IN \('draft','posted'\)/);
+ assert.match(migration,/Transfer lines can only be added while the transfer is a draft/);
+ assert.match(migration,/Only a draft inventory transfer can be posted/);
+ assert.match(migration,/status IN \('draft','submitted','approved','recount_required'\)/);
+ assert.match(migration,/Stocktake lines can only be added while the stocktake is a draft/);
+ assert.match(migration,/OLD\.status='draft' AND NEW\.status='submitted'/);
+ assert.match(api,/SET status='posted' WHERE id=\? AND organization_id=\? AND status='draft'/);
+ assert.match(api,/SET status='submitted',submitted_at=/);
+});
