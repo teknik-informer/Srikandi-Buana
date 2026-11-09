@@ -220,6 +220,8 @@ export default function Workspace({
   const [page, setPage] = useState(1);
   const [ledgerAccounts, setLedgerAccounts] = useState<Array<{id:string;code:string;name:string;category:string;active:boolean}>>([]);
   const [ledgerAccountsError, setLedgerAccountsError] = useState("");
+  const [openSalesInvoices, setOpenSalesInvoices] = useState<Array<{id:string;invoice_number:string;customer_name:string;outstanding_amount:number;issue_date:string}>>([]);
+  const [salesInvoicesError, setSalesInvoicesError] = useState("");
   const imageUploadPending = useRef(false);
   const [imageUploading, setImageUploading] = useState(false);
   function imageBusy(value: boolean) { imageUploadPending.current = value; setImageUploading(value); }
@@ -241,6 +243,8 @@ export default function Workspace({
     if (section !== "kas") {
       setLedgerAccounts([]);
       setLedgerAccountsError("");
+      setOpenSalesInvoices([]);
+      setSalesInvoicesError("");
       return;
     }
     let active = true;
@@ -266,6 +270,22 @@ export default function Workspace({
         if (active) {
           setLedgerAccounts(Array.isArray(body.accounts) ? body.accounts.filter((account: {active?:boolean}) => account.active !== false) : []);
           setLedgerAccountsError("");
+        }
+        if (["admin", "bendahara"].includes(principal.role)) {
+          try {
+            const invoiceResponse = await fetch("/api/ecosystem/invoices?open=1", {
+              credentials: "same-origin",
+              cache: "no-store",
+            });
+            const invoiceBody = await invoiceResponse.json();
+            if (!invoiceResponse.ok) throw new Error(invoiceBody.error || "Faktur terbuka belum dapat dimuat.");
+            if (active) {
+              setOpenSalesInvoices(Array.isArray(invoiceBody.items) ? invoiceBody.items : []);
+              setSalesInvoicesError("");
+            }
+          } catch (cause) {
+            if (active) setSalesInvoicesError(cause instanceof Error ? cause.message : "Faktur terbuka belum dapat dimuat.");
+          }
         }
       } catch (cause) {
         if (active) setLedgerAccountsError(cause instanceof Error ? cause.message : "Daftar akun belum dapat dimuat.");
@@ -422,7 +442,7 @@ export default function Workspace({
       "\uFEFF" +
       [
         fields.map((f) => quote(f.label)).join(","),
-        ...data.map((r) => fields.map((f) => quote(({assignedMemberId:"assignedMemberName",memberOwnerId:"memberOwnerName",custodianMemberId:"custodianMemberName",counterAccountId:"counterAccountName"} as Record<string,string>)[f.key] ? r.data[({assignedMemberId:"assignedMemberName",memberOwnerId:"memberOwnerName",custodianMemberId:"custodianMemberName",counterAccountId:"counterAccountName"} as Record<string,string>)[f.key]] || "" : r.data[f.key])).join(",")),
+        ...data.map((r) => fields.map((f) => quote(({assignedMemberId:"assignedMemberName",memberOwnerId:"memberOwnerName",custodianMemberId:"custodianMemberName",counterAccountId:"counterAccountName",relatedInvoiceId:"relatedInvoiceNumber"} as Record<string,string>)[f.key] ? r.data[({assignedMemberId:"assignedMemberName",memberOwnerId:"memberOwnerName",custodianMemberId:"custodianMemberName",counterAccountId:"counterAccountName",relatedInvoiceId:"relatedInvoiceNumber"} as Record<string,string>)[f.key]] || "" : r.data[f.key])).join(",")),
       ].join("\r\n");
     const url = URL.createObjectURL(
       new Blob([csv], { type: "text/csv;charset=utf-8" }),
@@ -1233,6 +1253,19 @@ export default function Workspace({
                             {f.helpText || "Penugasan hanya dapat diberikan kepada anggota aktif."}
                           </p>
                         </>
+                      ) : f.type === "sales-invoice" ? (
+                        <NativeSelect
+                          id={f.key}
+                          name={f.key}
+                          defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")}
+                        >
+                          <NativeSelectOption value="">Bukan pembayaran faktur / tidak dihubungkan</NativeSelectOption>
+                          {openSalesInvoices.map((invoice) => (
+                            <NativeSelectOption key={invoice.id} value={invoice.id}>
+                              {invoice.invoice_number} · {invoice.customer_name} · Sisa {rupiah(Number(invoice.outstanding_amount))}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
                       ) : f.type === "ledger-account" ? (
                         <NativeSelect
                           id={f.key}
@@ -1327,6 +1360,7 @@ export default function Workspace({
                         />
                       )}
                       {f.type === "ledger-account" && ledgerAccountsError && <p role="alert" className="text-xs text-destructive">{ledgerAccountsError}</p>}
+                      {f.type === "sales-invoice" && salesInvoicesError && <p role="alert" className="text-xs text-destructive">{salesInvoicesError}</p>}
                       {f.helpText && <p className="text-xs leading-5 text-muted-foreground">{f.helpText}</p>}
                     </Field>
                   ))}
