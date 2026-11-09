@@ -54,6 +54,9 @@ export async function POST(request:Request){const c=await required(request,true)
   const byId=new Map(selected.results.map(a=>[String(a.id),a]));
   const from=byId.get(fromId),to=byId.get(toId);
   if(!from||!to)return json({error:'Akun sumber atau tujuan tidak ditemukan.'},400);
+  const balance=await c.db.prepare('SELECT COALESCE(SUM(debit-credit),0) AS available FROM ledger_lines WHERE owner=? AND account_id=?').bind(c.user.userId,fromId).first();
+  const available=Number(balance?.available??0);
+  if(!Number.isSafeInteger(available)||available<amount)return json({error:'Saldo pos kas sumber tidak mencukupi. Periksa saldo buku besar dan saldo awal sebelum transfer.'},409);
   const id=crypto.randomUUID(),reference='TRF-'+id;
   await c.db.batch([
    c.db.prepare('INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(?,?,?,?,?,?,?)').bind(id,c.user.userId,c.user.accountId,postedDate,memo,reference,now),
