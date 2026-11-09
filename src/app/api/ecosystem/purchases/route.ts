@@ -58,8 +58,10 @@ export async function POST(request:Request){
    return json({ok:true,id,billNumber},201);
   }
   if(b.action==='payment'){
-   const billId=typeof b.billId==='string'?b.billId:'',cashAccountId=typeof b.cashAccountId==='string'?b.cashAccountId:'',date=b.paidDate,amount=Number(b.amount),reference=textField(b.reference,100);
-   if(!/^[a-f0-9-]{36}$/i.test(billId)||!/^[a-f0-9-]{36}$/i.test(cashAccountId)||!validDate(date)||!Number.isSafeInteger(amount)||amount<=0||amount>1_000_000_000_000)return json({error:'Pilih tagihan, akun kas/bank, tanggal, dan nominal pembayaran yang valid.'},400);
+   const billId=typeof b.billId==='string'?b.billId:'',cashAccountId=typeof b.cashAccountId==='string'?b.cashAccountId:'',clientRequestId=typeof b.clientRequestId==='string'?b.clientRequestId:'',date=b.paidDate,amount=Number(b.amount),reference=textField(b.reference,100);
+   if(!/^[a-f0-9-]{36}$/i.test(billId)||!/^[a-f0-9-]{36}$/i.test(cashAccountId)||!/^[a-f0-9-]{36}$/i.test(clientRequestId)||!validDate(date)||!Number.isSafeInteger(amount)||amount<=0||amount>1_000_000_000_000)return json({error:'Pilih tagihan, akun kas/bank, tanggal, dan nominal pembayaran yang valid.'},400);
+   const reused=await c.db.prepare('SELECT id,ledger_entry_id FROM commerce_purchase_bill_payments WHERE owner=? AND client_request_id=?').bind(c.user.userId,clientRequestId).first();
+   if(reused)return json({ok:true,reused:true,paymentId:reused.id,ledgerEntryId:reused.ledger_entry_id});
    const bill=await c.db.prepare('SELECT id,bill_number,issue_date,total_amount,paid_total,status,supplier_id FROM commerce_purchase_bills WHERE id=? AND owner=?').bind(billId,c.user.userId).first();
    if(!bill)return json({error:'Tagihan pemasok tidak ditemukan.'},404);
    const cash=await c.db.prepare("SELECT id,code,name FROM ledger_accounts WHERE id=? AND owner=? AND active=TRUE AND category='asset'").bind(cashAccountId,c.user.userId).first();
@@ -76,7 +78,7 @@ export async function POST(request:Request){
     c.db.prepare('INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(?,?,?,?,?,?,?)').bind(entryId,c.user.userId,c.user.accountId,date,memo,entryRef,now),
     c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,entryId,String(payable.id),amount,0),
     c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,entryId,cashAccountId,0,amount),
-    c.db.prepare('INSERT INTO commerce_purchase_bill_payments(id,owner,bill_id,amount,paid_date,cash_account_id,ledger_entry_id,actor_id,created) VALUES(?,?,?,?,?,?,?,?,?)').bind(paymentId,c.user.userId,billId,amount,date,cashAccountId,entryId,c.user.accountId,now),
+    c.db.prepare('INSERT INTO commerce_purchase_bill_payments(id,owner,bill_id,client_request_id,amount,paid_date,cash_account_id,ledger_entry_id,actor_id,created) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(paymentId,c.user.userId,billId,clientRequestId,amount,date,cashAccountId,entryId,c.user.accountId,now),
     c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Pembayaran utang pemasok diposting',String(bill.bill_number)+' · Rp '+String(amount),now)
    ]);
    return json({ok:true,paymentId,ledgerEntryId:entryId},201);
