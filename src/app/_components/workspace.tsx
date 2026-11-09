@@ -526,6 +526,7 @@ export default function Workspace({
             files={files}
             user={principal}
             audit={audit}
+            assetMovements={assetMovements}
             loading={loading}
             error={error}
             onRefresh={() => void load()}
