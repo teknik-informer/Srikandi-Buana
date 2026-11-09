@@ -6,7 +6,8 @@ import type { WorkspaceData, WorkspaceFile, WorkspaceAudit, AssetMovement } from
 export function useWorkspaceData() {
   const [rows, setRows] = useState<Row[]>([]),
     [files, setFiles] = useState<WorkspaceFile[]>([]),
-    [audit, setAudit] = useState<WorkspaceAudit[]>([]),\n    [assetMovements, setAssetMovements] = useState<AssetMovement[]>([]),
+    [audit, setAudit] = useState<WorkspaceAudit[]>([]),
+    [assetMovements, setAssetMovements] = useState<AssetMovement[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [unauthorized, setUnauthorized] = useState(false);
@@ -24,7 +25,8 @@ export function useWorkspaceData() {
         setUnauthorized(response.status === 401);
         setRows([]);
         setFiles([]);
-        setAudit([]);\n        setAssetMovements([]);
+        setAudit([]);
+        setAssetMovements([]);
         throw Error(
           response.status === 401
             ? "Sesi masuk telah berakhir. Masuk kembali untuk melanjutkan pekerjaan."
@@ -36,7 +38,8 @@ export function useWorkspaceData() {
       if (request.signal.aborted) return;
       setRows(data.records);
       setFiles(data.files);
-      setAudit(Array.isArray(data.audit) ? data.audit : []);\n      setAssetMovements(Array.isArray(data.assetMovements) ? data.assetMovements : []);
+      setAudit(Array.isArray(data.audit) ? data.audit : []);
+      setAssetMovements(Array.isArray(data.assetMovements) ? data.assetMovements : []);
       setUnauthorized(false);
     } catch (e) {
       if (request.signal.aborted) return;
