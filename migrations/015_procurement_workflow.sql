@@ -83,7 +83,10 @@ DECLARE po_status TEXT;
 BEGIN
  IF TG_TABLE_NAME='commerce_purchase_order_lines' THEN
   SELECT status INTO po_status FROM commerce_purchase_orders WHERE id=COALESCE(NEW.purchase_order_id,OLD.purchase_order_id) AND owner=COALESCE(NEW.owner,OLD.owner);
-  IF po_status<>'pending_approval' THEN RAISE EXCEPTION 'Approved purchase order lines are immutable.'; END IF;
+  IF po_status<>'pending_approval' THEN
+   IF TG_OP='UPDATE' AND (to_jsonb(NEW)-'received_quantity')=(to_jsonb(OLD)-'received_quantity') THEN RETURN NEW; END IF;
+   RAISE EXCEPTION 'Approved purchase order lines are immutable.';
+  END IF;
  ELSIF TG_TABLE_NAME='commerce_goods_receipts' OR TG_TABLE_NAME='commerce_goods_receipt_lines' THEN
   RAISE EXCEPTION 'Goods receipt records are append-only.';
  END IF;
