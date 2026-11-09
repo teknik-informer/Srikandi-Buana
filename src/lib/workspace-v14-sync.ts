@@ -164,6 +164,7 @@ function statementForMapping(
     const metadata = {
       source: "legacy_asset_record",
       ownership: "group",
+      quantity: clean(source.data.quantity, 40),
       condition: clean(source.data.condition, 80),
       location: clean(source.data.location, 240),
       custodyStatus: clean(source.data.custodyStatus, 40),
@@ -181,6 +182,7 @@ function statementForMapping(
     const borrowerId = clean(source.data.custodianMemberId, 180);
     const borrowed = source.data.custodyStatus === "Dipinjam" && borrowerId;
     const profileId = borrowed ? stableId("v14:member_profiles", borrowerId) : "";
+    const assetQuantity = Number(source.data.quantity);
     const assignmentId = stableId("v14:asset-assignment", sourceId);
     const issuedAt = clean(source.data.issuedAt, 80);
     const expectedReturnAt = clean(source.data.expectedReturnAt, 80);
