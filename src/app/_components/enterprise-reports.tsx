@@ -603,7 +603,7 @@ export default function EnterpriseReports({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <WorkspaceMetric title="Catatan terpilih" value={reportRows.length} note="Jumlah catatan pada kelompok laporan aktif." icon={FileBarChart} />
-        <WorkspaceMetric title="Selesai / terverifikasi" value={completionCount(currentGroup, reportRows)} note="Status keberhasilan sesuai jenis laporan." icon={ShieldCheck} />
+        <WorkspaceMetric title={currentGroup.id === "usaha" ? "Aset kelompok berkondisi baik" : "Selesai / terverifikasi"} value={completionCount(currentGroup, reportRows)} note={currentGroup.id === "usaha" ? "Aset milik kelompok dengan kondisi Baik dan tanpa status rusak/perawatan." : "Status keberhasilan sesuai jenis laporan."} icon={ShieldCheck} />
         <WorkspaceMetric title="Perlu perhatian" value={attentionCount(currentGroup, reportRows)} note="Penanda tindak lanjut berdasarkan status dan tenggat yang tercatat." icon={CalendarDays} />
       </div>
 
