@@ -106,6 +106,7 @@ test("inventory documents freeze line evidence at posting and submission",()=>{
  assert.match(migration,/status IN \('draft','posted'\)/);
  assert.match(migration,/Transfer lines can only be added while the transfer is a draft/);
  assert.match(migration,/Only a draft inventory transfer can be posted/);
+ assert.match(migration,/guard_inventory_transfer_line_immutable/);
  assert.match(migration,/status IN \('draft','submitted','approved','recount_required'\)/);
  assert.match(migration,/Stocktake lines can only be added while the stocktake is a draft/);
  assert.match(migration,/OLD\.status='draft' AND NEW\.status='submitted'/);

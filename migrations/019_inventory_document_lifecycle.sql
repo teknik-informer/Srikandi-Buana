@@ -224,3 +224,16 @@ BEGIN
  RETURN NEW;
 END;
 $$;
+
+-- Keep line immutability separate from the draft -> posted header transition.
+-- The header trigger is allowed to transition once; transfer line rows never mutate.
+CREATE OR REPLACE FUNCTION workspace_v14.guard_inventory_transfer_line_immutable()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+ RAISE EXCEPTION 'Posted inventory transfer lines are immutable; record a new corrective transfer.';
+END;
+$$;
+DROP TRIGGER IF EXISTS workspace_v14_inventory_transfer_line_immutable ON workspace_v14.inventory_transfer_lines;
+CREATE TRIGGER workspace_v14_inventory_transfer_line_immutable
+ BEFORE UPDATE OR DELETE ON workspace_v14.inventory_transfer_lines
+ FOR EACH ROW EXECUTE FUNCTION workspace_v14.guard_inventory_transfer_line_immutable();
