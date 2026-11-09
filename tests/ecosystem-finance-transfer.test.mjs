@@ -10,7 +10,7 @@ test("cash transfers are restricted to distinct active organization fund account
   assert.match(api, /fromId===toId/);
   assert.match(api, /code IN \('110001','110002','110003'\)/);
   assert.match(api, /owner=\? AND active=TRUE/);
-  assert.match(api, /Transfer hanya boleh menggunakan akun Kas Organisasi/);
+  assert.match(api, /Transfer hanya boleh menggunakan akun Kas Organisasi/);\n  assert.match(api, /SUM\(debit-credit\)/);\n  assert.match(api, /Saldo pos kas sumber tidak mencukupi/);
 });
 
 test("cash transfers post a balanced double-entry journal and audit event", () => {
