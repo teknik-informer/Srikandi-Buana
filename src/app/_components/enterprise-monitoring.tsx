@@ -38,6 +38,7 @@ import { recordHref, taskStatus } from "@/lib/management-insights";
 import type { WorkspaceAudit, WorkspaceFile, AssetMovement } from "@/lib/workspace-types";
 import type { Row } from "@/lib/srikandi";
 import { StatusBadge, WorkspaceMetric, WorkspacePageHeader } from "./workspace-ui";
+import AssetProgramLinks from "./asset-program-links";
 import {
   Bar,
   BarChart,
@@ -799,6 +800,8 @@ export default function EnterpriseMonitoring({
           </Card>
         </section>
       )}
+
+      {canReadSection(user, "aset") && <AssetProgramLinks rows={rows} />}
 
       {["admin", "ketua", "sekretaris"].includes(user.role) && (
         <section className="space-y-3" aria-labelledby="meeting-priorities-title">
