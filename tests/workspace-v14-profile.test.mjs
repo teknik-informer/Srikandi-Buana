@@ -115,7 +115,7 @@ test("profile and membership synchronize shared fields in both directions", () =
   assert.match(accountApi, /buildV14RecordSyncStatements/);
   assert.match(accountApi, /linked: Boolean\(member\)/);
   assert.match(membershipApi, /profileAddressJson/);
-  assert.match(membershipApi, /for\(const key of \["preferredName","village","profileAddressJson"\]/);
+  assert.match(membershipApi, /profileOperationalJson/);
   assert.match(auth, /membership\?\.name/);
   assert.match(auth, /membership\?\.role/);
   assert.match(accountPage, /membershipLinked=\{data\.profile\.linked\}/);
