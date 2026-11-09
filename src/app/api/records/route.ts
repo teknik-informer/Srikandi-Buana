@@ -174,7 +174,10 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   }
   if(['kas','aset'].includes(body.kind)){
    await assertRecordUnlocked(c.user!.userId,id,body.kind);
-   await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),`${body.kind}: ${data.name}`);
+   const normalizedWrites=body.kind==="aset" ? await buildV14RecordSyncStatements(c.db!,{
+    owner:c.user!.userId,actorId:c.user!.accountId,id:String(id),kind:body.kind,data,now:new Date().toISOString(),previousData:oldData,
+   }) : [];
+   await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),body.kind+": "+String(data.name||""),normalizedWrites);
    return json({ok:true,id});
   }
  }
