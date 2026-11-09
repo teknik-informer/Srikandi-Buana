@@ -128,6 +128,75 @@ export default function HelpCenter({ role }: { role: Role }) {
         </CardContent>
       </Card>
 
+
+      <section id="dampak-profil-anggota" className="space-y-4 scroll-mt-24" aria-labelledby="member-impact-title">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+            <h2 id="member-impact-title" className="text-xl font-semibold">Dari profil anggota menjadi layanan yang berdampak</h2>
+            <Badge variant="secondary">Kerangka Member 360</Badge>
+          </div>
+          <p className="max-w-4xl text-sm leading-6 text-muted-foreground">
+            Profil akun dan Buku Induk Anggota bukan sekadar biodata. Data yang sudah diverifikasi menjadi referensi untuk memahami potensi, kebutuhan, partisipasi, aset, dan hak anggota. Setiap proses tetap dicatat pada modul pemiliknya agar riwayat, bukti, dan pertanggungjawaban tidak bercampur.
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Satu anggota, satu identitas, banyak layanan yang terhubung</CardTitle>
+            <CardDescription>Keanggotaan menyimpan identitas resmi. Profil CV melengkapi kemampuan dan pengalaman. Modul lain menggunakan ID anggota yang sama, bukan membuat biodata baru.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              { title: "Program & pemberdayaan", detail: "Keahlian, pendidikan, pengalaman, minat, wilayah, dan kebutuhan membantu koordinator menyusun calon peserta, pelatihan, pendampingan, serta evaluasi program.", href: "/dashboard/program", status: "Referensi operasional" },
+              { title: "Aset & sarana anggota", detail: "Catat lahan, alat, sarana produksi milik anggota secara terpisah dari inventaris kelompok. Aset kelompok yang dipinjamkan memiliki penanggung jawab dan bukti serah terima.", href: "/dashboard/aset", status: "Perlu verifikasi lapangan" },
+              { title: "Iuran & simpanan", detail: "Iuran mengikuti keputusan musyawarah. Tabungan dibentuk dari mutasi setoran, penarikan, dan koreksi yang tercatat; saldo tidak diedit manual.", href: "/dashboard/kas", status: "Menunggu kebijakan" },
+              { title: "Simpan pinjam", detail: "Permohonan, pemeriksaan, persetujuan, perjanjian, pencairan, angsuran, dan pelunasan harus memiliki bukti serta otorisasi. Profil tidak menjadi skor kredit otomatis.", href: "/dashboard/pengajuan", status: "Rancangan alur" },
+              { title: "Gaji, honor & tunjangan", detail: "Hak pembayaran harus bersumber dari penugasan, periode, dasar tarif, hasil pekerjaan, sumber dana, dan persetujuan. Jabatan atau sertifikat saja tidak otomatis menimbulkan hak bayar.", href: "/dashboard/akuntansi", status: "Menunggu kebijakan" },
+              { title: "Pembayaran & audit", detail: "Setiap pembayaran memiliki nomor referensi, pemeriksa, penyetuju, bukti, status, dan rekonsiliasi jurnal. Koreksi dilakukan dengan transaksi pembalik, bukan menghapus sejarah.", href: "/dashboard/akuntansi", status: "Kontrol wajib" },
+            ].map((item) => (
+              <article key={item.title} className="min-w-0 rounded-xl border p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <Badge variant="outline">{item.status}</Badge>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p>
+                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4" href={item.href}>
+                  Buka ruang kerja terkait <ArrowUpRight size={14} aria-hidden="true" />
+                </Link>
+              </article>
+            ))}
+          </CardContent>
+        </Card>
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-base">Alur data dan pengendalian</CardTitle>
+            <CardDescription>Data mengalir untuk membantu pekerjaan, tetapi tidak melewati pemeriksaan dan kewenangan organisasi.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-4">
+            {[
+              ["01 · Lengkapi", "Anggota mengisi profil CV, domisili, lahan, sarana, kebutuhan, dan persetujuan data."],
+              ["02 · Verifikasi", "Sekretariat dan petugas lapangan memeriksa identitas, bukti, serta status data."],
+              ["03 · Hubungkan", "Program, aset, simpanan, pinjaman, penugasan, dan pembayaran memakai ID anggota yang sama."],
+              ["04 · Pertanggungjawabkan", "Pengajuan, persetujuan, bukti, jurnal, pembayaran, dan koreksi tersimpan dalam jejak audit."],
+            ].map(([title, detail]) => (
+              <div key={title} className="space-y-2 rounded-lg bg-muted/40 p-3">
+                <p className="text-sm font-semibold">{title}</p>
+                <p className="text-sm leading-6 text-muted-foreground">{detail}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <p className="font-semibold">Penting: data profil bukan keputusan keuangan</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            NIK dan rekening tetap berada di penyimpanan privat terenkripsi serta hanya diakses saat benar-benar diperlukan dengan persetujuan. Profil, kondisi pribadi, pendidikan, atau keahlian tidak boleh otomatis menentukan penerima bantuan, kelayakan pinjaman, gaji, tunjangan, atau pencairan. Fitur keuangan baru aktif setelah kebijakan disahkan, hak akses ditetapkan, bukti tersedia, dan alur persetujuan diuji.
+          </p>
+        </div>
+        <p className="text-xs leading-5 text-muted-foreground">
+          Catatan implementasi: bagian ini adalah panduan dampak dan tata kelola. Status “rancangan” atau “menunggu kebijakan” tidak berarti formulir transaksi maupun pencairan sudah aktif. Data lama tidak dihapus atau diubah hanya karena profil diperbarui.
+        </p>
+      </section>
+
       <section id="template" className="space-y-4 scroll-mt-24" aria-labelledby="template-guide-title">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
