@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { mapLegacyRecordToV14 } from "../src/features/workspace-v14/legacy-mapping.mjs";
 
 const read = (path) => readFileSync(path, "utf8");
 const editor = read("src/app/_components/access/account-profile-editor.tsx");
@@ -14,6 +15,7 @@ const membershipApi = read("src/app/api/records/route.ts");
 const auth = read("src/lib/auth.ts");
 const migration = read("migrations/010_member_impact_finance.sql");
 const architecture = read("docs/architecture/v14/MEMBER_360_INTEGRATION.md");
+const memberMapping = read("src/features/workspace-v14/legacy-mapping.mjs");
 
 test("account profile is an editable CV with repeatable professional and personal sections", () => {
   for (const label of [
@@ -136,6 +138,42 @@ test("profile CV data is normalized, bounded and validates dates and URLs", () =
   assert.match(data, /Kode pos harus lima digit/);
 });
 
+
+
+test("v14 member sync stores only the minimized operational CV projection", () => {
+  const mapped = mapLegacyRecordToV14("anggota", {
+    name: "Anggota Contoh",
+    phone: "08123456789",
+    village: "Desa Contoh",
+    status: "Aktif",
+    verification: "Terverifikasi",
+    dataConsent: "Setuju",
+    profileOperationalJson: JSON.stringify({
+      schemaVersion: 1,
+      skills: ["Pembukuan", "Budidaya"],
+      education: [{ level: "SMA", field: "Pertanian", startYear: "2015", endYear: "2018", institution: "Sekolah", description: "Narasi privat" }],
+      experience: [{ organization: "Kelompok", title: "Sekretaris", current: true, startDate: "2020-01-01", endDate: "", location: "Alamat pribadi", description: "Narasi privat" }],
+      languages: [{ language: "Indonesia", proficiency: "Mahir" }],
+      certifications: [{ name: "Pelatihan", issuer: "Dinas", year: "2024", description: "Narasi privat" }],
+      interests: ["Pengolahan hasil"],
+      birthDate: "1990-01-01",
+      gender: "Perempuan",
+      phone: "08123456789",
+      accountNumber: "1234567890",
+      nik: "1234567890123456",
+    }),
+  });
+  assert.equal(mapped.domain, "member_profiles");
+  const projection = mapped.values.profileData.operationalProfile;
+  assert.deepEqual(projection.skills, ["Pembukuan", "Budidaya"]);
+  assert.equal(projection.education[0].field, "Pertanian");
+  assert.equal(projection.experience[0].title, "Sekretaris");
+  assert.equal(projection.languages[0].language, "Indonesia");
+  assert.equal(projection.certifications[0].name, "Pelatihan");
+  assert.deepEqual(projection.interests, ["Pengolahan hasil"]);
+  assert.doesNotMatch(JSON.stringify(mapped.values.profileData), /Narasi privat|Alamat pribadi|birthDate|gender|phone|accountNumber|nik|1234567890123456/i);
+  assert.match(memberMapping, /safeOperationalProfile/);
+});
 
 test("member impact finance schema links assets, programmes, savings, loans and compensation to member profiles", () => {
   for (const name of [
