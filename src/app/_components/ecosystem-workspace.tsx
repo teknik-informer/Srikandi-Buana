@@ -87,43 +87,6 @@ export function AccountingWorkspace({role}:{role:string}){
  function removeJournalLine(id:string){
   setJournal(current=>current.lines.length<=2?current:{...current,lines:current.lines.filter(line=>line.id!==id)});
  }
- async function submit(e:FormEvent,body:Record<string,unknown>){");
-   return '"'+safe.replaceAll('"','""')+'"';
-  };
-  const csv="\\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\\r\\n");
-  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  const anchor=document.createElement("a");
-  anchor.href=url;anchor.download=filename;anchor.click();URL.revokeObjectURL(url);
- }
- function exportActivity(){
-  downloadFinanceCsv("srikandi-laporan-aktivitas-keuangan.csv",[
-   ["Laporan Aktivitas Keuangan","SRIKANDI BUANA"],
-   ["Dasar","Saldo jurnal yang sudah diposting; Buku Kas lama yang belum dibukukan tidak termasuk."],
-   ["Kategori","Kode akun","Nama akun","Saldo (Rp)"],
-   ...statements.accounts.revenue.map(a=>["Pendapatan",a.code,a.name,a.balance]),
-   ["Total Pendapatan","","",statements.totals.revenue],
-   ...statements.accounts.expense.map(a=>["Beban",a.code,a.name,a.balance]),
-   ["Total Beban","","",statements.totals.expense],
-   [statements.surplus>=0?"Surplus kumulatif":"Defisit kumulatif","","",statements.surplus],
-  ]);
- }
- function exportPosition(){
-  downloadFinanceCsv("srikandi-laporan-posisi-keuangan.csv",[
-   ["Laporan Posisi Keuangan","SRIKANDI BUANA"],
-   ["Dasar","Saldo jurnal yang sudah diposting; periksa saldo awal dan rekonsiliasi sebelum digunakan sebagai laporan final."],
-   ["Kategori","Kode akun","Nama akun","Saldo (Rp)"],
-   ...statements.accounts.asset.map(a=>["Aset",a.code,a.name,a.balance]),
-   ["Total Aset","","",statements.totals.asset],
-   ...statements.accounts.liability.map(a=>["Kewajiban",a.code,a.name,a.balance]),
-   ["Total Kewajiban","","",statements.totals.liability],
-   ...statements.accounts.equity.map(a=>["Modal",a.code,a.name,a.balance]),
-   ["Total Modal","","",statements.totals.equity],
-   [statements.surplus>=0?"Surplus kumulatif":"Defisit kumulatif","","",statements.surplus],
-   ["Modal termasuk surplus/defisit","","",statements.equityIncludingSurplus],
-   ["Selisih aset - kewajiban - modal termasuk surplus/defisit","","",statements.difference],
-   ["Status persamaan", "", "", statements.isBalanced?"Seimbang":"Perlu pemeriksaan"],
-  ]);
- }
  async function submit(e:FormEvent,body:Record<string,unknown>){e.preventDefault();setBusy(true);setMessage('');try{await api('ledger',body);setMessage(body.action==='account'?'Akun berhasil disimpan.':'Jurnal seimbang berhasil diposting.');await reload()}catch(e){setError(e instanceof Error?e.message:'Pencatatan gagal.')}finally{setBusy(false)}}
  async function reverse(entry:Entry){if(!window.confirm('Buat jurnal koreksi untuk membalik seluruh debit/kredit pada jurnal ini? Tindakan akan dicatat dalam audit.'))return;setBusy(true);setError('');try{await api('ledger',{action:'reverse',id:entry.id});setMessage('Jurnal koreksi berhasil diposting. Jurnal awal tetap tersimpan.');await reload()}catch(e){setError(e instanceof Error?e.message:'Koreksi gagal.')}finally{setBusy(false)}}
  return <div className="workspace-page"><header><p className="text-xs font-semibold uppercase tracking-widest text-primary">Keuangan organisasi</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Akuntansi dan Buku Besar</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Pencatatan berpasangan (double-entry) dalam satu alur. Transaksi Buku Kas baru otomatis membentuk jurnal berdasarkan pos dana; jurnal yang sudah diposting dijaga tetap dan koreksi keuangan dibuat sebagai transaksi penyesuaian terpisah. Catatan Buku Kas lama belum dibukukan otomatis.</p></header>{error&&<p role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{error}</p>}{message&&<p role="status" className="rounded-xl border border-emerald-300 p-4 text-sm text-emerald-700">{message}</p>}
