@@ -5,7 +5,7 @@ import {AlertTriangle,Boxes,ClipboardList,Package,Plus,RefreshCw,Warehouse} from
 type InventoryItem={id:string;sku:string;name:string;item_type:string;unit_of_measure:string;reorder_level:number|string;on_hand:number|string;reorder_warning:boolean;location_count:number|string};
 type Location={id:string;location_code:string;name:string;location_type:string;active:boolean;notes:string|null;item_count:number|string};
 type Balance={inventory_item_id:string;location_id:string;location_name:string;item_name:string;sku:string;unit_of_measure:string;on_hand:number|string};
-type Movement={id:string;inventory_item_id:string;location_id:string;movement_type:string;quantity:number|string;unit_of_measure:string;occurred_at:string;note:string|null;item_name:string;sku:string;location_name:string;balance_after:number|string};
+type Movement={id:string;inventory_item_id:string;location_id:string|null;movement_type:string;quantity:number|string;unit_of_measure:string;reference_type:string|null;reference_id:string|null;occurred_at:string;note:string|null;item_name:string;sku:string;location_name:string;balance_after:number|string};
 const input='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-offset-2 focus-visible:outline-primary';
 const button='inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50';
 const secondary='inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium disabled:opacity-50';
