@@ -29,11 +29,11 @@ CREATE TABLE IF NOT EXISTS commerce_purchase_bills (
 CREATE INDEX IF NOT EXISTS commerce_purchase_bills_owner_due ON commerce_purchase_bills(owner,status,due_date);
 CREATE TABLE IF NOT EXISTS commerce_purchase_bill_payments (
  id TEXT PRIMARY KEY, owner TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
- bill_id TEXT NOT NULL, amount BIGINT NOT NULL CHECK(amount BETWEEN 1 AND 1000000000000),
+ bill_id TEXT NOT NULL, client_request_id TEXT NOT NULL, amount BIGINT NOT NULL CHECK(amount BETWEEN 1 AND 1000000000000),
  paid_date DATE NOT NULL, cash_account_id TEXT NOT NULL, ledger_entry_id TEXT NOT NULL,
  actor_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
  created TIMESTAMPTZ NOT NULL DEFAULT now(),
- UNIQUE(id,owner), UNIQUE(owner,ledger_entry_id),
+ UNIQUE(id,owner), UNIQUE(owner,ledger_entry_id), UNIQUE(owner,client_request_id),
  FOREIGN KEY(bill_id,owner) REFERENCES commerce_purchase_bills(id,owner) ON DELETE RESTRICT,
  FOREIGN KEY(cash_account_id,owner) REFERENCES ledger_accounts(id,owner) ON DELETE RESTRICT,
  FOREIGN KEY(ledger_entry_id,owner) REFERENCES ledger_entries(id,owner) ON DELETE RESTRICT
