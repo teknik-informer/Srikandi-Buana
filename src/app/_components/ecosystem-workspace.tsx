@@ -33,6 +33,45 @@ export function CommerceWorkspace({role}:{role:string}){
 export function AccountingWorkspace({role}:{role:string}){
  const [accounts,setAccounts]=useState<Account[]>([]),[entries,setEntries]=useState<Entry[]>([]),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[acct,setAcct]=useState({code:'',name:'',category:'asset'}),[journal,setJournal]=useState({postedDate:new Date().toLocaleDateString('en-CA'),memo:'',debitId:'',creditId:'',amount:0});
  const canWrite=role==='admin'||role==='bendahara';const trial=accounts.map(a=>({id:a.id,code:a.code,name:a.name,debit:Math.max(0,Number(a.debit)-Number(a.credit)),credit:Math.max(0,Number(a.credit)-Number(a.debit))}));const trialTotals=trial.reduce((sum,a)=>({debit:sum.debit+a.debit,credit:sum.credit+a.credit}),{debit:0,credit:0});const statements=calculateFinanceStatements(accounts) as unknown as FinanceStatements;const reload=useCallback(async()=>{try{if(canWrite)await api('ledger',{action:'initialize'});const data=await api('ledger');setAccounts(data.accounts);setEntries(data.entries);setError('')}catch(e){setError(e instanceof Error?e.message:'Data tidak dapat dimuat.')}},[canWrite]);useEffect(()=>{void reload()},[reload]);
+ function downloadFinanceCsv(filename:string, rows:Array<Array<string|number>>){
+  const quote=(value:string|number)=>{
+   const safe=String(value??"").replace(/^[=+@\\-]/,"' async function submit(e:FormEvent,body:Record<string,unknown>){");
+   return '"'+safe.replaceAll('"','""')+'"';
+  };
+  const csv="\\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\\r\\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const anchor=document.createElement("a");
+  anchor.href=url;anchor.download=filename;anchor.click();URL.revokeObjectURL(url);
+ }
+ function exportActivity(){
+  downloadFinanceCsv("srikandi-laporan-aktivitas-keuangan.csv",[
+   ["Laporan Aktivitas Keuangan","SRIKANDI BUANA"],
+   ["Dasar","Saldo jurnal yang sudah diposting; Buku Kas lama yang belum dibukukan tidak termasuk."],
+   ["Kategori","Kode akun","Nama akun","Saldo (Rp)"],
+   ...statements.accounts.revenue.map(a=>["Pendapatan",a.code,a.name,a.balance]),
+   ["Total Pendapatan","","",statements.totals.revenue],
+   ...statements.accounts.expense.map(a=>["Beban",a.code,a.name,a.balance]),
+   ["Total Beban","","",statements.totals.expense],
+   [statements.surplus>=0?"Surplus kumulatif":"Defisit kumulatif","","",statements.surplus],
+  ]);
+ }
+ function exportPosition(){
+  downloadFinanceCsv("srikandi-laporan-posisi-keuangan.csv",[
+   ["Laporan Posisi Keuangan","SRIKANDI BUANA"],
+   ["Dasar","Saldo jurnal yang sudah diposting; periksa saldo awal dan rekonsiliasi sebelum digunakan sebagai laporan final."],
+   ["Kategori","Kode akun","Nama akun","Saldo (Rp)"],
+   ...statements.accounts.asset.map(a=>["Aset",a.code,a.name,a.balance]),
+   ["Total Aset","","",statements.totals.asset],
+   ...statements.accounts.liability.map(a=>["Kewajiban",a.code,a.name,a.balance]),
+   ["Total Kewajiban","","",statements.totals.liability],
+   ...statements.accounts.equity.map(a=>["Modal",a.code,a.name,a.balance]),
+   ["Total Modal","","",statements.totals.equity],
+   [statements.surplus>=0?"Surplus kumulatif":"Defisit kumulatif","","",statements.surplus],
+   ["Modal termasuk surplus/defisit","","",statements.equityIncludingSurplus],
+   ["Selisih aset - kewajiban - modal termasuk surplus/defisit","","",statements.difference],
+   ["Status persamaan", "", "", statements.isBalanced?"Seimbang":"Perlu pemeriksaan"],
+  ]);
+ }
  async function submit(e:FormEvent,body:Record<string,unknown>){e.preventDefault();setBusy(true);setMessage('');try{await api('ledger',body);setMessage(body.action==='account'?'Akun berhasil disimpan.':'Jurnal seimbang berhasil diposting.');await reload()}catch(e){setError(e instanceof Error?e.message:'Pencatatan gagal.')}finally{setBusy(false)}}
  async function reverse(entry:Entry){if(!window.confirm('Buat jurnal koreksi untuk membalik seluruh debit/kredit pada jurnal ini? Tindakan akan dicatat dalam audit.'))return;setBusy(true);setError('');try{await api('ledger',{action:'reverse',id:entry.id});setMessage('Jurnal koreksi berhasil diposting. Jurnal awal tetap tersimpan.');await reload()}catch(e){setError(e instanceof Error?e.message:'Koreksi gagal.')}finally{setBusy(false)}}
  return <div className="workspace-page"><header><p className="text-xs font-semibold uppercase tracking-widest text-primary">Keuangan organisasi</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Akuntansi dan Buku Besar</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Pencatatan berpasangan (double-entry) dalam satu alur. Transaksi Buku Kas baru otomatis membentuk jurnal berdasarkan pos dana; jurnal yang sudah diposting dijaga tetap dan koreksi keuangan dibuat sebagai transaksi penyesuaian terpisah. Catatan Buku Kas lama belum dibukukan otomatis.</p></header>{error&&<p role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm text-destructive">{error}</p>}{message&&<p role="status" className="rounded-xl border border-emerald-300 p-4 text-sm text-emerald-700">{message}</p>}
@@ -41,7 +80,7 @@ export function AccountingWorkspace({role}:{role:string}){
  <section><div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-semibold">Daftar Akun</h2><button onClick={()=>void reload()} className="text-sm text-primary">Muat ulang</button></div><div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-muted/50"><tr>{['Kode','Nama akun','Klasifikasi','Total debit','Total kredit'].map(x=><th key={x} className="px-4 py-3">{x}</th>)}</tr></thead><tbody>{accounts.map(a=><tr key={a.id} className="border-t"><td className="px-4 py-3">{a.code}</td><td className="px-4 py-3">{a.name}</td><td className="px-4 py-3">{a.category}</td><td className="px-4 py-3">{money(Number(a.debit))}</td><td className="px-4 py-3">{money(Number(a.credit))}</td></tr>)}</tbody></table>{accounts.length===0&&<p className="p-6 text-sm text-muted-foreground">Belum ada daftar akun. Tambahkan akun terlebih dahulu.</p>}</div></section>
  <section className="grid gap-4 xl:grid-cols-2" aria-label="Laporan keuangan dari buku besar">
  <article className="rounded-2xl border bg-card p-5">
-  <div className="mb-4"><h2 className="text-lg font-semibold">Aktivitas Keuangan</h2><p className="mt-1 text-xs text-muted-foreground">Akumulasi semua jurnal yang sudah diposting, bukan hanya transaksi kas.</p></div>
+  <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">Aktivitas Keuangan</h2><p className="mt-1 text-xs text-muted-foreground">Akumulasi semua jurnal yang sudah diposting, bukan hanya transaksi kas.</p></div><button type="button" onClick={exportActivity} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold"><Download size={14}/> Ekspor</button></div>
   <div className="space-y-3">
    <div className="flex items-center justify-between gap-3 border-b pb-3"><span className="text-sm">Pendapatan</span><strong className="tabular-nums">{money(statements.totals.revenue)}</strong></div>
    {statements.accounts.revenue.map((a)=><div key={a.id} className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground"><span>{a.code} · {a.name}</span><span className="tabular-nums">{money(a.balance)}</span></div>)}
@@ -51,7 +90,7 @@ export function AccountingWorkspace({role}:{role:string}){
   </div>
  </article>
  <article className="rounded-2xl border bg-card p-5">
-  <div className="mb-4"><h2 className="text-lg font-semibold">Posisi Keuangan</h2><p className="mt-1 text-xs text-muted-foreground">Saldo aset, kewajiban, dan modal dari jurnal yang sudah dibukukan.</p></div>
+  <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">Posisi Keuangan</h2><p className="mt-1 text-xs text-muted-foreground">Saldo aset, kewajiban, dan modal dari jurnal yang sudah dibukukan.</p></div><button type="button" onClick={exportPosition} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold"><Download size={14}/> Ekspor</button></div>
   <div className="space-y-3">
    <div className="flex items-center justify-between gap-3 border-b pb-3"><span className="text-sm">Aset</span><strong className="tabular-nums">{money(statements.totals.asset)}</strong></div>
    {statements.accounts.asset.map((a)=><div key={a.id} className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground"><span>{a.code} · {a.name}</span><span className="tabular-nums">{money(a.balance)}</span></div>)}
