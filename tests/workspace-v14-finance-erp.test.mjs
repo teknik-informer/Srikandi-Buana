@@ -100,3 +100,60 @@ test("general journals support multiple unique accounts and enforce equal debit 
     {accountId:b,debit:0,credit:90},
   ]),false);
 });
+
+test("financial statements use the normal balance of each account category", async () => {
+  const { calculateFinanceStatements } = await import("../src/features/finance/statements.mjs");
+  const result = calculateFinanceStatements([
+    {id:"cash",code:"110001",name:"Kas",category:"asset",debit:1000,credit:100},
+    {id:"savings",code:"210001",name:"Simpanan anggota",category:"liability",debit:0,credit:300},
+    {id:"capital",code:"310001",name:"Modal",category:"equity",debit:0,credit:400},
+    {id:"income",code:"410001",name:"Pendapatan",category:"revenue",debit:0,credit:500},
+    {id:"expense",code:"510001",name:"Beban",category:"expense",debit:200,credit:0},
+  ]);
+  assert.equal(result.hasJournalActivity,true);
+  assert.equal(result.totals.asset,900);
+  assert.equal(result.totals.liability,300);
+  assert.equal(result.totals.equity,400);
+  assert.equal(result.totals.revenue,500);
+  assert.equal(result.totals.expense,200);
+  assert.equal(result.surplus,300);
+  assert.equal(result.equityIncludingSurplus,700);
+  assert.equal(result.difference,-100);
+  assert.equal(result.isBalanced,false);
+});
+
+test("financial statements do not claim an empty ledger is balanced or finalized", async () => {
+  const { calculateFinanceStatements } = await import("../src/features/finance/statements.mjs");
+  const result = calculateFinanceStatements([
+    {id:"cash",code:"110001",name:"Kas",category:"asset",debit:0,credit:0},
+    {id:"capital",code:"310001",name:"Modal",category:"equity",debit:0,credit:0},
+  ]);
+  assert.equal(result.hasJournalActivity,false);
+  assert.equal(result.difference,0);
+  assert.equal(result.isBalanced,false);
+});
+
+test("a properly entered opening balance produces a balanced financial position", async () => {
+  const { calculateFinanceStatements } = await import("../src/features/finance/statements.mjs");
+  const result = calculateFinanceStatements([
+    {id:"cash",code:"110001",name:"Kas",category:"asset",debit:2500000,credit:0},
+    {id:"equipment",code:"140001",name:"Peralatan",category:"asset",debit:1500000,credit:0},
+    {id:"savings",code:"210001",name:"Simpanan anggota",category:"liability",debit:0,credit:1000000},
+    {id:"capital",code:"310001",name:"Modal awal kelompok",category:"equity",debit:0,credit:3000000},
+  ]);
+  assert.equal(result.hasJournalActivity,true);
+  assert.equal(result.totals.asset,4000000);
+  assert.equal(result.totals.liability,1000000);
+  assert.equal(result.totals.equity,3000000);
+  assert.equal(result.surplus,0);
+  assert.equal(result.difference,0);
+  assert.equal(result.isBalanced,true);
+});
+
+test("general journals reject duplicate account lines at the server validation boundary", () => {
+  const account = "11111111-1111-4111-8111-111111111111";
+  assert.equal(balancedLines([
+    {accountId:account,debit:100,credit:0},
+    {accountId:account,debit:0,credit:100},
+  ]),false);
+});
