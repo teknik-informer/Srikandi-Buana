@@ -212,3 +212,38 @@ test("trade receivables control account is part of the organization's starter ch
   const posting = read("src/features/finance/record-posting.ts");
   assert.match(posting, /code: "120002", name: "Piutang Dagang", category: "asset"/);
 });
+
+test("member financial policies follow draft, submission, evidence-backed approval and rejection lifecycle", () => {
+  const api = read("src/app/api/ecosystem/member-finance/policies/route.ts");
+  const ui = read("src/app/_components/member-finance-policies.tsx");
+  const workspace = read("src/app/_components/ecosystem-workspace.tsx");
+  const migration = read("migrations/010_member_impact_finance.sql");
+  assert.match(api, /const financeRoles = \["admin", "ketua", "bendahara"\]/);
+  assert.match(api, /policy_status='draft'/);
+  assert.match(api, /policy_status='submitted'/);
+  assert.match(api, /body\.action === "approve"/);
+  assert.match(api, /body\.action === "reject"/);
+  assert.match(api, /document_status IN \('source_verified','approved'\)/);
+  assert.match(api, /verification_status='verified'/);
+  assert.match(api, /approved_by/);
+  assert.match(api, /effective_from/);
+  assert.match(api, /WITH changed AS/);
+  assert.match(migration, /Approved member financial policies are immutable/);
+  assert.match(ui, /Buat draf kebijakan baru/);
+  assert.match(ui, /Ajukan persetujuan/);
+  assert.match(ui, /Sahkan kebijakan/);
+  assert.match(ui, /Tolak \/ minta versi revisi/);
+  assert.match(workspace, /<MemberFinancePolicies role=\{role\} \/>/);
+});
+
+test("member policy drafts do not assign unapproved loan, savings, compensation or allowance terms", () => {
+  const api = read("src/app/api/ecosystem/member-finance/policies/route.ts");
+  const ui = read("src/app/_components/member-finance-policies.tsx");
+  assert.match(api, /policy_status='draft'/);
+  assert.match(api, /terms,created_at,updated_at/);
+  assert.match(ui, /Bunga, biaya pinjaman, plafon, jangka waktu, denda, nominal gaji dan tunjangan harus diisi berdasarkan keputusan kelompok/);
+  assert.match(ui, /Draf tidak mengubah saldo dan tidak membuat kewajiban keuangan/);
+  assert.doesNotMatch(api, /INSERT INTO workspace_v14\.member_loans/);
+  assert.doesNotMatch(api, /INSERT INTO workspace_v14\.member_savings_accounts/);
+  assert.doesNotMatch(api, /INSERT INTO workspace_v14\.member_payments/);
+});
