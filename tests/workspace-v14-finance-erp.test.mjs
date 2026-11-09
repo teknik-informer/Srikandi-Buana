@@ -157,3 +157,58 @@ test("general journals reject duplicate account lines at the server validation b
     {accountId:account,debit:0,credit:100},
   ]),false);
 });
+
+test("sales invoices can only be issued for completed orders and post receivable against sales revenue", () => {
+  const route = read("src/app/api/ecosystem/invoices/route.ts");
+  const accounts = read("src/features/finance/record-posting.ts");
+  const commerce = read("src/app/_components/ecosystem-workspace.tsx");
+  assert.match(route, /c\.user\.role !== "admin"/);
+  assert.match(route, /String\(order\.status\) !== "completed"/);
+  assert.match(route, /byCode\.get\("120002"\)/);
+  assert.match(route, /byCode\.get\("410003"\)/);
+  assert.match(route, /UNIQUE/);
+  assert.match(route, /Faktur hanya dapat diterbitkan setelah pesanan berstatus Selesai/);
+  assert.match(route, /commerce_sales_invoice_sequences/);
+  assert.match(route, /INSERT INTO commerce_sales_invoices/);
+  assert.match(route, /Faktur penjualan diterbitkan/);
+  assert.match(commerce, /function issueInvoice\(order:Order\)/);
+  assert.match(commerce, /o\.status==='completed'&&admin/);
+  assert.match(commerce, /Faktur Penjualan & Piutang/);
+});
+
+test("sales invoices and receipts are immutable, append-only, and protected against overpayment", () => {
+  const migration = read("migrations/012_sales_invoices_and_receipts.sql");
+  assert.match(migration, /UNIQUE \(owner, order_id\)/);
+  assert.match(migration, /BEFORE UPDATE OR DELETE ON commerce_sales_invoices/);
+  assert.match(migration, /Sales invoices are immutable/);
+  assert.match(migration, /BEFORE INSERT OR UPDATE OR DELETE ON commerce_sales_invoice_receipts/);
+  assert.match(migration, /Sales invoice receipts are append-only/);
+  assert.match(migration, /paid_total \+ NEW\.amount <= total_amount/);
+  assert.match(migration, /Receipt exceeds the outstanding invoice balance/);
+});
+
+test("cash receipts settle an explicitly selected invoice through the same cash posting batch", () => {
+  const fields = read("src/lib/srikandi.ts");
+  const workspace = read("src/app/_components/workspace.tsx");
+  const table = read("src/app/_components/record-table.tsx");
+  const records = read("src/app/api/records/route.ts");
+  const posting = read("src/features/finance/record-posting.ts");
+  assert.match(fields, /key:"relatedInvoiceId",label:"Faktur yang dibayar \(opsional\)",type:"sales-invoice"/);
+  assert.match(workspace, /fetch\("\/api\/ecosystem\/invoices\?open=1"/);
+  assert.match(workspace, /f\.type === "sales-invoice"/);
+  assert.match(workspace, /invoice\.invoice_number/);
+  assert.match(table, /field\.key === "relatedInvoiceId"/);
+  assert.match(table, /row\.data\.relatedInvoiceNumber/);
+  assert.match(records, /commerce_sales_invoice_receipts/);
+  assert.match(records, /Pembayaran faktur harus berupa Pemasukan pos Usaha/);
+  assert.match(records, /data\.relatedInvoiceNumber=String\(invoice\.invoice_number/);
+  assert.match(posting, /counter\.code\) === "120002" && !relatedInvoiceId/);
+  assert.match(posting, /INSERT INTO commerce_sales_invoice_receipts/);
+  assert.match(posting, /receiptStatement\(entryId\)/);
+  assert.match(posting, /Nominal penerimaan melebihi sisa piutang/);
+});
+
+test("trade receivables control account is part of the organization's starter chart", () => {
+  const posting = read("src/features/finance/record-posting.ts");
+  assert.match(posting, /code: "120002", name: "Piutang Dagang", category: "asset"/);
+});
