@@ -158,10 +158,10 @@ export async function buildCashLedgerPostingStatements(
   const expectedLines = type === "Pemasukan"
     ? [
         { accountId: cash.id, debit: amount, credit: 0 },
-        { accountId: counter.id, debit: 0, credit: amount },
+        { accountId: String(counter.id), debit: 0, credit: amount },
       ]
     : [
-        { accountId: counter.id, debit: amount, credit: 0 },
+        { accountId: String(counter.id), debit: amount, credit: 0 },
         { accountId: cash.id, debit: 0, credit: amount },
       ];
 
