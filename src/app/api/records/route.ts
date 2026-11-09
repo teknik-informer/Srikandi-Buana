@@ -283,6 +283,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   kind:body.kind,
   data,
   now,
+  previousData: previousRecordData,
  });
  await c.db!.batch([
   legacyWrite,
