@@ -4,6 +4,7 @@ export function balancedLines(lines) {
   return Array.isArray(lines) &&
     lines.length >= 2 &&
     lines.length <= 50 &&
+    new Set(lines.map((line) => line?.accountId)).size === lines.length &&
     lines.every((line) =>
       line &&
       typeof line === "object" &&
