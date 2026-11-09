@@ -21,7 +21,23 @@ export async function GET(req:Request){try{const c=await context(req);if(c.error
  c.db!.prepare("SELECT * FROM records WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT action,title,created FROM audit WHERE owner=? ORDER BY created DESC LIMIT 12").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT id,name,size,mime,created,deleted_at,uploader_id FROM files WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all()
- ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=u.role==='admin'?null:await allowedFileIds(u);return json({records:readable,audit:['admin','ketua'].includes(u.role)?audit.results:[],files:fileIds?files.results.filter(f=>fileIds.has(String(f.id))):files.results,user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
+ ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=u.role==='admin'?null:await allowedFileIds(u);
+ let assetMovements: Array<Record<string,unknown>> = [];
+ if(canReadKind(u,"aset")){
+  try{
+   const schema=await c.db!.prepare("SELECT to_regclass('workspace_v14.member_asset_movement_events') AS relation, to_regclass('workspace_v14.inventory_items') AS inventory, to_regclass('workspace_v14.member_profiles') AS members, to_regclass('workspace_v14.organizations') AS organizations").first();
+   if(schema?.relation&&schema?.inventory&&schema?.members&&schema?.organizations){
+    const organization=await c.db!.prepare("SELECT id FROM workspace_v14.organizations WHERE source_owner_user_id=?").bind(u.userId).first();
+    if(organization?.id){
+     const movements=await c.db!.prepare("SELECT e.id,e.event_type,e.from_status,e.to_status,e.occurred_at,e.notes,i.name AS asset_name,m.display_name AS member_name,e.evidence_json FROM workspace_v14.member_asset_movement_events e JOIN workspace_v14.inventory_items i ON i.id=e.inventory_item_id AND i.organization_id=e.organization_id JOIN workspace_v14.member_profiles m ON m.id=e.member_profile_id AND m.organization_id=e.organization_id WHERE e.organization_id=? ORDER BY e.occurred_at DESC LIMIT 50").bind(String(organization.id)).all();
+     assetMovements=movements.results as Array<Record<string,unknown>>;
+    }
+   }
+  }catch{
+   // Legacy-only and partially migrated deployments continue to work without the normalized ledger.
+  }
+ }
+ return json({records:readable,audit:['admin','ketua'].includes(u.role)?audit.results:[],files:fileIds?files.results.filter(f=>fileIds.has(String(f.id))):files.results,assetMovements,user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
 function validate(kind:string,raw:unknown):Data{
  if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("Formulir tidak valid.");
  const d=raw as Data;const out:Data={};
