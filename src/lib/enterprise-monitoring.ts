@@ -156,6 +156,23 @@ export function buildEnterpriseMonitoring(
     partnerships: ofKind("kemitraan").length,
   };
 
+  const assetIssues = groupAssets.flatMap((row) => {
+    const issues: Array<{ id: string; row: Row; title: string; detail: string; severity: "warning" | "info" }> = [];
+    if (row.data.custodyStatus === "Dipinjam" && validDate(row.data.expectedReturnAt) && String(row.data.expectedReturnAt) < today) {
+      issues.push({ id: row.id + "-asset-overdue", row, title: "Pengembalian aset terlambat", detail: "Rencana kembali " + String(row.data.expectedReturnAt) + ". Hubungi pemegang dan catat tindak lanjut.", severity: "warning" });
+    } else if (row.data.custodyStatus === "Dipinjam" && !validDate(row.data.expectedReturnAt)) {
+      issues.push({ id: row.id + "-asset-no-return-date", row, title: "Peminjaman tanpa tanggal kembali", detail: "Tetapkan rencana pengembalian berdasarkan kesepakatan serah-terima.", severity: "info" });
+    }
+    if (["Rusak", "Hilang"].includes(String(row.data.custodyStatus || "")) || row.data.condition === "Rusak") {
+      issues.push({ id: row.id + "-asset-damaged", row, title: "Aset rusak atau hilang", detail: "Periksa kondisi, lokasi terakhir, bukti, dan keputusan tindak lanjut.", severity: "warning" });
+    } else if (row.data.custodyStatus === "Perawatan" || row.data.condition === "Perlu perawatan") {
+      issues.push({ id: row.id + "-asset-maintenance", row, title: "Aset memerlukan perawatan", detail: "Catat pemeriksaan, penanggung jawab, dan status setelah perawatan.", severity: "info" });
+    }
+  });
+  for (const row of unclassifiedAssets) {
+    assetIssues.push({ id: row.id + "-asset-ownership", row, title: "Kepemilikan aset belum diklasifikasi", detail: "Pastikan apakah barang milik kelompok atau milik anggota sebelum menghitung inventaris.", severity: "info" });
+  }
+
   const publication = {
     content: publications.length,
     drafts: count(publications, (row) => row.data.status === "Draf"),
@@ -174,10 +191,10 @@ export function buildEnterpriseMonitoring(
     today,
     visibleRecords: rows.length,
     latestUpdate: lastUpdate,
-    qualityFindings: insights.issues.length,
-    warningFindings: insights.issues.filter((issue) => issue.severity === "warning").length,
-    infoFindings: insights.issues.filter((issue) => issue.severity === "info").length,
-    issues: insights.issues,
+    qualityFindings: insights.issues.length + assetIssues.length,
+    warningFindings: insights.issues.filter((issue) => issue.severity === "warning").length + assetIssues.filter((issue) => issue.severity === "warning").length,
+    infoFindings: insights.issues.filter((issue) => issue.severity === "info").length + assetIssues.filter((issue) => issue.severity === "info").length,
+    issues: [...insights.issues, ...assetIssues],
     programEvaluations,
     meetingPriorities,
     operational: canReadSection(user, "kegiatan") ||
