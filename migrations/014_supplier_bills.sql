@@ -39,3 +39,29 @@ CREATE TABLE IF NOT EXISTS commerce_purchase_bill_payments (
  FOREIGN KEY(ledger_entry_id,owner) REFERENCES ledger_entries(id,owner) ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS commerce_purchase_bill_payments_bill ON commerce_purchase_bill_payments(owner,bill_id,paid_date);
+
+-- Payment insertion serializes on the bill row and updates the payable subledger.
+-- This prevents concurrent requests from overpaying the same supplier bill.
+CREATE OR REPLACE FUNCTION srikandi_apply_supplier_bill_payment() RETURNS trigger AS $$
+DECLARE
+  bill commerce_purchase_bills%ROWTYPE;
+  next_paid BIGINT;
+BEGIN
+  SELECT * INTO bill FROM commerce_purchase_bills
+   WHERE id=NEW.bill_id AND owner=NEW.owner FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Supplier bill not found.'; END IF;
+  IF NEW.paid_date < bill.issue_date THEN RAISE EXCEPTION 'Payment date predates supplier bill.'; END IF;
+  next_paid := bill.paid_total + NEW.amount;
+  IF next_paid > bill.total_amount THEN RAISE EXCEPTION 'Supplier bill payment exceeds outstanding balance.'; END IF;
+  UPDATE commerce_purchase_bills
+     SET paid_total=next_paid,
+         status=CASE WHEN next_paid=bill.total_amount THEN 'paid' ELSE 'partially_paid' END,
+         updated=now()
+   WHERE id=NEW.bill_id AND owner=NEW.owner;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS srikandi_supplier_bill_payment_apply ON commerce_purchase_bill_payments;
+CREATE TRIGGER srikandi_supplier_bill_payment_apply
+ BEFORE INSERT ON commerce_purchase_bill_payments
+ FOR EACH ROW EXECUTE FUNCTION srikandi_apply_supplier_bill_payment();
