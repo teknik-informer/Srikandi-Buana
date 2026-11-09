@@ -152,5 +152,5 @@ test("member impact finance schema links assets, programmes, savings, loans and 
   assert.match(migration, /destination_account_ref/);
   assert.doesNotMatch(migration, /account_number|bank_account_number|nik\s+TEXT/i);
   assert.match(architecture, /Buku Tabungan Anggota/);
-  assert.match(architecture, /keputusan akhir tetap melalui persetujuan/);
+  assert.match(architecture, /Tanpa keputusan tersebut, modul hanya boleh menyimpan rancangan\/draft/);
 });
