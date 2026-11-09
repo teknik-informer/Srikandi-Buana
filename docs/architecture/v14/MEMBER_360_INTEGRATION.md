@@ -95,6 +95,9 @@ Pembayaran menjadi proses terpisah dari pengajuan hak. Tahapan: draft, diajukan,
 - programme_enrolments dan farm_plots yang sudah ada tetap menjadi relasi anggota-program dan anggota-lahan.
 - member_asset_declarations menyimpan sarana milik anggota.
 - member_asset_assignments menghubungkan inventaris kelompok dengan anggota pemegang/peminjam.
+- Modul Inventaris Aset lama membedakan kepemilikan "Milik anggota" dan "Milik kelompok". Aset milik anggota wajib menunjuk pemilik pada Buku Induk; aset lama tanpa informasi yang cukup tetap diberi status "Belum diklasifikasi", tidak diasumsikan sebagai milik kelompok.
+- Peminjaman internal hanya berlaku untuk aset kelompok. Formulir mencatat anggota aktif penerima, tanggal serah-terima, rencana pengembalian, tanggal kembali aktual, kondisi, dan bukti arsip. API memeriksa ulang ID anggota dan urutan tanggal.
+- Catatan serah-terima pada tahap ini masih berupa status dan tanggal pada record inventaris lama; belum merupakan buku mutasi append-only. Implementasi transaksi peminjaman/pengembalian yang menyimpan setiap peristiwa secara permanen harus menggunakan member_asset_assignments setelah pemetaan inventory_items dan member_profiles lintas sistem selesai.
 - member_financial_policies menyimpan versi kebijakan yang disahkan.
 - member_contributions menyimpan kewajiban iuran.
 - member_savings_accounts dan member_savings_transactions menyimpan tabungan dan mutasi.
