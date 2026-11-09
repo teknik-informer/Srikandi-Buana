@@ -54,3 +54,24 @@ test("asset tables and exports show member names, not internal member IDs", () =
   assert.match(workspace, /memberOwnerId:"memberOwnerName"/);
   assert.match(workspace, /custodianMemberId:"custodianMemberName"/);
 });
+
+test("group asset custody sync writes a normalized inventory item and append-only movement events", () => {
+  const sync = read("src/lib/workspace-v14-sync.ts");
+  const route = read("src/app/api/records/route.ts");
+  const migration = read("migrations/011_member_asset_movement_history.sql");
+  assert.match(sync, /source\.kind === "aset" && source\.data\.assetOwnership === "Milik kelompok"/);
+  assert.match(sync, /INSERT INTO workspace_v14\.inventory_items/);
+  assert.match(sync, /INSERT INTO workspace_v14\.member_asset_assignments/);
+  assert.match(sync, /INSERT INTO workspace_v14\.member_asset_movement_events/);
+  assert.match(sync, /ON CONFLICT \(id\) DO NOTHING/);
+  assert.match(sync, /source\.previousData\?\.custodyStatus/);
+  assert.match(route, /previousData: previousRecordData/);
+  assert.match(migration, /BEFORE UPDATE OR DELETE ON workspace_v14\.member_asset_movement_events/);
+  assert.match(migration, /append-only/);
+});
+
+test("personal assets are excluded from normalized group inventory synchronization", () => {
+  const sync = read("src/lib/workspace-v14-sync.ts");
+  assert.match(sync, /source\.data\.assetOwnership === "Milik kelompok"/);
+  assert.doesNotMatch(sync, /assetOwnership === "Milik anggota"[^\n]*INSERT INTO workspace_v14\.inventory_items/);
+});
