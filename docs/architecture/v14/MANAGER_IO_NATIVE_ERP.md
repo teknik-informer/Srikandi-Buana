@@ -67,8 +67,15 @@ The Finance workspace should become a coherent ERP workspace, not a second disco
 
 ### Phase B — cash/bank operations
 - Add organization-owned cash/bank accounts and internal transfer workflow.
-- Add bank statement import with duplicate detection, matching, and reconciliation lock.
+- Add bank statement entry/import with duplicate detection, matching, and reconciliation lock. The first shipped workflow records statement lines manually; CSV import remains a follow-up.
+- Current reconciliation matches exact signed amounts against existing ledger lines for the selected asset account and period. It never creates duplicate receipts or journals. A period can be locked only when all statement lines are matched and opening balance plus net statement movement equals closing balance.
 - Keep bank account identifiers masked and outside ordinary audit text.
+
+### Phase B implementation status
+- Cash-fund transfer form is implemented for the three configured cash funds, checks available ledger balance, and posts a balanced journal plus audit event.
+- Bank reconciliation schema and API are implemented additively in `migrations/013_bank_reconciliation.sql` and `/api/ecosystem/reconciliation`.
+- The finance workspace supports statement-line entry, exact ledger matching, balance arithmetic checks, and period locking. It does not import CSV statements yet, does not auto-match fuzzy references, and does not reconcile historical periods automatically.
+- Migration 013 is committed to the feature branch only; it has not been applied to QA or Production.
 
 ### Phase C — sales and purchasing
 - Extend current order → invoice → receipt flow with quotations, customer/supplier master data, supplier bills, purchase orders, goods receipts, credit notes, and payables.
