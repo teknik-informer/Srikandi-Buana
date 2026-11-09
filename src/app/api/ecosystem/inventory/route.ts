@@ -18,7 +18,7 @@ export async function GET(request:Request){
   const org=String(organization.id);
   const [locations,items,balances,movements]=await Promise.all([
    c.db.prepare(`SELECT l.id,l.location_code,l.name,l.location_type,l.active,l.notes,l.created_at,
-    COALESCE(SUM(m.quantity),0) AS total_quantity,COUNT(DISTINCT m.inventory_item_id) AS item_count
+    COUNT(DISTINCT m.inventory_item_id) AS item_count
     FROM workspace_v14.inventory_locations l LEFT JOIN workspace_v14.stock_movements m
       ON m.location_id=l.id AND m.organization_id=l.organization_id
     WHERE l.organization_id=? GROUP BY l.id ORDER BY l.active DESC,l.name`).bind(org).all(),
@@ -63,7 +63,7 @@ export async function POST(request:Request){
   if(b.action==='location'){
    const code=typeof b.locationCode==='string'?b.locationCode.trim().toUpperCase():'',name=textField(b.name,160),type=String(b.locationType||'warehouse'),notes=textField(b.notes,500);
    if(!/^[A-Z0-9][A-Z0-9_-]{1,31}$/.test(code)||!name||!locationTypes.has(type))return json({error:'Kode, nama, dan jenis lokasi penyimpanan tidak valid.'},400);
-   const locationId=idValue();
+   const locationId=id();
    await c.db.batch([
     c.db.prepare('INSERT INTO workspace_v14.inventory_locations(id,organization_id,location_code,name,location_type,active,notes,created_at,updated_at) VALUES(?,?,?,?,?,TRUE,?,?,?)').bind(locationId,org,code,name,type,notes||null,now,now),
     c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(id(),owner,'Lokasi inventaris ditambahkan',code+' · '+name,now)
