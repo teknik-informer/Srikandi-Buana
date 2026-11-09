@@ -30,3 +30,27 @@ test("task assignment remains optional and can be cleared", () => {
   assert.match(api, /data\.assignedMemberId=""/);
   assert.match(api, /data\.assignedMemberName=""/);
 });
+
+test("asset register separates member ownership from group inventory", () => {
+  assert.ok(fields.includes('key:"assetOwnership",label:"Kepemilikan"'));
+  assert.ok(fields.includes('key:"memberOwnerId",label:"Pemilik anggota",type:"member-owner"'));
+  assert.match(workspace, /f\.type === "member-owner"/);
+  assert.match(api, /ownership==="Milik anggota"/);
+  assert.match(api, /data\.memberOwnerName=String\(ownerData\.name\|\|""\)/);
+});
+
+test("group asset custody requires an active member and dated handover", () => {
+  assert.ok(fields.includes('key:"custodianMemberId",label:"Anggota pemegang / peminjam",type:"member"'));
+  assert.match(api, /custody==="Dipinjam"/);
+  assert.match(api, /Aset hanya dapat diserahkan kepada anggota berstatus Aktif/);
+  assert.match(api, /Tanggal serah-terima wajib diisi saat aset dipinjam/);
+  assert.match(api, /expectedReturnAt<issuedAt/);
+  assert.match(api, /returnedAt<issuedAt/);
+});
+
+test("asset tables and exports show member names, not internal member IDs", () => {
+  assert.match(table, /row\.data\.memberOwnerName/);
+  assert.match(table, /row\.data\.custodianMemberName/);
+  assert.match(workspace, /memberOwnerId:"memberOwnerName"/);
+  assert.match(workspace, /custodianMemberId:"custodianMemberName"/);
+});
