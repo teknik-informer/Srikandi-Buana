@@ -9,7 +9,7 @@ export type WorkspaceFile = {
   uploader_id?: string;
 };
 export type WorkspaceAudit = { action: string; title: string; created: string };
-export type WorkspaceData = { records: Row[]; files: WorkspaceFile[]; audit: WorkspaceAudit[]; user: string };
+export type WorkspaceData = { records: Row[]; files: WorkspaceFile[]; audit: WorkspaceAudit[]; assetMovements?: AssetMovement[]; user: string };
 
 export type AssetMovement = {
   id: string;
