@@ -75,3 +75,17 @@ test("personal assets are excluded from normalized group inventory synchronizati
   assert.match(sync, /source\.data\.assetOwnership === "Milik kelompok"/);
   assert.doesNotMatch(sync, /assetOwnership === "Milik anggota"[^\n]*INSERT INTO workspace_v14\.inventory_items/);
 });
+
+test("group assets are normalized but member-owned assets are not treated as group inventory", async () => {
+  const { mapLegacyRecordToV14 } = await import("../src/features/workspace-v14/legacy-mapping.mjs");
+  assert.equal(mapLegacyRecordToV14("aset", { assetOwnership: "Milik kelompok", name: "Mesin jahit" }).domain, "inventory_items");
+  assert.equal(mapLegacyRecordToV14("aset", { assetOwnership: "Milik anggota", name: "Motor pribadi" }), null);
+});
+
+test("protected asset edits include normalized writes in the same database batch", () => {
+  const protectedRecords = read("src/lib/enterprise/protected-records.ts");
+  const route = read("src/app/api/records/route.ts");
+  assert.match(protectedRecords, /db\.batch\(\[write,\.\.\.normalizedWrites\]\)/);
+  assert.match(route, /previousData:oldData/);
+  assert.match(route, /normalizedWrites\);/);
+});
