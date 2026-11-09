@@ -105,11 +105,16 @@ function attentionCount(group: ReportGroup, rows: Row[]) {
     return rows.filter((row) => !String(row.data.attachmentId || "").trim()).length;
   }
   if (group.id === "usaha") {
-    return rows.filter((row) =>
-      ["Perlu perawatan", "Rusak", "Perlu verifikasi", "Menunggu pemeriksaan", "Ditahan", "Ditolak"].includes(
-        String(row.data.condition || row.data.status),
-      ),
-    ).length;
+    return rows.filter((row) => {
+      if (row.kind === "aset") {
+        const borrowed = row.data.assetOwnership === "Milik kelompok" && row.data.custodyStatus === "Dipinjam";
+        return !["Milik kelompok", "Milik anggota"].includes(String(row.data.assetOwnership || "")) ||
+          ["Perlu perawatan", "Rusak", "Perlu verifikasi"].includes(String(row.data.condition || "")) ||
+          ["Perawatan", "Rusak", "Hilang"].includes(String(row.data.custodyStatus || "")) ||
+          (borrowed && (!validDate(row.data.expectedReturnAt) || String(row.data.expectedReturnAt) < today));
+      }
+      return ["Menunggu pemeriksaan", "Ditahan", "Ditolak"].includes(String(row.data.status));
+    }).length;
   }
   return rows.filter((row) =>
     row.data.status === "Draf" ||
@@ -128,7 +133,11 @@ function completionCount(group: ReportGroup, rows: Row[]) {
     return rows.filter((row) => row.kind === "tindaklanjut" && row.data.status === "Selesai").length;
   }
   if (group.id === "usaha") {
-    return rows.filter((row) => row.data.status === "Diterima" || row.data.condition === "Baik").length;
+    return rows.filter((row) =>
+      row.kind === "aset"
+        ? row.data.assetOwnership === "Milik kelompok" && row.data.condition === "Baik" && !["Rusak", "Hilang", "Perawatan"].includes(String(row.data.custodyStatus || ""))
+        : row.data.status === "Diterima",
+    ).length;
   }
   return rows.filter((row) =>
     ["Selesai", "Aktif", "Terverifikasi", "Disahkan internal", "Diterima"].includes(
@@ -138,6 +147,14 @@ function completionCount(group: ReportGroup, rows: Row[]) {
 }
 
 function exportRows(group: ReportGroup, rows: Row[]) {
+  if (group.id === "usaha") {
+    return createCSV([
+      ["Tanggal / periode", "Jenis catatan", "Nama aset / catatan", "Kepemilikan", "Pemilik anggota", "Pemegang aset", "Kondisi", "Status pemakaian", "Tanggal serah-terima", "Rencana kembali", "Pengembalian aktual", "Status catatan"],
+      ...rows.map((row) => row.kind === "aset"
+        ? [rowDate(row), "Inventaris aset", row.data.name || "—", row.data.assetOwnership || "Belum diklasifikasi", row.data.memberOwnerName || "—", row.data.custodianMemberName || "—", row.data.condition || "Belum dicatat", row.data.custodyStatus || "Tidak dipinjamkan", row.data.issuedAt || "—", row.data.expectedReturnAt || "—", row.data.returnedAt || "—", row.data.status || "—"]
+        : [rowDate(row), kindLabels[row.kind] || row.kind, row.data.name || "—", "—", "—", "—", "—", "—", "—", "—", "—", row.data.status || "—"]),
+    ]);
+  }
   if (group.id === "keanggotaan") {
     // Never export member names or contact details from the report center.
     const summary = summarizeReportRows(rows);
@@ -275,6 +292,59 @@ function ProgramEvaluationPanel({
                     </TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+function AssetCustodyReport({ rows }: { rows: Row[] }) {
+  const assets = rows.filter((row) => row.kind === "aset");
+  const groupAssets = assets.filter((row) => row.data.assetOwnership === "Milik kelompok");
+  const memberAssets = assets.filter((row) => row.data.assetOwnership === "Milik anggota");
+  const unclassified = assets.filter((row) => !["Milik kelompok", "Milik anggota"].includes(String(row.data.assetOwnership || "")));
+  const borrowed = groupAssets.filter((row) => row.data.custodyStatus === "Dipinjam");
+  const today = jakartaDate();
+  const overdue = borrowed.filter((row) => validDate(row.data.expectedReturnAt) && String(row.data.expectedReturnAt) < today);
+  const noDueDate = borrowed.filter((row) => !validDate(row.data.expectedReturnAt));
+  const damaged = groupAssets.filter((row) => ["Rusak", "Hilang"].includes(String(row.data.custodyStatus)) || row.data.condition === "Rusak");
+  const maintenance = groupAssets.filter((row) => row.data.custodyStatus === "Perawatan" || row.data.condition === "Perlu perawatan");
+  return (
+    <section className="space-y-3" aria-labelledby="asset-custody-report-title">
+      <div className="space-y-1">
+        <h3 id="asset-custody-report-title" className="text-base font-semibold">Rekap inventaris dan penguasaan aset</h3>
+        <p className="text-sm text-muted-foreground">Ringkasan ini memakai status terkini pada catatan inventaris. Aset milik anggota dipisahkan dan tidak dihitung sebagai kekayaan kelompok.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <WorkspaceMetric title="Aset kelompok" value={groupAssets.length} note="Barang yang dicatat sebagai milik kelompok." icon={ShieldCheck} />
+        <WorkspaceMetric title="Sedang dipinjam" value={borrowed.length} note={overdue.length + " terlambat · " + noDueDate.length + " tanpa tanggal kembali."} icon={CalendarDays} />
+        <WorkspaceMetric title="Aset milik anggota" value={memberAssets.length} note="Dicatat terpisah dari inventaris kelompok." icon={ShieldCheck} />
+        <WorkspaceMetric title="Perlu pemeriksaan" value={damaged.length + maintenance.length + unclassified.length} note={damaged.length + " rusak/hilang · " + maintenance.length + " perawatan · " + unclassified.length + " belum jelas kepemilikan."} icon={FileBarChart} />
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Daftar status aset</CardTitle>
+          <CardDescription>Gunakan menu Inventaris Aset untuk memperbarui kondisi, penanggung jawab, atau serah-terima. Rekap ini tidak mengubah data sumber.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Nama aset</TableHead><TableHead>Kepemilikan</TableHead><TableHead>Pemilik / pemegang</TableHead><TableHead>Kondisi</TableHead><TableHead>Status pemakaian</TableHead><TableHead>Rencana kembali</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {assets.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="min-w-44 font-medium"><Link className="hover:text-primary hover:underline" href={"/dashboard/aset?cari=" + encodeURIComponent(String(row.data.name || ""))}>{String(row.data.name || "Aset tanpa nama")}</Link></TableCell>
+                    <TableCell><StatusBadge value={String(row.data.assetOwnership || "Belum diklasifikasi")} /></TableCell>
+                    <TableCell className="min-w-40 text-sm">{String(row.data.memberOwnerName || row.data.custodianMemberName || "—")}</TableCell>
+                    <TableCell><StatusBadge value={String(row.data.condition || "Belum dicatat")} /></TableCell>
+                    <TableCell><StatusBadge value={String(row.data.custodyStatus || "Tidak dipinjamkan")} /></TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">{validDate(row.data.expectedReturnAt) ? String(row.data.expectedReturnAt) : row.data.custodyStatus === "Dipinjam" ? "Belum ditentukan" : "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {!assets.length && <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">Belum ada catatan inventaris pada periode ini.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
@@ -539,6 +609,7 @@ export default function EnterpriseReports({
               ) : (
                 <>
                   {group.id === "operasional" && <ProgramEvaluationPanel rows={rows} user={user} month={month} />}
+                  {group.id === "usaha" && <AssetCustodyReport rows={data} />}
                   <ReportTable group={group} rows={data} />
                 </>
               )}
