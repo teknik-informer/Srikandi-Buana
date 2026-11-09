@@ -14,7 +14,7 @@ const policyTypes = [
 ];
 
 function validDate(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(value);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
@@ -148,18 +148,23 @@ export async function PATCH(request: Request) {
 
     if (body.action === "submit") {
       const result = await c.db.prepare(`
-        UPDATE workspace_v14.member_financial_policies
-        SET policy_status='submitted',updated_at=?::timestamptz
-        WHERE id=? AND organization_id=? AND policy_status='draft'
-        RETURNING policy_code,policy_version
-      `).bind(now,body.id,orgId).first();
+        WITH changed AS (
+          UPDATE workspace_v14.member_financial_policies
+          SET policy_status='submitted',updated_at=?::timestamptz
+          WHERE id=? AND organization_id=? AND policy_status='draft'
+          RETURNING policy_code,policy_version
+        ), logged AS (
+          INSERT INTO audit(id,owner,action,title,created)
+          SELECT ?,?,'Kebijakan keuangan diajukan untuk persetujuan',
+                 policy_code || ' v' || policy_version,?::timestamptz
+          FROM changed
+          RETURNING id
+        )
+        SELECT policy_code,policy_version FROM changed
+      `).bind(
+        now,body.id,orgId,crypto.randomUUID(),c.user.userId,now,
+      ).first();
       if (!result) return json({ error: "Hanya draf kebijakan yang dapat diajukan. Muat ulang status kebijakan." }, 409);
-      await c.db.prepare(
-        "INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)",
-      ).bind(
-        crypto.randomUUID(),c.user.userId,"Kebijakan keuangan diajukan untuk persetujuan",
-        String(result.policy_code) + " v" + String(result.policy_version),now,
-      ).run();
       return json({ ok: true, status: "submitted" });
     }
 
@@ -185,23 +190,26 @@ export async function PATCH(request: Request) {
       if (!document) return json({ error: "Dokumen pengesahan harus berasal dari arsip organisasi dan telah diverifikasi." }, 409);
 
       const result = await c.db.prepare(`
-        UPDATE workspace_v14.member_financial_policies
-        SET policy_status='approved',approval_document_id=?,approved_by=?,
-            approved_at=?::timestamptz,effective_from=?::date,
-            effective_until=NULLIF(?,'')::date,updated_at=?::timestamptz
-        WHERE id=? AND organization_id=? AND policy_status='submitted'
-        RETURNING policy_code,policy_version,policy_type
+        WITH changed AS (
+          UPDATE workspace_v14.member_financial_policies
+          SET policy_status='approved',approval_document_id=?,approved_by=?,
+              approved_at=?::timestamptz,effective_from=?::date,
+              effective_until=NULLIF(?,'')::date,updated_at=?::timestamptz
+          WHERE id=? AND organization_id=? AND policy_status='submitted'
+          RETURNING policy_code,policy_version,policy_type
+        ), logged AS (
+          INSERT INTO audit(id,owner,action,title,created)
+          SELECT ?,?,'Kebijakan keuangan disahkan',
+                 policy_code || ' v' || policy_version || ' · ' || ?,?::timestamptz
+          FROM changed
+          RETURNING id
+        )
+        SELECT policy_code,policy_version,policy_type FROM changed
       `).bind(
         documentId,c.user.accountId,now,effectiveFrom,effectiveUntil ?? "",
-        now,body.id,orgId,
+        now,body.id,orgId,crypto.randomUUID(),c.user.userId,String(document.title),now,
       ).first();
       if (!result) return json({ error: "Kebijakan tidak sedang menunggu persetujuan atau sudah disahkan. Buat versi baru untuk perubahan berikutnya." }, 409);
-      await c.db.prepare(
-        "INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)",
-      ).bind(
-        crypto.randomUUID(),c.user.userId,"Kebijakan keuangan disahkan",
-        String(result.policy_code) + " v" + String(result.policy_version) + " · " + String(document.title),now,
-      ).run();
       return json({ ok: true, status: "approved" });
     }
 
