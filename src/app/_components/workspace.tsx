@@ -214,7 +214,7 @@ export default function Workspace({
   defaultSidebarOpen?: boolean;
 }) {
   const router = useRouter();
-  const { rows, files, audit, loading, error, unauthorized, load } =
+  const { rows, files, audit, assetMovements, loading, error, unauthorized, load } =
     useWorkspaceData();
   const [page, setPage] = useState(1);
   const imageUploadPending = useRef(false);
@@ -967,7 +967,7 @@ export default function Workspace({
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
         {section === "laporan" && !loading && !error && (
-          <EnterpriseReports rows={rows} user={principal} />
+          <EnterpriseReports rows={rows} user={principal} assetMovements={assetMovements} />
         )}
         {section === "panduan" && (
           <>
