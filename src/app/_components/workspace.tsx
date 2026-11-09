@@ -382,7 +382,7 @@ export default function Workspace({
       "\uFEFF" +
       [
         fields.map((f) => quote(f.label)).join(","),
-        ...data.map((r) => fields.map((f) => quote(r.data[f.key])).join(",")),
+        ...data.map((r) => fields.map((f) => quote(f.key === "assignedMemberId" ? r.data.assignedMemberName || "" : r.data[f.key])).join(",")),
       ].join("\r\n");
     const url = URL.createObjectURL(
       new Blob([csv], { type: "text/csv;charset=utf-8" }),
