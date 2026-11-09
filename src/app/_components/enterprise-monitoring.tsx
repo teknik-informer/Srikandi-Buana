@@ -286,6 +286,24 @@ export default function EnterpriseMonitoring({
       note: snapshot.finance.missingEvidence + " belum memiliki lampiran bukti",
       icon: Wallet,
     },
+    snapshot.business && {
+      title: "Aset kelompok dipinjam",
+      value: snapshot.business.borrowedAssets,
+      note: snapshot.business.overdueAssets + " terlambat · " + snapshot.business.assetsWithoutReturnDate + " tanpa tanggal kembali",
+      icon: Boxes,
+    },
+    snapshot.business && {
+      title: "Aset perlu penanganan",
+      value: snapshot.business.damagedAssets + snapshot.business.maintenanceAssets,
+      note: snapshot.business.damagedAssets + " rusak/hilang · " + snapshot.business.maintenanceAssets + " perawatan",
+      icon: AlertTriangle,
+    },
+    snapshot.business && {
+      title: "Kepemilikan belum jelas",
+      value: snapshot.business.unclassifiedAssets,
+      note: snapshot.business.memberOwnedAssets + " aset milik anggota dipisahkan dari inventaris kelompok",
+      icon: ShieldCheck,
+    },
   ].filter(Boolean) as Array<{
     title: string;
     value: number;
@@ -330,11 +348,11 @@ export default function EnterpriseMonitoring({
     },
     snapshot.business && {
       title: "Usaha & aset",
-      description: snapshot.business.assets + " aset · " + snapshot.business.assetsNeedAttention + " kondisi perlu perhatian · " + snapshot.business.lotsOnHold + " lot menunggu pemeriksaan/ditahan.",
+      description: snapshot.business.groupAssets + " aset milik kelompok · " + snapshot.business.borrowedAssets + " dipinjam · " + snapshot.business.overdueAssets + " terlambat kembali · " + snapshot.business.assetsWithoutReturnDate + " tanpa tanggal kembali · " + snapshot.business.memberOwnedAssets + " aset pribadi dipisahkan · " + snapshot.business.unclassifiedAssets + " belum jelas kepemilikannya · " + snapshot.business.lotsOnHold + " lot menunggu pemeriksaan/ditahan.",
       href: canReadSection(user, "aset") ? "/dashboard/aset" : "/dashboard/lotkopi",
       label: "Buka usaha & aset",
       icon: Boxes,
-      attention: snapshot.business.assetsNeedAttention + snapshot.business.lotsOnHold,
+      attention: snapshot.business.assetsNeedAttention + snapshot.business.overdueAssets + snapshot.business.assetsWithoutReturnDate + snapshot.business.unclassifiedAssets + snapshot.business.lotsOnHold,
     },
     snapshot.publication && {
       title: "Publikasi",
