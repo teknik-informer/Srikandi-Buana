@@ -52,6 +52,16 @@ const safeOperationalProfile = (value) => {
 export function mapLegacyRecordToV14(kind, raw) {
   const data = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
 
+  if (kind === "aset" && data.assetOwnership === "Milik kelompok") {
+    return {
+      domain: "inventory_items",
+      values: {
+        name: text(data.name, 220) || "Aset kelompok tanpa nama",
+        sku: text(data.assetCode, 48) || null,
+      },
+    };
+  }
+
   if (kind === "anggota") {
     const consent = data.dataConsent === "Setuju" ? "granted"
       : data.dataConsent === "Tidak setuju" ? "declined"
