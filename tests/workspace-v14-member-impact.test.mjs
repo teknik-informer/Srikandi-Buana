@@ -87,7 +87,7 @@ test("protected asset edits include normalized writes in the same database batch
   const route = read("src/app/api/records/route.ts");
   assert.match(protectedRecords, /db\.batch\(\[write,\.\.\.normalizedWrites\]\)/);
   assert.match(route, /previousData:oldData/);
-  assert.match(route, /normalizedWrites\);/);
+  assert.match(route, /\[\.\.\.normalizedWrites,\.\.\.ledgerWrites\]\);/);
 });
 
 
