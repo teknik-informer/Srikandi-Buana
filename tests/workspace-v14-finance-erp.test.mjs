@@ -178,7 +178,7 @@ test("sales invoices can only be issued for completed orders and post receivable
 
 test("sales invoices and receipts are immutable, append-only, and protected against overpayment", () => {
   const migration = read("migrations/012_sales_invoices_and_receipts.sql");
-  assert.match(migration, /UNIQUE \(owner, order_id\)/);
+  assert.ok(migration.includes("UNIQUE (owner, order_id)"));
   assert.match(migration, /BEFORE UPDATE OR DELETE ON commerce_sales_invoices/);
   assert.match(migration, /Sales invoices are immutable/);
   assert.match(migration, /BEFORE INSERT OR UPDATE OR DELETE ON commerce_sales_invoice_receipts/);
