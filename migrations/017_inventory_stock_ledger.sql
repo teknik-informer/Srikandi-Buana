@@ -159,7 +159,7 @@ BEGIN
   ) VALUES(
    gen_random_uuid()::text,org_id,line.inventory_item_id,'purchase',NEW.quantity,line.unit,
    'goods_receipt_line',NEW.id,receipt.received_date::timestamptz,receipt.received_by,
-   'Penerimaan dari '+receipt.receipt_number,receipt.inventory_location_id
+   'Penerimaan dari '||receipt.receipt_number,receipt.inventory_location_id
   );
  END IF;
  RETURN NEW;
