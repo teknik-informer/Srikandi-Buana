@@ -34,12 +34,12 @@ export async function GET(request:Request){
     SUM(m.quantity) AS on_hand
     FROM workspace_v14.stock_movements m
     JOIN workspace_v14.inventory_items i ON i.id=m.inventory_item_id AND i.organization_id=m.organization_id
-    JOIN workspace_v14.inventory_locations l ON l.id=m.location_id AND l.organization_id=m.organization_id
+    LEFT LEFT JOIN workspace_v14.inventory_locations l ON l.id=m.location_id AND l.organization_id=m.organization_id
     WHERE m.organization_id=? GROUP BY m.inventory_item_id,m.location_id,l.name,i.name,i.sku,i.unit_of_measure
     ORDER BY i.name,l.name`).bind(org).all(),
    c.db.prepare(`WITH movement_card AS (
     SELECT m.id,m.inventory_item_id,m.location_id,m.movement_type,m.quantity,m.unit_of_measure,
-      m.reference_type,m.reference_id,m.occurred_at,m.note,i.name AS item_name,i.sku,l.name AS location_name,
+      m.reference_type,m.reference_id,m.occurred_at,m.note,i.name AS item_name,i.sku,COALESCE(l.name,'Lokasi belum dipetakan') AS location_name,
       SUM(m.quantity) OVER(PARTITION BY m.inventory_item_id,m.location_id ORDER BY m.occurred_at,m.created_at,m.id
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS balance_after
     FROM workspace_v14.stock_movements m
