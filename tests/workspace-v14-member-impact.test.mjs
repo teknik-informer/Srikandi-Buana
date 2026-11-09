@@ -89,3 +89,42 @@ test("protected asset edits include normalized writes in the same database batch
   assert.match(route, /previousData:oldData/);
   assert.match(route, /normalizedWrites\);/);
 });
+
+
+test("asset monitoring separates group property, member property, overdue and incomplete custody", async () => {
+  const { buildEnterpriseMonitoring } = await import("../src/lib/enterprise-monitoring.ts");
+  const user = {
+    accountId: "account-1", userId: "owner-1", email: "qa@example.test",
+    displayName: "QA", fullName: "QA", role: "admin", memberId: null,
+    position: "Administrator", programIds: [],
+  };
+  const row = (id, data) => ({ id, kind: "aset", data, created: "2026-11-01T00:00:00.000Z", updated: "2026-11-01T00:00:00.000Z" });
+  const rows = [
+    row("group-overdue", { name: "Mesin jahit", assetOwnership: "Milik kelompok", custodyStatus: "Dipinjam", expectedReturnAt: "2026-11-08", condition: "Baik" }),
+    row("group-no-date", { name: "Tenda", assetOwnership: "Milik kelompok", custodyStatus: "Dipinjam", expectedReturnAt: "", condition: "Baik" }),
+    row("member-private", { name: "Motor", assetOwnership: "Milik anggota", custodyStatus: "Tidak dipinjamkan", condition: "Baik" }),
+    row("legacy-unknown", { name: "Barang lama", assetOwnership: "Belum diklasifikasi", custodyStatus: "Tidak dipinjamkan" }),
+    row("group-maintenance", { name: "Pompa", assetOwnership: "Milik kelompok", custodyStatus: "Perawatan", condition: "Perlu perawatan" }),
+  ];
+  const snapshot = buildEnterpriseMonitoring(rows, [], user, new Date("2026-11-09T12:00:00.000Z"));
+  assert.equal(snapshot.business.groupAssets, 3);
+  assert.equal(snapshot.business.memberOwnedAssets, 1);
+  assert.equal(snapshot.business.unclassifiedAssets, 1);
+  assert.equal(snapshot.business.borrowedAssets, 2);
+  assert.equal(snapshot.business.overdueAssets, 1);
+  assert.equal(snapshot.business.assetsWithoutReturnDate, 1);
+  assert.equal(snapshot.business.maintenanceAssets, 1);
+});
+
+test("monitoring and report UI expose asset custody status and group/member ownership separately", () => {
+  const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
+  const reports = read("src/app/_components/enterprise-reports.tsx");
+  assert.match(monitoring, /Aset kelompok dipinjam/);
+  assert.match(monitoring, /terlambat/);
+  assert.match(monitoring, /aset pribadi dipisahkan/);
+  assert.match(reports, /Rekap inventaris dan penguasaan aset/);
+  assert.match(reports, /assetOwnership === "Milik kelompok"/);
+  assert.match(reports, /assetOwnership === "Milik anggota"/);
+  assert.match(reports, /Rencana kembali/);
+  assert.match(reports, /Pemegang aset/);
+});
