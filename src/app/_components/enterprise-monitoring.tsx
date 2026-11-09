@@ -35,7 +35,7 @@ import { canReadRecord, canReadSection, visibleRecord, type Principal } from "@/
 import { modules } from "@/lib/srikandi";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
 import { recordHref, taskStatus } from "@/lib/management-insights";
-import type { WorkspaceAudit, WorkspaceFile } from "@/lib/workspace-types";
+import type { WorkspaceAudit, WorkspaceFile, AssetMovement } from "@/lib/workspace-types";
 import type { Row } from "@/lib/srikandi";
 import { StatusBadge, WorkspaceMetric, WorkspacePageHeader } from "./workspace-ui";
 import {
@@ -140,6 +140,7 @@ export default function EnterpriseMonitoring({
   rows,
   files,
   audit = [],
+  assetMovements = [],
   user,
   loading,
   error,
@@ -148,6 +149,7 @@ export default function EnterpriseMonitoring({
   rows: Row[];
   files: WorkspaceFile[];
   audit?: WorkspaceAudit[];
+  assetMovements?: AssetMovement[];
   user: Principal;
   loading: boolean;
   error: string;
@@ -768,6 +770,35 @@ export default function EnterpriseMonitoring({
           })}
         </div>
       </section>
+
+      {canReadSection(user, "aset") && (
+        <section className="space-y-3" aria-labelledby="asset-movement-monitoring-title">
+          <div className="space-y-1">
+            <h2 id="asset-movement-monitoring-title" className="text-base font-semibold">Riwayat pergerakan aset kelompok</h2>
+            <p className="text-sm text-muted-foreground">Peristiwa serah-terima dan pengembalian yang sudah tersinkron ke buku riwayat v14. Status aset saat ini tetap dibaca dari Inventaris Aset.</p>
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {assetMovements.slice(0, 12).map((event) => (
+                <div key={event.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge value={event.event_type === "issued" ? "Diserahkan" : event.event_type === "returned" ? "Dikembalikan" : event.event_type === "maintenance" ? "Perawatan" : event.event_type === "damaged" ? "Rusak" : event.event_type === "lost" ? "Hilang" : "Perubahan status"} />
+                      <span className="text-xs text-muted-foreground">{event.member_name}</span>
+                    </div>
+                    <p className="text-sm font-medium">{event.asset_name}</p>
+                    <p className="text-sm text-muted-foreground">{event.notes || "Tidak ada catatan tambahan."}</p>
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">{displayDate(event.occurred_at)}</span>
+                </div>
+              ))}
+              {!assetMovements.length && (
+                <p className="p-6 text-center text-sm text-muted-foreground">Belum ada peristiwa riwayat pada database yang terhubung. Catatan inventaris lama tetap tersedia; riwayat baru mulai terbentuk setelah sinkronisasi ledger aktif.</p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {["admin", "ketua", "sekretaris"].includes(user.role) && (
         <section className="space-y-3" aria-labelledby="meeting-priorities-title">
