@@ -197,7 +197,7 @@ export default function AccountProfileEditor({ user, memberName, membershipLinke
     <Card className="min-w-0 lg:col-span-2">
       <CardHeader>
         <CardTitle>Profil pribadi & CV</CardTitle>
-        <CardDescription>Lengkapi identitas, alamat berjenjang, kontak, pengalaman, pendidikan, dan kemampuan. Data keanggotaan yang terhubung akan diperbarui bersama profil ini.</CardDescription>
+        <CardDescription>Lengkapi identitas, alamat berjenjang, kontak, pendidikan, pengalaman, keahlian, dan minat. Ringkasan profil yang aman dapat membantu pencocokan program, pelatihan, kebutuhan sarana, dan penugasan. Profil tidak otomatis menetapkan bantuan, pinjaman, gaji, tunjangan, atau pembayaran; keputusan tetap memerlukan verifikasi dan persetujuan. Data keanggotaan yang terhubung akan diperbarui bersama profil ini.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-7">
         <div className="flex min-w-0 flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:flex-row sm:items-center sm:p-5">
