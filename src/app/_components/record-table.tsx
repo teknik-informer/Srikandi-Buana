@@ -21,6 +21,8 @@ export function recordFieldText(
 ) {
   const value = row.data[field.key];
   if (value === undefined || value === null || value === "") return "—";
+  if (field.key === "assignedMemberId")
+    return String(row.data.assignedMemberName || "Anggota terhubung");
   if (field.key === "fileId")
     return (
       files.find((file) => file.id === value && !file.deleted_at)?.name ||
