@@ -48,6 +48,7 @@ test("PO stock links and receipt locations post quantity movements exactly once"
  assert.match(migration,/goods_receipt_line/);
  assert.match(migration,/movement_type,quantity,unit_of_measure/);
  assert.match(migration,/receipt\.inventory_location_id/);
+ assert.match(migration,/Penerimaan dari '\|\|receipt\.receipt_number/);
 });
 
 test("inventory UI exposes item master, locations, reorder warnings and stock card",()=>{
