@@ -37,6 +37,9 @@ export async function POST(request:Request){
  try{
   const b=await readJsonObject(request,16000),now=new Date().toISOString(),owner=c.user.userId,actor=c.user.accountId;
   if(!await consumeRateLimit(c.db,'purchases:write:'+actor,100,3600000))return json({error:'Batas perubahan pengadaan per jam telah tercapai.'},429);
+  const organization=await c.db.prepare('SELECT id FROM workspace_v14.organizations WHERE source_owner_user_id=?').bind(owner).first();
+  if(!organization?.id)return json({error:'Ruang data organisasi belum disiapkan.'},503);
+  const org=String(organization.id);
   if(b.action==='request'){
    if(!canWrite(c.user.role))return json({error:'Hanya bendahara atau administrator yang dapat mengajukan pengadaan.'},403);
    const purpose=textField(b.purpose,500),date=b.requestedDate,lines=Array.isArray(b.lines)?b.lines:[];
