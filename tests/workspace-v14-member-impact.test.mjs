@@ -6,6 +6,7 @@ const read = (path) => readFileSync(path, "utf8");
 const fields = read("src/lib/srikandi.ts");
 const workspace = read("src/app/_components/workspace.tsx");
 const api = read("src/app/api/records/route.ts");
+const table = read("src/app/_components/record-table.tsx");
 
 test("follow-up tasks can be assigned to an active member record", () => {
   assert.ok(fields.includes('key:"assignedMemberId",label:"Anggota pelaksana (opsional)",type:"member"'));
