@@ -34,7 +34,7 @@ export async function GET(request:Request){
     SUM(m.quantity) AS on_hand
     FROM workspace_v14.stock_movements m
     JOIN workspace_v14.inventory_items i ON i.id=m.inventory_item_id AND i.organization_id=m.organization_id
-    LEFT LEFT JOIN workspace_v14.inventory_locations l ON l.id=m.location_id AND l.organization_id=m.organization_id
+    LEFT JOIN workspace_v14.inventory_locations l ON l.id=m.location_id AND l.organization_id=m.organization_id
     WHERE m.organization_id=? GROUP BY m.inventory_item_id,m.location_id,l.name,i.name,i.sku,i.unit_of_measure
     ORDER BY i.name,l.name`).bind(org).all(),
    c.db.prepare(`WITH movement_card AS (
@@ -44,7 +44,7 @@ export async function GET(request:Request){
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS balance_after
     FROM workspace_v14.stock_movements m
     JOIN workspace_v14.inventory_items i ON i.id=m.inventory_item_id AND i.organization_id=m.organization_id
-    JOIN workspace_v14.inventory_locations l ON l.id=m.location_id AND l.organization_id=m.organization_id
+    LEFT JOIN workspace_v14.inventory_locations l ON l.id=m.location_id AND l.organization_id=m.organization_id
     WHERE m.organization_id=?
    ) SELECT * FROM movement_card ORDER BY occurred_at DESC,id DESC LIMIT 500`).bind(org).all()
   ]);
