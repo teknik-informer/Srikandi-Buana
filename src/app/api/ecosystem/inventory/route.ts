@@ -30,7 +30,7 @@ export async function GET(request:Request){
       ON m.inventory_item_id=i.id AND m.organization_id=i.organization_id
     WHERE i.organization_id=? AND i.item_type<>'equipment'
     GROUP BY i.id ORDER BY i.name LIMIT 1000`).bind(org).all(),
-   c.db.prepare(`SELECT m.inventory_item_id,m.location_id,l.name AS location_name,i.name AS item_name,i.sku,i.unit_of_measure,
+   c.db.prepare(`SELECT m.inventory_item_id,m.location_id,COALESCE(l.name,'Lokasi belum dipetakan') AS location_name,i.name AS item_name,i.sku,i.unit_of_measure,
     SUM(m.quantity) AS on_hand
     FROM workspace_v14.stock_movements m
     JOIN workspace_v14.inventory_items i ON i.id=m.inventory_item_id AND i.organization_id=m.organization_id
