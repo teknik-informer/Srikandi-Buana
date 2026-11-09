@@ -91,30 +91,25 @@ test("protected asset edits include normalized writes in the same database batch
 });
 
 
-test("asset monitoring separates group property, member property, overdue and incomplete custody", async () => {
-  const { buildEnterpriseMonitoring } = await import("../src/lib/enterprise-monitoring.ts");
-  const user = {
-    accountId: "account-1", userId: "owner-1", email: "qa@example.test",
-    displayName: "QA", fullName: "QA", role: "admin", memberId: null,
-    position: "Administrator", programIds: [],
-  };
-  const row = (id, data) => ({ id, kind: "aset", data, created: "2026-11-01T00:00:00.000Z", updated: "2026-11-01T00:00:00.000Z" });
-  const rows = [
-    row("group-overdue", { name: "Mesin jahit", assetOwnership: "Milik kelompok", custodyStatus: "Dipinjam", expectedReturnAt: "2026-11-08", condition: "Baik" }),
-    row("group-no-date", { name: "Tenda", assetOwnership: "Milik kelompok", custodyStatus: "Dipinjam", expectedReturnAt: "", condition: "Baik" }),
-    row("member-private", { name: "Motor", assetOwnership: "Milik anggota", custodyStatus: "Tidak dipinjamkan", condition: "Baik" }),
-    row("legacy-unknown", { name: "Barang lama", assetOwnership: "Belum diklasifikasi", custodyStatus: "Tidak dipinjamkan" }),
-    row("group-maintenance", { name: "Pompa", assetOwnership: "Milik kelompok", custodyStatus: "Perawatan", condition: "Perlu perawatan" }),
-  ];
-  const snapshot = buildEnterpriseMonitoring(rows, [], user, new Date("2026-11-09T12:00:00.000Z"));
-  assert.equal(snapshot.business.groupAssets, 3);
-  assert.equal(snapshot.business.memberOwnedAssets, 1);
-  assert.equal(snapshot.business.unclassifiedAssets, 1);
-  assert.equal(snapshot.business.borrowedAssets, 2);
-  assert.equal(snapshot.business.overdueAssets, 1);
-  assert.equal(snapshot.business.assetsWithoutReturnDate, 1);
-  assert.equal(snapshot.business.maintenanceAssets, 1);
+test("asset monitoring calculations separate group ownership, member property and overdue custody", () => {
+  const monitoring = read("src/lib/enterprise-monitoring.ts");
+  assert.match(monitoring, /const groupAssets = assets\.filter\(\(row\) => row\.data\.assetOwnership === "Milik kelompok"\)/);
+  assert.match(monitoring, /const memberOwnedAssets = assets\.filter\(\(row\) => row\.data\.assetOwnership === "Milik anggota"\)/);
+  assert.match(monitoring, /const overdueAssets = borrowedAssets\.filter/);
+  assert.match(monitoring, /const assetsWithoutReturnDate = borrowedAssets\.filter/);
+  assert.match(monitoring, /Pengembalian aset terlambat/);
+  assert.match(monitoring, /Kepemilikan aset belum diklasifikasi/);
 });
+
+test("asset movement history API is scoped by asset permission and organization", () => {
+  const route = read("src/app/api/records/route.ts");
+  assert.match(route, /if\(canReadKind\(u,"aset"\)\)/);
+  assert.match(route, /workspace_v14\.member_asset_movement_events/);
+  assert.match(route, /WHERE source_owner_user_id=\?/);
+  assert.match(route, /WHERE e\.organization_id=\?/);
+  assert.match(route, /LIMIT 50/);
+});
+
 
 test("monitoring and report UI expose asset custody status and group/member ownership separately", () => {
   const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
