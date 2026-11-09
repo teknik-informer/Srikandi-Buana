@@ -66,7 +66,23 @@ export async function POST(req:Request){return save(req,false)}
 export async function PUT(req:Request){return save(req,true)}
 async function save(req:Request,edit:boolean){try{const c=await context(req,true);if(c.error)return c.error;
  if(Number(req.headers.get("content-length")||0)>40000)return json({error:"Formulir terlalu besar."},413);
- const body=await readJsonObject(req,40000) as {kind:string;id?:string;data:unknown;expectedUpdated?:string};const data=validate(body.kind,body.data);if(body.kind==='galeri'&&data.status==='Terbit'&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin publikasi foto sebelum menerbitkan. Simpan sebagai Draf jika izin belum tersedia.'},400);if(body.kind==='publikasi'&&data.status==='Terbit'&&data.fileId&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin foto sampul sebelum menerbitkan konten. Hapus foto sampul jika tidak digunakan.'},400);if(!canWriteRecord(c.user!,{id:body.id||'',kind:body.kind,data}))return json({error:'Anda tidak memiliki izin mengubah data ini.'},403);const readableFiles=c.user!.role==='admin'?null:await allowedFileIds(c.user!);if(readableFiles&&[data.fileId,data.attachmentId,data.signedAgreementFileId].some(id=>id&&!readableFiles.has(String(id))))return json({error:'Berkas di luar hak akses Anda.'},403);if(data.fileId){const file=await c.db!.prepare("SELECT mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.fileId,c.user!.userId).first();if(!file||!["image/png","image/jpeg"].includes(String(file.mime)))return json({error:"Pilih foto JPG/PNG yang tersedia di arsip akun Anda."},400);}
+ const body=await readJsonObject(req,40000) as {kind:string;id?:string;data:unknown;expectedUpdated?:string};const data=validate(body.kind,body.data);
+ if(body.kind==="tindaklanjut"){
+  const assignedMemberId=String(data.assignedMemberId||"").trim();
+  if(assignedMemberId){
+   const assigned=await c.db!.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(assignedMemberId,c.user!.userId).first();
+   if(!assigned)return json({error:"Anggota pelaksana tidak ditemukan dalam kelompok ini."},400);
+   let memberData:Data;
+   try{memberData=JSON.parse(String(assigned.data)) as Data;}catch{return json({error:"Data anggota pelaksana perlu diperiksa."},409);}
+   if(String(memberData.status||"")!=="Aktif")return json({error:"Penugasan hanya dapat diberikan kepada anggota dengan status Aktif."},409);
+   data.assignedMemberId=assignedMemberId;
+   data.assignedMemberName=String(memberData.name||"").slice(0,160);
+  }else{
+   data.assignedMemberId="";
+   data.assignedMemberName="";
+  }
+ }
+ if(body.kind==='galeri'&&data.status==='Terbit'&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin publikasi foto sebelum menerbitkan. Simpan sebagai Draf jika izin belum tersedia.'},400);if(body.kind==='publikasi'&&data.status==='Terbit'&&data.fileId&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin foto sampul sebelum menerbitkan konten. Hapus foto sampul jika tidak digunakan.'},400);if(!canWriteRecord(c.user!,{id:body.id||'',kind:body.kind,data}))return json({error:'Anda tidak memiliki izin mengubah data ini.'},403);const readableFiles=c.user!.role==='admin'?null:await allowedFileIds(c.user!);if(readableFiles&&[data.fileId,data.attachmentId,data.signedAgreementFileId].some(id=>id&&!readableFiles.has(String(id))))return json({error:'Berkas di luar hak akses Anda.'},403);if(data.fileId){const file=await c.db!.prepare("SELECT mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.fileId,c.user!.userId).first();if(!file||!["image/png","image/jpeg"].includes(String(file.mime)))return json({error:"Pilih foto JPG/PNG yang tersedia di arsip akun Anda."},400);}
  if(data.attachmentId){const attachment=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.attachmentId,c.user!.userId).first();if(!attachment)return json({error:"Lampiran tidak tersedia di arsip Anda."},400);}
  if(data.signedAgreementFileId){const agreement=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.signedAgreementFileId,c.user!.userId).first();if(!agreement)return json({error:"Bukti perjanjian tidak tersedia pada arsip organisasi."},400);}
  if(body.kind==="lotkopi"){const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='lotkopi' AND json_extract(data,'$.name')=? AND id!=?").bind(c.user!.userId,data.name,body.id||"").first();if(duplicate)return json({error:"Kode lot sudah digunakan. Gunakan kode unik."},409);}
