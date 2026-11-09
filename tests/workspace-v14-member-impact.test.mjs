@@ -123,3 +123,17 @@ test("monitoring and report UI expose asset custody status and group/member owne
   assert.match(reports, /Rencana kembali/);
   assert.match(reports, /Pemegang aset/);
 });
+
+
+test("monitoring links borrowed group assets to their member tasks and programs without mixing personal assets", () => {
+  const links = read("src/app/_components/asset-program-links.tsx");
+  const monitoring = read("src/app/_components/enterprise-monitoring.tsx");
+  assert.match(links, /row\.data\.assetOwnership === "Milik kelompok"/);
+  assert.match(links, /row\.data\.custodyStatus === "Dipinjam"/);
+  assert.match(links, /assignedMemberId/);
+  assert.match(links, /programId/);
+  assert.match(links, /recordHref\(task\)/);
+  assert.match(links, /Kepemilikan aset pribadi tidak ditampilkan sebagai aset kelompok/);
+  assert.match(monitoring, /AssetProgramLinks rows=\{rows\}/);
+  assert.match(monitoring, /canReadSection\(user, "aset"\)/);
+});
