@@ -19,6 +19,7 @@ const SYSTEM_ACCOUNTS: readonly AccountSpec[] = [
   { code: "110002", name: "Kas Program", category: "asset" },
   { code: "110003", name: "Kas Usaha", category: "asset" },
   { code: "120001", name: "Piutang Simpan Pinjam Anggota", category: "asset" },
+  { code: "120002", name: "Piutang Dagang", category: "asset" },
   { code: "130001", name: "Persediaan Usaha", category: "asset" },
   { code: "140001", name: "Peralatan dan Aset Tetap", category: "asset" },
   { code: "210001", name: "Simpanan Anggota", category: "liability" },
