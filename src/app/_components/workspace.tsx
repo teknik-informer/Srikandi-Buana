@@ -1141,6 +1141,31 @@ export default function Workspace({
                               </NativeSelectOption>
                             ))}
                         </NativeSelect>
+                      ) : f.type === "member-owner" ? (
+                        <>
+                          <NativeSelect
+                            id={f.key}
+                            name={f.key}
+                            defaultValue={String(
+                              editor.row?.data[f.key] ??
+                                editor.initial?.[f.key] ??
+                                "",
+                            )}
+                          >
+                            <NativeSelectOption value="">Pilih pemilik anggota</NativeSelectOption>
+                            {members
+                              .slice()
+                              .sort((a, b) => String(a.data.name).localeCompare(String(b.data.name), "id"))
+                              .map((member) => (
+                                <NativeSelectOption key={member.id} value={member.id}>
+                                  {String(member.data.name)} · {String(member.data.status || "Status belum dicatat")}
+                                </NativeSelectOption>
+                              ))}
+                          </NativeSelect>
+                          <p className="text-xs text-muted-foreground">
+                            {f.helpText || "Pemilik aset tetap dicatat meskipun status keanggotaannya berubah."}
+                          </p>
+                        </>
                       ) : f.type === "member" ? (
                         <>
                           <NativeSelect
