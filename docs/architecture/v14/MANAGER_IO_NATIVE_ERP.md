@@ -95,6 +95,16 @@ The Finance workspace should become a coherent ERP workspace, not a second disco
 - Link purchasing, sales, and production/operations to stock movements.
 - Preserve member-owned vs group-owned asset distinctions.
 
+### Phase D implementation status — quantity-only inventory
+- A dedicated `/dashboard/inventaris` workspace and `/api/ecosystem/inventory` API provide organization-owned stock item master, warehouse/location master, opening physical counts, reorder thresholds, movement history, stock card, per-location balances, and low-stock warnings.
+- Inventory records live in the existing normalized `workspace_v14.inventory_items` and `workspace_v14.stock_movements` domain. A new `workspace_v14.inventory_locations` dimension assigns each new movement to a real active location. This avoids a second inventory table and keeps group-owned assets/equipment and member-owned property distinct from stock items.
+- Purchase request lines can be mapped to an existing stock item when a Purchase Order is prepared. Mapping is optional for services/non-stock expenses and requires an exact unit match. The approved PO line retains the inventory item link.
+- When a receipt is posted for a mapped PO line, the database trigger creates a positive stock movement against the selected location in the same transaction as the receipt. Receipt client keys and unique source references prevent duplicate stock posting. Partial receipts create partial quantities; over-receipts are rejected.
+- Manual stock operations currently include opening physical counts, positive/negative quantity adjustments, operational consumption (out), and returns (in). Database locks on item rows, unit/location checks, append-only movement history, and insufficient-stock controls protect the quantity ledger.
+- Migration 017 is applied only to sanitized QA branch `srikandi-v12-sanitized-qa-20261106`. The location table, PO mapping/receipt fields, indexes, and triggers were verified. No inventory items, locations, opening balances, or movements were seeded.
+- Scope is quantity only. It deliberately does not calculate unit cost, moving average/FIFO/standard cost, inventory value, depreciation, COGS, or general-ledger postings. No purchase invoice is capitalized automatically. The existing supplier bill flow still posts to an expense account; an approved inventory valuation and accounting policy is required before enabling value-based posting.
+- Legacy group equipment remains in the asset register and is excluded from consumable/stock listings. Member-owned property remains outside organization inventory. Legacy commerce catalogue stock is not silently imported into the normalized stock ledger; an opening-count and reconciliation review is required before any import.
+
 ### Phase E — member financial subledgers
 - Activate dues, savings, loans, installments, repayments, and compensation only after policy versions and approval roles are configured.
 - Generate payment vouchers and ledger postings from approved transactions.
