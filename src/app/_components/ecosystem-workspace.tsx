@@ -3,6 +3,7 @@ import {useCallback,useEffect,useState,type FormEvent} from 'react';
 import {calculateFinanceStatements} from '@/features/finance/statements.mjs';
 import {AlertCircle,Package,ShoppingBag,Plus,BookOpen,RefreshCw,Download,RotateCcw,SquarePen,X} from 'lucide-react';
 import Link from 'next/link';
+import MemberFinancePolicies from './member-finance-policies';
 type Product={id:string;sku:string;name:string;description:string;unit:string;price:number;stock:number;published?:boolean;updated?:string};
 type Order={id:string;product_name:string;buyer_name:string;quantity:number;unit_price:number;total:number;status:string;created:string};
 type SalesInvoice={id:string;invoice_number:string;order_id:string;customer_name:string;issue_date:string;due_date:string|null;total_amount:number;paid_total:number;outstanding_amount:number;status:"issued"|"partially_paid"|"paid";product_name?:string;quantity?:number};
@@ -148,5 +149,7 @@ export function AccountingWorkspace({role}:{role:string}){
  <section><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Jurnal Terakhir</h2><a className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold" href="/api/ecosystem/ledger?format=csv"><Download size={16}/> Ekspor jurnal CSV</a></div>{entries.length===0?<p className="rounded-xl border p-6 text-sm text-muted-foreground">Belum ada jurnal.</p>:<div className="space-y-2">{entries.map(e=><article key={e.id} className="rounded-xl border bg-card px-4 py-3 text-sm">
  <div className="flex flex-wrap items-center gap-2"><strong className="font-semibold">{e.memo}</strong>{e.reference.startsWith("KAS-")&&<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Dari Buku Kas</span>}<span className="text-xs text-muted-foreground">{e.posted_date} · {e.reference}</span><span className="ml-auto">{canWrite&&Number(e.correction_count)===0&&<button type="button" disabled={busy} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-primary disabled:opacity-50" onClick={()=>void reverse(e)}><RotateCcw size={13}/> Buat koreksi</button>}{Number(e.correction_count)>0&&<span className="text-xs text-muted-foreground">Koreksi tercatat</span>}</span></div>
  <div className="mt-3 space-y-1.5 border-t pt-3">{journalLines(e).map(line=><div key={line.accountId} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 text-xs"><span className="min-w-0 truncate text-muted-foreground">{line.code} · {line.name}</span><span className="tabular-nums">{Number(line.debit)>0?"Debit "+money(Number(line.debit)):"—"}</span><span className="tabular-nums">{Number(line.credit)>0?"Kredit "+money(Number(line.credit)):"—"}</span></div>)}</div>
- </article>)}</div>}</section></div>
+ </article>)}</div>}</section>
+ <MemberFinancePolicies role={role}/>
+ </div>
 }
