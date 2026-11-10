@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       "AND EXISTS (SELECT 1 FROM external_access_grants g JOIN external_access_grant_scopes s " +
       "ON s.grant_id=g.id AND s.workspace_owner=g.workspace_owner " +
       "WHERE g.account_id=a.id AND g.workspace_owner=a.workspace_owner AND g.status='active' " +
-      "AND g.valid_from<=? AND g.valid_until>? AND s.permission IN ('read','aggregate'))"
+      "AND g.audience=org.organization_type AND g.valid_from<=? AND g.valid_until>? AND s.permission IN ('read','aggregate'))"
     ).bind(email, process.env.ADMIN_EMAIL.trim(), now, now).first();
     const externalPasswordValid = await verifyPassword(password, external?.password_hash);
     if (!external || !externalPasswordValid) {
