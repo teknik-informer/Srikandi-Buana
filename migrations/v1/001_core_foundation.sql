@@ -18,7 +18,6 @@ CREATE TABLE organizations (
   timezone TEXT NOT NULL DEFAULT 'Asia/Jakarta',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (id, id)
 );
 
 CREATE TABLE users (
