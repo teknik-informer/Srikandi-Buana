@@ -77,12 +77,15 @@ export function canExternalRead(
 export function activeExternalGrants(grants: ExternalGrant[], now = new Date()): ExternalGrant[] {
   const instant = now.getTime();
   if (!Number.isFinite(instant)) return [];
-  return grants.filter((grant) =>
-    grant.status === "active" &&
-    Number.isFinite(Date.parse(grant.validFrom)) &&
-    Number.isFinite(Date.parse(grant.validUntil)) &&
-    Date.parse(grant.validFrom) <= instant &&
-    Date.parse(grant.validUntil) > instant &&
-    grant.scopes.length > 0
-  );
+  const supportedAggregates = ["members", "land", "harvest"];
+  return grants.flatMap((grant) => {
+    const scopes = grant.scopes.filter((scope) =>
+      (scope.type === "program" && /^[1-9]$/.test(scope.ref) && scope.permission === "read") ||
+      (scope.type === "aggregate" && supportedAggregates.includes(scope.ref) && scope.permission === "aggregate")
+    );
+    const active = grant.status === "active" && !!grant.purpose.trim() &&
+      Number.isFinite(Date.parse(grant.validFrom)) && Number.isFinite(Date.parse(grant.validUntil)) &&
+      Date.parse(grant.validFrom) <= instant && Date.parse(grant.validUntil) > instant;
+    return active && scopes.length ? [{ ...grant, scopes }] : [];
+  });
 }
