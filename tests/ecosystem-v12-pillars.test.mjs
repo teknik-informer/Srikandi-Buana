@@ -18,8 +18,8 @@ const assigned = registry.enterpriseDashboards.flatMap((dashboard) => dashboard.
 const expected = [...legacyRouteIds.filter((id) => id !== "laporan"), "laporan", "monitoring"];
 
 test("dashboard utama disederhanakan menjadi empat area kerja", () => {
-  assert.deepEqual(registry.enterpriseDashboards.map((dashboard) => dashboard.id), ["ecosystem", "publication", "finance", "system"]);
-  assert.deepEqual(registry.enterpriseDashboards.map((dashboard) => dashboard.label), ["Organisasi", "Publikasi", "Pelaporan", "Administrasi"]);
+  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["ecosystem", "publication", "finance", "system"]);
+  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["Organisasi", "Publikasi", "Pelaporan", "Administrasi"]);
   for (const dashboard of registry.enterpriseDashboards) {
     assert.equal(dashboard.href, "/dashboard/" + dashboard.id);
     assert.equal(registry.getEnterpriseDashboardById(dashboard.id)?.id, dashboard.id);
@@ -34,7 +34,7 @@ test("seluruh rute fitur lama tetap tersedia tepat satu kali", () => {
 });
 
 test("publikasi dan pelaporan memiliki akses yang jelas", () => {
-  const ids = (area) => registry.enterpriseDashboards.find((dashboard) => dashboard.id === area).features.map((feature) => feature.id);
+  const ids = (area) => Array.from(registry.enterpriseDashboards.find((dashboard) => dashboard.id === area).features, (feature) => feature.id);
   assert.deepEqual(ids("publication"), ["publikasi", "galeri", "pesan"]);
   assert.deepEqual(ids("finance"), ["kas", "laporan", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]);
   assert.ok(ids("ecosystem").includes("laporan_program"));
