@@ -160,6 +160,8 @@ assert(adminRoute.includes("getAdminUser()") && adminRoute.includes("sameOrigin(
 assert(adminRoute.includes("WHERE id=? AND workspace_owner=?"), "Organization lookup must be workspace-scoped");
 assert(adminRoute.includes("DELETE FROM external_portal_sessions WHERE account_id=?"), "Disabling account must revoke its sessions");
 assert(adminRoute.includes("status='revoked'") && adminRoute.includes("revoked_at=?"), "Grant revocation must be recorded");
+assert(adminRoute.includes('action === "resend_invitation"') && adminRoute.includes("Tautan undangan eksternal dikirim ulang"), "Resent invitations must replace and audit the previous link");
+assert(adminRoute.includes("invitations: invitations.results"), "Administrators must be able to inspect invitation expiry and status");
 assert(activateRoute.includes("i.consumed_at IS NULL") && activateRoute.includes("i.revoked_at IS NULL"));
 assert(activateRoute.includes("i.expires_at>?") && activateRoute.includes("o.verification_status='verified'"));
 assert(auth.includes("a.status='active'") && auth.includes("o.verification_status='verified'"));
