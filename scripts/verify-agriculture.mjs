@@ -142,6 +142,8 @@ for (const key of ["members", "land", "harvest"]) {
 for (const key of ["aid", "project_progress", "project_finance"]) {
   assert.equal(canExternalRead(principal, { workspaceOwner: owner, classification: "aggregate", aggregateKey: key }, at), false);
 }
+const legacyGrant = { ...principal, grants: [{ ...principal.grants[0], scopes: [{ type: "aggregate", ref: "aid", permission: "aggregate" }] }] };
+assert.equal(canExternalRead(legacyGrant, { workspaceOwner: owner, classification: "aggregate", aggregateKey: "aid" }, at), false, "Legacy unsupported aggregate grants must be denied");
 assert.equal(canExternalRead(principal, { workspaceOwner: otherOwner, classification: "aggregate", aggregateKey: "land" }, at), false);
 assert.equal(canExternalRead({ ...principal, accountStatus: "disabled" }, { workspaceOwner: owner, classification: "aggregate", aggregateKey: "harvest" }, at), false);
 assert.equal(canExternalRead(principal, { workspaceOwner: owner, classification: "personal", aggregateKey: "members" }, at), false);
@@ -160,7 +162,7 @@ assert(api.includes('user.programIds.includes("3")'), "Coordinator write access 
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
 assert(summary.includes("data::jsonb->>'status'='Aktif'") && summary.includes("data::jsonb->>'verification'='Terverifikasi'"));
 assert(summary.includes("p.verification_status='verified'") && summary.includes("c.verification_status='verified'") && summary.includes("h.verification_status='verified'"));
-assert(summary.includes("COUNT(DISTINCT p.id)") && summary.includes("COUNT(*) AS verified_count"), "Aggregates must be based on unique parcels and verified members");
+assert(summary.includes("COUNT(DISTINCT p.member_id)") && summary.includes("COUNT(*) AS verified_count"), "Aggregates must be based on unique members and verified records");
 assert(summary.includes("count >= 5") && summary.includes("count >= 3"), "Small cohorts must be suppressed");
 assert(!/NIK|phone|coordinate|latitude|longitude/i.test(summary), "External summary must not query personal contact or precise location fields");
 assert(portal.includes("getExternalAgricultureSummary(user)") && portal.includes("Ringkasan pertanian terverifikasi"));
