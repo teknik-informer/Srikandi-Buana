@@ -1,7 +1,7 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
 import { canReadSectionForRole, type Role } from "../identity/access-policy";
 
-export type EnterpriseDashboardId = "organization" | "publication" | "reporting" | "administration";
+export type EnterpriseDashboardId = "ecosystem" | "publication" | "finance" | "system";
 export type EnterpriseDashboard = {
   id: EnterpriseDashboardId;
   href: string;
@@ -23,8 +23,8 @@ function features(ids: readonly string[]): readonly NavItem[] {
 /** Four user-facing areas; detailed operational modules remain available by role. */
 export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
-    id: "organization",
-    href: "/dashboard/organization",
+    id: "ecosystem",
+    href: "/dashboard/ecosystem",
     label: "Organisasi",
     description: "Profil, keanggotaan, pengurus, program, kegiatan, dan dokumen organisasi.",
     features: features(["portal", "notifikasi", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
@@ -37,15 +37,15 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     features: features(["publikasi", "galeri", "pesan"]),
   },
   {
-    id: "reporting",
-    href: "/dashboard/reporting",
+    id: "finance",
+    href: "/dashboard/finance",
     label: "Pelaporan",
     description: "Laporan kegiatan, keuangan, aset, usaha, dan pertanggungjawaban.",
     features: features(["kas", "laporan", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]),
   },
   {
-    id: "administration",
-    href: "/dashboard/administration",
+    id: "system",
+    href: "/dashboard/system",
     label: "Administrasi",
     description: "Surat, arsip, referensi, akun, hak akses, dan pengaturan.",
     features: features(["surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen", "akun", "akun-saya", "pengaturan", "panduan"]),
