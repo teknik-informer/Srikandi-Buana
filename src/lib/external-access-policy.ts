@@ -40,8 +40,8 @@ export function canExternalRead(
   resource: ExternalResource,
   now = new Date(),
 ): boolean {
-  if (!principal || principal.accountStatus !== "active") return false;
   if (resource.classification === "public") return true;
+  if (!principal || principal.accountStatus !== "active") return false;
   if (!resource.workspaceOwner || resource.workspaceOwner !== principal.workspaceOwner) return false;
   // Personal records and raw accounting entries are never exposed by a generic external grant.
   if (["personal", "financial", "internal"].includes(resource.classification)) return false;
