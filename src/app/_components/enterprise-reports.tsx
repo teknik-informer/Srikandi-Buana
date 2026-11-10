@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { canReadSection, type Principal } from "@/lib/permissions";
 import { createCSV } from "@/lib/csv";
 import { modules, type Row } from "@/lib/srikandi";
+import type { AssetMovement } from "@/lib/workspace-types";
 import {
   getVisibleReportGroups,
   selectReportRows,
@@ -105,11 +106,16 @@ function attentionCount(group: ReportGroup, rows: Row[]) {
     return rows.filter((row) => !String(row.data.attachmentId || "").trim()).length;
   }
   if (group.id === "usaha") {
-    return rows.filter((row) =>
-      ["Perlu perawatan", "Rusak", "Perlu verifikasi", "Menunggu pemeriksaan", "Ditahan", "Ditolak"].includes(
-        String(row.data.condition || row.data.status),
-      ),
-    ).length;
+    return rows.filter((row) => {
+      if (row.kind === "aset") {
+        const borrowed = row.data.assetOwnership === "Milik kelompok" && row.data.custodyStatus === "Dipinjam";
+        return !["Milik kelompok", "Milik anggota"].includes(String(row.data.assetOwnership || "")) ||
+          ["Perlu perawatan", "Rusak", "Perlu verifikasi"].includes(String(row.data.condition || "")) ||
+          ["Perawatan", "Rusak", "Hilang"].includes(String(row.data.custodyStatus || "")) ||
+          (borrowed && (!validDate(row.data.expectedReturnAt) || String(row.data.expectedReturnAt) < today));
+      }
+      return ["Menunggu pemeriksaan", "Ditahan", "Ditolak"].includes(String(row.data.status));
+    }).length;
   }
   return rows.filter((row) =>
     row.data.status === "Draf" ||
@@ -128,7 +134,11 @@ function completionCount(group: ReportGroup, rows: Row[]) {
     return rows.filter((row) => row.kind === "tindaklanjut" && row.data.status === "Selesai").length;
   }
   if (group.id === "usaha") {
-    return rows.filter((row) => row.data.status === "Diterima" || row.data.condition === "Baik").length;
+    return rows.filter((row) =>
+      row.kind === "aset"
+        ? row.data.assetOwnership === "Milik kelompok" && row.data.condition === "Baik" && !["Rusak", "Hilang", "Perawatan"].includes(String(row.data.custodyStatus || ""))
+        : row.data.status === "Diterima",
+    ).length;
   }
   return rows.filter((row) =>
     ["Selesai", "Aktif", "Terverifikasi", "Disahkan internal", "Diterima"].includes(
@@ -138,6 +148,14 @@ function completionCount(group: ReportGroup, rows: Row[]) {
 }
 
 function exportRows(group: ReportGroup, rows: Row[]) {
+  if (group.id === "usaha") {
+    return createCSV([
+      ["Tanggal / periode", "Jenis catatan", "Nama aset / catatan", "Kepemilikan", "Pemilik anggota", "Pemegang aset", "Kondisi", "Status pemakaian", "Tanggal serah-terima", "Rencana kembali", "Pengembalian aktual", "Status catatan"],
+      ...rows.map((row) => row.kind === "aset"
+        ? [rowDate(row), "Inventaris aset", row.data.name || "—", row.data.assetOwnership || "Belum diklasifikasi", row.data.memberOwnerName || "—", row.data.custodianMemberName || "—", row.data.condition || "Belum dicatat", row.data.custodyStatus || "Tidak dipinjamkan", row.data.issuedAt || "—", row.data.expectedReturnAt || "—", row.data.returnedAt || "—", row.data.status || "—"]
+        : [rowDate(row), kindLabels[row.kind] || row.kind, row.data.name || "—", "—", "—", "—", "—", "—", "—", "—", "—", row.data.status || "—"]),
+    ]);
+  }
   if (group.id === "keanggotaan") {
     // Never export member names or contact details from the report center.
     const summary = summarizeReportRows(rows);
@@ -284,6 +302,81 @@ function ProgramEvaluationPanel({
   );
 }
 
+function AssetCustodyReport({ rows, movements = [] }: { rows: Row[]; movements?: AssetMovement[] }) {
+  const assets = rows.filter((row) => row.kind === "aset");
+  const groupAssets = assets.filter((row) => row.data.assetOwnership === "Milik kelompok");
+  const memberAssets = assets.filter((row) => row.data.assetOwnership === "Milik anggota");
+  const unclassified = assets.filter((row) => !["Milik kelompok", "Milik anggota"].includes(String(row.data.assetOwnership || "")));
+  const borrowed = groupAssets.filter((row) => row.data.custodyStatus === "Dipinjam");
+  const today = jakartaDate();
+  const overdue = borrowed.filter((row) => validDate(row.data.expectedReturnAt) && String(row.data.expectedReturnAt) < today);
+  const noDueDate = borrowed.filter((row) => !validDate(row.data.expectedReturnAt));
+  const damaged = groupAssets.filter((row) => ["Rusak", "Hilang"].includes(String(row.data.custodyStatus)) || row.data.condition === "Rusak");
+  const maintenance = groupAssets.filter((row) => row.data.custodyStatus === "Perawatan" || row.data.condition === "Perlu perawatan");
+  return (
+    <section className="space-y-3" aria-labelledby="asset-custody-report-title">
+      <div className="space-y-1">
+        <h3 id="asset-custody-report-title" className="text-base font-semibold">Rekap inventaris dan penguasaan aset</h3>
+        <p className="text-sm text-muted-foreground">Ringkasan ini memakai status terkini pada catatan inventaris. Aset milik anggota dipisahkan dan tidak dihitung sebagai kekayaan kelompok.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <WorkspaceMetric title="Aset kelompok" value={groupAssets.length} note="Barang yang dicatat sebagai milik kelompok." icon={ShieldCheck} />
+        <WorkspaceMetric title="Sedang dipinjam" value={borrowed.length} note={overdue.length + " terlambat · " + noDueDate.length + " tanpa tanggal kembali."} icon={CalendarDays} />
+        <WorkspaceMetric title="Aset milik anggota" value={memberAssets.length} note="Dicatat terpisah dari inventaris kelompok." icon={ShieldCheck} />
+        <WorkspaceMetric title="Perlu pemeriksaan" value={damaged.length + maintenance.length + unclassified.length} note={damaged.length + " rusak/hilang · " + maintenance.length + " perawatan · " + unclassified.length + " belum jelas kepemilikan."} icon={FileBarChart} />
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Daftar status aset</CardTitle>
+          <CardDescription>Gunakan menu Inventaris Aset untuk memperbarui kondisi, penanggung jawab, atau serah-terima. Rekap ini tidak mengubah data sumber.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Nama aset</TableHead><TableHead>Kepemilikan</TableHead><TableHead>Pemilik / pemegang</TableHead><TableHead>Kondisi</TableHead><TableHead>Status pemakaian</TableHead><TableHead>Rencana kembali</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {assets.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="min-w-44 font-medium"><Link className="hover:text-primary hover:underline" href={"/dashboard/aset?cari=" + encodeURIComponent(String(row.data.name || ""))}>{String(row.data.name || "Aset tanpa nama")}</Link></TableCell>
+                    <TableCell><StatusBadge value={String(row.data.assetOwnership || "Belum diklasifikasi")} /></TableCell>
+                    <TableCell className="min-w-40 text-sm">{String(row.data.memberOwnerName || row.data.custodianMemberName || "—")}</TableCell>
+                    <TableCell><StatusBadge value={String(row.data.condition || "Belum dicatat")} /></TableCell>
+                    <TableCell><StatusBadge value={String(row.data.custodyStatus || "Tidak dipinjamkan")} /></TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">{validDate(row.data.expectedReturnAt) ? String(row.data.expectedReturnAt) : row.data.custodyStatus === "Dipinjam" ? "Belum ditentukan" : "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {!assets.length && <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">Belum ada catatan inventaris pada periode ini.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Riwayat serah-terima dan pengembalian</CardTitle>
+          <CardDescription>Jejak peristiwa yang tercatat di ledger v14. Riwayat tidak direkonstruksi untuk transaksi lama yang tidak memiliki bukti tanggal.</CardDescription>
+        </CardHeader>
+        <CardContent className="divide-y p-0">
+          {movements.slice(0, 30).map((event) => (
+            <div key={event.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge value={event.event_type === "issued" ? "Diserahkan" : event.event_type === "returned" ? "Dikembalikan" : event.event_type === "maintenance" ? "Perawatan" : event.event_type === "damaged" ? "Rusak" : event.event_type === "lost" ? "Hilang" : "Perubahan status"} />
+                  <span className="text-xs text-muted-foreground">{event.member_name}</span>
+                </div>
+                <p className="text-sm font-medium">{event.asset_name}</p>
+                <p className="text-sm text-muted-foreground">{event.notes || "Tidak ada catatan tambahan."}</p>
+              </div>
+              <span className="shrink-0 text-xs text-muted-foreground">{new Date(event.occurred_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "medium", timeStyle: "short" })}</span>
+            </div>
+          ))}
+          {!movements.length && <p className="p-6 text-center text-sm text-muted-foreground">Belum ada riwayat pergerakan yang tersedia dari database terhubung.</p>}
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 function ReportTable({ group, rows }: { group: ReportGroup; rows: Row[] }) {
   if (group.id === "operasional") {
     const events = rows.filter((row) => row.kind === "kegiatan");
@@ -405,9 +498,11 @@ function ReportTable({ group, rows }: { group: ReportGroup; rows: Row[] }) {
 export default function EnterpriseReports({
   rows,
   user,
+  assetMovements = [],
 }: {
   rows: Row[];
   user: Principal;
+  assetMovements?: AssetMovement[];
 }) {
   const groups = useMemo(() => getVisibleReportGroups(user), [user]);
   const [active, setActive] = useState<ReportGroupId>("operasional");
@@ -462,6 +557,27 @@ export default function EnterpriseReports({
         </p>
       </header>
 
+      <section aria-label="Panduan singkat menggunakan laporan" className="rounded-xl border bg-card p-4">
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold">Cara menggunakan pusat laporan</h2>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Ikuti urutan ini agar ringkasan sesuai kebutuhan dan tidak salah dibaca.</p>
+        </div>
+        <ol className="grid gap-3 md:grid-cols-3">
+          <li className="flex min-w-0 gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">01</span>
+            <span><strong className="block text-sm">Pilih bidang</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Buka tab operasional, keanggotaan, administrasi, keuangan, usaha, atau publikasi sesuai hak akses.</span></span>
+          </li>
+          <li className="flex min-w-0 gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">02</span>
+            <span><strong className="block text-sm">Tentukan periode</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Pilih bulan untuk rekap tertentu, atau kosongkan periode untuk melihat semua catatan yang tersedia.</span></span>
+          </li>
+          <li className="flex min-w-0 gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">03</span>
+            <span><strong className="block text-sm">Tinjau sebelum dibagikan</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Periksa sumber dan bukti. Cetak atau ekspor hanya setelah data dinilai layak oleh petugas berwenang.</span></span>
+          </li>
+        </ol>
+      </section>
+
       <Card>
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 space-y-1">
@@ -487,7 +603,7 @@ export default function EnterpriseReports({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <WorkspaceMetric title="Catatan terpilih" value={reportRows.length} note="Jumlah catatan pada kelompok laporan aktif." icon={FileBarChart} />
-        <WorkspaceMetric title="Selesai / terverifikasi" value={completionCount(currentGroup, reportRows)} note="Status keberhasilan sesuai jenis laporan." icon={ShieldCheck} />
+        <WorkspaceMetric title={currentGroup.id === "usaha" ? "Aset kelompok berkondisi baik" : "Selesai / terverifikasi"} value={completionCount(currentGroup, reportRows)} note={currentGroup.id === "usaha" ? "Aset milik kelompok dengan kondisi Baik dan tanpa status rusak/perawatan." : "Status keberhasilan sesuai jenis laporan."} icon={ShieldCheck} />
         <WorkspaceMetric title="Perlu perhatian" value={attentionCount(currentGroup, reportRows)} note="Penanda tindak lanjut berdasarkan status dan tenggat yang tercatat." icon={CalendarDays} />
       </div>
 
@@ -518,6 +634,7 @@ export default function EnterpriseReports({
               ) : (
                 <>
                   {group.id === "operasional" && <ProgramEvaluationPanel rows={rows} user={user} month={month} />}
+                  {group.id === "usaha" && <AssetCustodyReport rows={data} movements={assetMovements} />}
                   <ReportTable group={group} rows={data} />
                 </>
               )}

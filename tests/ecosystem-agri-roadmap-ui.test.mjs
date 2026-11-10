@@ -21,7 +21,9 @@ test("template catalogue is documentation in the shared Help Centre, not a busin
   assert.ok(!registry.includes('id: "pengembangan"'));
   assert.ok(!registry.includes('href: "/dashboard/pengembangan"'));
   assert.ok(help.includes('id="template"'));
-  assert.ok(help.includes("operationalTemplates.map"));
+  assert.ok(help.includes("filteredTemplates.map"));
+  assert.ok(help.includes("templateQuery"));
+  assert.ok(help.includes("Panduan belum ditemukan"));
   assert.ok(help.includes("futureModules.map"));
   assert.ok(!help.includes("<form"));
 });

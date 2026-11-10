@@ -63,7 +63,7 @@ test("the seven dashboards retain the requested functional grouping", () => {
   assert.deepEqual(featureIds("management"), ["program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah", "pengajuan", "enterprise"]);
   assert.deepEqual(featureIds("administration"), ["anggota", "pengurus", "persetujuan", "surat", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"]);
   assert.deepEqual(featureIds("finance"), ["kas", "akuntansi", "aset"]);
-  assert.deepEqual(featureIds("commerce"), ["penjualan", "lotkopi", "usaha", "kemitraan"]);
+  assert.deepEqual(featureIds("commerce"), ["penjualan", "inventaris", "lotkopi", "usaha", "kemitraan"]);
   assert.deepEqual(featureIds("publication"), ["publikasi", "galeri", "pesan"]);
   assert.deepEqual(featureIds("system"), ["akun", "akun-saya", "pengaturan"]);
 });

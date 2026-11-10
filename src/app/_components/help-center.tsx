@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -10,6 +13,7 @@ import { roles, type Role } from "@/lib/permissions";
 import { futureModules, operationalTemplates, templateDestinations } from "@/features/agriculture/templates.mjs";
 import { ArrowUpRight, BookOpen, ClipboardList, FileCheck2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { WorkspaceSearch } from "./workspace-ui";
 
 const roleGuides: Record<Role, { summary: string; steps: { title: string; detail: string; href: string }[] }> = {
   admin: {
@@ -74,6 +78,17 @@ const templateNotes: Record<string, string> = {
 
 export default function HelpCenter({ role }: { role: Role }) {
   const guide = roleGuides[role];
+  const [templateQuery, setTemplateQuery] = useState("");
+  const filteredTemplates = useMemo(() => {
+    const query = templateQuery.trim().toLocaleLowerCase("id-ID");
+    if (!query) return operationalTemplates;
+    return operationalTemplates.filter((template) => [
+      template.name,
+      template.description,
+      template.category,
+      ...template.fields.map((field) => field.label + " " + field.key),
+    ].join(" ").toLocaleLowerCase("id-ID").includes(query));
+  }, [templateQuery]);
   return (
     <main className="workspace-page space-y-8" aria-labelledby="help-centre-title">
       <header className="space-y-3">
@@ -113,6 +128,124 @@ export default function HelpCenter({ role }: { role: Role }) {
         </CardContent>
       </Card>
 
+
+      <section id="dampak-profil-anggota" className="space-y-4 scroll-mt-24" aria-labelledby="member-impact-title">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+            <h2 id="member-impact-title" className="text-xl font-semibold">Dari profil anggota menjadi layanan yang berdampak</h2>
+            <Badge variant="secondary">Kerangka Member 360</Badge>
+          </div>
+          <p className="max-w-4xl text-sm leading-6 text-muted-foreground">
+            Profil akun dan Buku Induk Anggota bukan sekadar biodata. Data yang sudah diverifikasi menjadi referensi untuk memahami potensi, kebutuhan, partisipasi, aset, dan hak anggota. Setiap proses tetap dicatat pada modul pemiliknya agar riwayat, bukti, dan pertanggungjawaban tidak bercampur.
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Satu anggota, satu identitas, banyak layanan yang terhubung</CardTitle>
+            <CardDescription>Keanggotaan menyimpan identitas resmi. Profil CV melengkapi kemampuan dan pengalaman. Modul lain menggunakan ID anggota yang sama, bukan membuat biodata baru.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              { title: "Program & pemberdayaan", detail: "Keahlian, pendidikan, pengalaman, minat, wilayah, dan kebutuhan membantu koordinator menyusun calon peserta, pelatihan, pendampingan, serta evaluasi program.", href: "/dashboard/program", status: "Referensi operasional" },
+              { title: "Aset & sarana anggota", detail: "Catat lahan, alat, sarana produksi milik anggota secara terpisah dari inventaris kelompok. Aset kelompok yang dipinjamkan memiliki penanggung jawab dan bukti serah terima.", href: "/dashboard/aset", status: "Perlu verifikasi lapangan" },
+              { title: "Iuran & simpanan", detail: "Iuran mengikuti keputusan musyawarah. Tabungan dibentuk dari mutasi setoran, penarikan, dan koreksi yang tercatat; saldo tidak diedit manual.", href: "/dashboard/kas", status: "Menunggu kebijakan" },
+              { title: "Simpan pinjam", detail: "Permohonan, pemeriksaan, persetujuan, perjanjian, pencairan, angsuran, dan pelunasan harus memiliki bukti serta otorisasi. Profil tidak menjadi skor kredit otomatis.", status: "Belum aktif" },
+              { title: "Gaji, honor & tunjangan", detail: "Hak pembayaran harus bersumber dari penugasan, periode, dasar tarif, hasil pekerjaan, sumber dana, dan persetujuan. Jabatan atau sertifikat saja tidak otomatis menimbulkan hak bayar.", status: "Belum aktif" },
+              { title: "Pembayaran & audit", detail: "Setiap pembayaran memiliki nomor referensi, pemeriksa, penyetuju, bukti, status, dan rekonsiliasi jurnal. Koreksi dilakukan dengan transaksi pembalik, bukan menghapus sejarah.", status: "Perlu integrasi transaksi" },
+            ].map((item) => (
+              <article key={item.title} className="min-w-0 rounded-xl border p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <Badge variant="outline">{item.status}</Badge>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p>
+                {item.href ? (
+                  <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4" href={item.href}>
+                    Buka ruang kerja terkait <ArrowUpRight size={14} aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <p className="mt-3 text-xs font-medium text-muted-foreground">Alur belum tersedia untuk transaksi nyata.</p>
+                )}
+              </article>
+            ))}
+          </CardContent>
+        </Card>
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-base">Alur data dan pengendalian</CardTitle>
+            <CardDescription>Data mengalir untuk membantu pekerjaan, tetapi tidak melewati pemeriksaan dan kewenangan organisasi.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-4">
+            {[
+              ["01 · Lengkapi", "Anggota mengisi profil CV, domisili, lahan, sarana, kebutuhan, dan persetujuan data."],
+              ["02 · Verifikasi", "Sekretariat dan petugas lapangan memeriksa identitas, bukti, serta status data."],
+              ["03 · Hubungkan", "Program, aset, simpanan, pinjaman, penugasan, dan pembayaran memakai ID anggota yang sama."],
+              ["04 · Pertanggungjawabkan", "Pengajuan, persetujuan, bukti, jurnal, pembayaran, dan koreksi tersimpan dalam jejak audit."],
+            ].map(([title, detail]) => (
+              <div key={title} className="space-y-2 rounded-lg bg-muted/40 p-3">
+                <p className="text-sm font-semibold">{title}</p>
+                <p className="text-sm leading-6 text-muted-foreground">{detail}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <p className="font-semibold">Penting: data profil bukan keputusan keuangan</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            NIK dan rekening tetap berada di penyimpanan privat terenkripsi serta hanya diakses saat benar-benar diperlukan dengan persetujuan. Profil, kondisi pribadi, pendidikan, atau keahlian tidak boleh otomatis menentukan penerima bantuan, kelayakan pinjaman, gaji, tunjangan, atau pencairan. Fitur keuangan baru aktif setelah kebijakan disahkan, hak akses ditetapkan, bukti tersedia, dan alur persetujuan diuji.
+          </p>
+        </div>
+        <p className="text-xs leading-5 text-muted-foreground">
+          Catatan implementasi: bagian ini adalah panduan dampak dan tata kelola. Status “rancangan” atau “menunggu kebijakan” tidak berarti formulir transaksi maupun pencairan sudah aktif. Data lama tidak dihapus atau diubah hanya karena profil diperbarui.
+        </p>
+      </section>
+
+      {(["admin", "ketua", "bendahara"] as Role[]).includes(role) && (
+        <section className="space-y-4" aria-labelledby="finance-erp-guide-title">
+          <div className="flex flex-wrap items-center gap-2">
+            <BookOpen className="size-5 text-primary" aria-hidden="true" />
+            <h2 id="finance-erp-guide-title" className="text-xl font-semibold">Panduan ERP Keuangan Terpadu</h2>
+            <Badge variant="outline">Alur Buku Kas → Buku Besar</Badge>
+          </div>
+          <p className="max-w-4xl text-sm leading-6 text-muted-foreground">
+            SRIKANDI BUANA mengadopsi alur pencatatan sederhana seperti Manager.io ke dalam satu aplikasi. Setiap transaksi operasional tetap dicatat pada modul asalnya, lalu transaksi kas yang baru disimpan membentuk jurnal debit-kredit secara otomatis.
+          </p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Cara mencatat transaksi dengan benar</CardTitle>
+              <CardDescription>Jangan memilih akun hanya berdasarkan kata “masuk” atau “keluar”. Pilih berdasarkan hakikat transaksi dan bukti yang tersedia.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-3">
+              <article className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground">01 · CATAT SUMBER</p>
+                <h3 className="mt-2 font-semibold">Buku Kas</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Isi tanggal, uraian, pemasukan/pengeluaran, nominal, pos dana Organisasi/Program/Usaha, dan referensi bukti.</p>
+                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/kas">Buka Buku Kas <ArrowUpRight size={14} aria-hidden="true" /></Link>
+              </article>
+              <article className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground">02 · PETAKAN AKUN</p>
+                <h3 className="mt-2 font-semibold">Pilih akun lawan</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Setoran simpanan anggota masuk ke kewajiban; pendapatan penjualan ke pendapatan; pelunasan piutang ke piutang; pembelian peralatan ke aset bila sesuai kebijakan.</p>
+                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/akuntansi">Lihat daftar akun <ArrowUpRight size={14} aria-hidden="true" /></Link>
+              </article>
+              <article className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground">03 · PERIKSA HASIL</p>
+                <h3 className="mt-2 font-semibold">Buku Besar & laporan</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Periksa debit-kredit, neraca saldo, posisi keuangan, dan surplus/defisit. Jurnal yang sudah diposting dikoreksi dengan jurnal pembalik, bukan dihapus.</p>
+                <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline" href="/dashboard/akuntansi">Buka Akuntansi <ArrowUpRight size={14} aria-hidden="true" /></Link>
+              </article>
+            </CardContent>
+          </Card>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <p className="font-semibold">Perhatian sebelum laporan digunakan</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Buku Kas lama belum otomatis masuk ke Buku Besar. Saldo awal harus dimasukkan melalui jurnal pembukaan berdasarkan rekonsiliasi dan persetujuan. Pesanan harus berstatus Selesai sebelum faktur diterbitkan. Faktur mencatat Piutang Dagang; saat pelanggan membayar, catat Pemasukan pos Usaha di Buku Kas, pilih akun Piutang Dagang, lalu hubungkan ke faktur yang benar. Faktur tidak otomatis lunas. Persediaan bernilai, harga pokok penjualan, pembelian pemasok/utang usaha, simpan-pinjam, dan penggajian masih memerlukan subledger atau kebijakan tersendiri.
+            </p>
+          </div>
+        </section>
+      )}
+
       <section id="template" className="space-y-4 scroll-mt-24" aria-labelledby="template-guide-title">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -124,8 +257,21 @@ export default function HelpCenter({ role }: { role: Role }) {
               Bagian ini berisi dokumentasi kolom, tujuan, dan cara penggunaan tujuh template. Ini bukan menu input dan tidak menyimpan data.
             </p>
           </div>
-          <Badge variant="secondary">{operationalTemplates.length} panduan template</Badge>
+          <Badge variant="secondary">{filteredTemplates.length} dari {operationalTemplates.length} panduan</Badge>
         </div>
+
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <WorkspaceSearch
+            value={templateQuery}
+            onChange={setTemplateQuery}
+            label="Cari panduan atau kolom formulir"
+            placeholder="Cari nama template, tujuan, atau nama kolom…"
+          />
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            Pencarian mencakup judul, penjelasan, kategori, dan kolom template.
+          </p>
+        </div>
+        <p className="sr-only" aria-live="polite">{filteredTemplates.length} panduan ditemukan.</p>
 
         <Card className="border-amber-500/30">
           <CardHeader>
@@ -151,7 +297,7 @@ export default function HelpCenter({ role }: { role: Role }) {
         </Card>
 
         <div className="grid gap-4 xl:grid-cols-2">
-          {operationalTemplates.map((template) => {
+          {filteredTemplates.length ? filteredTemplates.map((template) => {
             const destination = templateDestinations[template.id];
             return (
               <Card key={template.id} className="min-w-0">
@@ -201,7 +347,15 @@ export default function HelpCenter({ role }: { role: Role }) {
                 </CardContent>
               </Card>
             );
-          })}
+          }) : (
+            <Card className="xl:col-span-2">
+              <CardContent className="flex flex-col items-start gap-3 p-5">
+                <p className="font-medium">Panduan belum ditemukan</p>
+                <p className="text-sm text-muted-foreground">Coba kata lain seperti “anggota”, “mitra”, “dokumen”, “ToT”, atau nama kolom yang ingin dicari.</p>
+                <button type="button" className="inline-flex min-h-10 items-center rounded-lg border px-3 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => setTemplateQuery("")}>Hapus pencarian</button>
+              </CardContent>
+            </Card>
+          )}
         </div>
         <p className="text-xs leading-5 text-muted-foreground">
           Catatan: tombol di atas hanya membuka modul kerja yang sudah ada. Kolom template yang belum dipetakan tidak dianggap sudah tersedia atau tersimpan sampai implementasi form domain dan uji QA selesai.

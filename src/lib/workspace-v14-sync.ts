@@ -8,6 +8,7 @@ type LegacyRecord = {
   kind: string;
   data: Record<string, unknown>;
   now: string;
+  previousData?: Record<string, unknown>;
 };
 
 const stableId = (prefix: string, sourceId: string) => prefix + ":" + sourceId;
@@ -156,6 +157,108 @@ function statementForMapping(
     ));
   }
 
+  if (source.kind === "aset" && source.data.assetOwnership === "Milik kelompok") {
+    const itemId = stableId("v14:inventory-asset", sourceId);
+    const sku = ("AST-" + sourceId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 36)).slice(0, 48);
+    const name = clean(source.data.name, 220) || "Aset kelompok tanpa nama";
+    const metadata = {
+      source: "legacy_asset_record",
+      ownership: "group",
+      quantity: clean(source.data.quantity, 40),
+      condition: clean(source.data.condition, 80),
+      location: clean(source.data.location, 240),
+      custodyStatus: clean(source.data.custodyStatus, 40),
+      category: clean(source.data.category, 100),
+    };
+    statements.push(db.prepare(`
+      INSERT INTO workspace_v14.inventory_items (
+        id,organization_id,source_legacy_asset_id,sku,name,item_type,unit_of_measure,
+        reorder_level,published,metadata,created_at,updated_at
+      ) VALUES (?,?,?,?,?,'equipment','unit',0,false,?::jsonb,?::timestamptz,?::timestamptz)
+      ON CONFLICT (organization_id,source_legacy_asset_id) WHERE source_legacy_asset_id IS NOT NULL
+      DO UPDATE SET name=excluded.name,metadata=excluded.metadata,updated_at=excluded.updated_at
+    `).bind(itemId, organizationId, sourceId, sku, name, json(metadata), source.now, source.now));
+
+    const borrowerId = clean(source.data.custodianMemberId, 180);
+    const borrowed = source.data.custodyStatus === "Dipinjam" && borrowerId;
+    const profileId = borrowed ? stableId("v14:member_profiles", borrowerId) : "";
+    const assetQuantity = Number(source.data.quantity);
+    const assignmentId = stableId("v14:asset-assignment", sourceId);
+    const issuedAt = clean(source.data.issuedAt, 80);
+    const expectedReturnAt = clean(source.data.expectedReturnAt, 80);
+    const returnedAt = clean(source.data.returnedAt, 80);
+    const previousStatus = clean(source.previousData?.custodyStatus, 40) || "Tidak dipinjamkan";
+    const nextStatus = clean(source.data.custodyStatus, 40) || "Tidak dipinjamkan";
+    const wasBorrowed = previousStatus === "Dipinjam";
+    if (borrowed && issuedAt) {
+      statements.push(db.prepare(`
+        INSERT INTO workspace_v14.member_asset_assignments (
+          id,organization_id,inventory_item_id,member_profile_id,quantity,assignment_status,
+          purpose,issued_at,expected_return_at,returned_at,issued_by,evidence_json,created_at,updated_at
+        )
+        SELECT ?,?,?,?,?, 'issued', ?,?::timestamptz,NULLIF(?,'')::timestamptz,NULLIF(?,'')::timestamptz,?,?::jsonb,?::timestamptz,?::timestamptz
+        WHERE EXISTS (SELECT 1 FROM workspace_v14.member_profiles WHERE id=? AND organization_id=?)
+        ON CONFLICT (id) DO UPDATE SET
+          inventory_item_id=excluded.inventory_item_id,member_profile_id=excluded.member_profile_id,
+          assignment_status='issued',purpose=excluded.purpose,issued_at=excluded.issued_at,
+          expected_return_at=excluded.expected_return_at,returned_at=NULL,
+          issued_by=excluded.issued_by,evidence_json=excluded.evidence_json,updated_at=excluded.updated_at
+      `).bind(
+        assignmentId,organizationId,itemId,profileId,Number.isFinite(assetQuantity) && assetQuantity > 0 ? assetQuantity : 1,
+        clean(source.data.notes,1000) || "Peminjaman aset kelompok",
+        issuedAt,expectedReturnAt || "", "", source.actorId,
+        json([source.data.evidenceFileId,source.data.attachmentId].filter(Boolean)),
+        source.now,source.now,profileId,organizationId,
+      ));
+      if (!wasBorrowed || previousStatus !== nextStatus || clean(source.previousData?.custodianMemberId,180) !== borrowerId) {
+        const eventId = stableId("v14:asset-movement", sourceId + ":" + source.now + ":issued");
+        statements.push(db.prepare(`
+          INSERT INTO workspace_v14.member_asset_movement_events (
+            id,organization_id,assignment_id,inventory_item_id,member_profile_id,event_type,
+            from_status,to_status,occurred_at,actor_id,notes,evidence_json
+          )
+          SELECT ?,?,?,?,?, 'issued', ?, 'Dipinjam', ?::timestamptz, ?, ?, ?::jsonb
+          WHERE EXISTS (SELECT 1 FROM workspace_v14.member_asset_assignments WHERE id=? AND organization_id=?)
+          ON CONFLICT (id) DO NOTHING
+        `).bind(
+          eventId,organizationId,assignmentId,itemId,profileId,
+          wasBorrowed ? previousStatus : null,issuedAt + "T00:00:00.000Z",
+          source.actorId,"Aset diserahkan kepada " + (clean(source.data.custodianMemberName,160) || "anggota"),
+          json([source.data.evidenceFileId,source.data.attachmentId].filter(Boolean)),
+          assignmentId,organizationId,
+        ));
+      }
+    } else if (wasBorrowed) {
+      const oldBorrower = clean(source.previousData?.custodianMemberId,180);
+      const oldProfileId = oldBorrower ? stableId("v14:member_profiles", oldBorrower) : "";
+      const eventId = stableId("v14:asset-movement", sourceId + ":" + source.now + ":returned");
+      statements.push(db.prepare(`
+        UPDATE workspace_v14.member_asset_assignments
+        SET assignment_status=?,returned_at=NULLIF(?,'')::timestamptz,updated_at=?::timestamptz
+        WHERE id=? AND organization_id=?
+      `).bind(
+        nextStatus === "Hilang" ? "lost" : nextStatus === "Rusak" ? "damaged" : "returned",
+        returnedAt || source.now.slice(0,10),source.now,assignmentId,organizationId,
+      ));
+      statements.push(db.prepare(`
+        INSERT INTO workspace_v14.member_asset_movement_events (
+          id,organization_id,assignment_id,inventory_item_id,member_profile_id,event_type,
+          from_status,to_status,occurred_at,actor_id,notes,evidence_json
+        )
+        SELECT ?,?,?,?,?, ?, 'Dipinjam', ?, ?::timestamptz, ?, ?, ?::jsonb
+        WHERE EXISTS (SELECT 1 FROM workspace_v14.member_asset_assignments WHERE id=? AND organization_id=?)
+        ON CONFLICT (id) DO NOTHING
+      `).bind(
+        eventId,organizationId,assignmentId,itemId,oldProfileId,
+        nextStatus === "Hilang" ? "lost" : nextStatus === "Rusak" ? "damaged" : nextStatus === "Perawatan" ? "maintenance" : "returned",
+        nextStatus,source.now,source.actorId,
+        clean(source.data.notes,1000) || "Status penguasaan aset diperbarui",
+        json([source.data.evidenceFileId,source.data.attachmentId].filter(Boolean)),
+        assignmentId,organizationId,
+      ));
+    }
+  }
+
   if (mapped.domain === "tasks") {
     const evidence = Array.isArray(v.evidence) ? v.evidence : [];
     statements.push(db.prepare(`
@@ -230,9 +333,10 @@ export async function buildV14RecordSyncStatements(
 ): Promise<PreparedStatement[]> {
   try {
     const schema = await db.prepare(
-      "SELECT to_regclass('workspace_v14.organizations') AS relation, to_regclass('workspace_v14.legacy_record_map') AS lineage",
+      "SELECT to_regclass('workspace_v14.organizations') AS relation, to_regclass('workspace_v14.legacy_record_map') AS lineage, to_regclass('workspace_v14.member_asset_assignments') AS asset_assignments, to_regclass('workspace_v14.member_asset_movement_events') AS asset_history, EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='workspace_v14' AND table_name='inventory_items' AND column_name='source_legacy_asset_id') AS asset_source_column",
     ).first();
     if (!schema?.relation || !schema?.lineage) return [];
+    if (source.kind === "aset" && (!schema.asset_assignments || !schema.asset_history || !schema.asset_source_column)) return [];
 
     const organization = await db.prepare(
       "SELECT id FROM workspace_v14.organizations WHERE source_owner_user_id=?",

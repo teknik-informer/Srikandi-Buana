@@ -38,6 +38,49 @@ export async function POST(request:Request){const c=await required(request,true)
 export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(c.user.role!=='admin')return json({error:'Hanya administrator yang dapat mengubah status pesanan.'},403);
  try{const b=await readJsonObject(request,1000);if(!await consumeRateLimit(c.db,'commerce:order-status:'+c.user.accountId,90,3600000))return json({error:'Batas perubahan status pesanan tercapai.'},429);if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id)||!['confirmed','cancelled','completed'].includes(String(b.action)))return json({error:'Pesanan atau tindakan tidak valid.'},400);
  const now=new Date().toISOString();
+ if(b.action==='completed'){
+  const order=await c.db.prepare(`SELECT id,product_id,quantity,buyer_id FROM commerce_orders WHERE id=? AND owner=? AND status='confirmed'`).bind(b.id,c.user.userId).first();
+  if(!order)return json({error:'Pesanan tidak ditemukan atau belum dikonfirmasi.'},409);
+  const organization=await c.db.prepare('SELECT id FROM workspace_v14.organizations WHERE source_owner_user_id=?').bind(c.user.userId).first();
+  if(!organization?.id)return json({error:'Ruang inventaris organisasi belum disiapkan.'},503);
+  const org=String(organization.id);
+  const item=await c.db.prepare(`SELECT id,unit_of_measure FROM workspace_v14.inventory_items
+   WHERE organization_id=? AND source_legacy_product_id=? AND item_type='product'`).bind(org,String(order.product_id)).first();
+  if(!item)return json({error:'Produk katalog belum dipetakan ke barang inventaris. Petakan SKU dan satuannya sebelum pesanan dipenuhi.'},409);
+  let locationId=typeof b.locationId==='string'&&/^[a-f0-9-]{36}$/i.test(b.locationId)?b.locationId:null;
+  if(!locationId){
+   const locations=await c.db.prepare('SELECT id FROM workspace_v14.inventory_locations WHERE organization_id=? AND active=TRUE ORDER BY name LIMIT 2').bind(org).all();
+   if(locations.results.length!==1)return json({error:'Pilih lokasi pengeluaran stok. Lokasi default otomatis digunakan hanya jika organisasi memiliki tepat satu lokasi aktif.'},400);
+   locationId=String(locations.results[0].id);
+  }
+  const location=await c.db.prepare('SELECT id FROM workspace_v14.inventory_locations WHERE id=? AND organization_id=? AND active=TRUE').bind(locationId,org).first();
+  if(!location)return json({error:'Lokasi pengeluaran tidak aktif atau bukan milik organisasi ini.'},404);
+  const sql=`WITH changed AS (
+   UPDATE commerce_orders SET status='completed',updated=?
+   WHERE id=? AND owner=? AND status='confirmed'
+   RETURNING id,product_id,quantity,buyer_id
+  ), moved AS (
+   INSERT INTO workspace_v14.stock_movements(
+    id,organization_id,inventory_item_id,movement_type,quantity,unit_of_measure,
+    reference_type,reference_id,occurred_at,actor_user_id,note,location_id
+   )
+   SELECT gen_random_uuid()::text,?, ?, 'sale',-changed.quantity,?,
+    'commerce_order',changed.id,?::timestamptz,?,
+    'Pengeluaran untuk pesanan penjualan '||changed.id,?
+   FROM changed
+   RETURNING reference_id
+  ), logged AS (
+   INSERT INTO commerce_order_events(owner,order_id,actor_id,from_status,to_status)
+   SELECT ?,changed.id,?,'confirmed','completed'
+   FROM changed JOIN moved ON moved.reference_id=changed.id
+   RETURNING order_id
+  )
+  SELECT changed.id,changed.buyer_id FROM changed JOIN logged ON logged.order_id=changed.id`;
+  const row=await c.db.prepare(sql).bind(now,b.id,c.user.userId,org,String(item.id),String(item.unit_of_measure),now,c.user.accountId,locationId,c.user.userId,c.user.accountId).first();
+  if(!row)return json({error:'Pesanan berubah sebelum pengeluaran stok dicatat. Muat ulang data.'},409);
+  await notifyOwner(c.user.userId,String(row.buyer_id),'order:'+b.id+':completed','Pesanan selesai','Pesanan telah dipenuhi dan stok inventaris dicatat.','/dashboard/penjualan','pesanan');
+  return json({ok:true,stockMovementRecorded:true,locationId});
+ }
  if(b.action==='cancelled'){
   const sql=`WITH before AS MATERIALIZED (
    SELECT id,status FROM commerce_orders WHERE id=? AND owner=? AND status IN ('submitted','confirmed')

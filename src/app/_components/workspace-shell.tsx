@@ -1,6 +1,8 @@
 "use client";
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   SidebarInset,
   SidebarProvider,
@@ -88,6 +90,12 @@ export default function WorkspaceShell({
             aria-label="Akun dan tindakan utama"
           >
             <DashboardMegaMenu section={section} user={user} compact />
+            <Button variant="ghost" size="icon" asChild aria-label="Buka Pusat Bantuan" title="Pusat Bantuan">
+              <Link href="/dashboard/panduan" aria-label="Buka Pusat Bantuan" title="Pusat Bantuan">
+                <BookOpen className="size-4" aria-hidden="true" />
+                <span className="sr-only">Pusat Bantuan</span>
+              </Link>
+            </Button>
             <NotificationCenter compact />
             <ThemeControl />
             <AccountMenu user={user} />

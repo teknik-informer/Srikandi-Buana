@@ -9,4 +9,16 @@ export type WorkspaceFile = {
   uploader_id?: string;
 };
 export type WorkspaceAudit = { action: string; title: string; created: string };
-export type WorkspaceData = { records: Row[]; files: WorkspaceFile[]; audit: WorkspaceAudit[]; user: string };
+export type WorkspaceData = { records: Row[]; files: WorkspaceFile[]; audit: WorkspaceAudit[]; assetMovements?: AssetMovement[]; user: string };
+
+export type AssetMovement = {
+  id: string;
+  event_type: "issued" | "returned" | "maintenance" | "damaged" | "lost" | "status_changed";
+  from_status: string | null;
+  to_status: string;
+  occurred_at: string;
+  notes: string;
+  asset_name: string;
+  member_name: string;
+  evidence_json: unknown;
+};

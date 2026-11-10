@@ -2,11 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { requestJSON } from "@/lib/request-json";
 import type { Row } from "@/lib/srikandi";
-import type { WorkspaceData, WorkspaceFile, WorkspaceAudit } from "@/lib/workspace-types";
+import type { WorkspaceData, WorkspaceFile, WorkspaceAudit, AssetMovement } from "@/lib/workspace-types";
 export function useWorkspaceData() {
   const [rows, setRows] = useState<Row[]>([]),
     [files, setFiles] = useState<WorkspaceFile[]>([]),
     [audit, setAudit] = useState<WorkspaceAudit[]>([]),
+    [assetMovements, setAssetMovements] = useState<AssetMovement[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [unauthorized, setUnauthorized] = useState(false);
@@ -25,6 +26,7 @@ export function useWorkspaceData() {
         setRows([]);
         setFiles([]);
         setAudit([]);
+        setAssetMovements([]);
         throw Error(
           response.status === 401
             ? "Sesi masuk telah berakhir. Masuk kembali untuk melanjutkan pekerjaan."
@@ -37,6 +39,7 @@ export function useWorkspaceData() {
       setRows(data.records);
       setFiles(data.files);
       setAudit(Array.isArray(data.audit) ? data.audit : []);
+      setAssetMovements(Array.isArray(data.assetMovements) ? data.assetMovements : []);
       setUnauthorized(false);
     } catch (e) {
       if (request.signal.aborted) return;
@@ -49,5 +52,5 @@ export function useWorkspaceData() {
     load();
     return () => current.current?.abort();
   }, [load]);
-  return { rows, files, audit, loading, error, unauthorized, load };
+  return { rows, files, audit, assetMovements, loading, error, unauthorized, load };
 }

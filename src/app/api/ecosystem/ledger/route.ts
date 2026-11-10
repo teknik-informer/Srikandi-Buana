@@ -4,6 +4,7 @@ import {consumeRateLimit} from '@/lib/rate-limit';
 import {balancedLines} from '@/features/finance/validation.mjs';
 import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
+import {ensureDefaultLedgerAccounts} from '@/features/finance/record-posting';
 export const dynamic='force-dynamic';
 const canRead=(role:string)=>['admin','ketua','bendahara'].includes(role),canWrite=(role:string)=>['admin','bendahara'].includes(role);
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!canRead(c.user.role))return json({error:'Akses akuntansi dibatasi.'},403);
@@ -13,11 +14,15 @@ export async function GET(request:Request){const c=await required(request);if(c.
   const lines=[['Tanggal','Referensi','Uraian','Kode akun','Akun','Debit (Rp)','Kredit (Rp)'],...result.results.map(r=>[String(r.posted_date),String(r.reference),String(r.memo),String(r.code),String(r.name),String(r.debit),String(r.credit)])];
   return new Response(csvRows(lines),{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="srikandi-jurnal.csv"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
  }
- const accounts=await c.db.prepare('SELECT a.id,a.code,a.name,a.category,a.active,COALESCE(SUM(l.debit),0) AS debit,COALESCE(SUM(l.credit),0) AS credit FROM ledger_accounts a LEFT JOIN ledger_lines l ON l.account_id=a.id AND l.owner=a.owner WHERE a.owner=? GROUP BY a.id ORDER BY a.code LIMIT 150').bind(c.user.userId).all();const entries=await c.db.prepare('SELECT e.id,e.posted_date,e.memo,e.reference,e.created,(SELECT COUNT(*) FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id) AS correction_count FROM ledger_entries e WHERE e.owner=? ORDER BY e.posted_date DESC,e.created DESC LIMIT 50').bind(c.user.userId).all();return json({accounts:accounts.results,entries:entries.results});}catch(e){return errorReply(e)}
+ const accounts=await c.db.prepare('SELECT a.id,a.code,a.name,a.category,a.active,COALESCE(SUM(l.debit),0) AS debit,COALESCE(SUM(l.credit),0) AS credit FROM ledger_accounts a LEFT JOIN ledger_lines l ON l.account_id=a.id AND l.owner=a.owner WHERE a.owner=? GROUP BY a.id ORDER BY a.code LIMIT 150').bind(c.user.userId).all();const entries=await c.db.prepare(`SELECT e.id,e.posted_date,e.memo,e.reference,e.created,(SELECT COUNT(*) FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id) AS correction_count,(SELECT COALESCE(json_agg(json_build_object('accountId',l.account_id,'code',a.code,'name',a.name,'debit',l.debit,'credit',l.credit) ORDER BY a.code),'[]'::json) FROM ledger_lines l JOIN ledger_accounts a ON a.id=l.account_id AND a.owner=l.owner WHERE l.entry_id=e.id AND l.owner=e.owner) AS lines FROM ledger_entries e WHERE e.owner=? ORDER BY e.posted_date DESC,e.created DESC LIMIT 50`).bind(c.user.userId).all();return json({accounts:accounts.results,entries:entries.results});}catch(e){return errorReply(e)}
 }
 export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!canWrite(c.user.role))return json({error:'Pencatatan jurnal hanya untuk bendahara atau administrator.'},403);
  try{const b=await readJsonObject(request,9000),now=new Date().toISOString();
  if(!await consumeRateLimit(c.db,'ledger:write:'+c.user.accountId,120,3600000))return json({error:'Batas pencatatan per jam telah tercapai.'},429);
+ if(b.action==='initialize'){
+  const accounts=await ensureDefaultLedgerAccounts(c.db,c.user.userId,now);
+  return json({ok:true,accounts:accounts.map(a=>({id:a.id,code:a.code,name:a.name,category:a.category}))},201);
+ }
  if(b.action==='reverse'){
   if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id))return json({error:'Nomor jurnal tidak valid.'},400);
   const old=await c.db.prepare('SELECT e.id,e.memo FROM ledger_entries e WHERE e.id=? AND e.owner=? AND NOT EXISTS(SELECT 1 FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id)').bind(b.id,c.user.userId).first();
@@ -32,6 +37,34 @@ export async function POST(request:Request){const c=await required(request,true)
    c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Koreksi jurnal',reference,now)
   ]);
   return json({ok:true,id,corrects:b.id},201);
+ }
+ if(b.action==='transfer'){
+  const fromId=typeof b.fromAccountId==='string'?b.fromAccountId:'';
+  const toId=typeof b.toAccountId==='string'?b.toAccountId:'';
+  const amount=Number(b.amount);
+  const postedDate=typeof b.postedDate==='string'?b.postedDate:'';
+  const memo=textField(b.memo,500);
+  if(!/^[a-f0-9-]{36}$/i.test(fromId)||!/^[a-f0-9-]{36}$/i.test(toId)||fromId===toId||!Number.isSafeInteger(amount)||amount<=0||amount>1_000_000_000_000||!memo||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(postedDate)||Number.isNaN(Date.parse(postedDate))||new Date(postedDate).toISOString().slice(0,10)!==postedDate){
+   return json({error:'Lengkapi tanggal, uraian, dua akun kas/bank berbeda, dan nominal transfer yang valid.'},400);
+  }
+  const selected=await c.db.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE owner=? AND active=TRUE AND code IN ('110001','110002','110003') AND id IN (?,?)").bind(c.user.userId,fromId,toId).all();
+  if(selected.results.length!==2||selected.results.some(a=>String(a.category)!=='asset')){
+   return json({error:'Transfer hanya boleh menggunakan akun Kas Organisasi, Kas Program, atau Kas Usaha yang aktif.'},400);
+  }
+  const byId=new Map(selected.results.map(a=>[String(a.id),a]));
+  const from=byId.get(fromId),to=byId.get(toId);
+  if(!from||!to)return json({error:'Akun sumber atau tujuan tidak ditemukan.'},400);
+  const balance=await c.db.prepare('SELECT COALESCE(SUM(debit-credit),0) AS available FROM ledger_lines WHERE owner=? AND account_id=?').bind(c.user.userId,fromId).first();
+  const available=Number(balance?.available??0);
+  if(!Number.isSafeInteger(available)||available<amount)return json({error:'Saldo pos kas sumber tidak mencukupi. Periksa saldo buku besar dan saldo awal sebelum transfer.'},409);
+  const id=crypto.randomUUID(),reference='TRF-'+id;
+  await c.db.batch([
+   c.db.prepare('INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(?,?,?,?,?,?,?)').bind(id,c.user.userId,c.user.accountId,postedDate,memo,reference,now),
+   c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,id,toId,amount,0),
+   c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,id,fromId,0,amount),
+   c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Transfer kas/bank diposting',String(from.code)+' '+String(from.name)+' → '+String(to.code)+' '+String(to.name)+' · Rp '+String(amount),now)
+  ]);
+  return json({ok:true,id,reference},201);
  }
  if(b.action==='account'){
  const code=typeof b.code==='string'?b.code.trim():null,name=textField(b.name,160),category=b.category;

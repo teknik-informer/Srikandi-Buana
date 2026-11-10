@@ -104,3 +104,10 @@ Every KPI and chart must be sourced from the database or shown as “Belum terse
 - Old `/dashboard/pengembangan` links redirect to `/dashboard/panduan#template`.
 - No dead menu entries. A future capability is documented in the help centre and has no clickable business route until its workflow is implemented and verified.
 - Menu visibility is a convenience layer; API and record-level authorization remain the security boundary.
+
+
+## Member 360 dan administrasi anggota terpadu
+
+Buku Induk Anggota menjadi master identitas lintas domain. Profil CV memasok snapshot operasional minimal (pendidikan, keahlian, pengalaman, bahasa, sertifikasi, minat); identitas privat NIK dan rekening tidak disalin ke record umum. Setiap data aset, program, iuran, tabungan, pinjaman, penugasan/kompensasi dan pembayaran harus mengacu pada ID member_profiles dan organization_id.
+
+Administrasi KWT memisahkan aset milik anggota dari inventaris kelompok. Relasi program menggunakan programme_enrolments; lahan menggunakan farm_plots. Modul baru simpan-pinjam dan kompensasi hanya aktif setelah kebijakan tertulis disahkan dan transaksi memiliki referensi jurnal, bukti, dan persetujuan. CV, sertifikat, jabatan atau kondisi pribadi tidak boleh otomatis memutuskan kelayakan bantuan, pinjaman atau pembayaran; keputusan akhir tetap melalui persetujuan manusia dengan alasan dan jejak audit.

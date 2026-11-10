@@ -76,7 +76,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/commerce",
     label: "E-Commerce & Rantai Pasok",
     description: "Produk, pemesanan, stok, penerimaan kopi, usaha, dan kemitraan.",
-    features: features(["penjualan", "lotkopi", "usaha", "kemitraan"]),
+    features: features(["penjualan", "inventaris", "lotkopi", "usaha", "kemitraan"]),
   },
   {
     id: "publication",

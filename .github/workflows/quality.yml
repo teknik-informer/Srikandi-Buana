@@ -31,6 +31,8 @@ jobs:
         run: npm run test:integration:staging
       - name: TypeScript typecheck
         run: npm run typecheck
+      - name: ESLint changed v14 workspace experience files
+        run: npm run lint
       - name: Project regression tests
         run: npm test
       - name: Build

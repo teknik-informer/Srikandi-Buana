@@ -148,7 +148,8 @@ test("administrator monitoring calculates operational, finance, business and pub
   assert.equal(adminSnapshot.membership.needsVerification, 1);
   assert.equal(adminSnapshot.operational.overdueTasks, 2);
   assert.equal(adminSnapshot.finance.missingEvidence, 1);
-  assert.equal(adminSnapshot.business.assetsNeedAttention, 1);
+  assert.equal(adminSnapshot.business.assetsNeedAttention, 0);
+  assert.equal(adminSnapshot.business.unclassifiedAssets, 1);
   assert.equal(adminSnapshot.publication.drafts, 1);
   assert.ok(adminSnapshot.qualityFindings >= 1);
 });

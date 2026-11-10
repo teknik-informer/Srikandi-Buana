@@ -549,3 +549,33 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5}butto
 .dashboard-mega-shortcuts strong{display:block;font-size:12px;font-weight:600}
 .dashboard-mega-shortcuts small{display:block;margin-top:3px;font-size:10px;line-height:1.5;color:var(--muted-foreground)}
 @media(max-width:550px){.dashboard-mega-shortcuts>div{grid-template-columns:1fr}}
+
+
+/* v14: equalizer-style activity bars; motion is decorative and respects reduced-motion preferences. */
+.workspace-equalizer-chart .recharts-bar-rectangle {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: workspace-equalizer-rise 760ms cubic-bezier(.2,.75,.25,1) both;
+}
+.workspace-equalizer-chart .recharts-bar-rectangle:nth-child(2n) {
+  animation-delay: 70ms;
+}
+.workspace-equalizer-fill {
+  width: var(--equalizer-width);
+  transform-origin: left center;
+  animation: workspace-equalizer-grow 720ms cubic-bezier(.2,.75,.25,1) both;
+}
+@keyframes workspace-equalizer-rise {
+  from { transform: scaleY(.08); opacity: .45; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+@keyframes workspace-equalizer-grow {
+  from { width: 0; opacity: .55; }
+  to { width: var(--equalizer-width); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-equalizer-chart .recharts-bar-rectangle,
+  .workspace-equalizer-fill {
+    animation: none !important;
+  }
+}

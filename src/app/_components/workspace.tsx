@@ -95,6 +95,7 @@ import SiteSettingsEditor from "./site-settings-editor";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
+import MemberImpactOverview from "./member-impact-overview";
 import {
   WorkspacePageHeader,
   WorkspaceSearch,
@@ -214,9 +215,13 @@ export default function Workspace({
   defaultSidebarOpen?: boolean;
 }) {
   const router = useRouter();
-  const { rows, files, audit, loading, error, unauthorized, load } =
+  const { rows, files, audit, assetMovements, loading, error, unauthorized, load } =
     useWorkspaceData();
   const [page, setPage] = useState(1);
+  const [ledgerAccounts, setLedgerAccounts] = useState<Array<{id:string;code:string;name:string;category:string;active:boolean}>>([]);
+  const [ledgerAccountsError, setLedgerAccountsError] = useState("");
+  const [openSalesInvoices, setOpenSalesInvoices] = useState<Array<{id:string;invoice_number:string;customer_name:string;outstanding_amount:number;issue_date:string}>>([]);
+  const [salesInvoicesError, setSalesInvoicesError] = useState("");
   const imageUploadPending = useRef(false);
   const [imageUploading, setImageUploading] = useState(false);
   function imageBusy(value: boolean) { imageUploadPending.current = value; setImageUploading(value); }
@@ -234,6 +239,61 @@ export default function Workspace({
     [selectedProgram, setSelectedProgram] = useState<string | null>(null),
     [programStatus, setProgramStatus] = useState("Rancangan"),
     [programNotes, setProgramNotes] = useState("");
+  useEffect(() => {
+    if (section !== "kas") {
+      setLedgerAccounts([]);
+      setLedgerAccountsError("");
+      setOpenSalesInvoices([]);
+      setSalesInvoicesError("");
+      return;
+    }
+    let active = true;
+    const loadAccounts = async () => {
+      try {
+        if (["admin", "bendahara"].includes(principal.role)) {
+          const initialized = await fetch("/api/ecosystem/ledger", {
+            method: "POST",
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "initialize" }),
+          });
+          const initializedBody = await initialized.json();
+          if (!initialized.ok) throw new Error(initializedBody.error || "Daftar akun belum dapat disiapkan.");
+        }
+        const response = await fetch("/api/ecosystem/ledger", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Daftar akun belum dapat dimuat.");
+        if (active) {
+          setLedgerAccounts(Array.isArray(body.accounts) ? body.accounts.filter((account: {active?:boolean}) => account.active !== false) : []);
+          setLedgerAccountsError("");
+        }
+        if (["admin", "bendahara"].includes(principal.role)) {
+          try {
+            const invoiceResponse = await fetch("/api/ecosystem/invoices?open=1", {
+              credentials: "same-origin",
+              cache: "no-store",
+            });
+            const invoiceBody = await invoiceResponse.json();
+            if (!invoiceResponse.ok) throw new Error(invoiceBody.error || "Faktur terbuka belum dapat dimuat.");
+            if (active) {
+              setOpenSalesInvoices(Array.isArray(invoiceBody.items) ? invoiceBody.items : []);
+              setSalesInvoicesError("");
+            }
+          } catch (cause) {
+            if (active) setSalesInvoicesError(cause instanceof Error ? cause.message : "Faktur terbuka belum dapat dimuat.");
+          }
+        }
+      } catch (cause) {
+        if (active) setLedgerAccountsError(cause instanceof Error ? cause.message : "Daftar akun belum dapat dimuat.");
+      }
+    };
+    void loadAccounts();
+    return () => { active = false; };
+  }, [section, principal.role]);
   useEffect(() => {
     setPage(1);
   }, [query, filter, month, fund, section]);
@@ -382,7 +442,7 @@ export default function Workspace({
       "\uFEFF" +
       [
         fields.map((f) => quote(f.label)).join(","),
-        ...data.map((r) => fields.map((f) => quote(r.data[f.key])).join(",")),
+        ...data.map((r) => fields.map((f) => quote(({assignedMemberId:"assignedMemberName",memberOwnerId:"memberOwnerName",custodianMemberId:"custodianMemberName",counterAccountId:"counterAccountName",relatedInvoiceId:"relatedInvoiceNumber"} as Record<string,string>)[f.key] ? r.data[({assignedMemberId:"assignedMemberName",memberOwnerId:"memberOwnerName",custodianMemberId:"custodianMemberName",counterAccountId:"counterAccountName",relatedInvoiceId:"relatedInvoiceNumber"} as Record<string,string>)[f.key]] || "" : r.data[f.key])).join(",")),
       ].join("\r\n");
     const url = URL.createObjectURL(
       new Blob([csv], { type: "text/csv;charset=utf-8" }),
@@ -526,6 +586,7 @@ export default function Workspace({
             files={files}
             user={principal}
             audit={audit}
+            assetMovements={assetMovements}
             loading={loading}
             error={error}
             onRefresh={() => void load()}
@@ -579,6 +640,7 @@ export default function Workspace({
                 pendukungnya.
               </p>
             )}
+            {section === "anggota" && <MemberImpactOverview rows={rows} />}
             <Box
               title={module.title}
               description={
@@ -967,7 +1029,7 @@ export default function Workspace({
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
         {section === "laporan" && !loading && !error && (
-          <EnterpriseReports rows={rows} user={principal} />
+          <EnterpriseReports rows={rows} user={principal} assetMovements={assetMovements} />
         )}
         {section === "panduan" && (
           <>
@@ -1141,6 +1203,86 @@ export default function Workspace({
                               </NativeSelectOption>
                             ))}
                         </NativeSelect>
+                      ) : f.type === "member-owner" ? (
+                        <>
+                          <NativeSelect
+                            id={f.key}
+                            name={f.key}
+                            defaultValue={String(
+                              editor.row?.data[f.key] ??
+                                editor.initial?.[f.key] ??
+                                "",
+                            )}
+                          >
+                            <NativeSelectOption value="">Pilih pemilik anggota</NativeSelectOption>
+                            {members
+                              .slice()
+                              .sort((a, b) => String(a.data.name).localeCompare(String(b.data.name), "id"))
+                              .map((member) => (
+                                <NativeSelectOption key={member.id} value={member.id}>
+                                  {String(member.data.name)} · {String(member.data.status || "Status belum dicatat")}
+                                </NativeSelectOption>
+                              ))}
+                          </NativeSelect>
+                          <p className="text-xs text-muted-foreground">
+                            {f.helpText || "Pemilik aset tetap dicatat meskipun status keanggotaannya berubah."}
+                          </p>
+                        </>
+                      ) : f.type === "member" ? (
+                        <>
+                          <NativeSelect
+                            id={f.key}
+                            name={f.key}
+                            defaultValue={String(
+                              editor.row?.data[f.key] ??
+                                editor.initial?.[f.key] ??
+                                "",
+                            )}
+                          >
+                            <NativeSelectOption value="">Belum ditetapkan</NativeSelectOption>
+                            {members
+                              .filter((member) => member.data.status === "Aktif")
+                              .sort((a, b) => String(a.data.name).localeCompare(String(b.data.name), "id"))
+                              .map((member) => (
+                                <NativeSelectOption key={member.id} value={member.id}>
+                                  {String(member.data.name)} · {String(member.data.dusun || "Wilayah belum dicatat")}
+                                </NativeSelectOption>
+                              ))}
+                          </NativeSelect>
+                          <p className="text-xs text-muted-foreground">
+                            {f.helpText || "Penugasan hanya dapat diberikan kepada anggota aktif."}
+                          </p>
+                        </>
+                      ) : f.type === "sales-invoice" ? (
+                        <NativeSelect
+                          id={f.key}
+                          name={f.key}
+                          defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")}
+                        >
+                          <NativeSelectOption value="">Bukan pembayaran faktur / tidak dihubungkan</NativeSelectOption>
+                          {openSalesInvoices.map((invoice) => (
+                            <NativeSelectOption key={invoice.id} value={invoice.id}>
+                              {invoice.invoice_number} · {invoice.customer_name} · Sisa {rupiah(Number(invoice.outstanding_amount))}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      ) : f.type === "ledger-account" ? (
+                        <NativeSelect
+                          id={f.key}
+                          name={f.key}
+                          required={f.required}
+                          defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")}
+                          disabled={!ledgerAccounts.length}
+                        >
+                          <NativeSelectOption value="">
+                            {ledgerAccounts.length ? "Pilih akun lawan transaksi" : "Daftar akun belum tersedia"}
+                          </NativeSelectOption>
+                          {ledgerAccounts.map((account) => (
+                            <NativeSelectOption key={account.id} value={account.id}>
+                              {account.code} · {account.name} ({({asset:"Aset",liability:"Kewajiban",equity:"Modal",revenue:"Pendapatan",expense:"Beban"} as Record<string,string>)[account.category] || account.category})
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
                       ) : f.options ? (
                         <NativeSelect
                           id={f.key}
@@ -1217,6 +1359,8 @@ export default function Workspace({
                           }
                         />
                       )}
+                      {f.type === "ledger-account" && ledgerAccountsError && <p role="alert" className="text-xs text-destructive">{ledgerAccountsError}</p>}
+                      {f.type === "sales-invoice" && salesInvoicesError && <p role="alert" className="text-xs text-destructive">{salesInvoicesError}</p>}
                       {f.helpText && <p className="text-xs leading-5 text-muted-foreground">{f.helpText}</p>}
                     </Field>
                   ))}

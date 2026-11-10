@@ -13,9 +13,13 @@ import { roles, type Role } from "@/lib/permissions";
 import LogoutButton from "./logout-button";
 import { markFormSaved } from "@/lib/unsaved-changes";
 import { toast } from "sonner";
+import type { AccountCV, PrivateProfileSummary } from "@/lib/account-profile-data";
 type Account = {
   user: { accountId: string; avatarUrl?: string; email: string; displayName: string; role: Role; position: string; programIds: string[] };
-  profile: { name: string; dusun: string; phone: string; status: string; verification: string };
+  profile: { name: string; dusun: string; phone: string; status: string; verification: string; linked: boolean };
+  cv: AccountCV;
+  privateSummary: PrivateProfileSummary | null;
+  privateStorageReady: boolean;
 };
 export default function MyAccount() {
   const [data, setData] = useState<Account | null>(null),
@@ -35,7 +39,7 @@ export default function MyAccount() {
       .then(({ response: r, data: d }) => {
         if (request.signal.aborted) return;
         if (!r.ok) throw Error(d?.error || "Informasi akun belum dapat dimuat.");
-        if (!d?.user || !d.profile) throw Error("Respons akun belum lengkap. Muat ulang sebelum melanjutkan.");
+        if (!d?.user || !d.profile || !d.cv || typeof d.privateStorageReady !== "boolean") throw Error("Respons akun belum lengkap. Muat ulang sebelum melanjutkan.");
         setData(d);
       })
       .catch((e) => {
@@ -46,8 +50,14 @@ export default function MyAccount() {
       .finally(() => { if (!request.signal.aborted) setLoading(false); });
   }
   useEffect(() => {
-    load();
-    return () => current.current?.abort();
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) load();
+    });
+    return () => {
+      active = false;
+      current.current?.abort();
+    };
   }, []);
   async function change(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -88,7 +98,22 @@ export default function MyAccount() {
           </AlertDescription>
         </Alert>
       )}
-      {data && <AccountProfileEditor key={data.user.accountId} user={data.user} onSaved={(profile: ProfileIdentity) => setData(current => current ? {...current,user:{...current.user,...profile}} : current)} />}
+      {data && <AccountProfileEditor
+        key={data.user.accountId}
+        user={data.user}
+        memberName={data.profile.name}
+        membershipLinked={data.profile.linked}
+        initialCV={data.cv}
+        initialPrivateSummary={data.privateSummary}
+        privateStorageReady={data.privateStorageReady}
+        onSaved={(payload) => setData(current => current ? {
+          ...current,
+          user: payload.user ? { ...current.user, ...payload.user } : current.user,
+          profile: payload.profile || current.profile,
+          cv: payload.cv || current.cv,
+          privateSummary: payload.privateSummary === undefined ? current.privateSummary : payload.privateSummary,
+        } : current)}
+      />}
       <Card>
         <CardHeader>
           <CardTitle>Akun saya</CardTitle>

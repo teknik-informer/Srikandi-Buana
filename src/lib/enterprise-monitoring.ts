@@ -125,11 +125,27 @@ export function buildEnterpriseMonitoring(
       }
     : null;
 
+  const groupAssets = assets.filter((row) => row.data.assetOwnership === "Milik kelompok");
+  const memberOwnedAssets = assets.filter((row) => row.data.assetOwnership === "Milik anggota");
+  const unclassifiedAssets = assets.filter((row) => !["Milik kelompok", "Milik anggota"].includes(String(row.data.assetOwnership || "")));
+  const borrowedAssets = groupAssets.filter((row) => row.data.custodyStatus === "Dipinjam");
+  const overdueAssets = borrowedAssets.filter((row) => validDate(row.data.expectedReturnAt) && String(row.data.expectedReturnAt) < today);
+  const assetsWithoutReturnDate = borrowedAssets.filter((row) => !validDate(row.data.expectedReturnAt));
+  const damagedAssets = groupAssets.filter((row) => ["Rusak", "Hilang"].includes(String(row.data.custodyStatus)) || row.data.condition === "Rusak");
+  const maintenanceAssets = groupAssets.filter((row) => row.data.custodyStatus === "Perawatan" || row.data.condition === "Perlu perawatan");
   const business = {
     assets: assets.length,
+    groupAssets: groupAssets.length,
+    memberOwnedAssets: memberOwnedAssets.length,
+    unclassifiedAssets: unclassifiedAssets.length,
+    borrowedAssets: borrowedAssets.length,
+    overdueAssets: overdueAssets.length,
+    assetsWithoutReturnDate: assetsWithoutReturnDate.length,
+    damagedAssets: damagedAssets.length,
+    maintenanceAssets: maintenanceAssets.length,
     assetsNeedAttention: count(
-      assets,
-      (row) => ["Perlu perawatan", "Rusak", "Perlu verifikasi"].includes(String(row.data.condition)),
+      groupAssets,
+      (row) => ["Perlu perawatan", "Rusak", "Perlu verifikasi"].includes(String(row.data.condition)) || ["Perawatan", "Rusak", "Hilang"].includes(String(row.data.custodyStatus)),
     ),
     lots: lots.length,
     lotsOnHold: count(
@@ -139,6 +155,24 @@ export function buildEnterpriseMonitoring(
     businessPlans: ofKind("usaha").length,
     partnerships: ofKind("kemitraan").length,
   };
+
+  const assetIssues = groupAssets.flatMap((row) => {
+    const issues: Array<{ id: string; row: Row; title: string; detail: string; severity: "warning" | "info" }> = [];
+    if (row.data.custodyStatus === "Dipinjam" && validDate(row.data.expectedReturnAt) && String(row.data.expectedReturnAt) < today) {
+      issues.push({ id: row.id + "-asset-overdue", row, title: "Pengembalian aset terlambat", detail: "Rencana kembali " + String(row.data.expectedReturnAt) + ". Hubungi pemegang dan catat tindak lanjut.", severity: "warning" });
+    } else if (row.data.custodyStatus === "Dipinjam" && !validDate(row.data.expectedReturnAt)) {
+      issues.push({ id: row.id + "-asset-no-return-date", row, title: "Peminjaman tanpa tanggal kembali", detail: "Tetapkan rencana pengembalian berdasarkan kesepakatan serah-terima.", severity: "info" });
+    }
+    if (["Rusak", "Hilang"].includes(String(row.data.custodyStatus || "")) || row.data.condition === "Rusak") {
+      issues.push({ id: row.id + "-asset-damaged", row, title: "Aset rusak atau hilang", detail: "Periksa kondisi, lokasi terakhir, bukti, dan keputusan tindak lanjut.", severity: "warning" });
+    } else if (row.data.custodyStatus === "Perawatan" || row.data.condition === "Perlu perawatan") {
+      issues.push({ id: row.id + "-asset-maintenance", row, title: "Aset memerlukan perawatan", detail: "Catat pemeriksaan, penanggung jawab, dan status setelah perawatan.", severity: "info" });
+    }
+    return issues;
+  });
+  for (const row of unclassifiedAssets) {
+    assetIssues.push({ id: row.id + "-asset-ownership", row, title: "Kepemilikan aset belum diklasifikasi", detail: "Pastikan apakah barang milik kelompok atau milik anggota sebelum menghitung inventaris.", severity: "info" });
+  }
 
   const publication = {
     content: publications.length,
@@ -158,10 +192,10 @@ export function buildEnterpriseMonitoring(
     today,
     visibleRecords: rows.length,
     latestUpdate: lastUpdate,
-    qualityFindings: insights.issues.length,
-    warningFindings: insights.issues.filter((issue) => issue.severity === "warning").length,
-    infoFindings: insights.issues.filter((issue) => issue.severity === "info").length,
-    issues: insights.issues,
+    qualityFindings: insights.issues.length + assetIssues.length,
+    warningFindings: insights.issues.filter((issue) => issue.severity === "warning").length + assetIssues.filter((issue) => issue.severity === "warning").length,
+    infoFindings: insights.issues.filter((issue) => issue.severity === "info").length + assetIssues.filter((issue) => issue.severity === "info").length,
+    issues: [...insights.issues, ...assetIssues],
     programEvaluations,
     meetingPriorities,
     operational: canReadSection(user, "kegiatan") ||

@@ -339,7 +339,7 @@ assert.equal(timeoutForm.dataset.unsaved,'true');assert(!timeoutForm.didReset);
 assert.equal(find(timedAccountTree,n=>n.type==='fieldset').props.disabled,false);assert.equal(deadlineTimers.size,0);
 // Timed-out reads surface recovery instead of keeping a skeleton indefinitely.
 const timedProfile=await harness('src/app/_components/access/my-account.tsx',{...deadlines,fetch:stall});
-const profileRender=()=>timedProfile.render(()=>timedProfile.exports.default());profileRender();timedProfile.effects();await expire(25000);
+const profileRender=()=>timedProfile.render(()=>timedProfile.exports.default());profileRender();timedProfile.effects();await new Promise(r=>setImmediate(r));await expire(25000);
 const profileTree=profileRender();assert(allNodes(profileTree).some(n=>React.Children.toArray(n.props?.children).some(c=>typeof c==='string'&&c.includes('Data terlalu lama merespons'))));
 assert(allNodes(profileTree).some(n=>n.props?.children==='Coba lagi'));assert.equal(deadlineTimers.size,0);
 const timedMessages=await harness('src/lib/message-data.ts',{...deadlines,fetch:stall});
@@ -406,7 +406,7 @@ const personal=await harness('src/app/_components/access/account-profile-editor.
  window:{dispatchEvent:event=>personalEvents.push(event)},
  fetch:(url,options)=>{personalCalls++;personalRequests.push({url,options});return personalRequest.promise;},
 });
-const personalRender=()=>personal.render(()=>personal.exports.default({user:personalUser,onSaved:profile=>{personalUser={...personalUser,...profile};}}));
+const personalRender=()=>personal.render(()=>personal.exports.default({user:personalUser,onSaved:payload=>{personalUser={...personalUser,...payload.user};}}));
 let personalTree=personalRender();personal.effects();
 const nameDraft={dataset:{unsaved:'true'}},photoDraft={dataset:{}};
 find(personalTree,n=>n.props?.['aria-label']==='Ubah foto profil').props.ref.current=photoDraft;
@@ -418,16 +418,16 @@ personalRequest.resolve(response(503,{error:'Not saved'}));await new Promise(r=>
 personalRequest=deferred();submitAlias();personalRequest.resolve(response(200,{ok:true,user:{accountId:'self-fixture',displayName:'Saved Alias',avatarUrl:''}}));await new Promise(r=>setImmediate(r));personalTree=personalRender();assert.equal(nameDraft.dataset.unsaved,undefined);assert.equal(personalEvents.at(-1).detail.displayName,'Saved Alias');
 const choosePersonal=files=>find(personalTree,n=>n.props?.id==='profile-photo').props.onChange({target:{files}});
 choosePersonal([new File(['x'],'unsupported.heic')]);personalTree=personalRender();assert.equal(photoDraft.dataset.unsaved,undefined);assert.equal(personalCalls,2);
-choosePersonal([new File(['fixture'],'portrait.png')]);personalTree=personalRender();personal.effects();personalTree=personalRender();assert.equal(photoDraft.dataset.unsaved,'true');assert(allNodes(personalTree).some(n=>n.type?.name==='UserAvatar'&&n.props.user.avatarUrl==='blob:private-fixture'));
-find(personalTree,n=>n.props?.children?.some?.(c=>c==='Batalkan pilihan')).props.onClick();personalTree=personalRender();personal.effects();assert.equal(photoDraft.dataset.unsaved,undefined);assert(revokedPreviews.includes('blob:private-fixture'));assert.equal(personalCalls,2);
-choosePersonal([new File(['fixture'],'portrait.png')]);personalTree=personalRender();personal.effects();personalTree=personalRender();
+choosePersonal([new File(['fixture'],'portrait.png')]);personalTree=personalRender();personal.effects();await new Promise(r=>setTimeout(r,5));personalTree=personalRender();assert.equal(photoDraft.dataset.unsaved,'true');assert(allNodes(personalTree).some(n=>n.type?.name==='UserAvatar'&&n.props.user.avatarUrl==='blob:private-fixture'));
+find(personalTree,n=>n.props?.children?.some?.(c=>c==='Batal')).props.onClick();personalTree=personalRender();personal.effects();assert.equal(photoDraft.dataset.unsaved,undefined);assert(revokedPreviews.includes('blob:private-fixture'));assert.equal(personalCalls,2);
+choosePersonal([new File(['fixture'],'portrait.png')]);personalTree=personalRender();personal.effects();await new Promise(r=>setTimeout(r,5));personalTree=personalRender();
 const submitPortrait=()=>find(personalTree,n=>n.props?.['aria-label']==='Ubah foto profil').props.onSubmit({preventDefault(){},currentTarget:photoDraft});
 personalRequest=deferred();submitPortrait();submitPortrait();assert.equal(personalCalls,3);assert.equal(personalRequests.at(-1).url,'/api/account/avatar');assert.equal(personalRequests.at(-1).options.body.get('file').name,'portrait.png');
 personalRequest.resolve(response(503,{error:'Photo not saved'}));await new Promise(r=>setImmediate(r));personalTree=personalRender();assert.equal(photoDraft.dataset.unsaved,'true');assert(allNodes(personalTree).some(n=>n.props?.children?.some?.(c=>c==='Simpan foto')));
 // A photo response must not overwrite another form's unsaved name.
 find(personalTree,n=>n.props?.id==='profile-display-name').props.onChange({target:{value:'Another unsaved alias'}});nameDraft.dataset.unsaved='true';personalTree=personalRender();
 personalRequest=deferred();submitPortrait();personalRequest.resolve(response(200,{ok:true,user:{accountId:'self-fixture',displayName:'Saved Alias',avatarUrl:'/api/account/avatar?v=fixture-new'}}));await new Promise(r=>setImmediate(r));personalTree=personalRender();personal.effects();personalTree=personalRender();assert.equal(photoDraft.dataset.unsaved,undefined);assert.equal(nameDraft.dataset.unsaved,'true');assert.equal(find(personalTree,n=>n.props?.id==='profile-display-name').props.value,'Another unsaved alias');assert.equal(personalEvents.at(-1).detail.avatarUrl,'/api/account/avatar?v=fixture-new');
-personalRequest=deferred();find(personalTree,n=>n.props?.children?.some?.(c=>c==='Hapus foto profil')).props.onClick();personalRequest.resolve(response(200,{ok:true,user:{accountId:'self-fixture',displayName:'Saved Alias',avatarUrl:''}}));await new Promise(r=>setImmediate(r));assert.equal(personalUser.avatarUrl,'');assert.equal(personalUser.role,'anggota');
+personalRequest=deferred();find(personalTree,n=>n.props?.children?.some?.(c=>c==='Hapus')).props.onClick();personalRequest.resolve(response(200,{ok:true,user:{accountId:'self-fixture',displayName:'Saved Alias',avatarUrl:''}}));await new Promise(r=>setImmediate(r));assert.equal(personalUser.avatarUrl,'');assert.equal(personalUser.role,'anggota');
 const identityListeners=new Map();const identityHook=await harness('src/hooks/use-profile-identity.ts',{window:{addEventListener:(name,fn)=>identityListeners.set(name,fn),removeEventListener:name=>identityListeners.delete(name)}});
 const identityUser={accountId:'self',displayName:'Before',avatarUrl:''};const identityRender=()=>identityHook.render(()=>identityHook.exports.useProfileIdentity(identityUser));identityRender();identityHook.effects();
 identityListeners.get('srikandi:profile-updated')({detail:{accountId:'other',displayName:'Not mine'}});assert.equal(identityRender().displayName,'Before');

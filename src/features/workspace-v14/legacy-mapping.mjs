@@ -20,8 +20,47 @@ const text = (value, max = 5000) =>
 
 const json = (value) => JSON.stringify(value && typeof value === "object" ? value : {});
 
+const object = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const boundedText = (value, max = 160) => text(value, max);
+const safeOperationalProfile = (value) => {
+  let parsed = value;
+  if (typeof value === "string") {
+    try { parsed = JSON.parse(value); } catch { parsed = {}; }
+  }
+  const profile = object(parsed);
+  const entries = (value, keys, maxItems = 20) => Array.isArray(value)
+    ? value.slice(0, maxItems).map((item) => {
+        const row = object(item);
+        return Object.fromEntries(keys.map(([key, max]) => [key, boundedText(row[key], max)]).filter(([, itemValue]) => itemValue !== ""));
+      }).filter((row) => Object.keys(row).length > 0)
+    : [];
+  const tags = (value, maxItems = 30) => Array.isArray(value)
+    ? [...new Set(value.filter((item) => typeof item === "string").map((item) => boundedText(item, 80)).filter(Boolean))].slice(0, maxItems)
+    : [];
+  return {
+    schemaVersion: 1,
+    skills: tags(profile.skills),
+    education: entries(profile.education, [["level", 60], ["field", 120], ["startYear", 4], ["endYear", 4]], 12),
+    experience: entries(profile.experience, [["organization", 140], ["title", 120], ["current", 5], ["startDate", 10], ["endDate", 10]], 20),
+    volunteer: entries(profile.volunteer, [["organization", 140], ["title", 120], ["current", 5], ["startDate", 10], ["endDate", 10]], 20),
+    languages: entries(profile.languages, [["language", 80], ["proficiency", 40]], 12),
+    certifications: entries(profile.certifications, [["name", 140], ["issuer", 140], ["year", 4]], 20),
+    interests: tags(profile.interests, 20),
+  };
+};
+
 export function mapLegacyRecordToV14(kind, raw) {
   const data = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+
+  if (kind === "aset" && data.assetOwnership === "Milik kelompok") {
+    return {
+      domain: "inventory_items",
+      values: {
+        name: text(data.name, 220) || "Aset kelompok tanpa nama",
+        sku: text(data.assetCode, 48) || null,
+      },
+    };
+  }
 
   if (kind === "anggota") {
     const consent = data.dataConsent === "Setuju" ? "granted"
@@ -42,7 +81,7 @@ export function mapLegacyRecordToV14(kind, raw) {
         dataConsentStatus: consent,
         dataNoticeVersion: text(data.dataNoticeVersion, 80) || null,
         photoConsentStatus: data.photoConsent === "Setuju sesuai tujuan" ? "granted" : data.photoConsent === "Tidak setuju" ? "declined" : "not_requested",
-        profileData: data,
+        profileData: { operationalProfile: safeOperationalProfile(data.profileOperationalJson) },
       },
     };
   }
