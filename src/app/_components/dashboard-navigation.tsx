@@ -98,7 +98,7 @@ export default function DashboardNavigation({ section, user }: { section: string
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Pusat Kendali">
+              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Beranda">
                 <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
                   <LayoutDashboard />
                   <span>Pusat Kendali</span>
@@ -128,7 +128,7 @@ export default function DashboardNavigation({ section, user }: { section: string
             <Search size={14} />
             <Input
               id="dashboard-menu-query"
-              placeholder="Cari menu…"
+              placeholder="Cari halaman…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -140,7 +140,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>RUANG KERJA</SidebarGroupLabel>
+          <SidebarGroupLabel>MENU UTAMA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -171,7 +171,7 @@ export default function DashboardNavigation({ section, user }: { section: string
                             aria-current={section === group.id ? "page" : undefined}
                           >
                             <span className="dashboard-sub-dot" />
-                            <span>Ikhtisar {group.label}</span>
+                            <span>Ringkasan {group.label}</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
@@ -302,7 +302,7 @@ export function DashboardMegaMenu({
               aria-label="Cari fitur aplikasi"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari anggota, kas, dokumen, publikasi…"
+              placeholder="Cari publikasi, laporan, anggota…"
             />
           </div>
           {utilities.length > 0 && (
