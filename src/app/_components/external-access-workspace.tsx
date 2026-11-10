@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { programs } from "@/lib/srikandi";
 import { Building2, CheckCircle2, Clipboard, Clock3, KeyRound, LoaderCircle, Plus, RefreshCw, Shield, ShieldAlert, UserRound, XCircle } from "lucide-react";
 
 type Organization = {
@@ -22,14 +23,17 @@ const organizationLabels: Record<string, string> = { government: "Pemerintah", n
 const statusLabels: Record<string, string> = { pending: "Menunggu verifikasi", verified: "Terverifikasi", suspended: "Ditangguhkan", rejected: "Ditolak", invited: "Undangan dikirim", active: "Aktif", disabled: "Dinonaktifkan", revoked: "Dicabut" };
 const scopeLabels: Record<string, string> = { project: "Proyek", program: "Program", region: "Wilayah", aggregate: "Ringkasan agregat" };
 const aggregateLabels: Record<string, string> = { members: "Anggota", land: "Luas lahan", harvest: "Hasil panen", aid: "Bantuan", project_progress: "Kemajuan proyek", project_finance: "Keuangan proyek" };
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  return parts.filter((part) => ["year", "month", "day"].includes(part.type)).map((part) => part.value).join("-");
+};
 
 export default function ExternalAccessWorkspace() {
   const [data, setData] = useState<Data>({ organizations: [], accounts: [], grants: [], audit: [] });
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState("");
   const [organizationType, setOrganizationType] = useState("government"), [legalName, setLegalName] = useState(""), [registrationRef, setRegistrationRef] = useState(""), [contactEmail, setContactEmail] = useState("");
   const [organizationId, setOrganizationId] = useState(""), [fullName, setFullName] = useState(""), [email, setEmail] = useState(""), [purpose, setPurpose] = useState("");
-  const [validFrom, setValidFrom] = useState(today()), [validUntil, setValidUntil] = useState(""), [scopeType, setScopeType] = useState<Scope["type"]>("project"), [scopeRef, setScopeRef] = useState(""), [scopes, setScopes] = useState<Scope[]>([]);
+  const [validFrom, setValidFrom] = useState(today()), [validUntil, setValidUntil] = useState(""), [scopeType, setScopeType] = useState<Scope["type"]>("program"), [scopeRef, setScopeRef] = useState(""), [scopes, setScopes] = useState<Scope[]>([]);
   const [invitationUrl, setInvitationUrl] = useState(""), [verifyReason, setVerifyReason] = useState("");
 
   const load = useCallback(async () => {
@@ -130,7 +134,7 @@ export default function ExternalAccessWorkspace() {
             <p className="text-sm font-semibold">Scope data yang boleh dibaca</p>
             <div className="mt-2 grid grid-cols-[1fr_1fr_auto] gap-2">
               <select aria-label="Jenis scope" value={scopeType} onChange={(e) => { setScopeType(e.target.value as Scope["type"]); setScopeRef(""); }} className="min-h-10 min-w-0 rounded-lg border bg-background px-2 text-sm"><option value="program">Program terdaftar</option><option value="aggregate">Ringkasan agregat</option></select>
-              {scopeType === "aggregate" ? <select aria-label="Jenis agregat" value={scopeRef} onChange={(e) => setScopeRef(e.target.value)} className="min-h-10 min-w-0 rounded-lg border bg-background px-2 text-sm"><option value="">Pilih agregat</option>{Object.entries(aggregateLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select> : <select aria-label="Program terdaftar" value={scopeRef} onChange={(e) => setScopeRef(e.target.value)} className="min-h-10 min-w-0 rounded-lg border bg-background px-2 text-sm"><option value="">Pilih program</option>{Array.from({length:9},(_,index)=>String(index+1)).map((id) => <option key={id} value={id}>Program {id}</option>)}</select>}
+              {scopeType === "aggregate" ? <select aria-label="Jenis agregat" value={scopeRef} onChange={(e) => setScopeRef(e.target.value)} className="min-h-10 min-w-0 rounded-lg border bg-background px-2 text-sm"><option value="">Pilih agregat</option>{Object.entries(aggregateLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select> : <select aria-label="Program terdaftar" value={scopeRef} onChange={(e) => setScopeRef(e.target.value)} className="min-h-10 min-w-0 rounded-lg border bg-background px-2 text-sm"><option value="">Pilih program</option>{programs.map((program) => <option key={program.id} value={program.id}>{program.id}. {program.name}</option>)}</select>}
               <button type="button" onClick={addScope} disabled={!scopeRef.trim()} className="inline-flex min-h-10 items-center gap-1 rounded-lg border px-3 text-sm font-semibold hover:bg-muted disabled:opacity-40"><Plus size={14}/> Tambah</button>
             </div>
             {scopes.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{scopes.map((scope) => <span key={scope.type+scope.ref} className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-900">{scopeLabels[scope.type]}: {aggregateLabels[scope.ref] || scope.ref}<button type="button" onClick={() => setScopes((current) => current.filter((item) => item.type !== scope.type || item.ref !== scope.ref))} aria-label="Hapus scope"><XCircle size={14}/></button></span>)}</div> : <p className="mt-2 text-xs text-muted-foreground">Belum ada scope. Hanya program yang terdaftar dan ringkasan agregat yang dapat dipilih pada tahap ini. Scope proyek/wilayah dibuka setelah registri datanya siap.</p>}
@@ -155,7 +159,7 @@ export default function ExternalAccessWorkspace() {
 
     <section className="rounded-2xl border bg-card p-5">
       <div className="flex items-center gap-2"><ShieldAlert size={19}/><h2 className="font-semibold">Grant dan masa berlaku</h2></div>
-      {data.grants.length ? <div className="mt-4 grid gap-3">{data.grants.map((grant) => <article key={grant.id} className="rounded-xl border p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold">{grant.legal_name}</p><p className="text-xs text-muted-foreground">{grant.full_name} · {grant.email}</p><p className="mt-2 text-sm">{grant.purpose}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold">{statusLabels[grant.status]}</span></div><div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 size={13}/>{new Date(grant.valid_from).toLocaleDateString("id-ID")} – {new Date(grant.valid_until).toLocaleDateString("id-ID")}</div><div className="mt-3 flex flex-wrap gap-2">{grant.scopes.map((scope) => <span key={scope.type+scope.ref} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">{scopeLabels[scope.type]} · {aggregateLabels[scope.ref] || scope.ref}</span>)}</div>{grant.status !== "revoked" && <button type="button" disabled={busy} onClick={() => void patch("revoke_grant",grant.id,"Pencabutan oleh administrator setelah pemeriksaan")} className="mt-3 text-xs font-semibold text-red-700 underline underline-offset-4 disabled:opacity-40">Cabut grant</button>}</article>)}</div> : <p className="mt-4 text-sm text-muted-foreground">Belum ada grant yang diberikan.</p>}
+      {data.grants.length ? <div className="mt-4 grid gap-3">{data.grants.map((grant) => <article key={grant.id} className="rounded-xl border p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold">{grant.legal_name}</p><p className="text-xs text-muted-foreground">{grant.full_name} · {grant.email}</p><p className="mt-2 text-sm">{grant.purpose}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold">{statusLabels[grant.status]}</span></div><div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 size={13}/>{new Date(grant.valid_from).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })} – {new Date(grant.valid_until).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })}</div><div className="mt-3 flex flex-wrap gap-2">{grant.scopes.map((scope) => <span key={scope.type+scope.ref} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">{scopeLabels[scope.type]} · {aggregateLabels[scope.ref] || scope.ref}</span>)}</div>{grant.status !== "revoked" && <button type="button" disabled={busy} onClick={() => void patch("revoke_grant",grant.id,"Pencabutan oleh administrator setelah pemeriksaan")} className="mt-3 text-xs font-semibold text-red-700 underline underline-offset-4 disabled:opacity-40">Cabut grant</button>}</article>)}</div> : <p className="mt-4 text-sm text-muted-foreground">Belum ada grant yang diberikan.</p>}
     </section>
     <p className="text-xs leading-5 text-muted-foreground">Verifikasi organisasi harus didasarkan pada pemeriksaan dokumen atau sumber resmi. Grant hanya membuka data yang benar-benar memiliki integrasi scope; jangan menetapkan ID proyek/program sebelum dicocokkan dengan catatan resmi.</p>
   </div>;
