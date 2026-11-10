@@ -23,7 +23,7 @@ type Data = { organizations: Organization[]; accounts: Account[]; grants: Grant[
 const organizationLabels: Record<string, string> = { government: "Pemerintah", ngo: "NGO / Lembaga Swadaya", partner: "Mitra" };
 const statusLabels: Record<string, string> = { pending: "Menunggu verifikasi", verified: "Terverifikasi", suspended: "Ditangguhkan", rejected: "Ditolak", invited: "Undangan dikirim", active: "Aktif", disabled: "Dinonaktifkan", revoked: "Dicabut" };
 const scopeLabels: Record<string, string> = { project: "Proyek", program: "Program", region: "Wilayah", aggregate: "Ringkasan agregat" };
-const aggregateLabels: Record<string, string> = { members: "Anggota", land: "Luas lahan", harvest: "Hasil panen", aid: "Bantuan", project_progress: "Kemajuan proyek", project_finance: "Keuangan proyek" };
+const aggregateLabels: Record<string, string> = { members: "Anggota terverifikasi", land: "Luas lahan terverifikasi", harvest: "Hasil panen terverifikasi" };
 const today = () => {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   return parts.filter((part) => ["year", "month", "day"].includes(part.type)).map((part) => part.value).join("-");
