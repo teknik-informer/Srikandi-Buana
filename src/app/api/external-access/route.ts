@@ -171,7 +171,7 @@ export async function POST(request: Request) {
       if (account.verification_status !== "verified") return json({ error: "Organisasi belum terverifikasi." }, 409);
       const purpose = requiredText(raw.purpose, "Tujuan pemberian akses", 12, 500);
       const validFrom = dateValue(raw.validFrom, now);
-      const validUntil = dateValue(raw.validUntil);
+      const validUntil = dateValue(raw.validUntil, undefined, true);
       if (Date.parse(validUntil) <= Date.parse(validFrom) || Date.parse(validUntil) > Date.now() + 731 * 86400000) throw new Error("Masa berlaku harus sesudah tanggal mulai dan tidak lebih dari dua tahun.");
       const scopes = parseScopes(raw.scopes);
       const grantId = crypto.randomUUID();
