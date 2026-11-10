@@ -29,6 +29,8 @@ jobs:
         run: npm run test:ecosystem
       - name: External access security tests
         run: npm run test:external-access
+      - name: Agriculture domain and privacy tests
+        run: npm run test:agriculture
       - name: Integration security tests
         run: npm run test:integration:staging
       - name: TypeScript typecheck
