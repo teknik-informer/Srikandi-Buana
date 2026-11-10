@@ -26,13 +26,13 @@ import WorkspaceProgressChart from "./workspace-progress-chart";
 import { modules } from "@/lib/srikandi";
 
 const eyebrows: Record<EnterpriseDashboardId, string> = {
-  ecosystem: "LAYANAN TERPADU",
-  management: "PERENCANAAN & PENGENDALIAN",
-  administration: "DATA & DOKUMEN RESMI",
-  finance: "KEUANGAN & ASET",
+  ecosystem: "ORGANISASI",
+  management: "PROGRAM & KEGIATAN",
+  administration: "DATA ORGANISASI",
+  finance: "LAPORAN ORGANISASI",
   commerce: "USAHA & RANTAI PASOK",
-  publication: "INFORMASI PUBLIK",
-  system: "KONFIGURASI & AKUN",
+  publication: "PUBLIKASI RESMI",
+  system: "ADMINISTRASI",
 };
 
 const featureIcons: Record<string, LucideIcon> = {
@@ -155,8 +155,8 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{eyebrows[dashboard.id]}</p>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 id="dashboard-overview-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard {dashboard.label}</h1>
-          <Badge variant="outline">{dashboard.features.length} modul tersedia</Badge>
+          <h1 id="dashboard-overview-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">{dashboard.label}</h1>
+          <Badge variant="outline"></Badge>
         </div>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{dashboard.description} Ruang ini membantu Anda memahami kondisi, menentukan langkah, dan menyelesaikan pekerjaan dari data yang dapat diakses.</p>
       </header>
