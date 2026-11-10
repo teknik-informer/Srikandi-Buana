@@ -79,11 +79,12 @@ export async function GET() {
   if (!user) return json({ error: "Akses khusus administrator." }, 403);
   if (!env.DB) return json({ error: "Database belum tersedia." }, 503);
   try {
-    const [organizations, accounts, grants, auditRows] = await Promise.all([
+    const [organizations, accounts, grants, auditRows, invitations] = await Promise.all([
       env.DB.prepare("SELECT id,organization_type,legal_name,registration_ref,contact_email,verification_status,created_at,updated_at FROM external_organizations WHERE workspace_owner=? ORDER BY created_at DESC").bind(user.userId).all(),
       env.DB.prepare("SELECT id,organization_id,email,full_name,status,created_at,updated_at,last_login_at FROM external_portal_accounts WHERE workspace_owner=? ORDER BY created_at DESC").bind(user.userId).all(),
       env.DB.prepare("SELECT g.id,g.account_id,g.organization_id,g.audience,g.purpose,g.status,g.valid_from,g.valid_until,g.approved_by,g.approved_at,g.revoked_by,g.revoked_at,g.created_at,a.email,a.full_name,o.legal_name FROM external_access_grants g JOIN external_portal_accounts a ON a.id=g.account_id AND a.workspace_owner=g.workspace_owner JOIN external_organizations o ON o.id=g.organization_id AND o.workspace_owner=g.workspace_owner WHERE g.workspace_owner=? ORDER BY g.created_at DESC").bind(user.userId).all(),
       env.DB.prepare("SELECT actor_id,actor_type,action,target_type,target_id,reason,created_at FROM external_access_audit WHERE workspace_owner=? ORDER BY created_at DESC LIMIT 100").bind(user.userId).all(),
+      env.DB.prepare("SELECT id,account_id,email,expires_at,consumed_at,revoked_at,created_at FROM external_access_invitations WHERE workspace_owner=? ORDER BY created_at DESC LIMIT 200").bind(user.userId).all(),
     ]);
     const scopeRows = grants.results.length
       ? await env.DB.prepare("SELECT s.grant_id,s.scope_type,s.scope_ref,s.permission FROM external_access_grant_scopes s JOIN external_access_grants g ON g.id=s.grant_id AND g.workspace_owner=s.workspace_owner WHERE s.workspace_owner=? ORDER BY s.created_at").bind(user.userId).all()
@@ -99,6 +100,7 @@ export async function GET() {
       accounts: accounts.results,
       grants: grants.results.map((grant) => ({ ...grant, scopes: scopes.get(String(grant.id)) || [] })),
       audit: auditRows.results,
+      invitations: invitations.results,
     });
   } catch {
     return json({ error: "Data akses eksternal belum dapat dimuat." }, 503);
@@ -206,6 +208,27 @@ export async function PATCH(request: Request) {
     const reason = requiredText(raw.reason, "Alasan perubahan", 10, 500);
     const now = new Date().toISOString();
 
+    if (action === "resend_invitation") {
+      const account = await env.DB.prepare(
+        "SELECT a.id,a.email,a.organization_id,o.verification_status FROM external_portal_accounts a " +
+        "JOIN external_organizations o ON o.id=a.organization_id AND o.workspace_owner=a.workspace_owner " +
+        "WHERE a.id=? AND a.workspace_owner=? AND a.status='invited'"
+      ).bind(id, user.userId).first();
+      if (!account) return json({ error: "Akun berstatus undangan tidak ditemukan." }, 404);
+      if (account.verification_status !== "verified") return json({ error: "Verifikasi organisasi terlebih dahulu sebelum mengirim tautan aktivasi." }, 409);
+      const token = randomBytes(32).toString("base64url");
+      const expiresAt = new Date(Date.now() + 48 * 3600000).toISOString();
+      const invitationId = crypto.randomUUID();
+      const url = activationUrl(request, token);
+      await env.DB.batch([
+        env.DB.prepare("UPDATE external_access_invitations SET revoked_at=? WHERE account_id=? AND workspace_owner=? AND consumed_at IS NULL AND revoked_at IS NULL")
+          .bind(now, id, user.userId),
+        env.DB.prepare("INSERT INTO external_access_invitations(id,workspace_owner,account_id,token_hash,email,expires_at,created_by,created_at) VALUES(?,?,?,?,?,?,?,?)")
+          .bind(invitationId, user.userId, id, digest(token), account.email, expiresAt, user.accountId, now),
+        await audit(user.userId, user.accountId, "Tautan undangan eksternal dikirim ulang; tautan lama dicabut", "external_account", id, reason),
+      ]);
+      return json({ ok: true, invitationUrl: url, invitationExpiresAt: expiresAt, email: String(account.email) }, 201);
+    }
     if (action === "verify_organization") {
       const status = String(raw.status || "");
       if (!["verified","suspended","rejected"].includes(status)) throw new Error("Status verifikasi tidak valid.");
