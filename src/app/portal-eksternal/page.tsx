@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Building2, CalendarClock, FileCheck2, LogOut, ShieldCheck } from "lucide-react";
 import { getAuthenticatedExternalUser } from "@/lib/external-auth";
 import { activeExternalGrants } from "@/lib/external-access-policy";
+import { getExternalAgricultureSummary } from "@/lib/external-agriculture-summary";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -32,6 +33,7 @@ export default async function ExternalPortalPage() {
   const user = await getAuthenticatedExternalUser();
   if (!user) redirect("/masuk");
   const grants = activeExternalGrants(user.grants);
+  const agriculture = await getExternalAgricultureSummary(user);
   const typeLabel = user.organizationType === "government" ? "Instansi Pemerintah" : user.organizationType === "ngo" ? "NGO / Lembaga Swadaya" : "Mitra";
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(22,101,52,0.09),_transparent_36%),linear-gradient(180deg,#f8faf8,#f2f5f2)] px-4 py-8 text-slate-800 sm:px-8">
@@ -54,6 +56,34 @@ export default async function ExternalPortalPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Organisasi</p><p className="mt-2 text-lg font-semibold text-slate-900">{user.organizationName}</p><p className="mt-1 text-xs text-emerald-800">Terverifikasi</p></div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Akun</p><p className="mt-2 text-lg font-semibold text-slate-900">{user.email}</p><p className="mt-1 text-xs text-slate-500">Akun eksternal aktif</p></div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Izin aktif</p><p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">{grants.length}</p><p className="mt-1 text-xs text-slate-500">Dibatasi oleh proyek, program, atau ringkasan</p></div>
+        </section>
+
+        <section className="mt-8">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div><div className="flex items-center gap-2"><ShieldCheck className="text-emerald-800" size={20}/><h2 className="text-lg font-semibold text-slate-900">Ringkasan pertanian terverifikasi</h2></div><p className="mt-1 text-sm text-slate-600">Angka bersumber dari catatan internal yang telah diverifikasi. Ringkasan dengan jumlah kontributor terlalu kecil disamarkan untuk melindungi privasi anggota.</p></div>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">Hanya data agregat</span>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {agriculture.members.availability !== "not_granted" && <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Anggota aktif</p>
+              {agriculture.members.availability === "available" ? <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">{agriculture.members.verifiedCount}</p> : <p className="mt-2 text-sm font-medium text-slate-600">{agriculture.members.availability === "suppressed" ? "Disamarkan demi privasi" : agriculture.members.availability === "empty" ? "Belum ada data terverifikasi" : "Ringkasan belum tersedia"}</p>}
+              <p className="mt-1 text-xs text-slate-500">Anggota aktif dengan data terverifikasi</p>
+            </article>}
+            {agriculture.land.availability !== "not_granted" && <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Lahan terverifikasi</p>
+              {agriculture.land.availability === "available" ? <><p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">{agriculture.land.areaHectares} ha</p><p className="mt-1 text-xs text-slate-500">{agriculture.land.verifiedParcels} bidang lahan · luas dibulatkan 0,1 ha</p></> : <p className="mt-2 text-sm font-medium text-slate-600">{agriculture.land.availability === "suppressed" ? "Disamarkan demi privasi" : agriculture.land.availability === "empty" ? "Belum ada data terverifikasi" : "Ringkasan belum tersedia"}</p>}
+            </article>}
+            {agriculture.harvest.availability !== "not_granted" && <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hasil panen terverifikasi</p>
+              {agriculture.harvest.availability === "available" ? <div className="mt-2 space-y-2">{agriculture.harvest.items.map((item) => <div key={item.commodity+item.unit} className="flex items-baseline justify-between gap-2"><span className="text-sm font-medium text-slate-700">{item.commodity}</span><strong className="text-sm tabular-nums text-slate-900">{new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(item.quantity)} {item.unit}</strong></div>)}</div> : <p className="mt-2 text-sm font-medium text-slate-600">{agriculture.harvest.availability === "suppressed" ? "Disamarkan demi privasi" : agriculture.harvest.availability === "empty" ? "Belum ada data terverifikasi" : "Ringkasan belum tersedia"}</p>}
+              <p className="mt-1 text-xs text-slate-500">Dikelompokkan per komoditas dan satuan dasar</p>
+            </article>}
+          </div>
+          {agriculture.programs.length > 0 && <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-900">Program dalam lingkup izin</h3>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">{agriculture.programs.map((program) => <div key={program.id} className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-semibold text-emerald-800">Program {program.id} · {program.category}</p><h4 className="mt-1 font-semibold text-slate-900">{program.name}</h4><p className="mt-1 text-sm leading-5 text-slate-600">{program.goal}</p><p className="mt-2 text-xs text-slate-500">{program.period}</p></div>)}</div>
+          </div>}
+          {agriculture.members.availability === "not_granted" && agriculture.land.availability === "not_granted" && agriculture.harvest.availability === "not_granted" && agriculture.programs.length === 0 && <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">Grant saat ini belum mencakup ringkasan anggota, lahan, panen, atau program.</p>}
         </section>
 
         <section className="mt-8">
