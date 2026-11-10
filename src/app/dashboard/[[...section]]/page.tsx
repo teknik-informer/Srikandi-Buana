@@ -29,6 +29,12 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   if ((section?.length || 0) > 1) notFound();
   const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan"]);
   if (section?.[0] === "profil") redirect("/profil");
+  const legacyDashboardRedirects: Record<string, string> = {
+    management: "/dashboard/ecosystem",
+    administration: "/dashboard/system",
+    commerce: "/dashboard/finance",
+  };
+  if (section?.[0] && legacyDashboardRedirects[section[0]]) redirect(legacyDashboardRedirects[section[0]]);
   if (section?.[0] && !allowed.has(section[0])) notFound();
   const admin = await getAuthenticatedUser();
   if (!admin)
