@@ -159,7 +159,7 @@ const nav = readFileSync("src/lib/navigation-config.ts", "utf8");
 const access = readFileSync("src/features/identity/access-policy.ts", "utf8");
 assert(api.includes('sameOrigin(request)'), "Writes must enforce same-origin requests");
 assert(api.includes('if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(raw))'), "Date inputs must accept standard YYYY-MM-DD format");
-const datePattern = api.match(/if \\(!(.+?)\\.test\\(raw\\)\\)/)?.[1];
+const datePattern = api.match(/if \(!(.+?)\.test\(raw\)\)/)?.[1];
 assert.ok(datePattern, "ISO date validation regex must be present");
 const dateRegex = vm.runInNewContext(datePattern);
 assert.equal(dateRegex.test("2026-11-10"), true, "A valid ISO date must pass validation");
