@@ -110,6 +110,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
     const count = snapshot.issues.length;
     return {
       state: count ? "attention" as const : "steady" as const,
+      eyebrow: "STATUS DATA",
       title: count ? "Catatan memerlukan perhatian" : "Tidak ada temuan prioritas",
       description: count ? `${count} catatan memerlukan pemeriksaan sesuai kewenangan.` : "Tidak ada catatan prioritas berdasarkan data yang tersedia.",
       actions: [] as { id: string; href: string; title: string; detail: string; actionLabel: string }[],
@@ -201,9 +202,9 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
             ))
           ) : (
             <div className="rounded-xl border border-dashed bg-background/70 p-4 md:col-span-2 xl:col-span-3">
-              <p className="text-sm font-medium">{briefing.state === "limited" ? "Butuh akses atau sumber data?" : "Tidak ada tindak lanjut prioritas."}</p>
+              <p className="text-sm font-medium">"Tidak ada tindak lanjut prioritas."</p>
               <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                {briefing.state === "limited" ? "Anda tetap dapat membuka modul yang diizinkan. Hubungi pengelola untuk meninjau penugasan bila diperlukan." : "Catat pekerjaan saat terjadi agar tim dapat melihat perkembangan tanpa menunggu rekap manual."}
+                "Tidak ada catatan prioritas berdasarkan data yang dapat diakses."
               </p>
               {firstFeature && <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-primary hover:underline" href={firstFeature.href}>{firstFeature.label}<ArrowUpRight size={15} aria-hidden="true" /></Link>}
             </div>
