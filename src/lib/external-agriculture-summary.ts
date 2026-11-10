@@ -57,10 +57,11 @@ export async function getExternalAgricultureSummary(principal: ExternalPrincipal
 
     if (summary.land.availability !== "not_granted") {
       const row = await db.prepare(
-        "SELECT COUNT(*) AS parcel_count,COALESCE(SUM(area_m2),0) AS area_m2 FROM farm_parcels WHERE workspace_owner=? AND status='active' AND verification_status='verified'"
+        "SELECT COUNT(*) AS parcel_count,COUNT(DISTINCT p.member_id) AS contributing_members,COALESCE(SUM(p.area_m2),0) AS area_m2 FROM farm_parcels p JOIN records r ON r.id=p.member_id AND r.owner=p.workspace_owner AND r.kind='anggota' WHERE p.workspace_owner=? AND p.status='active' AND p.verification_status='verified' AND r.data::jsonb->>'status'='Aktif' AND r.data::jsonb->>'verification'='Terverifikasi'"
       ).bind(principal.workspaceOwner).first();
       const count = Number(row?.parcel_count || 0);
-      summary.land = count >= 3
+      const contributors = Number(row?.contributing_members || 0);
+      summary.land = contributors >= 3
         ? {
             availability: "available",
             verifiedParcels: count,
@@ -71,15 +72,15 @@ export async function getExternalAgricultureSummary(principal: ExternalPrincipal
 
     if (summary.harvest.availability !== "not_granted") {
       const rows = await db.prepare(
-        "SELECT a.name AS commodity,h.unit_code,COUNT(DISTINCT p.id) AS contributing_parcels,SUM(h.quantity) AS total_quantity " +
+        "SELECT a.name AS commodity,h.unit_code,COUNT(DISTINCT p.member_id) AS contributing_members,SUM(h.quantity) AS total_quantity " +
         "FROM harvest_records h JOIN crop_cycles c ON c.id=h.crop_cycle_id AND c.workspace_owner=h.workspace_owner " +
         "JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner " +
-        "JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner " +
+        "JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner JOIN records r ON r.id=p.member_id AND r.owner=p.workspace_owner AND r.kind='anggota' " +
         "WHERE h.workspace_owner=? AND h.verification_status='verified' AND c.verification_status='verified' " +
-        "AND p.verification_status='verified' AND p.status='active' " +
+        "AND p.verification_status='verified' AND p.status='active' AND r.data::jsonb->>'status'='Aktif' AND r.data::jsonb->>'verification'='Terverifikasi' " +
         "GROUP BY a.id,a.name,h.unit_code ORDER BY a.name,h.unit_code"
       ).bind(principal.workspaceOwner).all();
-      const visible = rows.results.filter((row) => Number(row.contributing_parcels || 0) >= 3).map((row) => ({
+      const visible = rows.results.filter((row) => Number(row.contributing_members || 0) >= 3).map((row) => ({
         commodity: String(row.commodity),
         quantity: Number(row.total_quantity || 0),
         unit: String(row.unit_code),
