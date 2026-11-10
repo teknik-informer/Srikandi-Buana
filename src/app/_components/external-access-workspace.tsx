@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Building2, CheckCircle2, Clipboard, Clock3, ExternalLink, KeyRound, LoaderCircle, Plus, RefreshCw, Shield, ShieldAlert, UserRound, XCircle } from "lucide-react";
+import { Building2, CheckCircle2, Clipboard, Clock3, KeyRound, LoaderCircle, Plus, RefreshCw, Shield, ShieldAlert, UserRound, XCircle } from "lucide-react";
 
 type Organization = {
   id: string;
@@ -50,7 +50,6 @@ export default function ExternalAccessWorkspace() {
   useEffect(() => { void load(); }, [load]);
 
   const selectedOrganization = useMemo(() => data.organizations.find((org) => org.id === organizationId), [data.organizations, organizationId]);
-  const organizationAccounts = useMemo(() => data.accounts.filter((account) => account.organization_id === organizationId), [data.accounts, organizationId]);
 
   async function submit(url: string, method: "POST" | "PATCH", body: Record<string, unknown>) {
     setBusy(true); setError(""); setNotice("");
