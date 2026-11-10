@@ -31,7 +31,8 @@
     "test:navigation:compat": "node --test tests/navigation-compatibility.mjs",
     "test:terminology": "node --test tests/terminology-consistency.mjs",
     "test:ecosystem": "node --test tests/ecosystem-*.test.mjs",
-    "test:external-access": "node scripts/verify-external-access.mjs"
+    "test:external-access": "node scripts/verify-external-access.mjs",
+    "test:agriculture": "node scripts/verify-agriculture.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
