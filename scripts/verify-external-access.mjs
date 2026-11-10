@@ -146,6 +146,8 @@ assert.equal(canExternalRead({ ...principal, grants: [{ ...principal.grants[0], 
 assert.equal(canExternalRead({ ...principal, grants: [{ ...principal.grants[0], validFrom: "2026-11-11T00:00:00.000Z" }] }, { workspaceOwner: owner, classification: "project", projectId: "project-001" }, today), false);
 assert.equal(canExternalRead(null, { workspaceOwner: owner, classification: "project", projectId: "project-001" }, today), false);
 assert.equal(canExternalRead(null, { workspaceOwner: owner, classification: "public" }, today), true);
+assert.equal(canExternalRead({ ...principal, grants: [{ ...principal.grants[0], scopes: [] }] }, { workspaceOwner: owner, classification: "project", projectId: "project-001" }, today), false);
+
 assert.equal(activeExternalGrants(principal.grants, today).length, 1);
 assert.equal(activeExternalGrants([{ ...principal.grants[0], scopes: [] }], today).length, 0);
 
