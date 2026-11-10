@@ -5,6 +5,7 @@ import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { digest } from "@/lib/auth";
 import { json, sameOrigin } from "@/lib/account-access";
 import type { ExternalOrganizationType, ExternalScope, ExternalScopeType } from "@/lib/external-access-policy";
+import { programs } from "@/lib/srikandi";
 
 export const dynamic = "force-dynamic";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,9 +21,15 @@ function normalizedEmail(value: unknown) {
   if (result.length > 180 || !emailPattern.test(result)) throw new Error("Masukkan alamat email yang valid.");
   return result;
 }
-function dateValue(value: unknown, fallback?: string) {
+function dateValue(value: unknown, fallback?: string, endOfDay = false) {
   const result = typeof value === "string" && value.trim() ? value.trim() : fallback;
-  if (!result || !Number.isFinite(Date.parse(result))) throw new Error("Masa berlaku izin harus menggunakan tanggal yang valid.");
+  if (!result) throw new Error("Masa berlaku izin harus menggunakan tanggal yang valid.");
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(result)) {
+    const localDate = new Date(result + (endOfDay ? "T23:59:59.999+07:00" : "T00:00:00.000+07:00"));
+    if (!Number.isFinite(localDate.getTime())) throw new Error("Tanggal izin tidak valid.");
+    return localDate.toISOString();
+  }
+  if (!Number.isFinite(Date.parse(result))) throw new Error("Masa berlaku izin harus menggunakan tanggal yang valid.");
   return new Date(result).toISOString();
 }
 function parseScopes(value: unknown): ExternalScope[] {
@@ -33,7 +40,8 @@ function parseScopes(value: unknown): ExternalScope[] {
     const raw = item as Record<string, unknown>;
     const type = String(raw.type || "") as ExternalScopeType;
     const ref = requiredText(raw.ref, "Referensi ruang lingkup", 1, 160);
-    if (!["project","program","region","aggregate"].includes(type)) throw new Error("Jenis ruang lingkup tidak dikenali.");
+    if (!["program","aggregate"].includes(type)) throw new Error("Scope proyek dan wilayah baru dapat diberikan setelah modul proyek/wilayah beserta registry terverifikasi tersedia.");
+    if (type === "program" && !programs.some((program) => program.id === ref)) throw new Error("Pilih ID program yang benar-benar terdaftar.");
     if (type === "aggregate" && !aggregateKeys.has(ref)) throw new Error("Jenis ringkasan agregat tidak diizinkan.");
     const key = type + ":" + ref;
     if (seen.has(key)) throw new Error("Ruang lingkup yang sama tidak boleh dipilih dua kali.");
@@ -128,7 +136,7 @@ export async function POST(request: Request) {
       const fullName = requiredText(raw.fullName, "Nama pengguna", 2, 120);
       const purpose = requiredText(raw.purpose, "Tujuan pemberian akses", 12, 500);
       const validFrom = dateValue(raw.validFrom, now);
-      const validUntil = dateValue(raw.validUntil);
+      const validUntil = dateValue(raw.validUntil, undefined, true);
       const fromTime = Date.parse(validFrom), untilTime = Date.parse(validUntil);
       if (untilTime <= fromTime || untilTime > Date.now() + 731 * 86400000) throw new Error("Masa berlaku harus sesudah tanggal mulai dan tidak lebih dari dua tahun.");
       const scopes = parseScopes(raw.scopes);
@@ -197,35 +205,45 @@ export async function PATCH(request: Request) {
     if (action === "verify_organization") {
       const status = String(raw.status || "");
       if (!["verified","suspended","rejected"].includes(status)) throw new Error("Status verifikasi tidak valid.");
-      const result = await env.DB.prepare("UPDATE external_organizations SET verification_status=?,updated_at=? WHERE id=? AND workspace_owner=? RETURNING id")
-        .bind(status, now, id, user.userId).first();
-      if (!result) return json({ error: "Organisasi tidak ditemukan dalam workspace ini." }, 404);
-      await audit(user.userId, user.accountId, "Status verifikasi organisasi diubah", "organization", id, reason);
+      const existing = await env.DB.prepare("SELECT id FROM external_organizations WHERE id=? AND workspace_owner=?")
+        .bind(id, user.userId).first();
+      if (!existing) return json({ error: "Organisasi tidak ditemukan dalam workspace ini." }, 404);
+      await env.DB.batch([
+        env.DB.prepare("UPDATE external_organizations SET verification_status=?,updated_at=? WHERE id=? AND workspace_owner=?")
+          .bind(status, now, id, user.userId),
+        await audit(user.userId, user.accountId, "Status verifikasi organisasi diubah", "organization", id, reason),
+      ]);
       return json({ ok: true, status });
     }
     if (action === "revoke_grant") {
-      const result = await env.DB.prepare("UPDATE external_access_grants SET status='revoked',revoked_by=?,revoked_at=? WHERE id=? AND workspace_owner=? AND status<>'revoked' RETURNING id")
-        .bind(user.accountId, now, id, user.userId).first();
-      if (!result) return json({ error: "Grant tidak ditemukan atau sudah dicabut." }, 404);
-      await audit(user.userId, user.accountId, "Grant akses dicabut", "grant", id, reason);
+      const existing = await env.DB.prepare("SELECT id FROM external_access_grants WHERE id=? AND workspace_owner=? AND status<>'revoked'")
+        .bind(id, user.userId).first();
+      if (!existing) return json({ error: "Grant tidak ditemukan atau sudah dicabut." }, 404);
+      await env.DB.batch([
+        env.DB.prepare("UPDATE external_access_grants SET status='revoked',revoked_by=?,revoked_at=? WHERE id=? AND workspace_owner=? AND status<>'revoked'")
+          .bind(user.accountId, now, id, user.userId),
+        await audit(user.userId, user.accountId, "Grant akses dicabut", "grant", id, reason),
+      ]);
       return json({ ok: true });
     }
     if (action === "disable_account") {
-      const result = await env.DB.prepare("UPDATE external_portal_accounts SET status='disabled',updated_at=? WHERE id=? AND workspace_owner=? AND status<>'disabled' RETURNING id")
-        .bind(now, id, user.userId).first();
-      if (!result) return json({ error: "Akun tidak ditemukan atau sudah dinonaktifkan." }, 404);
+      const existing = await env.DB.prepare("SELECT id FROM external_portal_accounts WHERE id=? AND workspace_owner=? AND status<>'disabled'")
+        .bind(id, user.userId).first();
+      if (!existing) return json({ error: "Akun tidak ditemukan atau sudah dinonaktifkan." }, 404);
       await env.DB.batch([
+        env.DB.prepare("UPDATE external_portal_accounts SET status='disabled',updated_at=? WHERE id=? AND workspace_owner=? AND status<>'disabled'").bind(now, id, user.userId),
         env.DB.prepare("DELETE FROM external_portal_sessions WHERE account_id=?").bind(id),
         await audit(user.userId, user.accountId, "Akun eksternal dinonaktifkan; seluruh sesi dicabut", "external_account", id, reason),
       ]);
       return json({ ok: true });
     }
     if (action === "revoke_invitation") {
-      const result = await env.DB.prepare("UPDATE external_access_invitations SET revoked_at=? WHERE id=? AND workspace_owner=? AND consumed_at IS NULL AND revoked_at IS NULL RETURNING account_id")
-        .bind(now, id, user.userId).first();
-      if (!result) return json({ error: "Undangan tidak ditemukan, sudah digunakan, atau sudah dicabut." }, 404);
+      const existing = await env.DB.prepare("SELECT account_id FROM external_access_invitations WHERE id=? AND workspace_owner=? AND consumed_at IS NULL AND revoked_at IS NULL")
+        .bind(id, user.userId).first();
+      if (!existing) return json({ error: "Undangan tidak ditemukan, sudah digunakan, atau sudah dicabut." }, 404);
       await env.DB.batch([
-        env.DB.prepare("UPDATE external_portal_accounts SET status='disabled',updated_at=? WHERE id=? AND workspace_owner=? AND status='invited'").bind(now, result.account_id, user.userId),
+        env.DB.prepare("UPDATE external_access_invitations SET revoked_at=? WHERE id=? AND workspace_owner=? AND consumed_at IS NULL AND revoked_at IS NULL").bind(now, id, user.userId),
+        env.DB.prepare("UPDATE external_portal_accounts SET status='disabled',updated_at=? WHERE id=? AND workspace_owner=? AND status='invited'").bind(now, existing.account_id, user.userId),
         await audit(user.userId, user.accountId, "Undangan akun eksternal dicabut", "invitation", id, reason),
       ]);
       return json({ ok: true });
