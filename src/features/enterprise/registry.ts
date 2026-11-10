@@ -1,8 +1,14 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
 import { canReadSectionForRole, type Role } from "../identity/access-policy";
 
-export type EnterpriseDashboardId = "ecosystem" | "management" | "administration" | "finance" | "commerce" | "publication" | "system";
-export type EnterpriseDashboard = { id: EnterpriseDashboardId; href: string; label: string; description: string; features: readonly NavItem[] };
+export type EnterpriseDashboardId = "organization" | "publication" | "reporting" | "administration";
+export type EnterpriseDashboard = {
+  id: EnterpriseDashboardId;
+  href: string;
+  label: string;
+  description: string;
+  features: readonly NavItem[];
+};
 
 const legacyFeatures = new Map(dashboardGroups.flatMap((group) => group.items).map((item) => [item.id, item]));
 
@@ -14,14 +20,14 @@ function features(ids: readonly string[]): readonly NavItem[] {
   });
 }
 
-/** Four clear work areas. Existing feature routes and API permission checks remain unchanged. */
+/** Four user-facing areas; detailed operational modules remain available by role. */
 export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
-    id: "ecosystem",
-    href: "/dashboard/ecosystem",
-    label: "Beranda & Organisasi",
-    description: "Ringkasan, anggota, pengurus, program, kegiatan, dan dokumen organisasi.",
-    features: features(["portal", "notifikasi", "program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah", "pengajuan", "enterprise", "anggota", "pengurus", "persetujuan", "surat", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"]),
+    id: "organization",
+    href: "/dashboard/organization",
+    label: "Organisasi",
+    description: "Profil, keanggotaan, pengurus, program, kegiatan, dan dokumen organisasi.",
+    features: features(["portal", "notifikasi", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
   },
   {
     id: "publication",
@@ -31,23 +37,22 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     features: features(["publikasi", "galeri", "pesan"]),
   },
   {
-    id: "finance",
-    href: "/dashboard/finance",
-    label: "Laporan",
+    id: "reporting",
+    href: "/dashboard/reporting",
+    label: "Pelaporan",
     description: "Laporan kegiatan, keuangan, aset, usaha, dan pertanggungjawaban.",
-    features: features(["kas", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]),
+    features: features(["kas", "laporan", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]),
   },
   {
-    id: "system",
-    href: "/dashboard/system",
+    id: "administration",
+    href: "/dashboard/administration",
     label: "Administrasi",
-    description: "Akun, hak akses, profil, dan pengaturan organisasi.",
-    features: features(["akun", "akun-saya", "pengaturan"]),
+    description: "Surat, arsip, referensi, akun, hak akses, dan pengaturan.",
+    features: features(["surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen", "akun", "akun-saya", "pengaturan", "panduan"]),
   },
 ];
 
 export const enterpriseUtilities: readonly NavItem[] = [
-  { id: "laporan", label: "Pusat Laporan", description: "Laporan organisasi dan pertanggungjawaban.", href: "/dashboard/laporan" },
   { id: "monitoring", label: "Status Sistem", description: "Status layanan dan kelengkapan data.", href: "/dashboard/monitoring" },
 ];
 
