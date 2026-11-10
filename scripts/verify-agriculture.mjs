@@ -110,7 +110,7 @@ const policyBundle = await build({
 });
 const policyModule = { exports: {} };
 vm.runInNewContext(policyBundle.outputFiles[0].text, { module: policyModule, exports: policyModule.exports });
-const { canExternalRead } = policyModule.exports;
+const { canExternalRead, activeExternalGrants } = policyModule.exports;
 const principal = {
   accountId: "external-account",
   workspaceOwner: owner,
@@ -149,6 +149,8 @@ assert.equal(canExternalRead({ ...principal, accountStatus: "disabled" }, { work
 assert.equal(canExternalRead(principal, { workspaceOwner: owner, classification: "personal", aggregateKey: "members" }, at), false);
 assert.equal(canExternalRead(principal, { workspaceOwner: owner, classification: "program", programId: "3" }, at), true);
 assert.equal(canExternalRead(principal, { workspaceOwner: owner, classification: "program", programId: "4" }, at), false);
+const legacyOnly = { ...principal, grants: [{ ...principal.grants[0], scopes: [{ type: "aggregate", ref: "aid", permission: "aggregate" }] }] };
+assert.equal(activeExternalGrants(legacyOnly.grants, at).length, 0, "Unsupported legacy grants must not keep an external account active");
 
 const api = readFileSync("src/app/api/agriculture/route.ts", "utf8");
 const summary = readFileSync("src/lib/external-agriculture-summary.ts", "utf8");
@@ -163,7 +165,7 @@ assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.worksp
 assert(summary.includes("data::jsonb->>'status'='Aktif'") && summary.includes("data::jsonb->>'verification'='Terverifikasi'"));
 assert(summary.includes("p.verification_status='verified'") && summary.includes("c.verification_status='verified'") && summary.includes("h.verification_status='verified'"));
 assert(summary.includes("COUNT(DISTINCT p.member_id)") && summary.includes("COUNT(*) AS verified_count"), "Aggregates must be based on unique members and verified records");
-assert(summary.includes("count >= 5") && summary.includes("count >= 3"), "Small cohorts must be suppressed");
+assert(summary.includes("count >= 5") && summary.includes("contributors >= 3"), "Small cohorts must be suppressed");
 assert(!/NIK|phone|coordinate|latitude|longitude/i.test(summary), "External summary must not query personal contact or precise location fields");
 assert(portal.includes("getExternalAgricultureSummary(user)") && portal.includes("Ringkasan pertanian terverifikasi"));
 assert(nav.includes("admin('pertanian','Pengelolaan Pertanian'"));
