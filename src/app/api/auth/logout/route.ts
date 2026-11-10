@@ -14,11 +14,8 @@ export async function POST(request: Request) {
       if (!env.DB)
         return json({ error: "Sesi belum dapat diakhiri. Layanan sedang tidak tersedia; coba kembali." }, 503);
       const removedInternal = await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(digest(token)).run();
-      try {
+      if (!Number(removedInternal.meta?.changes || 0)) {
         await env.DB.prepare("DELETE FROM external_portal_sessions WHERE token_hash=?").bind(digest(token)).run();
-      } catch {
-        // Keep legacy internal logout operational before the external-access migration is applied.
-        if (!Number(removedInternal.meta?.changes || 0)) throw new Error("Sesi eksternal belum dapat dicabut.");
       }
     }
     jar.delete(sessionCookie);
