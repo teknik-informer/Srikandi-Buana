@@ -12,6 +12,12 @@ migration.public.registerFunction({
   implementation: (value) => String(value ?? "").trim(),
 });
 migration.public.registerFunction({
+  name: "length",
+  args: [DataType.text],
+  returns: DataType.integer,
+  implementation: (value) => String(value ?? "").length,
+});
+migration.public.registerFunction({
   name: "jsonb_typeof",
   args: [DataType.jsonb],
   returns: DataType.text,
