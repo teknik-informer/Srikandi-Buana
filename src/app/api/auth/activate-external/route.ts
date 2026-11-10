@@ -32,10 +32,14 @@ export async function POST(request: Request) {
       " AND EXISTS (SELECT 1 FROM external_portal_accounts a JOIN external_organizations o ON o.id=a.organization_id AND o.workspace_owner=a.workspace_owner " +
       " JOIN users owner ON owner.id=a.workspace_owner WHERE a.id=i.account_id AND a.workspace_owner=i.workspace_owner " +
       " AND a.email=i.email AND a.status='invited' AND o.verification_status='verified' " +
-      " AND owner.enabled=TRUE AND owner.role='admin' AND lower(owner.email)=lower(?)) RETURNING i.account_id,i.workspace_owner" +
+      " AND owner.enabled=TRUE AND owner.role='admin' AND lower(owner.email)=lower(?)" +
+      " AND EXISTS (SELECT 1 FROM external_access_grants g JOIN external_access_grant_scopes sc ON sc.grant_id=g.id AND sc.workspace_owner=g.workspace_owner" +
+      " WHERE g.account_id=a.id AND g.workspace_owner=a.workspace_owner AND g.organization_id=a.organization_id" +
+      " AND g.audience=o.organization_type AND g.status='active' AND g.valid_from<=? AND g.valid_until>? " +
+      " AND sc.permission IN ('read','aggregate'))) RETURNING i.account_id,i.workspace_owner" +
       ") UPDATE external_portal_accounts a SET password_hash=?,status='active',updated_at=? " +
       "FROM claimed c WHERE a.id=c.account_id AND a.workspace_owner=c.workspace_owner RETURNING a.id,a.workspace_owner"
-    ).bind(now, digest(token), email, now, process.env.ADMIN_EMAIL?.trim() || "", passwordHash, now).first();
+    ).bind(now, digest(token), email, now, process.env.ADMIN_EMAIL?.trim() || "", now, now, passwordHash, now).first();
     if (!changed) {
       return json({ error: "Undangan tidak valid, sudah digunakan, dicabut, kedaluwarsa, atau organisasi belum diverifikasi. Hubungi pengelola." }, 409);
     }
