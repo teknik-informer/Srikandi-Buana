@@ -8,13 +8,18 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (request.headers.get("origin") !== new URL(request.url).origin)
     return json({ error: "Permintaan lintas situs ditolak." }, 403);
-  const jar = await cookies(),
-    token = jar.get(sessionCookie)?.value;
+  const jar = await cookies(), token = jar.get(sessionCookie)?.value;
   try {
     if (token) {
       if (!env.DB)
         return json({ error: "Sesi belum dapat diakhiri. Layanan sedang tidak tersedia; coba kembali." }, 503);
-      await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(digest(token)).run();
+      const removedInternal = await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(digest(token)).run();
+      try {
+        await env.DB.prepare("DELETE FROM external_portal_sessions WHERE token_hash=?").bind(digest(token)).run();
+      } catch {
+        // Keep legacy internal logout operational before the external-access migration is applied.
+        if (!Number(removedInternal.meta?.changes || 0)) throw new Error("Sesi eksternal belum dapat dicabut.");
+      }
     }
     jar.delete(sessionCookie);
     return request.headers.get("accept")?.includes("application/json")
