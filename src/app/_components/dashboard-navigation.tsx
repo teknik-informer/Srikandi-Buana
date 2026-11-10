@@ -29,6 +29,7 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   ChevronDown,
+  BookOpen,
   Files,
   FileText,
   Grid2X2,
@@ -97,7 +98,7 @@ export default function DashboardNavigation({ section, user }: { section: string
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Pusat Kendali">
+              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Beranda">
                 <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
                   <LayoutDashboard />
                   <span>Pusat Kendali</span>
@@ -127,7 +128,7 @@ export default function DashboardNavigation({ section, user }: { section: string
             <Search size={14} />
             <Input
               id="dashboard-menu-query"
-              placeholder="Cari menu…"
+              placeholder="Cari halaman…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -139,7 +140,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>RUANG KERJA</SidebarGroupLabel>
+          <SidebarGroupLabel>MENU UTAMA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -170,7 +171,7 @@ export default function DashboardNavigation({ section, user }: { section: string
                             aria-current={section === group.id ? "page" : undefined}
                           >
                             <span className="dashboard-sub-dot" />
-                            <span>Ikhtisar {group.label}</span>
+                            <span>Ringkasan {group.label}</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
@@ -204,6 +205,9 @@ export default function DashboardNavigation({ section, user }: { section: string
         </SidebarGroup>
         <div className="dashboard-nav-shortcut">
           <span>AKSES CEPAT</span>
+          <Link href="/dashboard/panduan" onClick={() => setOpenMobile(false)} aria-current={section === "panduan" ? "page" : undefined}>
+            <BookOpen size={14} /> Pusat Bantuan
+          </Link>
           <Link href="/" target="_blank" rel="noopener noreferrer">
             Lihat situs publik <ArrowUpRight size={14} />
           </Link>
@@ -289,7 +293,7 @@ export function DashboardMegaMenu({
           </DialogClose>
           <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih ruang kerja atau buka pintasan monitoring dan laporan sesuai kewenangan akun Anda.
+            Pilih ruang kerja, monitoring, laporan, atau Pusat Bantuan sesuai kewenangan akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -298,7 +302,7 @@ export function DashboardMegaMenu({
               aria-label="Cari fitur aplikasi"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari anggota, kas, dokumen, publikasi…"
+              placeholder="Cari publikasi, laporan, anggota…"
             />
           </div>
           {utilities.length > 0 && (
@@ -351,6 +355,9 @@ export function DashboardMegaMenu({
             </div>
           )}
           <div className="dashboard-mega-footer">
+            <Link href="/dashboard/panduan" onClick={() => setOpen(false)}>
+              <BookOpen size={14} /> Pusat Bantuan
+            </Link>
             <Link href="/dashboard" onClick={() => setOpen(false)}>
               Kembali ke Pusat Kendali
             </Link>
