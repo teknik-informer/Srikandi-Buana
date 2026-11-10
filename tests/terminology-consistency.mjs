@@ -9,7 +9,7 @@ const labels={
  tindaklanjut:'Tugas dan Tindak Lanjut', kegiatan:'Agenda Kegiatan', kas:'Buku Kas', usaha:'Perencanaan Usaha',
  aset:'Inventaris Aset', lotkopi:'Penerimaan Kopi', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
  register:'Register Dokumen', transkripsi:'Verifikasi Informasi', publikasi:'Manajemen Konten',galeri:'Galeri Foto',
- portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional','akses-eksternal':'Akses Pemerintah & Mitra',laporan:'Laporan Kas',surat:'Surat Masuk dan Keluar',laporan_program:'Laporan Perkembangan Program'
+ portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional','akses-eksternal':'Akses Pemerintah & Mitra',pertanian:'Pengelolaan Pertanian',laporan:'Laporan Kas',surat:'Surat Masuk dan Keluar',laporan_program:'Laporan Perkembangan Program'
 };
 test('Nama halaman utama konsisten dengan fungsinya',()=>{
  for(const [id,label] of Object.entries(labels))assert.equal(navLabels.get(id),label,`label untuk ${id}`);
@@ -27,5 +27,5 @@ test('Tidak mengubah nilai status yang disimpan pada database',()=>{
  for(const s of ['Draf','Terbit','Pemasukan','Pengeluaran','Perlu verifikasi','Disepakati'])assert.ok(mods.includes(`"${s}"`),s);
 });
 test('Menu publik tidak terpengaruh dan tidak ada menu tanpa endpoint',()=>{
- const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.ok(ids.includes('akses-eksternal'));assert.equal(ids.length,35); // Existing routes plus the external access administration destination
+ const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.ok(ids.includes('akses-eksternal'));assert.equal(ids.length,36); // Existing routes plus external access and agriculture management
 });
