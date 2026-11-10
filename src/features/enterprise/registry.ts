@@ -27,7 +27,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/ecosystem",
     label: "Organisasi",
     description: "Profil, keanggotaan, pengurus, program, kegiatan, dan dokumen organisasi.",
-    features: features(["portal", "notifikasi", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
+    features: features(["portal", "notifikasi", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
   },
   {
     id: "publication",
@@ -48,7 +48,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/system",
     label: "Administrasi",
     description: "Surat, arsip, referensi, akun, hak akses, dan pengaturan.",
-    features: features(["surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen", "akun", "akun-saya", "pengaturan", "panduan"]),
+    features: features(["surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen", "akses-eksternal", "akun", "akun-saya", "pengaturan", "panduan"]),
   },
 ];
 

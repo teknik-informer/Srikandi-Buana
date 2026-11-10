@@ -13,6 +13,8 @@ import WorkspaceShell from "../../_components/workspace-shell";
 import NotificationCenter from "../../_components/notification-center";
 import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem-workspace";
 import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-overview";
+import ExternalAccessWorkspace from "../../_components/external-access-workspace";
+import AgricultureWorkspace from "../../_components/agriculture-workspace";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
@@ -63,6 +65,16 @@ export default async function Page({ params }: { params: Promise<{ section?: str
         <EnterpriseDashboardOverview dashboard={visibleDashboard} user={admin} />
       </WorkspaceShell>
     );
+  }
+  if (active === "pertanian") {
+    return <WorkspaceShell user={admin} section={active} title="Pengelolaan Pertanian" defaultSidebarOpen={defaultSidebarOpen}>
+      <AgricultureWorkspace />
+    </WorkspaceShell>;
+  }
+  if (active === "akses-eksternal") {
+    return <WorkspaceShell user={admin} section={active} title="Akses Pemerintah & Mitra" defaultSidebarOpen={defaultSidebarOpen}>
+      <ExternalAccessWorkspace />
+    </WorkspaceShell>;
   }
   if (["notifikasi", "penjualan", "akuntansi"].includes(active)) {
     const title = active === "notifikasi" ? "Pusat Notifikasi" : active === "penjualan" ? "Katalog dan Pemesanan" : "Akuntansi dan Buku Besar";
