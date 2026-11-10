@@ -147,7 +147,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
           <AlertTitle>Data belum berhasil dimuat</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
-            <Button size="sm" variant="outline" onClick={() => void load()}>Coba muat ulang</Button>
+            <Button size="sm" variant="outline" onClick={() => void load()}>Muat ulang data</Button>
           </AlertDescription>
         </Alert>
       )}
@@ -268,7 +268,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
               </Link>
             ))}
             <Link href="/dashboard/panduan" className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-              <span className="flex min-w-0 items-center gap-2"><BookOpen className="size-4 shrink-0 text-primary" aria-hidden="true" /><span><span className="block font-medium">Pusat Bantuan</span><span className="block text-xs text-muted-foreground">Dokumen bantuan dan ketentuan penggunaan.</span></span></span>
+              <span className="flex min-w-0 items-center gap-2"><BookOpen className="size-4 shrink-0 text-primary" aria-hidden="true" /><span><span className="block font-medium">Bantuan</span><span className="block text-xs text-muted-foreground">Dokumen bantuan dan ketentuan penggunaan.</span></span></span>
               <ArrowUpRight size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             </Link>
             <div className="rounded-lg bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">Setiap perubahan dicatat pada modul sumber.</div>
@@ -311,9 +311,9 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
       </section>
 
       <section className="space-y-3" aria-label={"Modul " + dashboard.label}>
-        <div><h2 className="text-base font-semibold">Ruang kerja Anda</h2><p className="text-sm text-muted-foreground">Setiap modul memiliki tujuan tersendiri. Pilih area di bawah untuk melanjutkan pekerjaan.</p></div>
+        <div><h2 className="text-base font-semibold">Ruang kerja Anda</h2><p className="text-sm text-muted-foreground">Modul utama. Seluruh menu tersedia pada navigasi utama.</p></div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {dashboard.features.map((feature) => {
+          {dashboard.features.slice(0, 4).map((feature) => {
             const label = user.role === "anggota" && feature.id === "anggota" ? "Data saya" : feature.label;
             const Icon = featureIcons[feature.id] ?? LayoutGrid;
             return (
