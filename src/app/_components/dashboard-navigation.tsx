@@ -29,6 +29,7 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   ChevronDown,
+  ClipboardList,
   Files,
   FileText,
   Grid2X2,
@@ -105,7 +106,7 @@ export default function DashboardNavigation({ section, user }: { section: string
               </SidebarMenuButton>
             </SidebarMenuItem>
             {utilities.map((item) => {
-              const Icon = item.id === "monitoring" ? Activity : FileText;
+              const Icon = item.id === "monitoring" ? Activity : item.id === "pengembangan" ? ClipboardList : FileText;
               return (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton asChild isActive={section === item.id} tooltip={item.label}>
@@ -289,7 +290,7 @@ export function DashboardMegaMenu({
           </DialogClose>
           <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih ruang kerja atau buka pintasan monitoring dan laporan sesuai kewenangan akun Anda.
+            Pilih ruang kerja, monitoring, laporan atau katalog pengembangan sesuai kewenangan akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -306,7 +307,7 @@ export function DashboardMegaMenu({
               <p>AKSES CEPAT</p>
               <div>
                 {utilities.map((item) => {
-                  const Icon = item.id === "monitoring" ? Activity : FileText;
+                  const Icon = item.id === "monitoring" ? Activity : item.id === "pengembangan" ? ClipboardList : FileText;
                   return (
                     <Link href={item.href} key={item.id} onClick={() => setOpen(false)} aria-current={section === item.id ? "page" : undefined}>
                       <Icon size={17} aria-hidden="true" />

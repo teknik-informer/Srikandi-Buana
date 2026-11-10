@@ -36,7 +36,7 @@ const dashboardRouteIds = registry.enterpriseDashboards.flatMap((dashboard) =>
   dashboard.features.map((feature) => feature.id),
 );
 const expectedFeatureRouteIds = legacyRouteIds.filter((id) => id !== "laporan");
-const expectedAllRouteIds = [...legacyRouteIds, "monitoring"];
+const expectedAllRouteIds = [...legacyRouteIds, "monitoring", "pengembangan"];
 
 test("each enterprise dashboard has its own stable overview route", () => {
   assert.deepEqual(
@@ -68,25 +68,26 @@ test("the seven dashboards retain the requested functional grouping", () => {
   assert.deepEqual(featureIds("system"), ["akun", "akun-saya", "pengaturan", "panduan"]);
 });
 
-test("monitoring and reports are standalone shortcuts with role-aware visibility", () => {
+test("monitoring, reports and template roadmap are standalone shortcuts with role-aware visibility", () => {
   assert.deepEqual(
     Array.from(registry.enterpriseUtilities, (item) => item.id),
-    ["monitoring", "laporan"],
+    ["monitoring", "laporan", "pengembangan"],
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("admin"), (item) => item.id),
-    ["monitoring", "laporan"],
+    ["monitoring", "laporan", "pengembangan"],
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("anggota"), (item) => item.id),
-    ["monitoring", "laporan"],
+    ["monitoring", "laporan", "pengembangan"],
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseUtilities("ketua"), (item) => item.id),
-    ["monitoring", "laporan"],
+    ["monitoring", "laporan", "pengembangan"],
   );
   assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
   assert.equal(registry.getEnterpriseFeature("laporan")?.href, "/dashboard/laporan");
+  assert.equal(registry.getEnterpriseFeature("pengembangan")?.href, "/dashboard/pengembangan");
   assert.ok(!registry.enterpriseDashboards.find((dashboard) => dashboard.id === "finance").features.some((item) => item.id === "laporan"));
 });
 
