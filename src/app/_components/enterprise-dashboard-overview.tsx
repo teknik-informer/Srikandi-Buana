@@ -19,18 +19,13 @@ import { getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities, type Ent
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
 import { recordHref } from "@/lib/management-insights";
-import { buildDashboardBriefing } from "@/lib/workspace-experience";
 import type { Principal } from "@/lib/permissions";
 import { WorkspaceMetric } from "./workspace-ui";
-import WorkspaceProgressChart from "./workspace-progress-chart";
 import { modules } from "@/lib/srikandi";
 
 const eyebrows: Record<EnterpriseDashboardId, string> = {
   ecosystem: "ORGANISASI",
-  management: "PROGRAM & KEGIATAN",
-  administration: "DATA ORGANISASI",
   finance: "PELAPORAN",
-  commerce: "USAHA & RANTAI PASOK",
   publication: "PUBLIKASI",
   system: "ADMINISTRASI",
 };
@@ -89,26 +84,10 @@ function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildE
       { title: "Perlu verifikasi", value: s.membership?.needsVerification ?? "—", note: "Data anggota yang belum terverifikasi", icon: ShieldCheck },
       { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: s.visibleRecords + " catatan dalam ruang lingkup akses", icon: CalendarClock },
     ];
-    case "management": return [
-      { title: "Tugas terbuka", value: s.operational?.openTasks ?? "—", note: (s.operational?.overdueTasks ?? 0) + " melewati tenggat", icon: ClipboardCheck },
-      { title: "Jatuh tempo hari ini", value: s.operational?.dueToday ?? "—", note: "Tugas aktif yang perlu ditindaklanjuti", icon: CalendarClock },
-      { title: "Menunggu verifikasi", value: s.operational?.tasksAwaitingVerification ?? "—", note: (s.operational?.tasksNeedingCorrection ?? 0) + " perlu perbaikan", icon: FileCheck2 },
-      { title: "Program terkendala", value: s.operational?.blockedPrograms ?? "—", note: "Berdasarkan laporan perkembangan tercatat", icon: AlertTriangle },
-    ];
-    case "administration": return [
-      { title: "Anggota terdata", value: s.membership?.total ?? "—", note: s.membership ? s.membership.needsVerification + " menunggu verifikasi" : "Tidak tersedia untuk akun ini", icon: Users },
-      { title: "Dokumen terdaftar", value: s.administration?.documents ?? "—", note: (s.administration?.needsReview ?? 0) + " memerlukan pemeriksaan", icon: FileText },
-      { title: "Lampiran bermasalah", value: s.administration?.missingAttachments ?? "—", note: "Referensi lampiran tidak tersedia pada arsip", icon: Files },
-    ];
     case "finance": return [
       { title: "Transaksi tercatat", value: s.finance?.transactions ?? "—", note: (s.finance?.missingEvidence ?? 0) + " tanpa bukti lampiran", icon: Wallet },
       { title: "Saldo buku kas", value: !s.finance ? "—" : s.finance.balanceSafe ? rupiah(s.finance.balance) : "Perlu rekonsiliasi", note: !s.finance ? "Data keuangan tidak termasuk kewenangan akun ini" : s.finance.balanceSafe ? "Dari transaksi terbaca dan tervalidasi" : "Saldo disembunyikan bila data belum lengkap/tidak valid", icon: CheckCircle2 },
       { title: "Transaksi perlu pemeriksaan", value: s.finance?.invalidTransactions ?? "—", note: "Nilai transaksi yang tidak lolos validasi", icon: AlertTriangle },
-    ];
-    case "commerce": return [
-      { title: "Lot penerimaan", value: s.business?.lots ?? "—", note: (s.business?.lotsOnHold ?? 0) + " ditahan/menunggu pemeriksaan", icon: Sprout },
-      { title: "Kemitraan tercatat", value: s.business?.partnerships ?? "—", note: "Catatan kemitraan yang dapat diakses", icon: Handshake },
-      { title: "Rencana usaha", value: s.business?.businessPlans ?? "—", note: "Kajian dan rencana usaha tercatat", icon: ShoppingBag },
     ];
     case "publication": return [
       { title: "Konten terbit", value: s.publication?.published ?? "—", note: (s.publication?.drafts ?? 0) + " konten masih draf", icon: Megaphone },
@@ -127,14 +106,15 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
   const { rows, files, loading, error, load } = useWorkspaceData();
   const snapshot = useMemo(() => buildEnterpriseMonitoring(rows, files, user), [rows, files, user]);
   const metrics = useMemo(() => dashboardMetrics(dashboard.id, snapshot), [dashboard.id, snapshot]);
-  const availableFeatureIds = useMemo(
-    () => getVisibleEnterpriseDashboards(user.role).flatMap((workspace) => workspace.features.map((feature) => feature.id)),
-    [user.role],
-  );
-  const briefing = useMemo(
-    () => buildDashboardBriefing(dashboard.id, snapshot, availableFeatureIds),
-    [dashboard.id, snapshot, availableFeatureIds],
-  );
+  const briefing = useMemo(() => {
+    const count = snapshot.issues.length;
+    return {
+      state: count ? "attention" as const : "steady" as const,
+      title: count ? "Catatan memerlukan perhatian" : "Tidak ada temuan prioritas",
+      description: count ? `${count} catatan memerlukan pemeriksaan sesuai kewenangan.` : "Tidak ada catatan prioritas berdasarkan data yang tersedia.",
+      actions: [] as { id: string; href: string; title: string; detail: string; actionLabel: string }[],
+    };
+  }, [snapshot]);
   const utilities = getVisibleEnterpriseUtilities(user.role);
   const issues = snapshot.issues.slice(0, 5);
   const recentRecords = useMemo(
@@ -246,14 +226,6 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
           {loading ? Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-32" />) : metrics.map((m) => <WorkspaceMetric key={m.title} title={m.title} value={m.value} note={m.note} icon={m.icon} />)}
         </div>
       </section>
-
-      <WorkspaceProgressChart
-        rows={rows}
-        features={dashboard.features}
-        dashboardLabel={dashboard.label}
-        loading={loading}
-        programEvaluations={dashboard.id === "ecosystem" ? snapshot.programEvaluations : undefined}
-      />
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
         <Card className="min-w-0">
