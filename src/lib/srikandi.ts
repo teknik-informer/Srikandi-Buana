@@ -1,6 +1,6 @@
 export type Data = Record<string,string|number>;
 export type Row = {id:string;kind:string;data:Data;created:string;updated:string};
-export type Field = {key:string;label:string;type?:string;options?:string[];required?:boolean};
+export type Field = {key:string;label:string;type?:string;options?:string[];required?:boolean;visibleWhen?:{field:string;equals:string};helpText?:string};
 export const modules:Record<string,{title:string;singular:string;description:string;fields:Field[]}> = {
  pengurus:{title:"Struktur Organisasi",singular:"kelompok jabatan",description:"Catat struktur jabatan dan lakukan verifikasi identitas serta masa kepengurusan.",fields:[{key:"name",label:"Jabatan / kelompok jabatan",required:true},{key:"candidates",label:"Nama sesuai sumber",type:"textarea",required:true},{key:"term",label:"Masa tugas / nomor keputusan"},{key:"status",label:"Status",options:["Perlu verifikasi","Dikonfirmasi internal","Perlu perbaikan"]},{key:"notes",label:"Catatan perbedaan dan dasar keputusan",type:"textarea"}]},
  transkripsi:{title:"Verifikasi Informasi",singular:"catatan sumber",description:"Catat hasil pemeriksaan dokumen dan informasi sebelum digunakan sebagai data resmi.",fields:[{key:"name",label:"Nama catatan",required:true},{key:"date",label:"Tanggal sumber",type:"date"},{key:"status",label:"Status",options:["Perlu verifikasi","Dikonfirmasi internal","Perlu perbaikan"]},{key:"notes",label:"Transkripsi dan catatan verifikasi",type:"textarea",required:true}]},
@@ -21,6 +21,103 @@ export const modules:Record<string,{title:string;singular:string;description:str
  surat:{title:"Surat Masuk dan Keluar",singular:"surat",description:"Register surat masuk/keluar, catat nomor dan tanggal, arahkan disposisi, tetapkan penanggung jawab serta tenggat, lalu hubungkan berkas arsip.",fields:[{key:"name",label:"Perihal surat",required:true},{key:"direction",label:"Jenis surat",options:["Masuk","Keluar"],required:true},{key:"number",label:"Nomor surat (jika sudah ada)"},{key:"date",label:"Tanggal surat",type:"date",required:true},{key:"receivedDate",label:"Tanggal diterima / dikirim",type:"date"},{key:"sender",label:"Pengirim"},{key:"recipient",label:"Penerima / tujuan"},{key:"status",label:"Status penanganan",options:["Baru diterima","Perlu disposisi","Didisposisikan","Dalam tindak lanjut","Selesai","Diarsipkan"]},{key:"disposition",label:"Isi disposisi / arahan",type:"textarea"},{key:"pic",label:"Penanggung jawab tindak lanjut"},{key:"dueDate",label:"Tenggat tindak lanjut",type:"date"},{key:"attachmentId",label:"ID berkas lampiran dari Arsip Berkas"},{key:"notes",label:"Catatan, keputusan, dan lokasi arsip",type:"textarea"}]},
  laporan_program:{title:"Laporan Perkembangan Program",singular:"laporan program",description:"Koordinator melaporkan perkembangan, hasil yang sudah terjadi, kendala, kebutuhan dukungan, dan langkah berikutnya. Status serta capaian diisi berdasarkan kondisi lapangan, bukan target asumsi.",fields:[{key:"name",label:"Judul laporan",required:true},{key:"programId",label:"Program terkait",options:["1","2","3","4","5","6","7","8","9"],required:true},{key:"date",label:"Tanggal laporan",type:"date",required:true},{key:"period",label:"Periode laporan"},{key:"status",label:"Kondisi program",options:["Belum dimulai","Berjalan","Terkendala","Selesai"]},{key:"target",label:"Target yang disepakati untuk periode ini",type:"textarea"},{key:"achievement",label:"Capaian target (target dibanding realisasi)",type:"textarea"},{key:"progress",label:"Perkembangan dan hasil yang benar-benar terlaksana",type:"textarea",required:true},{key:"evaluation",label:"Evaluasi pelaksanaan dan pembelajaran",type:"textarea"},{key:"blockers",label:"Kendala / risiko yang dihadapi",type:"textarea"},{key:"supportNeeded",label:"Dukungan atau keputusan yang dibutuhkan",type:"textarea"},{key:"nextSteps",label:"Langkah berikutnya yang diusulkan",type:"textarea"},{key:"pic",label:"Koordinator pelapor"},{key:"attachmentId",label:"Bukti / dokumen pendukung dari arsip (opsional)"},{key:"notes",label:"Catatan tambahan",type:"textarea"}]}
 };
+
+/**
+ * Versioned form presets live inside their owning data domain. They reuse the
+ * same records API and validation rules; they are not separate form storage.
+ */
+function addFormPreset(kind: string, options: string[], fields: Field[]) {
+  const module = modules[kind];
+  if (!module || module.fields.some((item) => item.key === "formPreset")) {
+    throw new Error("Form preset cannot be registered: " + kind);
+  }
+  module.fields.unshift({
+    key: "formPreset",
+    label: "Jenis formulir",
+    options,
+    required: false,
+    helpText: "Pilih jenis catatan. Kolom khusus hanya muncul untuk jenis formulir yang dipilih.",
+  });
+  module.fields.push(...fields);
+}
+
+const whenPreset = (field: string, equals: string) => ({ field, equals });
+
+addFormPreset("kegiatan", ["standard", "tot-session-record"], [
+  { key: "trainingPartner", label: "Penyelenggara/mitra ToT", required: true, visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "endDate", label: "Tanggal selesai", type: "date", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "groupRepresentatives", label: "Perwakilan kelompok yang hadir", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "objectives", label: "Tujuan pembelajaran yang disampaikan", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "topics", label: "Materi/topik yang dibahas", type: "textarea", required: true, visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "materials", label: "Bahan/modul yang diterima", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "learningNotes", label: "Catatan pemahaman, pertanyaan dan hal yang belum jelas", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "learningAssessment", label: "Evaluasi pembelajaran (bila dilakukan)", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "actionPlan", label: "Rencana tindak lanjut kelompok", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "trainerRecognition", label: "Status sertifikat/kompetensi pelatih", options: ["Tidak ada informasi", "Tidak diterbitkan", "Diterbitkan dan bukti tersedia", "Menunggu konfirmasi"], visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "trainerRecognitionEvidenceId", label: "Referensi bukti sertifikat (jika benar-benar diterbitkan)", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "attendanceEvidenceId", label: "Referensi daftar hadir", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "photoEvidenceId", label: "Referensi dokumentasi foto/video dengan izin", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "reportEvidenceId", label: "Referensi laporan/materi di arsip", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+  { key: "preparedBy", label: "Penyusun catatan", visibleWhen: whenPreset("formPreset", "tot-session-record") },
+]);
+
+addFormPreset("kemitraan", ["standard", "partner-engagement-log", "program-preparation-checklist"], [
+  { key: "partnerUnit", label: "Unit/divisi atau program mitra", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "officialWebsite", label: "Situs resmi mitra", type: "url", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "contactRole", label: "Jabatan narahubung", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "contactChannel", label: "Saluran komunikasi", options: ["Pertemuan langsung", "Telepon", "WhatsApp", "Email", "Pelatihan", "Lainnya"], visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "interactionStage", label: "Tahap hubungan", options: ["reference", "initial_contact", "training_of_trainers", "documents_pending", "proposal_received", "proposal_preparation", "proposal_submitted", "negotiation", "paused", "declined"], required: true, visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "expectations", label: "Harapan atau minat kelompok", type: "textarea", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "documentsPromised", label: "Dokumen yang dijanjikan/diminta", type: "textarea", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "nextAction", label: "Langkah berikutnya", type: "textarea", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "owner", label: "Penanggung jawab tindak lanjut", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "nextReviewDate", label: "Tanggal tindak lanjut berikutnya", type: "date", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "evidenceFileId", label: "Referensi arsip notulen/foto/email", visibleWhen: whenPreset("formPreset", "partner-engagement-log") },
+  { key: "relationshipStage", label: "Tahap saat ini", options: ["reference", "initial_contact", "training_of_trainers", "documents_pending", "proposal_received", "proposal_preparation", "proposal_submitted", "negotiation", "agreement_signed", "ready_for_activation", "active", "completed", "declined", "paused"], required: true, visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "writtenMandateStatus", label: "Status penawaran/perjanjian tertulis", options: ["Belum ada", "Undangan/ToT", "Penawaran tertulis", "Draft perjanjian", "Sudah ditandatangani", "Perlu verifikasi"], required: true, visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "signedAgreementFileId", label: "Referensi perjanjian yang telah ditandatangani", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "counterpartConfirmed", label: "Narahubung resmi sudah dikonfirmasi", options: ["Belum", "Ya", "Perlu konfirmasi"], visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "programPurpose", label: "Tujuan yang telah dikonfirmasi", type: "textarea", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "geographicScope", label: "Wilayah yang disebutkan secara resmi", type: "textarea", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "commodityScope", label: "Komoditas/kelompok sasaran yang disebutkan", type: "textarea", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "eligibilityKnown", label: "Kriteria penerima manfaat sudah tersedia", options: ["Belum", "Sebagian", "Sudah tertulis", "Perlu klarifikasi"], visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "budgetStatus", label: "Informasi anggaran", options: ["Belum dibahas", "Informasi awal", "Draft", "Disahkan dalam perjanjian"], visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "dataSharingStatus", label: "Ketentuan pembagian data", options: ["Belum diketahui", "Perlu dibahas", "Sudah ditinjau", "Disetujui dengan batasan tertulis"], visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "safeguardingContact", label: "Penanggung jawab/saluran pengaduan", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "reportingRequirements", label: "Format/frekuensi laporan yang diminta", type: "textarea", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "openQuestions", label: "Hal yang perlu diklarifikasi sebelum menyetujui", type: "textarea", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "recommendedDecision", label: "Keputusan internal", options: ["Lanjut penjajakan", "Minta dokumen", "Minta klarifikasi", "Siapkan proposal", "Tunda", "Tidak dilanjutkan"], visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+  { key: "reviewOwner", label: "Penanggung jawab pemeriksaan internal", visibleWhen: whenPreset("formPreset", "program-preparation-checklist") },
+]);
+
+addFormPreset("register", ["standard", "partner-document-register"], [
+  { key: "partnerName", label: "Nama mitra", required: true, visibleWhen: whenPreset("formPreset", "partner-document-register") },
+  { key: "documentType", label: "Jenis dokumen", options: ["Undangan/pemberitahuan", "Materi pelatihan", "Formulir pendataan", "Panduan teknis", "Proposal", "MoU/PKS/Perjanjian", "Anggaran", "Template laporan", "Standar/annex", "Lainnya"], visibleWhen: whenPreset("formPreset", "partner-document-register") },
+  { key: "documentStatus", label: "Status dokumen", options: ["Belum diminta", "Diminta", "Dijanjikan", "Diterima", "Perlu konfirmasi versi", "Diverifikasi keaslian/sumber", "Tidak berlaku"], required: true, visibleWhen: whenPreset("formPreset", "partner-document-register") },
+  { key: "sourcePerson", label: "Pemberi/pengirim dokumen", visibleWhen: whenPreset("formPreset", "partner-document-register") },
+  { key: "receivedDate", label: "Tanggal diterima", type: "date", visibleWhen: whenPreset("formPreset", "partner-document-register") },
+  { key: "versionOrDate", label: "Nomor versi/tanggal dokumen", visibleWhen: whenPreset("formPreset", "partner-document-register") },
+  { key: "verificationNote", label: "Catatan pemeriksaan sumber/keaslian", type: "textarea", visibleWhen: whenPreset("formPreset", "partner-document-register") },
+  { key: "documentOwner", label: "Penanggung jawab dokumen", visibleWhen: whenPreset("formPreset", "partner-document-register") },
+]);
+
+addFormPreset("anggota", ["standard", "member-intake-basic"], [
+  { key: "preferredName", label: "Nama panggilan", visibleWhen: whenPreset("formPreset", "member-intake-basic") },
+  { key: "village", label: "Desa", visibleWhen: whenPreset("formPreset", "member-intake-basic") },
+  { key: "farmingActivities", label: "Kegiatan pertanian yang dilakukan", type: "textarea", visibleWhen: whenPreset("formPreset", "member-intake-basic") },
+  { key: "needsAndInterests", label: "Kebutuhan/minat pelatihan atau layanan", type: "textarea", visibleWhen: whenPreset("formPreset", "member-intake-basic") },
+  { key: "dataNoticeVersion", label: "Versi pemberitahuan pendataan", required: true, visibleWhen: whenPreset("formPreset", "member-intake-basic") },
+  { key: "dataConsent", label: "Persetujuan untuk pendataan sesuai tujuan yang dijelaskan", options: ["Belum diminta", "Setuju", "Tidak setuju", "Perlu penjelasan"], required: true, visibleWhen: whenPreset("formPreset", "member-intake-basic") },
+  { key: "photoConsent", label: "Persetujuan foto/publikasi (terpisah)", options: ["Belum ditanyakan", "Setuju sesuai tujuan", "Tidak setuju"], visibleWhen: whenPreset("formPreset", "member-intake-basic") },
+]);
+
+addFormPreset("tindaklanjut", ["standard", "tot-action-plan"], [
+  { key: "totSessionId", label: "Referensi kegiatan ToT", visibleWhen: whenPreset("formPreset", "tot-action-plan") },
+  { key: "reason", label: "Manfaat/hasil yang ingin dicapai", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-action-plan") },
+  { key: "supportNeeded", label: "Dukungan yang dibutuhkan", type: "textarea", visibleWhen: whenPreset("formPreset", "tot-action-plan") },
+  { key: "reviewedBy", label: "Pemeriksa hasil (jika sudah diperiksa)", visibleWhen: whenPreset("formPreset", "tot-action-plan") },
+]);
+
 export const programs = [
   {
     "id": "1",

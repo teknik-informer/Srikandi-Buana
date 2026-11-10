@@ -50,3 +50,9 @@ export function validateTemplateDraft(templateId: string, payload?: Record<strin
   errors: Array<{ field: string | null; message: string }>;
   note?: string;
 };
+
+export const templateDestinations: Record<string, {
+  route: string;
+  label: string;
+  inputStatus: "existing_domain_form" | "field_mapping_pending";
+}>;

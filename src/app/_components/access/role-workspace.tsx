@@ -59,12 +59,23 @@ import EnterpriseMonitoring from "../enterprise-monitoring";
 import WorkspaceShell from "../workspace-shell";
 import MyAccount from "./my-account";
 import ManagementDashboard from "../management-dashboard";
+
 import RecordTable from "../record-table";
 import {
   WorkspacePageHeader,
   WorkspaceSearch,
   StatusBadge,
 } from "../workspace-ui";
+
+const formPresetLabels: Record<string, string> = {
+  standard: "Formulir umum",
+  "tot-session-record": "Laporan Training of Trainers (ToT)",
+  "partner-engagement-log": "Catatan penjajakan mitra",
+  "program-preparation-checklist": "Kesiapan program sebelum perjanjian",
+  "partner-document-register": "Register dokumen mitra",
+  "member-intake-basic": "Pendataan dasar anggota",
+  "tot-action-plan": "Rencana aksi pasca-ToT",
+};
 export default function RoleWorkspace({
   user,
   section,
@@ -81,6 +92,7 @@ export default function RoleWorkspace({
   const [imageUploading, setImageUploading] = useState(false);
   function imageBusy(value: boolean) { imageUploadPending.current = value; setImageUploading(value); }
   const [query, setQuery] = useState(""),
+    [formPreset, setFormPreset] = useState("standard"),
     [editor, setEditor] = useState<{ kind: string; row?: Row } | null>(null),
     [detail, setDetail] = useState<Row | null>(null),
     [deleting, setDeleting] = useState<Row | null>(null);
@@ -116,6 +128,11 @@ export default function RoleWorkspace({
     clearError,
     mutate,
   } = useRecordMutation(load);
+  function openRoleEditor(kind: string, row?: Row) {
+    const presetField = modules[kind]?.fields.find((field) => field.key === "formPreset");
+    setFormPreset(String(row?.data.formPreset ?? presetField?.options?.[0] ?? "standard"));
+    setEditor({ kind, row });
+  }
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!editor || imageUploadPending.current) return;
@@ -173,7 +190,7 @@ export default function RoleWorkspace({
           },
         ]
       : editor
-        ? modules[editor.kind]?.fields.map((field) => {
+        ? modules[editor.kind]?.fields.filter((field) => !field.visibleWhen || formPreset === field.visibleWhen.equals).map((field) => {
             if (field.key === "programId" && user.role === "koordinator")
               return { ...field, options: field.options?.filter((option) => user.programIds.includes(option)) };
             if (user.role === "ketua" && editor.kind === "tindaklanjut") {
@@ -258,7 +275,7 @@ export default function RoleWorkspace({
                   disabled={loading || !!error}
                   onClick={() => {
                     clearError();
-                    setEditor({ kind: section });
+                    openRoleEditor(section);
                   }}
                 >
                   <Plus data-icon="inline-start" />
@@ -494,7 +511,7 @@ export default function RoleWorkspace({
                             variant="outline"
                             onClick={() => {
                               clearError();
-                              setEditor({ kind: section, row: r });
+                              openRoleEditor(section, r);
                             }}
                           >
                             Edit
@@ -650,7 +667,23 @@ export default function RoleWorkspace({
                       {f.label}
                       {f.required ? " *" : ""}
                     </FieldLabel>
-                    {f.key === "fileId" ? (<ImagePicker id={"edit-" + f.key} name={f.key} files={files} defaultValue={String(editor?.row?.data[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={busy} />) : ["attachmentId", "fileId"].includes(f.key) ? (
+                    {f.key === "formPreset" ? (
+                      <>
+                        <NativeSelect
+                          id={"edit-" + f.key}
+                          value={formPreset}
+                          onChange={(event) => setFormPreset(event.target.value)}
+                          disabled={!!editor?.row}
+                        >
+                          {(f.options || ["standard"]).map((option) => (
+                            <NativeSelectOption key={option} value={option}>
+                              {formPresetLabels[option] || option}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                        <input type="hidden" name="formPreset" value={formPreset} />
+                      </>
+                    ) : f.key === "fileId" ? (<ImagePicker id={"edit-" + f.key} name={f.key} files={files} defaultValue={String(editor?.row?.data[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={busy} />) : ["attachmentId", "fileId", "signedAgreementFileId"].includes(f.key) ? (
                       <NativeSelect
                         id={"edit-" + f.key}
                         name={f.key}
@@ -664,10 +697,7 @@ export default function RoleWorkspace({
                           .filter(
                             (file) =>
                               !file.deleted_at &&
-                              (f.key === "attachmentId" ||
-                                ["image/png", "image/jpeg"].includes(
-                                  file.mime,
-                                )),
+                              (f.key !== "fileId" || ["image/png", "image/jpeg"].includes(file.mime)),
                           )
                           .map((file) => (
                             <NativeSelectOption key={file.id} value={file.id}>
@@ -719,6 +749,7 @@ export default function RoleWorkspace({
                         required={f.required}
                       />
                     )}
+                    {f.helpText && <p className="text-xs leading-5 text-muted-foreground">{f.helpText}</p>}
                   </Field>
                 ))}
                 <div className="flex flex-wrap justify-end gap-2">

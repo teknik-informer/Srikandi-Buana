@@ -41,26 +41,26 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     id: "ecosystem",
     href: "/dashboard/ecosystem",
     label: "Ekosistem",
-    description: "Pintu masuk layanan lintas unit, portal anggota, dan pemberitahuan akun.",
+    description: "Layanan anggota, portal pribadi, dan notifikasi lintas bagian.",
     features: features(["portal", "notifikasi"]),
   },
   {
     id: "management",
     href: "/dashboard/management",
     label: "Manajemen",
-    description: "Perencanaan program, penugasan, agenda, rapat, dan persetujuan operasional.",
+    description: "Program, agenda, rapat, tugas, tindak lanjut, dan pelaksanaan kegiatan.",
     features: features([
-      "program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "musyawarah",
-      "pengajuan", "enterprise",
+      "program", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran",
+      "musyawarah", "pengajuan", "enterprise",
     ]),
   },
   {
     id: "administration",
     href: "/dashboard/administration",
     label: "Administrasi",
-    description: "Data keanggotaan, tata kelola, persetujuan data, register, dan arsip resmi.",
+    description: "Keanggotaan, pengurus, surat, persetujuan, register, dan arsip resmi.",
     features: features([
-      "anggota", "pengurus", "persetujuan", "register", "surat",
+      "anggota", "pengurus", "persetujuan", "surat", "register",
       "sumber", "kelembagaan", "transkripsi", "dokumen",
     ]),
   },
@@ -68,54 +68,45 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     id: "finance",
     href: "/dashboard/finance",
     label: "Keuangan",
-    description: "Buku kas, akuntansi, serta pengelolaan aset organisasi.",
+    description: "Buku kas, akuntansi, aset organisasi, dan kontrol transaksi.",
     features: features(["kas", "akuntansi", "aset"]),
   },
   {
     id: "commerce",
     href: "/dashboard/commerce",
-    label: "E-Commerce",
-    description: "Katalog, pemesanan, penerimaan kopi, usaha, dan kemitraan.",
+    label: "E-Commerce & Rantai Pasok",
+    description: "Produk, pemesanan, stok, penerimaan kopi, usaha, dan kemitraan.",
     features: features(["penjualan", "lotkopi", "usaha", "kemitraan"]),
   },
   {
     id: "publication",
     href: "/dashboard/publication",
-    label: "Publikasi",
-    description: "Pengelolaan konten publik, galeri dokumentasi, dan pesan masuk.",
+    label: "Publikasi & Komunikasi",
+    description: "Konten publik, dokumentasi, galeri, dan pesan masuk.",
     features: features(["publikasi", "galeri", "pesan"]),
   },
   {
     id: "system",
     href: "/dashboard/system",
     label: "Sistem",
-    description: "Akun pengguna, hak akses, profil pribadi, konfigurasi, dan bantuan.",
-    features: features(["akun", "akun-saya", "pengaturan", "panduan"]),
+    description: "Pengguna, hak akses, keamanan akun, profil, dan pengaturan aplikasi.",
+    features: features(["akun", "akun-saya", "pengaturan"]),
   },
 ];
 
-/**
- * Frequently used workspace destinations that sit beside the seven work areas.
- * These are shortcuts, not additional dashboards.
- */
+/** Utilities are cross-workspace operational views, not additional dashboards. */
 export const enterpriseUtilities: readonly NavItem[] = [
   {
     id: "monitoring",
     label: "Monitoring",
-    description: "Pantau kesiapan API/database, operasional, kualitas data, dan aktivitas lintas bagian sesuai hak akses.",
+    description: "Pantau kesiapan layanan, kualitas data, tugas terlambat, dan aktivitas sesuai hak akses.",
     href: "/dashboard/monitoring",
   },
   {
     id: "laporan",
     label: "Laporan",
-    description: "Lihat laporan operasional, keanggotaan, administrasi, usaha, publikasi, dan keuangan sesuai hak akses.",
+    description: "Laporan lintas bidang dengan angka yang berasal dari catatan aktual.",
     href: "/dashboard/laporan",
-  },
-  {
-    id: "pengembangan",
-    label: "Template & Pengembangan",
-    description: "Lihat template operasional yang disiapkan dan peta modul yang akan dikembangkan.",
-    href: "/dashboard/pengembangan",
   },
 ];
 
