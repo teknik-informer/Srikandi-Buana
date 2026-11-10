@@ -66,7 +66,7 @@ export function canExternalRead(
         return scope.type === "program" && !!resource.programId && scope.ref === resource.programId;
       }
       if (resource.classification === "aggregate") {
-        if (scope.type === "aggregate") return !!resource.aggregateKey && scope.ref === resource.aggregateKey;
+        if (scope.type === "aggregate") return !!resource.aggregateKey && ["members", "land", "harvest"].includes(resource.aggregateKey) && scope.ref === resource.aggregateKey;
         if (scope.type === "region") return !!resource.regionId && scope.ref === resource.regionId;
       }
       return false;
