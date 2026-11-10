@@ -30,7 +30,7 @@ test("seluruh rute fitur lama tetap tersedia tepat satu kali", () => {
   assert.equal(new Set(assigned).size, assigned.length);
   assert.equal(new Set(registry.dashboardSectionIds).size, registry.dashboardSectionIds.length);
   assert.deepEqual([...assigned].sort(), [...expected].filter((id) => id !== "monitoring").sort());
-  assert.ok(registry.getEnterpriseFeature("monitoring") === undefined);
+  assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
 });
 
 test("publikasi dan pelaporan memiliki akses yang jelas", () => {
