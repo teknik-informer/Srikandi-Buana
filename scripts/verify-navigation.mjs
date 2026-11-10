@@ -7,7 +7,7 @@ const module={exports:{}};vm.runInNewContext(result.outputFiles[0].text,{module,
 const {dashboardGroups,publicMenus,modules,programs,navigationMatches}=module.exports;
 const admin=dashboardGroups.flatMap(g=>g.items);
 assert.equal(new Set(admin.map(i=>i.id)).size,admin.length,'Duplicate dashboard destination');
-const required=[...Object.keys(modules),'akun','akun-saya','program','kehadiran','laporan','sumber','dokumen','pesan','panduan','pengaturan','portal','pengajuan','enterprise','notifikasi','penjualan','akuntansi'];
+const required=[...Object.keys(modules),'akun','akun-saya','program','kehadiran','laporan','sumber','dokumen','pesan','panduan','pengaturan','portal','pengajuan','enterprise','notifikasi','penjualan','akuntansi','akses-eksternal'];
 assert.deepEqual([...new Set(required)].sort(),Array.from(admin,i=>i.id).sort(),'Every dashboard module must remain reachable');
 assert(existsSync('src/app/dashboard/[[...section]]/page.tsx'));
 const links=publicMenus.flatMap(m=>[m.feature,...m.groups.flatMap(g=>g.items)]);
