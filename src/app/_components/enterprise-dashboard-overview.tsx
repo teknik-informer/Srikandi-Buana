@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities, type EnterpriseDashboard, type EnterpriseDashboardId } from "@/features/enterprise/registry";
+import { getVisibleEnterpriseUtilities, type EnterpriseDashboard, type EnterpriseDashboardId } from "@/features/enterprise/registry";
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
 import { buildEnterpriseMonitoring } from "@/lib/enterprise-monitoring";
 import { recordHref } from "@/lib/management-insights";
