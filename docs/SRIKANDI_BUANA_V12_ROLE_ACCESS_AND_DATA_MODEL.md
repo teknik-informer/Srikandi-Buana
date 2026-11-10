@@ -262,3 +262,46 @@ Pada tahap fondasi ini **tidak** dilakukan perubahan pada constraint role produk
 Langkah coding pertama setelah kontrak ditinjau adalah membangun tabel grant dan jalur autentikasi eksternal secara terpisah, menulis policy server-side beserta integration tests, lalu menguji tenant isolation di staging. Setelah itu baru membangun dashboard pemerintah/mitra dan domain pertanian/hibah.
 
 **Kriteria utama:** tidak ada dashboard baru yang boleh menampilkan data privat sebelum otorisasi server, pemisahan tenant, audit, dan pengujian lintas organisasi lulus.
+
+
+---
+
+## Tahap 2 — Domain pertanian dan ringkasan mitra (10 November 2026)
+
+Tahap ini memperluas fondasi akses eksternal dengan data pertanian terstruktur. Migrasi baru adalah `migrations/006_agriculture_domain.sql`; migrasi tersebut **belum diterapkan** ke Neon atau lingkungan produksi.
+
+### Entitas dan relasi
+
+- `agriculture_commodities`: katalog komoditas dengan satuan dasar yang eksplisit.
+- `farm_parcels`: register lahan per workspace, terhubung ke satu record `anggota` melalui foreign key komposit `(member_id, workspace_owner, member_kind)`. Luas disimpan sebagai meter persegi. Form tidak meminta NIK, alamat pribadi, atau koordinat GPS.
+- `crop_cycles`: musim/siklus tanam, komoditas, luas tanam, tanggal tanam dan perkiraan panen. Siklus terkait ke lahan dan komoditas pada workspace yang sama.
+- `harvest_records`: kuantitas hasil panen dengan satuan dasar yang tercatat; unit tidak dijumlahkan silang.
+- `agriculture_audit`: catatan aktor, peran, tindakan, alasan, target dan waktu perubahan.
+
+Foreign key komposit dan unique index digunakan untuk mencegah pencampuran anggota, lahan, komoditas, dan siklus dari workspace berbeda. Migrasi tidak membuat contoh/angka operasional.
+
+### Alur kerja dan verifikasi
+
+Menu **Pengelolaan Pertanian** berada di bagian Program dan Kegiatan serta menjadi bagian dari dashboard Organisasi. Data dapat dicatat oleh Administrator, Ketua, atau Koordinator yang ditugaskan pada program pertanian (program ID `3`). Hanya Administrator dan Ketua yang dapat mengesahkan atau mengembalikan catatan.
+
+Hierarki verifikasi diterapkan di server:
+1. Lahan hanya dapat dikaitkan dengan anggota aktif yang datanya telah terverifikasi.
+2. Siklus tanam baru dapat diverifikasi setelah lahannya diverifikasi.
+3. Hasil panen baru dapat diverifikasi setelah siklus tanam dan lahannya terverifikasi.
+4. Penolakan memerlukan alasan; setiap pencatatan dan keputusan verifikasi ditulis ke audit.
+
+### Data yang ditampilkan ke instansi dan mitra
+
+Portal eksternal mengambil ringkasan server-side melalui `src/lib/external-agriculture-summary.ts`, dan hanya untuk grant aktif dengan scope yang cocok. Jenis agregat yang dapat diberikan sekarang dibatasi pada:
+
+- `members`: hitungan anggota aktif dan terverifikasi; ditampilkan mulai lima anggota.
+- `land`: luas lahan terverifikasi; dihitung hanya dari lahan aktif milik anggota yang masih aktif dan terverifikasi. Ringkasan memerlukan sedikitnya tiga anggota berbeda yang berkontribusi.
+- `harvest`: hasil panen terverifikasi, dikelompokkan per komoditas dan satuan; ringkasan tiap kelompok memerlukan sedikitnya tiga anggota berbeda.
+
+Kelompok yang tidak mencapai ambang privasi disamarkan; bukan ditampilkan sebagai nol. Data pribadi, kontak, koordinat presisi, catatan mentah dan transaksi akuntansi tidak masuk respons portal. Grant lama untuk `aid`, `project_progress`, dan `project_finance` tidak lagi dapat membuka akses. Data proyek, bantuan, hibah, serta integrasi Manager.io belum menjadi bagian dari tahap ini.
+
+### Pemeriksaan dan rilis
+
+Workflow CI menambahkan `npm run test:agriculture`. Suite ini menguji migrasi, foreign key lintas-workspace, validasi satuan, hak koordinator, hierarki verifikasi, batas scope dan ambang privasi, lalu workflow menjalankan kembali typecheck dan production build.
+
+CI pada commit cabang tahap 2: **Run #1429 — SUCCESS**. Keberhasilan CI tidak sama dengan penerapan migrasi atau rilis produksi. Sebelum rilis, lakukan backup, terapkan migrasi 006 melalui jalur migrasi terkontrol, smoke test pada staging dengan data uji yang disetujui, dan baru kemudian review serta merge PR.
