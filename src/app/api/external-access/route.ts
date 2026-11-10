@@ -9,7 +9,7 @@ import { programs } from "@/lib/srikandi";
 
 export const dynamic = "force-dynamic";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const aggregateKeys = new Set(["members","land","harvest","aid","project_progress","project_finance"]);
+const aggregateKeys = new Set(["members","land","harvest"]);
 
 function requiredText(value: unknown, label: string, min: number, max: number) {
   const result = typeof value === "string" ? value.trim() : "";
