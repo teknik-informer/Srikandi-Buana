@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     }
     const passwordHash = await hashPassword(password);
     const now = new Date().toISOString();
+    const auditId = crypto.randomUUID();
     const changed = await env.DB.prepare(
       "WITH claimed AS (" +
       " UPDATE external_access_invitations i SET consumed_at=? " +
@@ -37,16 +38,17 @@ export async function POST(request: Request) {
       " WHERE g.account_id=a.id AND g.workspace_owner=a.workspace_owner AND g.organization_id=a.organization_id" +
       " AND g.audience=o.organization_type AND g.status='active' AND g.valid_from<=? AND g.valid_until>? " +
       " AND sc.permission IN ('read','aggregate'))) RETURNING i.account_id,i.workspace_owner" +
-      ") UPDATE external_portal_accounts a SET password_hash=?,status='active',updated_at=? " +
-      "FROM claimed c WHERE a.id=c.account_id AND a.workspace_owner=c.workspace_owner RETURNING a.id,a.workspace_owner"
-    ).bind(now, digest(token), email, now, process.env.ADMIN_EMAIL?.trim() || "", now, now, passwordHash, now).first();
+      "), changed AS (" +
+      " UPDATE external_portal_accounts a SET password_hash=?,status='active',updated_at=? " +
+      " FROM claimed c WHERE a.id=c.account_id AND a.workspace_owner=c.workspace_owner RETURNING a.id,a.workspace_owner" +
+      "), audited AS (" +
+      " INSERT INTO external_access_audit(id,workspace_owner,actor_id,actor_type,action,target_type,target_id,reason,created_at) " +
+      " SELECT ?,c.workspace_owner,c.id,'external','Akun eksternal diaktifkan','external_account',c.id,'Aktivasi melalui undangan sekali pakai',? FROM changed c RETURNING id" +
+      ") SELECT c.id,c.workspace_owner FROM changed c CROSS JOIN audited"
+    ).bind(now, digest(token), email, now, process.env.ADMIN_EMAIL?.trim() || "", now, now, passwordHash, now, auditId, now).first();
     if (!changed) {
       return json({ error: "Undangan tidak valid, sudah digunakan, dicabut, kedaluwarsa, atau organisasi belum diverifikasi. Hubungi pengelola." }, 409);
     }
-    await env.DB.prepare(
-      "INSERT INTO external_access_audit(id,workspace_owner,actor_id,actor_type,action,target_type,target_id,reason,created_at) VALUES(?,?,?,'external','Akun eksternal diaktifkan','external_account',?,'Aktivasi melalui undangan sekali pakai',?)"
-    ).bind(crypto.randomUUID(), changed.workspace_owner, changed.id, changed.id, now).run();
-    await createExternalSession(String(changed.id), false);
     return json({ ok: true, redirect: "/portal-eksternal" });
   } catch (error) {
     if (error instanceof RequestBodyError) return json({ error: error.message }, error.status);
