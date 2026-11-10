@@ -28,6 +28,12 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
   const event = events.find((e) => e.id === eventId);
   const record = rows.find((r) => r.kind === "kehadiran" && r.data.eventId === eventId);
   useEffect(() => {
+    const search = typeof window === "undefined" ? "" : window.location?.search || "";
+    const requestedEventId = new URLSearchParams(search).get("eventId");
+    if (!requestedEventId || dirty.current) return;
+    if (rows.some((item) => item.kind === "kegiatan" && item.id === requestedEventId)) setEventId(requestedEventId);
+  }, [rows]);
+  useEffect(() => {
     // A background reload must not overwrite work that is still being edited.
     if (dirty.current) return;
     const ids = record?.data.memberIds;

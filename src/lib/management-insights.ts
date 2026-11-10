@@ -211,6 +211,55 @@ export function buildManagementInsights(
           "info",
         );
       if (
+        row.kind === "tindaklanjut" &&
+        row.data.status === "Selesai" &&
+        row.data.verification === "Menunggu verifikasi"
+      )
+        add(
+          row,
+          "task-verification",
+          "Hasil tugas menunggu verifikasi",
+          "Periksa hasil pelaksanaan dan lampiran sebelum mengesahkan penyelesaian.",
+          "info",
+        );
+      if (
+        row.kind === "tindaklanjut" &&
+        row.data.verification === "Perlu perbaikan"
+      )
+        add(
+          row,
+          "task-correction",
+          "Hasil tugas perlu perbaikan",
+          String(row.data.reviewNote || "Baca catatan pemeriksaan dan sepakati perbaikan berikutnya."),
+          "warning",
+        );
+      if (
+        row.kind === "tindaklanjut" &&
+        row.data.status === "Selesai" &&
+        row.data.verification !== "Terverifikasi" &&
+        row.data.verification !== "Menunggu verifikasi"
+      )
+        add(
+          row,
+          "task-unverified-legacy",
+          "Penyelesaian belum diverifikasi",
+          "Periksa tugas lama dan lengkapi hasil aktual/bukti sebelum pengesahan.",
+          "info",
+        );
+      if (
+        row.kind === "tindaklanjut" &&
+        row.data.status === "Selesai" &&
+        !String(row.data.completionEvidence || "").trim() &&
+        !String(row.data.attachmentId || "").trim()
+      )
+        add(
+          row,
+          "task-evidence",
+          "Bukti hasil tugas belum tercatat",
+          "Lengkapi uraian hasil pelaksanaan atau lampirkan bukti dari arsip.",
+          "warning",
+        );
+      if (
         row.kind === "kegiatan" &&
         validDate(row.data.date) &&
         row.data.date < today &&
@@ -230,6 +279,18 @@ export function buildManagementInsights(
           "Tinjau bukti pendukung; transaksi tidak diubah secara otomatis.",
           "info",
         );
+      if (row.kind === "laporan_program") {
+        const blockers = String(row.data.blockers || "").trim();
+        const support = String(row.data.supportNeeded || "").trim();
+        if (row.data.status === "Terkendala" || blockers || support)
+          add(
+            row,
+            "program-report",
+            row.data.status === "Terkendala" ? "Program dilaporkan terkendala" : "Laporan program meminta perhatian",
+            [blockers ? "Kendala: " + blockers : "", support ? "Dukungan: " + support : ""].filter(Boolean).join(" · ") || "Tinjau perkembangan dan langkah berikutnya.",
+            row.data.status === "Terkendala" ? "warning" : "info",
+          );
+      }
       for (const key of ["attachmentId", "fileId"]) {
         const id = String(row.data[key] || "");
         if (id && !availableFiles.has(id))

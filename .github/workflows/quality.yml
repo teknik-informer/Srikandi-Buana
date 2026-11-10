@@ -15,12 +15,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22'
+          node-version: '26'
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Production dependency security gate
+        run: npm audit --omit=dev --audit-level=low
+      - name: Full dependency security gate
+        run: npm audit --audit-level=moderate
       - name: Navigation and terminology tests
         run: npm run test:navigation:compat && npm run test:terminology
+      - name: Enterprise architecture regression tests
+        run: npm run test:ecosystem
+      - name: External access security tests
+        run: npm run test:external-access
+      - name: Agriculture domain and privacy tests
+        run: npm run test:agriculture
       - name: Integration security tests
         run: npm run test:integration:staging
       - name: TypeScript typecheck

@@ -1,6 +1,6 @@
 "use client";
 import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -49,6 +49,7 @@ import {
   validDate,
 } from "@/lib/management-insights";
 import {
+  canReadRecord,
   canReadSection,
   canWriteKind,
   canWriteRecord,
@@ -64,7 +65,9 @@ import {
   type Row,
 } from "@/lib/srikandi";
 import { canDiscardChanges, markFormSaved } from "@/lib/unsaved-changes";
+import { meetingActionSourceMarker, parseMeetingActions } from "@/lib/meeting-cycle";
 import { Progress } from "@/components/ui/progress";
+import { getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
 import {
   WorkspaceMetric,
   WorkspaceSearch,
@@ -81,6 +84,7 @@ type Props = {
   error: string;
   onSaved: () => Promise<void>;
   audit?: WorkspaceAudit[];
+  mode?: "overview" | "monitoring";
 };
 export default function ManagementDashboard({
   rows,
@@ -90,12 +94,15 @@ export default function ManagementDashboard({
   error,
   onSaved,
   audit = [],
+  mode = "overview",
 }: Props) {
   const [now, setNow] = useState(() => new Date());
   const [query, setQuery] = useState("");
   const [assignee, setAssignee] = useState("all");
   const [range, setRange] = useState("30");
   const [taskLimit, setTaskLimit] = useState(12);
+  const meetingTaskLocks = useRef(new Set<string>());
+  const programTaskLocks = useRef(new Set<string>());
   const [editor, setEditor] = useState<Row | "new" | null>(null);
   const {
     busy,
@@ -110,8 +117,12 @@ export default function ManagementDashboard({
   useEffect(() => setTaskLimit(12), [query, assignee]);
   const view = buildManagementInsights(rows, files, user, now);
   const taskAccess = canReadSection(user, "tindaklanjut");
+  const visibleDashboards = getVisibleEnterpriseDashboards(user.role);
+  // The chair creates tasks from a reviewed meeting/program report or in the
+  // dedicated task workspace, not from a context-free dashboard shortcut.
   const canCreate =
     canWriteKind(user, "tindaklanjut") &&
+    user.role !== "ketua" &&
     (user.role !== "koordinator" || user.programIds.length > 0);
   const qualityAccess = user.role !== "anggota";
   const matches = (text: string) =>
@@ -149,6 +160,134 @@ export default function ManagementDashboard({
         String(issue.row.data.name || ""),
     ),
   );
+
+  type ActionItem = {
+    id: string;
+    row: Row;
+    title: string;
+    detail: string;
+    area: string;
+    urgency: number;
+    label: string;
+  };
+  const actionArea = (kind: string) =>
+    ["program", "laporan_program", "tindaklanjut", "kegiatan", "musyawarah", "kehadiran"].includes(kind)
+      ? "Manajemen"
+      : ["anggota", "pengurus", "persetujuan", "register", "sumber", "kelembagaan", "transkripsi", "dokumen"].includes(kind)
+        ? "Administrasi"
+        : ["kas", "akuntansi", "aset"].includes(kind)
+          ? "Keuangan"
+          : ["penjualan", "lotkopi", "usaha", "kemitraan"].includes(kind)
+            ? "E-Commerce"
+            : ["publikasi", "galeri", "pesan"].includes(kind)
+              ? "Publikasi"
+              : "Ekosistem";
+  const actionByRecord = new Map<string, ActionItem>();
+  const addAction = (item: ActionItem) => {
+    const current = actionByRecord.get(item.row.id);
+    if (!current || item.urgency < current.urgency) actionByRecord.set(item.row.id, item);
+  };
+  view.overdue.filter((row) => matches(String(row.data.name || ""))).forEach((row) =>
+    addAction({
+      id: "overdue-" + row.id, row, title: "Tugas melewati tenggat",
+      detail: dateID(String(row.data.dueDate)) + " · " + String(row.data.pic || "Penanggung jawab belum ditetapkan"),
+      area: "Manajemen", urgency: 0, label: "Tinjau tugas",
+    }),
+  );
+  view.dueToday.filter((row) => matches(String(row.data.name || ""))).forEach((row) =>
+    addAction({
+      id: "today-" + row.id, row, title: "Tugas jatuh tempo hari ini",
+      detail: String(row.data.pic || "Penanggung jawab belum ditetapkan"),
+      area: "Manajemen", urgency: 1, label: "Perbarui tugas",
+    }),
+  );
+  issues.forEach((issue) =>
+    addAction({
+      id: issue.id, row: issue.row, title: issue.title, detail: issue.detail,
+      area: actionArea(issue.row.kind), urgency: issue.severity === "warning" ? 2 : 3,
+      label: "Periksa catatan",
+    }),
+  );
+  filterAgenda(view.agenda, view.today, 7).forEach((item) =>
+    addAction({
+      id: item.id, row: item.row, title: item.type === "Kegiatan" ? "Persiapan kegiatan terdekat" : "Tenggat tugas mendatang",
+      detail: dateID(item.date) + " · " + String(item.row.data.location || item.row.data.pic || "Periksa kesiapan"),
+      area: actionArea(item.row.kind), urgency: 4, label: "Buka catatan",
+    }),
+  );
+  const actionItems = [...actionByRecord.values()]
+    .sort((a, b) => a.urgency - b.urgency || a.id.localeCompare(b.id))
+    .slice(0, 8);
+
+  const attendanceAccess = user.role === "admin" || user.role === "sekretaris";
+  const upcomingEvents = view.rows
+    .filter((row) =>
+      row.kind === "kegiatan" &&
+      typeof row.data.date === "string" &&
+      validDate(row.data.date) &&
+      row.data.date >= view.today &&
+      !["Selesai", "Ditunda"].includes(String(row.data.status)),
+    )
+    .sort((a, b) => String(a.data.date).localeCompare(String(b.data.date)))
+    .slice(0, 8)
+    .map((event) => {
+      const attendance = view.rows.find((row) =>
+        row.kind === "kehadiran" && row.data.eventId === event.id,
+      );
+      const memberIds = attendance && Array.isArray(attendance.data.memberIds)
+        ? attendance.data.memberIds.filter((id): id is string => typeof id === "string")
+        : [];
+      return { event, attendance, presentCount: memberIds.length };
+    });
+  const meetingFollowups = view.rows
+    .filter((row) => row.kind === "musyawarah" && parseMeetingActions(row.data.followup).length > 0)
+    .map((row) => {
+      const sourceMarker = "Sumber rapat: " + row.id;
+      const decisions = parseMeetingActions(row.data.followup);
+      const decisionTasks = decisions.map((decision, index) => {
+        const marker = meetingActionSourceMarker(row.id, index);
+        const task = view.tasks.find((item) => String(item.data.notes || "").includes(marker));
+        return { decision, marker, task };
+      });
+      const legacyTask = view.tasks.find((task) => {
+        const notes = String(task.data.notes || "");
+        return notes.includes(sourceMarker) && !notes.includes(sourceMarker + " · Keputusan ");
+      });
+      return {
+        row,
+        sourceMarker,
+        decisions,
+        decisionTasks,
+        legacyTask,
+        missingCount: legacyTask ? 0 : decisionTasks.filter((item) => !item.task).length,
+      };
+    })
+    .sort((a, b) => String(b.row.data.date || "").localeCompare(String(a.row.data.date || "")))
+    .slice(0, 8);
+  const meetingDecisionTasks = view.tasks
+    .filter((task) => {
+      const notes = String(task.data.notes || "");
+      return notes.includes("Sumber rapat: ") && notes.includes(" · Keputusan #");
+    })
+    .sort((a, b) => {
+      const pendingA = String(a.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi" ? 0 : 1;
+      const pendingB = String(b.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi" ? 0 : 1;
+      return pendingA - pendingB ||
+        String(a.data.dueDate || "9999-12-31").localeCompare(String(b.data.dueDate || "9999-12-31")) ||
+        String(a.data.name || "").localeCompare(String(b.data.name || ""));
+    });
+  const pendingMeetingReviews = meetingDecisionTasks.filter(
+    (task) => String(task.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi",
+  );
+  const programReports = view.rows
+    .filter((row) => row.kind === "laporan_program")
+    .map((row) => {
+      const sourceMarker = "Sumber laporan program: " + row.id;
+      const linkedTask = view.tasks.find((task) => String(task.data.notes || "").includes(sourceMarker));
+      return { row, linkedTask, sourceMarker };
+    })
+    .sort((a, b) => String(b.row.data.date || "").localeCompare(String(a.row.data.date || "")))
+    .slice(0, 6);
   const completed = view.tasks.filter(
     (row) => taskStatus(row) === "Selesai",
   ).length;
@@ -172,6 +311,90 @@ export default function ManagementDashboard({
     ) {
       markFormSaved(form);
       setEditor(null);
+    }
+  }
+  async function createTaskFromMeeting(row: Row, decisions: string[]) {
+    if (
+      busy ||
+      meetingTaskLocks.current.has(row.id) ||
+      !canWriteKind(user, "tindaklanjut") ||
+      !canReadRecord(user, row) ||
+      !["Disepakati", "Ditindaklanjuti"].includes(String(row.data.status || ""))
+    ) return;
+    const actions = parseMeetingActions(decisions.join("\n"));
+    if (!actions.length) return;
+    const sourceMarker = "Sumber rapat: " + row.id;
+    const legacyTask = view.tasks.find((task) => {
+      const notes = String(task.data.notes || "");
+      return notes.includes(sourceMarker) && !notes.includes(sourceMarker + " · Keputusan ");
+    });
+    if (legacyTask) return;
+    meetingTaskLocks.current.add(row.id);
+    const completedMarkers = new Set(
+      view.tasks
+        .map((task) => String(task.data.notes || ""))
+        .filter((notes) => notes.includes(sourceMarker)),
+    );
+    try {
+      const programId = String(row.data.programId || "");
+      for (const [index, decision] of actions.entries()) {
+        const marker = meetingActionSourceMarker(row.id, index);
+        if ([...completedMarkers].some((notes) => notes.includes(marker))) continue;
+        const saved = await mutate("POST", {
+          kind: "tindaklanjut",
+          data: {
+            name: decision.slice(0, 200),
+            period: String(row.data.date || ""),
+            dueDate: "",
+            priority: "Normal",
+            pic: "",
+            status: "Belum dimulai",
+            evidence: "",
+            verification: "Belum diajukan",
+            completionEvidence: "",
+            meetingReviewStatus: "Belum dievaluasi",
+            meetingReviewMeeting: "",
+            meetingReviewDate: "",
+            meetingReviewNote: "",
+            notes: (marker + " · Rapat: " + String(row.data.name || "Rapat") + " · Keputusan: " + decision + " · PIC dan tenggat ditetapkan pengurus setelah keputusan disepakati.").slice(0, 5000),
+            ...( ["1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(programId) ? { programId } : {}),
+          },
+        });
+        if (!saved) break;
+        completedMarkers.add(marker);
+      }
+    } finally {
+      meetingTaskLocks.current.delete(row.id);
+    }
+  }
+  async function createTaskFromProgramReport(row: Row, sourceMarker: string) {
+    if (busy || programTaskLocks.current.has(row.id) || !canWriteKind(user, "tindaklanjut") || !canReadRecord(user, row)) return;
+    const programId = String(row.data.programId || "");
+    if (!programs.some((program) => program.id === programId)) return;
+    if (view.tasks.some((task) => String(task.data.notes || "").includes(sourceMarker))) return;
+    programTaskLocks.current.add(row.id);
+    const blockers = String(row.data.blockers || "").trim();
+    const supportNeeded = String(row.data.supportNeeded || "").trim();
+    const target = String(row.data.target || "").trim();
+    const achievement = String(row.data.achievement || "").trim();
+    const evaluation = String(row.data.evaluation || "").trim();
+    try {
+      await mutate("POST", {
+        kind: "tindaklanjut",
+        data: {
+          name: "Tindak lanjut program: " + String(row.data.name || "Laporan program"),
+          period: String(row.data.period || ""),
+          dueDate: "",
+          priority: row.data.status === "Terkendala" ? "Tinggi" : "Normal",
+          pic: "",
+          status: "Belum dimulai",
+          evidence: String(row.data.nextSteps || "Tinjau laporan dan sepakati langkah berikutnya."),
+          notes: (sourceMarker + " · " + [target ? "Target: " + target : "", achievement ? "Capaian: " + achievement : "", evaluation ? "Evaluasi: " + evaluation : "", blockers ? "Hambatan: " + blockers : "", supportNeeded ? "Dukungan diminta: " + supportNeeded : "", "Sumber laporan dipertahankan; tetapkan pelaksana dan tenggat melalui keputusan pengurus."].filter(Boolean).join(" · ")).slice(0, 5000),
+          programId,
+        },
+      });
+    } finally {
+      programTaskLocks.current.delete(row.id);
     }
   }
   async function changeStatus(row: Row, status: string) {
@@ -254,16 +477,16 @@ export default function ManagementDashboard({
       : []),
   ];
   return (
-    <div className="management-dashboard space-y-4 min-w-0 md:space-y-6">
+    <div className="management-dashboard workspace-page min-w-0">
       <Card className="management-intro overflow-hidden" size="sm">
         <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <Badge variant="outline">
               <CheckCircle2 className="size-3.5" />
-              RINGKASAN OPERASIONAL
+              {mode === "monitoring" ? "MONITORING OPERASIONAL" : "RINGKASAN OPERASIONAL"}
             </Badge>
             <CardTitle className="text-xl sm:text-2xl">
-              Selamat bekerja, {user.displayName}.
+              {mode === "monitoring" ? "Pantau perkembangan operasional." : `Selamat bekerja, ${user.displayName}.`}
             </CardTitle>
             <CardDescription>
               {roles[user.role]} · {dateID(view.today)} · Semua ringkasan
@@ -279,8 +502,9 @@ export default function ManagementDashboard({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Mulai dari pekerjaan yang perlu perhatian. Tenggat, prioritas, dan
-            pengingat disusun dari catatan kelompok yang tersedia.
+            {mode === "monitoring"
+              ? "Tinjau tugas, agenda, tenggat, kualitas data, dan pengingat dari catatan operasional yang tersedia."
+              : "Mulai dari pekerjaan yang perlu perhatian. Tenggat, prioritas, dan pengingat disusun dari catatan kelompok yang tersedia."}
           </p>
         </CardContent>
       </Card>
@@ -300,6 +524,275 @@ export default function ManagementDashboard({
           />
         ))}
       </div>
+      {mode === "overview" && (
+      <section aria-labelledby="workspace-dashboards-title" className="space-y-3">
+        <div>
+          <h2 id="workspace-dashboards-title" className="text-sm font-semibold">Ruang kerja utama</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Pilih ruang kerja sesuai tugas dan kewenangan akun Anda. Menu yang tersedia mengikuti hak akses.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          {visibleDashboards.map((dashboard) => (
+            <Card key={dashboard.id} className="flex h-full flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">{dashboard.label}</CardTitle>
+                <CardDescription className="min-h-10">{dashboard.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {dashboard.features.slice(0, 4).map((feature) => (
+                    <Link
+                      key={feature.id}
+                      href={feature.href}
+                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      {feature.label}
+                      <ArrowUpRight className="size-3" aria-hidden="true" />
+                    </Link>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t pt-3">
+                  <span className="text-xs text-muted-foreground">{dashboard.features.length} menu</span>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={dashboard.href}>Buka dashboard <ArrowUpRight className="size-3.5" /></Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+      )}
+      <section aria-labelledby="action-center-title" className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="action-center-title" className="text-base font-semibold">Pusat Tindakan</h2>
+              <Badge variant={actionItems.some((item) => item.urgency <= 1) ? "destructive" : "secondary"}>
+                {actionItems.length} tindak lanjut
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Pekerjaan lintas modul yang perlu diselesaikan, diurutkan dari tenggat dan temuan data. Hanya catatan dalam hak akses Anda yang ditampilkan.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {taskAccess && (
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/dashboard/tindaklanjut">Semua tugas <ArrowUpRight className="size-3.5" /></Link>
+              </Button>
+            )}
+            {qualityAccess && (
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/dashboard/monitoring">Monitoring <ArrowUpRight className="size-3.5" /></Link>
+              </Button>
+            )}
+          </div>
+        </div>
+        <Card>
+          <CardContent className="divide-y p-0">
+            {actionItems.map((item) => (
+              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <span className="mt-0.5 rounded-lg border p-2 text-muted-foreground" aria-hidden="true">
+                    {item.urgency <= 1 ? <CalendarDays className="size-4" /> : <FileCheck2 className="size-4" />}
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium break-words">{item.title}</p>
+                      <Badge variant="outline">{item.area}</Badge>
+                      {item.urgency === 0 && <Badge variant="destructive">Terlambat</Badge>}
+                      {item.urgency === 1 && <Badge variant="secondary">Hari ini</Badge>}
+                    </div>
+                    <p className="text-sm text-muted-foreground break-words">{String(item.row.data.name || modules[item.row.kind]?.title || "Catatan")} · {item.detail}</p>
+                  </div>
+                </div>
+                {item.row.kind === "tindaklanjut" && canWriteRecord(user, item.row) ? (
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => openEditor(item.row)}>
+                    {item.label}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={recordHref(item.row)}>{item.label}</Link>
+                  </Button>
+                )}
+              </div>
+            ))}
+            {!actionItems.length && (
+              <div className="flex flex-col items-start gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium">Tidak ada tindak lanjut yang terdeteksi saat ini.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Ini berarti tidak ada tenggat dekat atau temuan dari aturan pemeriksaan pada data yang dapat Anda akses, bukan jaminan bahwa seluruh pekerjaan sudah selesai.
+                  </p>
+                </div>
+                {canCreate && (
+                  <Button size="sm" onClick={() => openEditor("new")}>
+                    <Plus data-icon="inline-start" /> Tambah tugas
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+      {programReports.length > 0 && (
+        <section aria-labelledby="program-reports-title" className="space-y-3">
+          <div className="space-y-1">
+            <h2 id="program-reports-title" className="text-base font-semibold">Laporan perkembangan program</h2>
+            <p className="text-sm text-muted-foreground">Ringkasan laporan koordinator sesuai lingkup program yang dapat Anda akses. Kendala dan kebutuhan dukungan tetap merujuk pada laporan sumber.</p>
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {programReports.map(({ row, linkedTask, sourceMarker }) => {
+                const program = programs.find((item) => item.id === String(row.data.programId));
+                return (
+                  <div key={row.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-5">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{String(row.data.name || "Laporan program")}</p>
+                        <StatusBadge value={String(row.data.status || "Belum ditetapkan")} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">{program ? program.id + ". " + program.name : "Program " + String(row.data.programId || "—")} · {dateID(String(row.data.date || ""))} · {String(row.data.period || "Periode tidak disebutkan")}</p>
+                      <p className="text-sm text-muted-foreground">{String(row.data.progress || "Belum ada uraian perkembangan.")}</p>
+                      {!!String(row.data.target || "").trim() && <p className="text-sm"><span className="font-medium">Target periode:</span> {String(row.data.target)}</p>}
+                      {!!String(row.data.achievement || "").trim() && <p className="text-sm"><span className="font-medium">Capaian:</span> {String(row.data.achievement)}</p>}
+                      {!!String(row.data.evaluation || "").trim() && <p className="text-sm"><span className="font-medium">Evaluasi:</span> {String(row.data.evaluation)}</p>}
+                      {!!String(row.data.nextSteps || "").trim() && <p className="text-sm"><span className="font-medium">Langkah berikutnya:</span> {String(row.data.nextSteps)}</p>}
+                      {!!String(row.data.blockers || "").trim() && <p className="text-sm"><span className="font-medium">Kendala:</span> {String(row.data.blockers)}</p>}
+                      {!!String(row.data.supportNeeded || "").trim() && <p className="text-sm"><span className="font-medium">Dukungan diminta:</span> {String(row.data.supportNeeded)}</p>}
+                      {linkedTask && <p className="text-xs text-muted-foreground">Tugas terkait: {String(linkedTask.data.name || "Tindak lanjut")} · {String(linkedTask.data.status || "Belum dimulai")}</p>}
+                    </div>
+                    {linkedTask ? (
+                      <Button size="sm" variant="outline" asChild><Link href={recordHref(linkedTask)}>Buka tugas <ArrowUpRight className="size-3.5" /></Link></Button>
+                    ) : canWriteKind(user, "tindaklanjut") && canReadRecord(user, row) ? (
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => void createTaskFromProgramReport(row, sourceMarker)}>Buat draf tindak lanjut</Button>
+                    ) : (
+                      <Badge variant="secondary">Menunggu tindak lanjut pengurus</Badge>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+      {meetingFollowups.length > 0 && (
+        <section aria-labelledby="meeting-followups-title" className="space-y-3">
+          <div className="space-y-1">
+            <h2 id="meeting-followups-title" className="text-base font-semibold">Keputusan rapat menjadi tugas</h2>
+            <p className="text-sm text-muted-foreground">Setiap baris keputusan menjadi satu draf tugas dengan tautan ke notulen asal. Pencatat notulen tidak otomatis menjadi pelaksana; PIC dan tenggat ditetapkan pengurus.</p>
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {meetingFollowups.map(({ row, decisions, decisionTasks, legacyTask, missingCount }) => {
+                const agreed = ["Disepakati", "Ditindaklanjuti"].includes(String(row.data.status || ""));
+                return (
+                  <div key={row.id} className="space-y-3 px-4 py-4 sm:px-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium">{String(row.data.name || "Rapat tanpa judul")}</p>
+                          <StatusBadge value={String(row.data.status || "Rancangan")} />
+                          <Badge variant="outline">{decisions.length} keputusan</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{dateID(String(row.data.date || ""))} · {String(row.data.programId || "Lintas program")}</p>
+                        {!!String(row.data.decisionSummary || "").trim() && <p className="text-sm text-muted-foreground">{String(row.data.decisionSummary)}</p>}
+                      </div>
+                      {canWriteKind(user, "tindaklanjut") && canReadRecord(user, row) && missingCount > 0 && !legacyTask ? (
+                        <Button size="sm" variant="outline" disabled={busy || !agreed} onClick={() => void createTaskFromMeeting(row, decisions)}>
+                          {busy ? "Menyimpan…" : (decisions.length - missingCount) > 0 ? "Lanjutkan " + missingCount + " draf" : "Buat " + missingCount + " draf tugas"}
+                        </Button>
+                      ) : legacyTask ? (
+                        <Badge variant="secondary">Tugas gabungan lama · periksa dan pecah manual bila diperlukan</Badge>
+                      ) : missingCount === 0 ? (
+                        <Badge variant="secondary">Semua keputusan sudah memiliki tugas</Badge>
+                      ) : (
+                        <Badge variant="secondary">{agreed ? "Menunggu pengurus" : "Menunggu keputusan disepakati"}</Badge>
+                      )}
+                    </div>
+                    <div className="grid gap-2">
+                      {decisionTasks.map(({ decision, task }, index) => (
+                        <div key={index} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p className="text-sm">{index + 1}. {decision}</p>
+                            {task ? (
+                              <p className="text-xs text-muted-foreground">
+                                {String(task.data.status || "Belum dimulai")} · PIC: {String(task.data.pic || "Belum ditetapkan")} · Tenggat: {String(task.data.dueDate || "Belum ditetapkan")} · Evaluasi: {String(task.data.meetingReviewStatus || "Belum dievaluasi")}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Belum menjadi tugas</p>
+                            )}
+                          </div>
+                          {task && <Button size="sm" variant="outline" asChild><Link href={recordHref(task)}>Buka tugas</Link></Button>}
+                        </div>
+                      ))}
+                    </div>
+                    {legacyTask && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                        <p className="text-sm">Tugas gabungan dari alur lama: {String(legacyTask.data.name || "Tindak lanjut rapat")}</p>
+                        <Button size="sm" variant="outline" asChild><Link href={recordHref(legacyTask)}>Buka tugas</Link></Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+      {qualityAccess && meetingDecisionTasks.length > 0 && (
+        <section aria-labelledby="meeting-decision-review-title" className="space-y-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="meeting-decision-review-title" className="text-base font-semibold">Evaluasi pelaksanaan keputusan rapat</h2>
+              <Badge variant={pendingMeetingReviews.length ? "secondary" : "outline"}>
+                {pendingMeetingReviews.length} belum dievaluasi
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Setelah rapat berikutnya, Ketua atau Administrator mencatat hasil pelaksanaan, nama dan tanggal rapat evaluasi, serta keputusan lanjutan pada tugas terkait. Riwayat notulen asal tetap terhubung.
+            </p>
+          </div>
+          <Card>
+            <CardContent className="divide-y p-0">
+              {meetingDecisionTasks.slice(0, 10).map((task) => {
+                const reviewStatus = String(task.data.meetingReviewStatus || "Belum dievaluasi");
+                const canReview = ["admin", "ketua"].includes(user.role) && canWriteRecord(user, task);
+                return (
+                  <div key={task.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{String(task.data.name || "Keputusan rapat")}</p>
+                        <StatusBadge value={reviewStatus} />
+                        <StatusBadge value={String(task.data.status || "Belum dimulai")} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        PIC: {String(task.data.pic || "Belum ditetapkan")} · Tenggat: {String(task.data.dueDate || "Belum ditetapkan")}
+                      </p>
+                      {reviewStatus !== "Belum dievaluasi" && (
+                        <p className="text-xs text-muted-foreground">
+                          Dievaluasi pada {String(task.data.meetingReviewMeeting || "rapat tidak disebutkan")} · {dateID(String(task.data.meetingReviewDate || ""))}
+                        </p>
+                      )}
+                      {!!String(task.data.meetingReviewNote || "").trim() && (
+                        <p className="text-sm text-muted-foreground">{String(task.data.meetingReviewNote)}</p>
+                      )}
+                    </div>
+                    {canReview ? (
+                      <Button size="sm" variant="outline" onClick={() => openEditor(task)}>Catat evaluasi</Button>
+                    ) : (
+                      <Button size="sm" variant="outline" asChild><Link href={recordHref(task)}>Buka tugas</Link></Button>
+                    )}
+                  </div>
+                );
+              })}
+              {meetingDecisionTasks.length > 10 && (
+                <p className="p-4 text-xs text-muted-foreground">Menampilkan 10 dari {meetingDecisionTasks.length} keputusan rapat. Cari sisanya melalui menu Tugas dan Tindak Lanjut.</p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
       {mutationError && !editor && (
         <Alert variant="destructive">
           <AlertTitle>Perubahan belum selesai</AlertTitle>
@@ -659,6 +1152,38 @@ export default function ManagementDashboard({
               <NativeSelectOption value="0">Semua mendatang</NativeSelectOption>
             </NativeSelect>
           </div>
+          {attendanceAccess && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Persiapan daftar hadir</CardTitle>
+                <CardDescription>
+                  Status berasal dari daftar hadir yang benar-benar tersimpan. Anggota yang belum ditandai tidak otomatis dianggap hadir.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {upcomingEvents.map(({ event, attendance, presentCount }) => (
+                  <div key={event.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-sm font-medium break-words">{String(event.data.name || "Kegiatan")}</p>
+                      <p className="text-xs text-muted-foreground">{dateID(String(event.data.date))} · {String(event.data.location || "Lokasi belum ditetapkan")}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={attendance ? "secondary" : "outline"}>{attendance ? "Daftar hadir tersedia" : "Daftar hadir belum dibuat"}</Badge>
+                        {attendance && <span className="text-xs text-muted-foreground">{presentCount} anggota ditandai hadir</span>}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={"/dashboard/kehadiran?eventId=" + encodeURIComponent(event.id)}>
+                        {attendance ? "Perbarui kehadiran" : "Siapkan daftar hadir"}
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+                {!upcomingEvents.length && (
+                  <p className="py-3 text-sm text-muted-foreground">Belum ada kegiatan mendatang yang memerlukan persiapan daftar hadir.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="divide-y pt-2">
               {agenda.map((item) => (
@@ -778,8 +1303,9 @@ export default function ManagementDashboard({
               {editor === "new" ? "Tambah tugas" : "Detail & sunting tugas"}
             </DialogTitle>
             <DialogDescription>
-              Tentukan tindakan, penanggung jawab, prioritas, dan tanggal
-              tenggat yang disepakati.
+              {editor === "new"
+                ? "Tentukan tindakan, penanggung jawab, prioritas, dan tanggal tenggat yang disepakati."
+                : "Perbarui pelaksanaan tugas. Ketua atau Administrator juga dapat mencatat evaluasi keputusan rapat setelah rapat peninjauan."}
             </DialogDescription>
           </DialogHeader>
           {editor && (
@@ -793,7 +1319,7 @@ export default function ManagementDashboard({
             >
               <fieldset disabled={busy} className="min-w-0">
                 <FieldGroup>
-                  {modules.tindaklanjut.fields.map((field) => {
+                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || ["admin", "ketua"].includes(user.role)).map((field) => {
                     const value =
                       editor === "new"
                         ? field.key === "programId" &&
@@ -801,10 +1327,13 @@ export default function ManagementDashboard({
                           ? user.programIds[0]
                           : ""
                         : String(editor.data[field.key] ?? "");
+                    const reviewer = user.role === "admin" || user.role === "ketua";
                     const options =
                       field.key === "programId" && user.role === "koordinator"
                         ? user.programIds
-                        : field.options;
+                        : field.key === "verification" && !reviewer
+                          ? [...new Set(["Belum diajukan", "Menunggu verifikasi", ...(value && value !== "Belum diajukan" && value !== "Menunggu verifikasi" ? [value] : [])])]
+                          : field.options;
                     return (
                       <Field key={field.key}>
                         <FieldLabel htmlFor={"smart-task-" + field.key}>

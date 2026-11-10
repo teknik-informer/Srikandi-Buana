@@ -14,6 +14,7 @@ export const faqs=[
 faqs.push({group:'Akun',q:'Bagaimana anggota atau pengurus memperoleh akun?',a:'Administrator memverifikasi anggota lalu memberikan undangan aktivasi pribadi. Pengguna menentukan password sendiri; peran dan jabatan mengikuti penugasan. Lupa password ditangani dengan tautan pemulihan dari admin.'},{group:'Layanan',q:'Bagaimana mengajukan pengaduan atau permintaan data pribadi?',a:'Gunakan formulir Hubungi kami dan pilih Pengaduan atau Permintaan data pribadi. Jelaskan keperluan serta simpan referensi pesan setelah berhasil dikirim. Jangan mengirim password, OTP, atau nomor identitas yang tidak diperlukan.'},{group:'Privasi',q:'Apakah situs memasang cookie iklan?',a:'Aplikasi saat ini tidak memasang pelacak iklan tambahan. Cookie sesi dipakai untuk login; menu dan tema dashboard dapat menyimpan preferensi pada perangkat. Rinciannya tersedia pada Kebijakan Cookie.'});
 export type SearchEntry={title:string;description:string;href:string;group:string};
 export const staticSearch:SearchEntry[]=[
+ {title:'Katalog produk',description:'Informasi produk kelompok yang telah diterbitkan pengelola.',href:'/produk',group:'Usaha'},
  {title:'Tentang Srikandi Buana',description:'Profil, nilai, dan tata kelola kelompok wanita tani.',href:'/profil',group:'Organisasi'},
  {title:'Visi & misi',description:'Kompak, mandiri, terampil, dan berdaya.',href:'/visi-misi',group:'Organisasi'},
  {title:'Kemitraan',description:'Penjajakan kerja sama yang sehat dan transparan.',href:'/kemitraan',group:'Informasi'},

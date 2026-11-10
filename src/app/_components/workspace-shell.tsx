@@ -98,7 +98,9 @@ export default function WorkspaceShell({
           tabIndex={-1}
           className="workspace-content outline-none"
         >
-          {children}
+          <div className="workspace-main">
+            {children}
+          </div>
           <footer className="workspace-footer">
             <small>© {new Date().getFullYear()} KWT Srikandi Buana</small>
             <nav aria-label="Bantuan dashboard">

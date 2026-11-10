@@ -21,42 +21,55 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { dashboardGroups, navigationMatches } from "@/lib/navigation-config";
-import { canReadSection, roles, type Principal } from "@/lib/permissions";
+import { navigationMatches } from "@/lib/navigation-config";
+import { roles, type Principal } from "@/lib/permissions";
+import { enterpriseDashboards, getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
+  Activity,
   ArrowUpRight,
-  CalendarDays,
+  BriefcaseBusiness,
   ChevronDown,
+  BookOpen,
   Files,
+  FileText,
   Grid2X2,
   LayoutDashboard,
   MessagesSquare,
   ShoppingBag,
+  Megaphone,
   Search,
   Settings2,
   ShieldCheck,
-  Users,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
-const icons = [Users, CalendarDays, Wallet, Files, MessagesSquare,
-  ShoppingBag, Grid2X2, Settings2];
+const dashboardIcons: Record<string, typeof Grid2X2> = {
+  ecosystem: Grid2X2,
+  management: BriefcaseBusiness,
+  administration: Files,
+  finance: Wallet,
+  commerce: ShoppingBag,
+  publication: Megaphone,
+  system: Settings2,
+};
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
-  const active = dashboardGroups.find((g) => g.items.some((i) => i.id === section));
+  const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
   const [expanded, setExpanded] = useState(active?.id || ""),
     [query, setQuery] = useState("");
   useEffect(() => {
     setExpanded(active?.id || "");
     setQuery("");
   }, [section, active?.id]);
-  const groups = dashboardGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => canReadSection(user, i.id) && navigationMatches(i, query)) }))
-    .filter((g) => g.items.length);
+  const groups = getVisibleEnterpriseDashboards(user.role)
+    .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
+    .filter((pillar) => pillar.items.length);
+  const utilities = getVisibleEnterpriseUtilities(user.role)
+    .filter((item) => navigationMatches(item, query));
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
       setOpen(true);
@@ -85,13 +98,26 @@ export default function DashboardNavigation({ section, user }: { section: string
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Ringkasan">
+              <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Beranda">
                 <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
                   <LayoutDashboard />
-                  <span>Ringkasan</span>
+                  <span>Pusat Kendali</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {utilities.map((item) => {
+              const Icon = item.id === "monitoring" ? Activity : FileText;
+              return (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton asChild isActive={section === item.id} tooltip={item.label}>
+                    <Link href={item.href} onClick={() => setOpenMobile(false)} aria-current={section === item.id ? "page" : undefined}>
+                      <Icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup className="dashboard-menu-search">
@@ -102,7 +128,7 @@ export default function DashboardNavigation({ section, user }: { section: string
             <Search size={14} />
             <Input
               id="dashboard-menu-query"
-              placeholder="Cari menu…"
+              placeholder="Cari halaman…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -114,10 +140,10 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>KATEGORI RUANG KERJA</SidebarGroupLabel>
+          <SidebarGroupLabel>MENU UTAMA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
-              const Icon = icons[dashboardGroups.findIndex((g) => g.id === group.id)];
+              const Icon = dashboardIcons[group.id] ?? Grid2X2;
               const shown = !!query || expanded === group.id;
               return (
                 <SidebarMenuItem key={group.id} className="dashboard-category">
@@ -137,6 +163,18 @@ export default function DashboardNavigation({ section, user }: { section: string
                   </SidebarMenuButton>
                   {shown && (state !== "collapsed" || isMobile) && (
                     <SidebarMenuSub id={"dashboard-category-" + group.id}>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={section === group.id}>
+                          <Link
+                            href={group.href}
+                            onClick={() => setOpenMobile(false)}
+                            aria-current={section === group.id ? "page" : undefined}
+                          >
+                            <span className="dashboard-sub-dot" />
+                            <span>Ringkasan {group.label}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                       {group.items.map((item) => (
                         <SidebarMenuSubItem key={item.id}>
                           <SidebarMenuSubButton asChild isActive={section === item.id}>
@@ -167,6 +205,9 @@ export default function DashboardNavigation({ section, user }: { section: string
         </SidebarGroup>
         <div className="dashboard-nav-shortcut">
           <span>AKSES CEPAT</span>
+          <Link href="/dashboard/panduan" onClick={() => setOpenMobile(false)} aria-current={section === "panduan" ? "page" : undefined}>
+            <BookOpen size={14} /> Pusat Bantuan
+          </Link>
           <Link href="/" target="_blank" rel="noopener noreferrer">
             Lihat situs publik <ArrowUpRight size={14} />
           </Link>
@@ -224,9 +265,11 @@ export function DashboardMegaMenu({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
-  const groups = dashboardGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => canReadSection(user, i.id) && navigationMatches(i, query)) }))
-    .filter((g) => g.items.length);
+  const groups = getVisibleEnterpriseDashboards(user.role)
+    .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
+    .filter((pillar) => pillar.items.length);
+  const utilities = getVisibleEnterpriseUtilities(user.role)
+    .filter((item) => navigationMatches(item, query));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button
@@ -248,9 +291,9 @@ export function DashboardMegaMenu({
           <DialogClose className="dashboard-mega-close" aria-label="Tutup menu aplikasi">
             <X size={18} />
           </DialogClose>
-          <DialogTitle>Semua ruang kerja, satu tempat.</DialogTitle>
+          <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih kategori atau cari fitur untuk langsung membuka halaman yang Anda perlukan.
+            Pilih ruang kerja, monitoring, laporan, atau Pusat Bantuan sesuai kewenangan akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -259,13 +302,35 @@ export function DashboardMegaMenu({
               aria-label="Cari fitur aplikasi"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari anggota, kas, dokumen, publikasi…"
+              placeholder="Cari publikasi, laporan, anggota…"
             />
           </div>
+          {utilities.length > 0 && (
+            <section className="dashboard-mega-shortcuts" aria-label="Akses cepat">
+              <p>AKSES CEPAT</p>
+              <div>
+                {utilities.map((item) => {
+                  const Icon = item.id === "monitoring" ? Activity : FileText;
+                  return (
+                    <Link href={item.href} key={item.id} onClick={() => setOpen(false)} aria-current={section === item.id ? "page" : undefined}>
+                      <Icon size={17} aria-hidden="true" />
+                      <span>
+                        <strong>{item.label}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                      <ArrowUpRight size={14} />
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
           <div className="dashboard-mega-grid">
             {groups.map((g) => (
               <section key={g.id}>
-                <h3>{g.label}</h3>
+                <h3>
+                  <Link href={g.href} onClick={() => setOpen(false)}>{g.label}</Link>
+                </h3>
                 <p>{g.description}</p>
                 {g.items.map((item) => (
                   <Link
@@ -290,8 +355,11 @@ export function DashboardMegaMenu({
             </div>
           )}
           <div className="dashboard-mega-footer">
+            <Link href="/dashboard/panduan" onClick={() => setOpen(false)}>
+              <BookOpen size={14} /> Pusat Bantuan
+            </Link>
             <Link href="/dashboard" onClick={() => setOpen(false)}>
-              Kembali ke ringkasan
+              Kembali ke Pusat Kendali
             </Link>
             <span>Ctrl / ⌘ K · Esc untuk menutup</span>
           </div>
