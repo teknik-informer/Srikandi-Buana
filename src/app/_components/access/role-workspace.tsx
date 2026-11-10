@@ -54,7 +54,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Attendance from "../attendance";
 import FileManager from "../file-manager";
-import Reports from "../reports";
+import EnterpriseReports from "../enterprise-reports";
+import EnterpriseMonitoring from "../enterprise-monitoring";
 import WorkspaceShell from "../workspace-shell";
 import MyAccount from "./my-account";
 import ManagementDashboard from "../management-dashboard";
@@ -95,7 +96,7 @@ export default function RoleWorkspace({
   const module = modules[section],
     title =
       section === "ringkasan"
-        ? "Ruang kerja saya"
+        ? "Pusat Kendali"
         : section === "akun-saya"
           ? "Akun saya"
           : section === "program"
@@ -103,8 +104,10 @@ export default function RoleWorkspace({
             : section === "kehadiran"
               ? "Kehadiran"
               : section === "laporan"
-                ? "Laporan Kas"
-                : section === "dokumen"
+                ? "Laporan"
+                : section === "monitoring"
+                  ? "Monitoring Operasional"
+                  : section === "dokumen"
                   ? "Arsip kerja"
                   : module?.title || "Ruang kerja";
   const {
@@ -170,7 +173,17 @@ export default function RoleWorkspace({
           },
         ]
       : editor
-        ? modules[editor.kind]?.fields
+        ? modules[editor.kind]?.fields.map((field) => {
+            if (field.key === "programId" && user.role === "koordinator")
+              return { ...field, options: field.options?.filter((option) => user.programIds.includes(option)) };
+            if (user.role === "ketua" && editor.kind === "tindaklanjut") {
+              if (field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan" };
+              if (field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan" };
+              if (field.key === "evidence") return { ...field, label: "Hasil yang diharapkan / indikator selesai" };
+              if (field.key === "notes") return { ...field, label: "Keputusan Ketua / perkembangan" };
+            }
+            return field;
+          })
         : [];
   function exportCSV() {
     if (!module) return;
@@ -211,19 +224,22 @@ export default function RoleWorkspace({
       defaultSidebarOpen={defaultSidebarOpen}
     >
       <section
-        className="workspace workspace-role"
+        className="workspace workspace-role workspace-page"
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
+        {!["monitoring", "laporan"].includes(section) && (
         <WorkspacePageHeader
           title={title}
           eyebrow="Ruang anggota & pengurus"
           description={
-            (user.position || roles[user.role]) +
-            " · " +
-            (user.role === "koordinator"
-              ? "Program " + user.programIds.join(", ")
-              : "Srikandi Buana")
+            section === "monitoring"
+              ? "Pantau tugas, agenda, tenggat, dan kondisi operasional sesuai lingkup akses " + roles[user.role] + "."
+              : (user.position || roles[user.role]) +
+                " · " +
+                (user.role === "koordinator"
+                  ? "Program " + user.programIds.join(", ")
+                  : "Srikandi Buana")
           }
           actions={
             <>
@@ -237,7 +253,7 @@ export default function RoleWorkspace({
                   Ekspor CSV
                 </Button>
               )}
-              {module && canWriteKind(user, section) && (
+              {module && canWriteKind(user, section) && (user.role !== "koordinator" || user.programIds.length > 0) && (
                 <Button
                   disabled={loading || !!error}
                   onClick={() => {
@@ -259,6 +275,7 @@ export default function RoleWorkspace({
             </>
           }
         />
+        )}
         {error && (
           <Alert variant="destructive">
             <AlertTitle>
@@ -284,7 +301,7 @@ export default function RoleWorkspace({
             </AlertDescription>
           </Alert>
         )}
-        {loading && section !== "ringkasan" && <Skeleton className="h-20 w-full" />}
+        {loading && !["ringkasan", "monitoring"].includes(section) && <Skeleton className="h-20 w-full" />}
         {section === "ringkasan" && (
           <ManagementDashboard
             rows={rows}
@@ -295,8 +312,20 @@ export default function RoleWorkspace({
             onSaved={load}
           />
         )}
+        {section === "monitoring" && (
+          <EnterpriseMonitoring
+            rows={rows}
+            files={files}
+            user={user}
+            loading={loading}
+            error={error}
+            onRefresh={() => void load()}
+          />
+        )}
         {section === "akun-saya" && <MyAccount />}
-        {section === "laporan" && !loading && !error && <Reports rows={rows} />}
+        {section === "laporan" && !loading && !error && (
+          <EnterpriseReports rows={rows} user={user} />
+        )}
         {section === "kehadiran" && user.role === "sekretaris" && (
           <Attendance rows={rows} onSaved={load} />
         )}
@@ -389,6 +418,27 @@ export default function RoleWorkspace({
               })}
           </div>
         )}
+        {user.role === "anggota" && section === "anggota" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Layanan keanggotaan saya</CardTitle>
+              <CardDescription>
+                Periksa status data, perbarui informasi akun, atau kirim kebutuhan kepada pengurus tanpa mengubah data keanggotaan resmi secara langsung.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link href="/dashboard/akun-saya">Perbarui profil akun</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/dashboard/pengajuan">Ajukan perubahan atau kebutuhan</Link>
+              </Button>
+              <Button asChild variant="ghost">
+                <Link href="/dashboard/portal">Kembali ke portal anggota</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         {module && (
           <Card>
             <CardHeader>
@@ -449,15 +499,17 @@ export default function RoleWorkspace({
                           >
                             Edit
                           </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => {
-                              clearError();
-                              setDeleting(r);
-                            }}
-                          >
-                            Hapus
-                          </Button>
+                          {user.role !== "ketua" && (
+                            <Button
+                              variant="destructive"
+                              onClick={() => {
+                                clearError();
+                                setDeleting(r);
+                              }}
+                            >
+                              Hapus
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>
@@ -640,7 +692,7 @@ export default function RoleWorkspace({
                           )
                           .map((o) => (
                             <NativeSelectOption key={o} value={o}>
-                              {o || "Tidak terkait program"}
+                              {o ? (f.key === "programId" ? (programs.find((program) => program.id === o)?.name || "Program") + " (" + o + ")" : o) : "Tidak terkait program"}
                             </NativeSelectOption>
                           ))}
                       </NativeSelect>

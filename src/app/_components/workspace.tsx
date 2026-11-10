@@ -89,7 +89,8 @@ import ManagementDashboard from "./management-dashboard";
 import Attendance from "./attendance";
 import FileManager from "./file-manager";
 import Inbox from "./inbox";
-import Reports from "./reports";
+import EnterpriseReports from "./enterprise-reports";
+import EnterpriseMonitoring from "./enterprise-monitoring";
 import SiteSettingsEditor from "./site-settings-editor";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
@@ -270,13 +271,14 @@ export default function Workspace({
     {
       akun: "Akun & akses",
       "akun-saya": "Akun saya",
-      ringkasan: "Ringkasan Operasional",
+      ringkasan: "Pusat Kendali",
       program: "Program kerja",
       dokumen: "Arsip dokumen",
       profil: "Profil & arah bersama",
       pesan: "Pesan pengunjung",
       kehadiran: "Kehadiran",
-      laporan: "Laporan Kas",
+      laporan: "Laporan",
+      monitoring: "Monitoring Operasional",
       pengaturan: "Pengaturan situs",
       sumber: "Referensi Dokumen",
       panduan: "Pusat bantuan",
@@ -405,19 +407,22 @@ export default function Workspace({
     >
       {" "}
       <section
-        className="workspace"
+        className="workspace workspace-page"
         aria-labelledby="workspace-title"
         aria-busy={loading}
       >
+        {!["monitoring", "laporan"].includes(section) && (
         <WorkspacePageHeader
           eyebrow="KELOMPOK WANITA TANI · NGADIMULYO"
-          title={section === "ringkasan" ? "Dashboard organisasi" : title}
+          title={section === "ringkasan" ? "Pusat Kendali" : title}
           description={
             module?.description ||
             (
               {
                 ringkasan:
-                  "Ringkasan keanggotaan, program, kegiatan, dan keuangan Srikandi Buana.",
+                  "Pusat kendali untuk memantau kegiatan, tugas, keanggotaan, dan kondisi operasional sesuai hak akses.",
+                monitoring:
+                  "Pantau perkembangan tugas, agenda, tenggat waktu, kualitas data, dan kondisi operasional sesuai lingkup akses Anda.",
                 program:
                   "Sembilan prioritas, satu arah: tumbuh dan berdaya bersama.",
                 dokumen:
@@ -461,6 +466,7 @@ export default function Workspace({
             </>
           }
         />
+        )}
         {error && (
           <Alert variant="destructive">
             <AlertTitle>
@@ -501,6 +507,29 @@ export default function Workspace({
             onSaved={load}
             audit={audit}
           />
+        )}
+        {section === "monitoring" && (
+          <EnterpriseMonitoring
+            rows={rows}
+            files={files}
+            user={principal}
+            audit={audit}
+            loading={loading}
+            error={error}
+            onRefresh={() => void load()}
+          />
+        )}
+        {section === "galeri" && (
+          <div className="mb-6 space-y-3">
+            <Alert>
+              <ShieldCheck />
+              <AlertTitle>Media privat dan izin publikasi</AlertTitle>
+              <AlertDescription>
+                Foto di pustaka media hanya dapat dilihat pengelola. Foto baru tampil di situs setelah ditautkan ke Galeri Foto atau konten yang berstatus Terbit, dan izin publikasi fotonya dikonfirmasi.
+              </AlertDescription>
+            </Alert>
+            <FileManager files={files} onChange={load} loading={loading} loadError={error} mode="images" />
+          </div>
         )}
         {module && (
           <>
@@ -925,7 +954,9 @@ export default function Workspace({
           />
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
-        {section === "laporan" && !loading && !error && <Reports rows={rows} />}
+        {section === "laporan" && !loading && !error && (
+          <EnterpriseReports rows={rows} user={principal} />
+        )}
         {section === "panduan" && (
           <>
             <Box title="Portal & layanan operasional">
@@ -1031,8 +1062,7 @@ export default function Workspace({
               {editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
-              Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi
-              dan galeri berstatus Terbit dapat dilihat siapa pun.
+              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Pengesahan hanya dapat dilakukan Ketua atau Administrator." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -1088,14 +1118,25 @@ export default function Workspace({
                         <NativeSelect
                           id={f.key}
                           name={f.key}
+                          disabled={
+                            editor.kind === "tindaklanjut" &&
+                            ["verification", "meetingReviewStatus"].includes(f.key) &&
+                            !["admin", "ketua"].includes(principal.role)
+                          }
                           defaultValue={String(
                             editor.row?.data[f.key] ??
                               editor.initial?.[f.key] ??
                               f.options[0],
                           )}
                         >
-                          {f.options.map((o) => (
-                            <NativeSelectOption key={o}>{o}</NativeSelectOption>
+                          {(editor.kind === "tindaklanjut" && f.key === "verification" && !["admin", "ketua"].includes(principal.role) ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
+                            <NativeSelectOption key={o}>
+                              {f.key === "programId"
+                                ? o
+                                  ? o + " · " + (programs.find((program) => program.id === o)?.name || "Program")
+                                  : "Tidak dihubungkan ke program"
+                                : o}
+                            </NativeSelectOption>
                           ))}
                         </NativeSelect>
                       ) : f.type === "textarea" ? (
@@ -1110,6 +1151,20 @@ export default function Workspace({
                           required={f.required}
                           maxLength={5000}
                           rows={3}
+                          placeholder={
+                            f.key === "followup"
+                              ? "Satu keputusan/tindakan per baris. Contoh: Tetapkan jadwal pelatihan anggota."
+                              : f.key === "agendaPoints"
+                                ? "Tuliskan pokok agenda, satu butir per baris."
+                                : f.key === "reviewSummary"
+                                  ? "Apa yang berhasil, belum terlaksana, kendala, dan keputusan perbaikannya?"
+                                  : undefined
+                          }
+                          disabled={
+                            editor.kind === "tindaklanjut" &&
+                            ["reviewNote", "meetingReviewNote"].includes(f.key) &&
+                            !["admin", "ketua"].includes(principal.role)
+                          }
                         />
                       ) : (
                         <Input
@@ -1128,6 +1183,11 @@ export default function Workspace({
                           }
                           required={f.required}
                           maxLength={5000}
+                          disabled={
+                            editor.kind === "tindaklanjut" &&
+                            ["meetingReviewMeeting", "meetingReviewDate"].includes(f.key) &&
+                            !["admin", "ketua"].includes(principal.role)
+                          }
                         />
                       )}
                     </Field>

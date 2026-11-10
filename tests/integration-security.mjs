@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
-import {readLimitedMultipart,MultipartLimitError} from '../src/lib/multipart-limit.ts';
+import {build} from 'esbuild';
+import vm from 'node:vm';
+const bundle=await build({entryPoints:['src/lib/multipart-limit.ts'],bundle:true,write:false,platform:'node',format:'cjs'});
+const commonjs={exports:{}};
+vm.runInNewContext(bundle.outputFiles[0].text,{module:commonjs,exports:commonjs.exports,Request,Response,Headers,FormData,File,TextEncoder,TextDecoder,Uint8Array,Buffer});
+const {readLimitedMultipart,MultipartLimitError}=commonjs.exports;
 const file=new File(['file safe'], 'catatan.txt', {type:'text/plain'});
 const form=new FormData();form.set('file',file);form.set('title','Contoh');
 const request=new Request('https://example.test/api/files',{method:'POST',body:form});
