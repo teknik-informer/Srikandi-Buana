@@ -11,7 +11,7 @@ const tenureTypes = new Set(["owned", "leased", "shared", "group", "other"]);
 const isoDate = (value: unknown, label: string, optional = false) => {
   const raw = typeof value === "string" ? value.trim() : "";
   if (!raw && optional) return null;
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)) throw new Error(label + " harus menggunakan tanggal yang valid.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw new Error(label + " harus menggunakan tanggal yang valid.");
   const [year, month, day] = raw.split("-").map(Number);
   const check = new Date(Date.UTC(year, month - 1, day));
   if (check.getUTCFullYear() !== year || check.getUTCMonth() + 1 !== month || check.getUTCDate() !== day) {
@@ -32,7 +32,7 @@ const numericValue = (value: unknown, label: string, min: number, max: number, d
   const scale = 10 ** decimals;
   return Math.round(number * scale) / scale;
 };
-const slug = (value: string) => value.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+const slug = (value: string) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 
 async function context(request: Request, write = false, verification = false) {
   const user = await getAuthenticatedUser();
