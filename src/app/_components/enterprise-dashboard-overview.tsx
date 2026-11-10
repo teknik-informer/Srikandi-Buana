@@ -29,9 +29,9 @@ const eyebrows: Record<EnterpriseDashboardId, string> = {
   ecosystem: "ORGANISASI",
   management: "PROGRAM & KEGIATAN",
   administration: "DATA ORGANISASI",
-  finance: "LAPORAN ORGANISASI",
+  finance: "PELAPORAN",
   commerce: "USAHA & RANTAI PASOK",
-  publication: "PUBLIKASI RESMI",
+  publication: "PUBLIKASI",
   system: "ADMINISTRASI",
 };
 
@@ -158,7 +158,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
           <h1 id="dashboard-overview-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">{dashboard.label}</h1>
           <Badge variant="outline"></Badge>
         </div>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{dashboard.description} Ruang ini membantu Anda memahami kondisi, menentukan langkah, dan menyelesaikan pekerjaan dari data yang dapat diakses.</p>
+        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{dashboard.description}</p>
       </header>
 
       {error && (
@@ -185,7 +185,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
               </span>
               <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground">{briefing.eyebrow}</p>
               <Badge variant="outline" className={briefingAppearance[briefing.state].badgeClass}>
-                {briefing.state === "attention" ? "Perlu tindak lanjut" : briefing.state === "steady" ? "Ritme terjaga" : "Sesuai hak akses"}
+                {briefing.state === "attention" ? "Perlu tindak lanjut" : briefing.state === "steady" ? "Terkendali" : "Sesuai hak akses"}
               </Badge>
             </div>
             <h2 id="workspace-briefing-title" className="text-xl font-semibold tracking-tight sm:text-2xl">{briefing.title}</h2>
@@ -209,7 +209,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
                 className="group flex min-h-32 flex-col justify-between rounded-xl border bg-background/85 p-4 transition-colors hover:border-primary/50 hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-xs font-semibold tracking-wide text-muted-foreground">LANGKAH 0{index + 1}</span>
+                  <span className="text-xs font-semibold tracking-wide text-muted-foreground">PRIORITAS 0{index + 1}</span>
                   <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
                 </div>
                 <div className="mt-3">
@@ -221,7 +221,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
             ))
           ) : (
             <div className="rounded-xl border border-dashed bg-background/70 p-4 md:col-span-2 xl:col-span-3">
-              <p className="text-sm font-medium">{briefing.state === "limited" ? "Butuh akses atau sumber data?" : "Pertahankan pembaruan yang konsisten."}</p>
+              <p className="text-sm font-medium">{briefing.state === "limited" ? "Butuh akses atau sumber data?" : "Tidak ada tindak lanjut prioritas."}</p>
               <p className="mt-1 text-sm leading-5 text-muted-foreground">
                 {briefing.state === "limited" ? "Anda tetap dapat membuka modul yang diizinkan. Hubungi pengelola untuk meninjau penugasan bila diperlukan." : "Catat pekerjaan saat terjadi agar tim dapat melihat perkembangan tanpa menunggu rekap manual."}
               </p>
@@ -236,7 +236,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
 
       <section className="space-y-3" aria-label={"Ringkasan " + dashboard.label}>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 className="text-base font-semibold">Kondisi saat ini</h2><p className="text-sm text-muted-foreground">Pahami angka sebelum menentukan tindakan. Nilai yang tidak tersedia tidak ditampilkan sebagai nol.</p><p className="mt-1 text-xs text-muted-foreground">{loading ? "Sedang mengambil data terbaru…" : "Pembaruan sumber: " + dateLabel(snapshot.latestUpdate)}</p></div>
+          <div><h2 className="text-base font-semibold">Kondisi saat ini</h2><p className="text-sm text-muted-foreground">Nilai berdasarkan data yang tersedia. Data yang belum tercatat tidak ditampilkan sebagai nol.</p><p className="mt-1 text-xs text-muted-foreground">{loading ? "Sedang mengambil data terbaru…" : "Pembaruan sumber: " + dateLabel(snapshot.latestUpdate)}</p></div>
           <Button type="button" size="sm" variant="outline" disabled={loading} onClick={() => void load()}>
             <RefreshCw className={"size-4" + (loading ? " animate-spin" : "")} aria-hidden="true" />
             Perbarui data
@@ -252,7 +252,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
         features={dashboard.features}
         dashboardLabel={dashboard.label}
         loading={loading}
-        programEvaluations={dashboard.id === "management" ? snapshot.programEvaluations : undefined}
+        programEvaluations={dashboard.id === "ecosystem" ? snapshot.programEvaluations : undefined}
       />
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
@@ -260,7 +260,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
-                <CardTitle className="text-base">Hal yang perlu diketahui</CardTitle>
+                <CardTitle className="text-base">Perlu perhatian</CardTitle>
                 <CardDescription>Temuan berasal dari kelengkapan dan status catatan yang tersedia. Buka catatan sumber untuk memeriksa konteksnya.</CardDescription>
               </div>
               <Badge variant="outline">{snapshot.issues.length} temuan</Badge>
@@ -285,8 +285,8 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
         </Card>
         <Card className="min-w-0">
           <CardHeader>
-            <CardTitle className="text-base">Pintu bantuan dan pemantauan</CardTitle>
-            <CardDescription>Temukan panduan kerja atau pantau kondisi lintas bidang.</CardDescription>
+            <CardTitle className="text-base">Administrasi dan pemantauan</CardTitle>
+            <CardDescription>Akses pemantauan dan administrasi sesuai kewenangan.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {utilities.map((item) => (
@@ -296,10 +296,10 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
               </Link>
             ))}
             <Link href="/dashboard/panduan" className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-              <span className="flex min-w-0 items-center gap-2"><BookOpen className="size-4 shrink-0 text-primary" aria-hidden="true" /><span><span className="block font-medium">Pusat Bantuan</span><span className="block text-xs text-muted-foreground">Panduan sesuai peran dan cara menggunakan modul.</span></span></span>
+              <span className="flex min-w-0 items-center gap-2"><BookOpen className="size-4 shrink-0 text-primary" aria-hidden="true" /><span><span className="block font-medium">Pusat Bantuan</span><span className="block text-xs text-muted-foreground">Dokumen bantuan dan ketentuan penggunaan.</span></span></span>
               <ArrowUpRight size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             </Link>
-            <div className="rounded-lg bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">Perubahan data tetap dilakukan melalui modul sumber agar riwayat, bukti, dan pemeriksaan terjaga.</div>
+            <div className="rounded-lg bg-muted/50 p-3 text-xs leading-5 text-muted-foreground">Setiap perubahan dicatat pada modul sumber.</div>
           </CardContent>
         </Card>
       </section>
