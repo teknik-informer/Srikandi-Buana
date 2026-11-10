@@ -13,12 +13,13 @@ type Organization = {
   verification_status: "pending" | "verified" | "suspended" | "rejected";
 };
 type Account = { id: string; organization_id: string; email: string; full_name: string; status: "invited" | "active" | "disabled" };
+type Invitation = { id: string; account_id: string; email: string; expires_at: string; consumed_at: string | null; revoked_at: string | null; created_at: string };
 type Scope = { type: "project" | "program" | "region" | "aggregate"; ref: string; permission: "read" | "aggregate" };
 type Grant = {
   id: string; account_id: string; organization_id: string; purpose: string; status: "active" | "suspended" | "revoked";
   valid_from: string; valid_until: string; email: string; full_name: string; legal_name: string; scopes: Scope[];
 };
-type Data = { organizations: Organization[]; accounts: Account[]; grants: Grant[]; audit: { action: string; target_type: string; target_id: string; reason: string; created_at: string }[] };
+type Data = { organizations: Organization[]; accounts: Account[]; grants: Grant[]; audit: { action: string; target_type: string; target_id: string; reason: string; created_at: string }[]; invitations: Invitation[] };
 const organizationLabels: Record<string, string> = { government: "Pemerintah", ngo: "NGO / Lembaga Swadaya", partner: "Mitra" };
 const statusLabels: Record<string, string> = { pending: "Menunggu verifikasi", verified: "Terverifikasi", suspended: "Ditangguhkan", rejected: "Ditolak", invited: "Undangan dikirim", active: "Aktif", disabled: "Dinonaktifkan", revoked: "Dicabut" };
 const scopeLabels: Record<string, string> = { project: "Proyek", program: "Program", region: "Wilayah", aggregate: "Ringkasan agregat" };
@@ -29,7 +30,7 @@ const today = () => {
 };
 
 export default function ExternalAccessWorkspace() {
-  const [data, setData] = useState<Data>({ organizations: [], accounts: [], grants: [], audit: [] });
+  const [data, setData] = useState<Data>({ organizations: [], accounts: [], grants: [], audit: [], invitations: [] });
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState("");
   const [organizationType, setOrganizationType] = useState("government"), [legalName, setLegalName] = useState(""), [registrationRef, setRegistrationRef] = useState(""), [contactEmail, setContactEmail] = useState("");
   const [organizationId, setOrganizationId] = useState(""), [fullName, setFullName] = useState(""), [email, setEmail] = useState(""), [purpose, setPurpose] = useState("");
@@ -93,7 +94,11 @@ export default function ExternalAccessWorkspace() {
     }
   }
   async function patch(action: string, id: string, reason: string, status?: string) {
-    await submit("/api/external-access", "PATCH", { action, id, reason, ...(status ? { status } : {}) });
+    return submit("/api/external-access", "PATCH", { action, id, reason, ...(status ? { status } : {}) });
+  }
+  async function resendInvitation(account: Account) {
+    const result = await patch("resend_invitation", account.id, "Pengiriman ulang tautan aktivasi setelah pemeriksaan administrator");
+    if (result?.invitationUrl) setInvitationUrl(result.invitationUrl);
   }
   async function copyInvitation() {
     try { await navigator.clipboard.writeText(invitationUrl); setNotice("Tautan aktivasi disalin."); }
@@ -154,7 +159,7 @@ export default function ExternalAccessWorkspace() {
 
     <section className="rounded-2xl border bg-card p-5">
       <div className="flex items-center gap-2"><UserRound size={19}/><h2 className="font-semibold">Akun eksternal</h2></div>
-      {data.accounts.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm"><thead><tr className="border-b text-xs text-muted-foreground"><th className="pb-3 pr-4">Penerima</th><th className="pb-3 pr-4">Organisasi</th><th className="pb-3 pr-4">Status</th><th className="pb-3">Tindakan</th></tr></thead><tbody>{data.accounts.map((account) => <tr key={account.id} className="border-b last:border-0"><td className="py-3 pr-4"><strong>{account.full_name}</strong><span className="block text-xs text-muted-foreground">{account.email}</span></td><td className="py-3 pr-4">{data.organizations.find((org) => org.id === account.organization_id)?.legal_name || "—"}</td><td className="py-3 pr-4">{statusLabels[account.status]}</td><td className="py-3">{account.status !== "disabled" && <button type="button" disabled={busy} onClick={() => void patch("disable_account",account.id,"Penonaktifan oleh administrator")} className="text-xs font-semibold text-red-700 underline underline-offset-4 disabled:opacity-40">Nonaktifkan</button>}</td></tr>)}</tbody></table></div> : <p className="mt-4 text-sm text-muted-foreground">Belum ada akun eksternal.</p>}
+      {data.accounts.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm"><thead><tr className="border-b text-xs text-muted-foreground"><th className="pb-3 pr-4">Penerima</th><th className="pb-3 pr-4">Organisasi</th><th className="pb-3 pr-4">Status</th><th className="pb-3">Tindakan</th></tr></thead><tbody>{data.accounts.map((account) => <tr key={account.id} className="border-b last:border-0"><td className="py-3 pr-4"><strong>{account.full_name}</strong><span className="block text-xs text-muted-foreground">{account.email}</span></td><td className="py-3 pr-4">{data.organizations.find((org) => org.id === account.organization_id)?.legal_name || "—"}</td><td className="py-3 pr-4">{statusLabels[account.status]}{account.status === "invited" && (() => { const invite = data.invitations.find((item) => item.account_id === account.id && !item.consumed_at && !item.revoked_at); return invite ? <span className="mt-1 block text-xs text-muted-foreground">Berlaku sampai {new Date(invite.expires_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</span> : null; })()}</td><td className="py-3"><div className="flex flex-wrap gap-3">{account.status === "invited" && <button type="button" disabled={busy || data.organizations.find((org) => org.id === account.organization_id)?.verification_status !== "verified"} onClick={() => void resendInvitation(account)} className="text-xs font-semibold text-emerald-800 underline underline-offset-4 disabled:opacity-40">Kirim ulang undangan</button>}{account.status !== "disabled" && <button type="button" disabled={busy} onClick={() => void patch("disable_account",account.id,"Penonaktifan oleh administrator")} className="text-xs font-semibold text-red-700 underline underline-offset-4 disabled:opacity-40">Nonaktifkan</button>}</div></td></tr>)}</tbody></table></div> : <p className="mt-4 text-sm text-muted-foreground">Belum ada akun eksternal.</p>}
     </section>
 
     <section className="rounded-2xl border bg-card p-5">
