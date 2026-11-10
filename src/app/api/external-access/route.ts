@@ -24,9 +24,13 @@ function normalizedEmail(value: unknown) {
 function dateValue(value: unknown, fallback?: string, endOfDay = false) {
   const result = typeof value === "string" && value.trim() ? value.trim() : fallback;
   if (!result) throw new Error("Masa berlaku izin harus menggunakan tanggal yang valid.");
-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(result)) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(result)) {
+    const [year, month, day] = result.split("-").map(Number);
+    const dateCheck = new Date(Date.UTC(year, month - 1, day));
+    if (dateCheck.getUTCFullYear() !== year || dateCheck.getUTCMonth() + 1 !== month || dateCheck.getUTCDate() !== day) {
+      throw new Error("Tanggal izin tidak valid.");
+    }
     const localDate = new Date(result + (endOfDay ? "T23:59:59.999+07:00" : "T00:00:00.000+07:00"));
-    if (!Number.isFinite(localDate.getTime())) throw new Error("Tanggal izin tidak valid.");
     return localDate.toISOString();
   }
   if (!Number.isFinite(Date.parse(result))) throw new Error("Masa berlaku izin harus menggunakan tanggal yang valid.");
