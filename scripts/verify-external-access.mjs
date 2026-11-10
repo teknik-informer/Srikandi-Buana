@@ -26,7 +26,7 @@ const now = "2026-11-10T00:00:00.000Z";
 const owner = "workspace-owner";
 const otherOwner = "other-workspace";
 await pool.query(
-  "INSERT INTO users(id,email,password_hash,full_name,created,role,workspace_owner) VALUES($1,$2,'fixture','$3',$4,'admin',$1),($5,$6,'fixture','Other owner',$4,'admin',$5)",
+  "INSERT INTO users(id,email,password_hash,full_name,created,role,workspace_owner) VALUES($1,$2,'fixture',$3,$4,'admin',$1),($5,$6,'fixture','Other owner',$4,'admin',$5)",
   [owner, "admin@example.test", "Workspace owner", now, otherOwner, "other@example.test"],
 );
 
