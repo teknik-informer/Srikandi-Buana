@@ -169,6 +169,24 @@ export async function POST(request:Request){
    if(result?.status!=='approved')return json({error:'Stok opname belum berhasil disetujui.'},409);
    return json({ok:true,status:'approved'});
   }
+  if(b.action==='map-catalog-product'){
+   if(c.user.role!=='admin')return json({error:'Pemetaan katalog hanya dapat dilakukan administrator.'},403);
+   const productId=b.productId,itemId=b.inventoryItemId;
+   if(!uuid(productId)||!uuid(itemId))return json({error:'Produk katalog atau barang inventaris tidak valid.'},400);
+   const product=await c.db.prepare('SELECT id,sku,name,unit FROM commerce_products WHERE id=? AND owner=?').bind(productId,owner).first();
+   if(!product)return json({error:'Produk katalog tidak ditemukan pada organisasi ini.'},404);
+   const item=await c.db.prepare("SELECT id,sku,name,unit_of_measure,source_legacy_product_id FROM workspace_v14.inventory_items WHERE id=? AND organization_id=? AND item_type='product'").bind(itemId,org).first();
+   if(!item)return json({error:'Pilih barang jadi pada inventaris.'},404);
+   if(String(product.unit).trim().toLowerCase()!==String(item.unit_of_measure).trim().toLowerCase())return json({error:'Satuan katalog dan inventaris harus sama persis sebelum dipetakan.'},409);
+   if(item.source_legacy_product_id&&String(item.source_legacy_product_id)!==String(productId))return json({error:'Barang inventaris ini sudah dipetakan ke produk katalog lain.'},409);
+   await c.db.batch([
+    c.db.prepare('UPDATE workspace_v14.inventory_items SET source_legacy_product_id=?,updated_at=?::timestamptz WHERE id=? AND organization_id=? AND (source_legacy_product_id IS NULL OR source_legacy_product_id=?)').bind(productId,now,itemId,org,productId),
+    c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(id(),owner,'Produk katalog dipetakan ke inventaris',String(product.sku)+' → '+String(item.sku),now)
+   ]);
+   const mapped=await c.db.prepare('SELECT source_legacy_product_id FROM workspace_v14.inventory_items WHERE id=? AND organization_id=?').bind(itemId,org).first();
+   if(String(mapped?.source_legacy_product_id)!==String(productId))return json({error:'Pemetaan produk berubah bersamaan. Muat ulang dan coba lagi.'},409);
+   return json({ok:true});
+  }
   if(b.action==='location'){
    const code=typeof b.locationCode==='string'?b.locationCode.trim().toUpperCase():'',name=textField(b.name,160),type=String(b.locationType||'warehouse'),notes=textField(b.notes,500);
    if(!/^[A-Z0-9][A-Z0-9_-]{1,31}$/.test(code)||!name||!locationTypes.has(type))return json({error:'Kode, nama, dan jenis lokasi penyimpanan tidak valid.'},400);
