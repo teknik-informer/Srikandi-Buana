@@ -6,6 +6,12 @@ import { newDb, DataType } from "pg-mem";
 
 const migration = newDb();
 migration.public.registerFunction({
+  name: "trim",
+  args: [DataType.text],
+  returns: DataType.text,
+  implementation: (value) => String(value ?? "").trim(),
+});
+migration.public.registerFunction({
   name: "jsonb_typeof",
   args: [DataType.jsonb],
   returns: DataType.text,
