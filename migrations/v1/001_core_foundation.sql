@@ -17,7 +17,7 @@ CREATE TABLE organizations (
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive','archived')),
   timezone TEXT NOT NULL DEFAULT 'Asia/Jakarta',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE users (
