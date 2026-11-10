@@ -60,7 +60,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   if (dashboardDefinition && visibleDashboard) {
     return (
       <WorkspaceShell user={admin} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
-        <EnterpriseDashboardOverview dashboard={visibleDashboard} role={admin.role} />
+        <EnterpriseDashboardOverview dashboard={visibleDashboard} user={admin} />
       </WorkspaceShell>
     );
   }
