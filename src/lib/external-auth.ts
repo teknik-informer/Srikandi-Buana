@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { env } from "./runtime";
 import { digest } from "./auth";
 import { sessionCookie } from "./session-config";
-import type { ExternalGrant, ExternalOrganizationType, ExternalPrincipal, ExternalScope } from "./external-access-policy";
+import { activeExternalGrants, type ExternalGrant, type ExternalOrganizationType, type ExternalPrincipal, type ExternalScope } from "./external-access-policy";
 
 export async function createExternalSession(accountId: string, remember: boolean) {
   if (!env.DB) throw new Error("Database belum tersedia.");
@@ -59,6 +59,8 @@ export async function getAuthenticatedExternalUser(): Promise<ExternalPrincipal 
       permission: String(row.permission) as ExternalScope["permission"],
     });
   }
+  const activeGrants = activeExternalGrants([...grants.values()]);
+  if (activeGrants.length === 0) return null;
   return {
     accountId: String(account.id),
     workspaceOwner: String(account.workspace_owner),
@@ -68,7 +70,7 @@ export async function getAuthenticatedExternalUser(): Promise<ExternalPrincipal 
     email: String(account.email),
     fullName: String(account.full_name),
     accountStatus: String(account.status) as ExternalPrincipal["accountStatus"],
-    grants: [...grants.values()],
+    grants: activeGrants,
   };
 }
 
