@@ -158,6 +158,8 @@ const portal = readFileSync("src/app/portal-eksternal/page.tsx", "utf8");
 const nav = readFileSync("src/lib/navigation-config.ts", "utf8");
 const access = readFileSync("src/features/identity/access-policy.ts", "utf8");
 assert(api.includes('sameOrigin(request)'), "Writes must enforce same-origin requests");
+assert(api.includes('if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(raw))'), "Date inputs must accept standard YYYY-MM-DD format");
+assert(api.includes('.replace(/[\\u0300-\\u036f]/g, "")'), "Commodity slugs must normalize combining Unicode accents");
 assert(api.includes("memberData.status !== \"Aktif\"") && api.includes("memberData.verification !== \"Terverifikasi\""), "Lands must be linked to active, verified members");
 assert(api.includes('!["admin", "ketua"].includes(user.role)'), "Verification must require administrator or chair");
 assert(api.includes('user.programIds.includes("3")'), "Coordinator write access must require agriculture program assignment");
