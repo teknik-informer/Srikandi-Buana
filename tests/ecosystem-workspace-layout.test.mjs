@@ -198,10 +198,10 @@ test("chair records decisions through the task workspace rather than a context-f
   const policy = read("src/features/identity/access-policy.ts");
   assert.ok(dashboard.includes('user.role !== "ketua"'));
   assert.ok(dashboard.includes("createTaskFromProgramReport"));
-  assert.ok(policy.includes("if (isSuperAdmin(user.role)) return true;"));
-  assert.ok(workspace.includes('field.key === "notes") return { ...field, label: "Keputusan Ketua / perkembangan" }'));
-  assert.ok(workspace.includes('field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan" }'));
-  assert.ok(workspace.includes('field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan" }'));
+  assert.ok(!policy.includes("isSuperAdmin"), "Chair does not receive blanket write access");
+  assert.ok(!workspace.includes('Keputusan Ketua / perkembangan'));
+  assert.ok(!workspace.includes('field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan"'));
+  assert.ok(!workspace.includes('field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan"'));
 });
 
 
