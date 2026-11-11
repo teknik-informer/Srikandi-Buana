@@ -153,6 +153,7 @@ const legacyOnly = { ...principal, grants: [{ ...principal.grants[0], scopes: [{
 assert.equal(activeExternalGrants(legacyOnly.grants, at).length, 0, "Unsupported legacy grants must not keep an external account active");
 
 const api = readFileSync("src/app/api/agriculture/route.ts", "utf8");
+const agricultureWorkspace = readFileSync("src/app/_components/agriculture-workspace.tsx", "utf8");
 const summary = readFileSync("src/lib/external-agriculture-summary.ts", "utf8");
 const portal = readFileSync("src/app/portal-eksternal/page.tsx", "utf8");
 const externalDashboard = readFileSync("src/app/_components/external-audience-dashboard.tsx", "utf8");
@@ -182,6 +183,9 @@ assert(access.includes('if (id === "pertanian") return ["sekretaris", "bendahara
 assert(access.includes("canFinalApprove = (role: Role) => role === \"ketua\""));
 assert(api.includes("Master komoditas hanya dapat dikelola Ketua atau Administrator Sistem."));
 assert(api.includes("Pengesahan data pertanian hanya dapat dilakukan Ketua."));
+assert(api.includes('action === "update_parcel"') && api.includes("verification_status='pending'"), "Secretariat edits must return land records to Chair re-verification");
+assert(api.includes('action === "archive_parcel"') && api.includes("status='archived'"), "Land register archiving must preserve linked history rather than hard-delete");
+assert(agricultureWorkspace.includes('action: "update_parcel"') && agricultureWorkspace.includes('action: "archive_parcel"'), "Secretariat land edit/archive controls must be present");
 
 console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, Chair-only verification, scoped external grants, and privacy thresholds.");
 await pool.end();
