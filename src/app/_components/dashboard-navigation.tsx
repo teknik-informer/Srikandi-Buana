@@ -101,7 +101,7 @@ export default function DashboardNavigation({ section, user }: { section: string
               <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Beranda">
                 <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
                   <LayoutDashboard />
-                  <span>Pusat Kendali</span>
+                  <span>{user.role === "anggota" ? "Dashboard Anggota" : "Dashboard Pengurus"}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
