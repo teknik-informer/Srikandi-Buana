@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Building2, CalendarClock, FileCheck2, Handshake, Leaf, LogOut, ShieldCheck, Sprout, Wallet } from "lucide-react";
+import { Building2, CalendarClock, FileCheck2, Handshake, LogOut, ShieldCheck, Sprout, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ExternalAgricultureSummary } from "@/lib/external-agriculture-summary";
