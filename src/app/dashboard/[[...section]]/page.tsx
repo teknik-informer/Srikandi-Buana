@@ -16,6 +16,7 @@ import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-
 import ExternalAccessWorkspace from "../../_components/external-access-workspace";
 import AgricultureWorkspace from "../../_components/agriculture-workspace";
 import ManagementAudienceDashboard from "../../_components/management-audience-dashboard";
+import Inbox from "../../_components/inbox";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
@@ -98,6 +99,14 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     return <WorkspaceShell user={admin} section={active} title={title} defaultSidebarOpen={defaultSidebarOpen}>
       {active === "notifikasi" ? <NotificationCenter /> : active === "penjualan" ? <CommerceWorkspace role={admin.role} /> : <AccountingWorkspace role={admin.role} />}
     </WorkspaceShell>;
+  }
+  if (active === "pesan" && ["admin", "ketua", "sekretaris"].includes(admin.role)) {
+    return <WorkspaceShell user={admin} section={active} title="Pesan pengunjung" defaultSidebarOpen={defaultSidebarOpen}>
+      <Inbox />
+    </WorkspaceShell>;
+  }
+  if (admin.role === "ketua" && ["akun", "pengaturan"].includes(active)) {
+    return <Workspace section={active} principal={admin} defaultSidebarOpen={defaultSidebarOpen} />;
   }
   if (["portal","pengajuan","enterprise"].includes(active)) return <EnterpriseWorkspace user={admin} section={active} defaultSidebarOpen={defaultSidebarOpen} />;
   return admin.role === "admin" ? (
