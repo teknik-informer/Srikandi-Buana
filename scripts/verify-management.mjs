@@ -164,7 +164,7 @@ const now = new Date("2026-11-02T18:00:00Z");
 assert.equal(jakartaDate(now), "2026-11-03", "Local midnight uses Jakarta");
 assert.equal(validDate("2026-02-30"), false);
 assert.equal(validDate("2028-02-29"), true);
-const admin = buildManagementInsights(rows, files, principal("admin"), now);
+const admin = buildManagementInsights(rows, files, principal("ketua"), now);
 assert.equal(
   admin.balance,
   null,
