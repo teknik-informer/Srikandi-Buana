@@ -1,14 +1,25 @@
 import {getAuthenticatedUser} from '@/lib/auth';
-export async function getAdminUser(){const u=await getAuthenticatedUser();return u?.role==='admin'?u:null}
 
-/** Organization super-admin: the elected Chair or the protected technical owner. */
-export async function getGovernanceAdminUser(){
+/** Technical platform owner. This role is not an organizational approver. */
+export async function getAdminUser(){
  const u=await getAuthenticatedUser();
- return u&&["admin","ketua"].includes(u.role)?u:null;
+ return u?.role==='admin'?u:null;
 }
 
-/** Secretariat inbox: operational messages are handled by the Chair, system owner, or Secretary. */
+/** Organizational authority is reserved to the elected Chair. */
+export async function getGovernanceAdminUser(){
+ const u=await getAuthenticatedUser();
+ return u?.role==='ketua'?u:null;
+}
+
+/** Internal source documents may be handled by the Chair or Secretariat. */
+export async function getSecretariatUser(){
+ const u=await getAuthenticatedUser();
+ return u&&['ketua','sekretaris'].includes(u.role)?u:null;
+}
+
+/** Public enquiries are handled by the Secretariat, with Chair oversight. */
 export async function getMessageManagerUser(){
  const u=await getAuthenticatedUser();
- return u&&["admin","ketua","sekretaris"].includes(u.role)?u:null;
+ return u&&['ketua','sekretaris'].includes(u.role)?u:null;
 }
