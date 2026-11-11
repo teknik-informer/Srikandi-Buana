@@ -119,7 +119,7 @@ assert.equal((await chairRecords.POST(req('/api/records','POST',{kind:'galeri',d
 const publication=await chairRecords.PUT(req('/api/records','PUT',{id:draftRow.id,kind:'galeri',expectedUpdated:draftRow.updated,data:{...draftRow.data,status:'Terbit'}}));
 assert.equal(publication.status,200,await publication.clone().text());
 const chairPublishedFile=await chairFiles.GET(req('/api/files?id='+secretaryImageId+'&preview=1'));assert.equal(chairPublishedFile.status,200,'Chair can read a file referenced by a record within organizational oversight');
-assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:chairAccountId,role:'anggota',position:'Changed',programIds:[],enabled:true}))).status,200,'Chair session can be revoked after approval');assert.equal(await chairAuth.getAuthenticatedUser(),null,'Role changes revoke the Chair session immediately');
+
 console.log('PASS gallery handlers: invalid/cross-origin upload rejected, valid PNG saved privately, authenticated owner preview only, unconfirmed publication rejected, draft and confirmed publication accepted.');
 // Self-service display name and avatar: all roles can update only their own preferences.
 function ownProfileRequest(request){request.headers.set('x-profile-account',principal.accountId);return request;}
@@ -151,7 +151,7 @@ const self=await load('src/app/api/account/route.ts',memberJar);assert.equal((aw
 const resetResponse=await accountAdmin.POST(req('/api/accounts','POST',{action:'reset',userId:principal.accountId}));assert.equal(resetResponse.status,200);const reset={data:await resetResponse.json(),email:inv.email};assert.equal((await activate(reset)).response.status,200);assert.equal(await memberAuth.getAuthenticatedUser(),null,'Reset revokes old session');assert.equal((await activate(reset)).response.status,400);
 const login=await load('src/app/api/auth/login/route.ts',jar());assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,200,'Member email/password login');
 assert.equal((await accountAdmin.PATCH(req('/api/accounts','PATCH',{userId:owner,role:'anggota',enabled:false}))).status,403,'Owner cannot be demoted');
-assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:principal.accountId,role:'anggota',enabled:false}))).status,200);assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,401);
+assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:principal.accountId,role:'anggota',enabled:false}))).status,200);assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,401);assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:chairAccountId,role:'anggota',position:'Changed',programIds:[],enabled:true}))).status,200,'Chair session can be revoked after approval');assert.equal(await chairAuth.getAuthenticatedUser(),null,'Role changes revoke the Chair session immediately');
 // Public service topics, consent receipts, rejection, and administrator visibility.
 const publicMessages=await load('src/app/api/messages/route.ts',jar());
 const topics=['Informasi kelompok','Keanggotaan','Kemitraan','Dukungan akun','Pengaduan','Koreksi informasi','Permintaan data pribadi','Laporan keamanan','Bantuan aksesibilitas','Lainnya'];
