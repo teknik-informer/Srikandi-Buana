@@ -451,7 +451,7 @@ test("existing meeting decisions can only be retained in order with new actions 
 
 test("meeting decision evaluations require a dated leadership review and a reason", () => {
   const review = {
-    role: "ketua",
+    role: "sekretaris",
     previousStatus: "Belum dievaluasi",
     previousMeeting: "",
     previousDate: "",
