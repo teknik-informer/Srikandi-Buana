@@ -21,4 +21,4 @@ export async function allowedFileIds(user:Principal) {
   return ids;
 }
 
-export const canUpload=(user:Principal)=>['ketua','sekretaris','bendahara','koordinator'].includes(user.role);
+export const canUpload=(user:Principal)=>['admin','sekretaris','bendahara','koordinator'].includes(user.role);
