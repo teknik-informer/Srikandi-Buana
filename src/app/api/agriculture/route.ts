@@ -96,8 +96,9 @@ export async function GET(request: Request) {
       let memberName = "Anggota";
       try { memberName = String(JSON.parse(String(row.member_data)).name || memberName); } catch {}
       const { member_data: _privateMemberData, ...parcel } = row;
-      if (isSecretariat) return { ...parcel, member_name: memberName };
-      const { member_id: _memberId, member_name: _memberName, verification_note: _verificationNote, ...oversight } = { ...parcel, member_name: memberName };
+      const parcelData: Record<string, unknown> = { ...parcel, member_name: memberName };
+      if (isSecretariat) return parcelData;
+      const { member_id: _memberId, member_name: _memberName, verification_note: _verificationNote, ...oversight } = parcelData;
       return oversight;
     });
     const cropCycleRows = cycles.results.map((row) => {
