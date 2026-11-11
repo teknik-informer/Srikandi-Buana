@@ -1,4 +1,4 @@
 import {env} from './runtime';
 import {canReadRecord,visibleRecord,type Principal} from './permissions';
 export async function allowedFileIds(u:Principal){if(!env.DB)return new Set<string>();const rows=await env.DB.prepare('SELECT id,kind,data FROM records WHERE owner=?').bind(u.userId).all();const ids=new Set<string>();for(const row of rows.results){const r={id:String(row.id),kind:String(row.kind),data:JSON.parse(String(row.data))};if(canReadRecord(u,r)){const d=visibleRecord(u,r).data;for(const key of ['attachmentId','fileId'])if(d[key])ids.add(String(d[key]))}}const files=await env.DB.prepare('SELECT id FROM files WHERE owner=? AND uploader_id=?').bind(u.userId,u.accountId).all();for(const f of files.results)ids.add(String(f.id));return ids}
-export const canUpload=(u:Principal)=>['admin','sekretaris','bendahara','koordinator'].includes(u.role);
+export const canUpload=(u:Principal)=>['admin','ketua','sekretaris','bendahara','koordinator'].includes(u.role);
