@@ -178,7 +178,8 @@ assert.equal(
     principal("admin"),
     now,
   ).balance,
-  75,
+  null,
+  "Technical administrator must not receive cash balances",
 );
 assert.equal(
   admin.overdue.length,
