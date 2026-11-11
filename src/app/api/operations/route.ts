@@ -3,7 +3,7 @@ import {notifyOwner} from "@/lib/ecosystem/notifications";
 import { json, sameOrigin } from "@/lib/account-access";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { categories, statuses, canReview, canViewOperation, canFulfillCategory, operationActions, validateOperation as validateDomainOperation, cleanOperation, isFinancial, type Operation, type Category } from "@/lib/enterprise/operations";
+import { categories, statuses, canReview, canInspectOperations, canViewOperation, canFulfillCategory, operationActions, validateOperation as validateDomainOperation, cleanOperation, isFinancial, type Operation, type Category } from "@/lib/enterprise/operations";
 import { operationDB, findOperation, findAsset, checkInputAsset, createOperation, updateOperation, OperationError } from "@/lib/enterprise/repository";
 import type { Principal } from "@/lib/permissions";
 export const dynamic="force-dynamic";
@@ -11,7 +11,7 @@ function validateOperation(raw:unknown,complete:boolean){try{return validateDoma
 const uuid=(value:unknown)=>typeof value==='string'&&/^[a-f0-9-]{36}$/i.test(value);
 function visibleSQL(user:Principal){
  const parts=['requester_id=?'],args:unknown[]=[user.accountId];
- if(canReview(user))parts.push("status<>'draft'");
+ if(canInspectOperations(user))parts.push("status<>'draft'");
  const allowed=(Object.keys(categories)as Category[]).filter(c=>canFulfillCategory(user,c));
  if(allowed.length){parts.push("(category IN ("+allowed.map(()=>'?').join(',')+") AND status IN ('approved','in_progress','completed'))");args.push(...allowed);}
  return {sql:'('+parts.join(' OR ')+')',args};
