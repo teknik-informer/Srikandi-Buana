@@ -77,7 +77,10 @@ test("the report center exposes only report groups covered by the current role",
   const financeGroups = reporting.getVisibleReportGroups(principal("bendahara")).map((group) => group.id);
   assert.ok(financeGroups.includes("keuangan"));
   assert.ok(financeGroups.includes("usaha"));
-  assert.ok(!financeGroups.includes("keanggotaan"));
+  assert.ok(financeGroups.includes("keanggotaan"), "Treasury has read-only administrative reporting access");
+  const memberReport = reporting.selectReportRows(records, principal("bendahara"), "keanggotaan");
+  assert.equal(memberReport[0]?.data.phone, undefined, "Personal contact details remain redacted in treasury reports");
+  assert.equal(memberReport[0]?.data.potential, undefined, "Member needs remain redacted in treasury reports");
 
   const adminGroups = reporting.getVisibleReportGroups(principal("admin")).map((group) => group.id);
   assert.deepEqual(plain(adminGroups), [
@@ -188,7 +191,7 @@ test("task result handoff requires real evidence and a leadership decision", () 
   );
 });
 
-test("only the chair or administrator can approve a completed task result", () => {
+test("only the Chair can approve a completed task result", () => {
   const pending = {
     role: "ketua",
     previousVerification: "Menunggu verifikasi",
@@ -200,14 +203,14 @@ test("only the chair or administrator can approve a completed task result", () =
     reviewNote: "",
   };
   assert.equal(verification.taskVerificationError(pending), null);
-  assert.equal(verification.taskVerificationError({ ...pending, role: "admin" }), null);
+  assert.match(verification.taskVerificationError({ ...pending, role: "admin" }) || "", /Hanya Ketua/);
   assert.match(
     verification.taskVerificationError({ ...pending, role: "koordinator" }) || "",
-    /[Hh]anya Ketua atau Administrator/,
+    /Hanya Ketua/,
   );
   assert.match(
     verification.taskVerificationError({ ...pending, role: "sekretaris" }) || "",
-    /[Hh]anya Ketua atau Administrator/,
+    /Hanya Ketua/,
   );
 });
 
