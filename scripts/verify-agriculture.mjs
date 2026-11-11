@@ -155,6 +155,7 @@ assert.equal(activeExternalGrants(legacyOnly.grants, at).length, 0, "Unsupported
 const api = readFileSync("src/app/api/agriculture/route.ts", "utf8");
 const summary = readFileSync("src/lib/external-agriculture-summary.ts", "utf8");
 const portal = readFileSync("src/app/portal-eksternal/page.tsx", "utf8");
+const externalDashboard = readFileSync("src/app/_components/external-audience-dashboard.tsx", "utf8");
 const nav = readFileSync("src/lib/navigation-config.ts", "utf8");
 const access = readFileSync("src/features/identity/access-policy.ts", "utf8");
 assert(api.includes('sameOrigin(request)'), "Writes must enforce same-origin requests");
@@ -174,7 +175,7 @@ assert(summary.includes("p.verification_status='verified'") && summary.includes(
 assert(summary.includes("COUNT(DISTINCT p.member_id)") && summary.includes("COUNT(*) AS verified_count"), "Aggregates must be based on unique members and verified records");
 assert(summary.includes("count >= 5") && summary.includes("contributors >= 3"), "Small cohorts must be suppressed");
 assert(!/NIK|phone|coordinate|latitude|longitude/i.test(summary), "External summary must not query personal contact or precise location fields");
-assert(portal.includes("getExternalAgricultureSummary(user)") && portal.includes("Ringkasan pertanian terverifikasi"));
+assert(portal.includes("getExternalAgricultureSummary(user)") && externalDashboard.includes("Monografi dan indikator pertanian") && externalDashboard.includes("summary.harvest"), "The external audience dashboard must render the server-computed agriculture summary");
 assert(nav.includes("admin('pertanian','Pengelolaan Pertanian'"));
 assert(access.includes("if(id==='pertanian')return ['admin','ketua','koordinator'].includes(role)"));
 
