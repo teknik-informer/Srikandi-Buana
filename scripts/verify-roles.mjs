@@ -44,6 +44,12 @@ assert.equal(policy.visibleRecord(chair,consentFixture).data.purpose,undefined,'
 const transcriptFixture={id:'transcript-1',kind:'transkripsi',data:{name:'Pemeriksaan daftar hadir',date:'2026-10-25',status:'Perlu verifikasi',notes:'Nama dan alamat peserta pribadi',attachmentId:'private-source-scan'}};
 assert.equal(policy.visibleRecord(chair,transcriptFixture).data.notes,undefined,'Chair receives transcription status, not raw personal source notes');
 assert.equal(policy.visibleRecord(chair,transcriptFixture).data.attachmentId,undefined,'Chair cannot access private identity-bearing source attachments by default');
+const attendanceFixture={id:'attendance-1',kind:'kehadiran',data:{eventId:'event-1',name:'Kegiatan uji',memberIds:['member-1','member-2'],memberNames:['Nama Satu','Nama Dua'],notes:'Catatan pribadi peserta'}};
+const chairAttendance=policy.visibleRecord(chair,attendanceFixture);
+assert.equal(chairAttendance.data.count,2,'Chair receives an attendance aggregate');
+assert.equal(chairAttendance.data.memberIds,undefined,'Chair cannot receive member IDs in an attendance record');
+assert.equal(chairAttendance.data.memberNames,undefined,'Chair cannot receive individual attendance names');
+assert.equal(chairAttendance.data.notes,undefined,'Chair cannot receive free-text attendance notes');
 assert.equal(policy.visibleRecord(secretary,transcriptFixture).data.notes,'Nama dan alamat peserta pribadi','Secretariat retains access for source verification');
 const galleryPublished={...galleryDraft,data:{...galleryDraft.data,status:'Terbit'}};
 assert.equal(policy.canPublishRecord(chair,galleryDraft,galleryPublished),true,'Chair can publish an unchanged Secretariat draft');
