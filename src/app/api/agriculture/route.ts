@@ -118,6 +118,9 @@ export async function POST(request: Request) {
     }
 
     if (action === "create_commodity") {
+      if (!["admin", "ketua"].includes(user.role)) {
+        return json({ error: "Master komoditas hanya dapat dikelola Ketua atau Administrator Sistem." }, 403);
+      }
       const name = textValue(raw.name, "Nama komoditas", 2, 120);
       const code = slug(name);
       if (code.length < 2) throw new Error("Nama komoditas harus menghasilkan kode yang valid.");
