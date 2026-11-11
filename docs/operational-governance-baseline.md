@@ -148,7 +148,7 @@ Modul pengajuan operasional yang telah ada (pengadaan, penggantian biaya, peminj
 
 Pemisahan kewenangan yang telah diselaraskan pada PR:
 - Ketua dapat meninjau, meminta revisi, menolak, dan menyetujui pengajuan pada antrean keputusan organisasi.
-- Administrator Sistem/Developer dapat memeriksa pengajuan non-draf untuk keperluan teknis/pengawasan, tetapi tidak dapat membuka antrean keputusan Ketua, menyetujui, meminta revisi, atau menolak atas nama organisasi.
+- Administrator Sistem/Developer tidak memiliki akses ke antrean atau rincian pengajuan operasional. Ketua memegang pengawasan dan keputusan organisasi; Bendahara atau Sekretariat hanya melihat dan mengeksekusi kategori yang menjadi domainnya.
 - Bendahara mengeksekusi realisasi pengajuan keuangan/peminjaman aset pada tahap yang diizinkan setelah persetujuan.
 - Sekretaris mengeksekusi realisasi layanan administrasi/non-keuangan sesuai lingkup yang diizinkan.
 - Pengaju tidak dapat menyetujui atau merealisasikan pengajuannya sendiri.
