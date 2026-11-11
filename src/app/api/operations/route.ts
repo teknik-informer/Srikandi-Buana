@@ -35,6 +35,7 @@ export async function GET(request:Request){
    }
    return json({item,actions:operationActions(user,item),history:history.results,cash,asset:asset?{name:String(asset.data.name),condition:String(asset.data.condition)}:null});
   }
+  if(user.role==='admin')return json({error:'Administrator Sistem tidak mengakses antrean atau daftar pengajuan operasional.'},403);
   const scope=url.searchParams.get('scope')||'mine',filter=url.searchParams.get('status')||'all',query=(url.searchParams.get('q')||'').trim().slice(0,160);
   if(!['mine','review','fulfill','all'].includes(scope))return json({error:'Lingkup tidak valid.'},400);
   if(scope==='all'&&user.role!=='ketua')return json({error:'Pemantauan lintas pengajuan hanya menjadi kewenangan Ketua.'},403);
@@ -53,7 +54,7 @@ export async function GET(request:Request){
  }catch(error){return json({error:error instanceof OperationError?error.message:'Layanan operasional belum dapat dimuat. Pastikan migrasi enterprise telah diterapkan.'},error instanceof OperationError?error.status:503);}
 }
 export async function POST(request:Request){
- const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
+ const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(user.role==='admin')return json({error:'Administrator Sistem tidak membuat pengajuan operasional.'},403);
  try{const db=operationDB(),raw=await readJsonObject(request,12000);if(raw.accountId!==user.accountId)return json({error:'Akun aktif berubah. Muat ulang.'},409);if(!uuid(raw.clientRequestId))throw new OperationError('Identitas pengajuan tidak valid. Buka formulir baru.');
  const submit=raw.submit===true,input=validateOperation(raw.data,submit);await checkInputAsset(user.userId,input,submit);
  if(submit&&input.category==='expense')throw new OperationError('Simpan draf dan unggah bukti pengeluaran sebelum mengajukan penggantian biaya.');
@@ -64,7 +65,7 @@ export async function POST(request:Request){
  }catch(error){return failure(error);}
 }
 export async function PATCH(request:Request){
- const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
+ const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(user.role==='admin')return json({error:'Administrator Sistem tidak mengubah pengajuan operasional.'},403);
  try{const db=operationDB(),raw=await readJsonObject(request,14000);if(raw.accountId!==user.accountId)return json({error:'Akun aktif berubah. Muat ulang.'},409);
  const item=await findOperation(user.userId,String(raw.id));if(!item||!canViewOperation(user,item))return json({error:'Pengajuan tidak ditemukan.'},404);
  if(Number(raw.version)!==item.version)return json({error:'Pengajuan sudah berubah. Muat ulang sebelum melanjutkan.'},409);
