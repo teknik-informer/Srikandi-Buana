@@ -6,24 +6,24 @@ import { AlertCircle, CheckCircle2, ClipboardCheck, Leaf, LoaderCircle, Plus, Re
 type Member = { id: string; name: string; dusun: string };
 type Commodity = { id: string; name: string; default_unit: string; status: string };
 type Parcel = {
-  id: string; member_id: string; member_name: string; parcel_code: string; name: string;
+  id: string; member_id?: string; member_name?: string; parcel_code: string; name: string;
   area_m2: string | number; tenure_type: string; location_label: string; status: string;
-  verification_status: string; verification_note: string;
+  verification_status: string; verification_note?: string;
 };
 type CropCycle = {
   id: string; parcel_id: string; parcel_name: string; parcel_code: string; commodity_id: string;
   commodity_name: string; default_unit: string; season_label: string; planted_area_m2: string | number;
   planting_date: string; expected_harvest_date: string | null; status: string;
-  verification_status: string; verification_note: string;
+  verification_status: string; verification_note?: string;
 };
 type Harvest = {
   id: string; crop_cycle_id: string; harvest_date: string; quantity: string | number; unit_code: string;
-  notes: string; verification_status: string; verification_note: string; commodity_name: string;
+  notes?: string; verification_status: string; verification_note?: string; commodity_name: string;
   parcel_name: string; parcel_code: string; season_label: string;
 };
 type Audit = { actor_id: string; actor_role: string; action: string; target_type: string; target_id: string; reason: string; created_at: string };
 type Data = {
-  members: Member[]; commodities: Commodity[]; parcels: Parcel[]; cropCycles: CropCycle[];
+  members: Member[]; memberCount: number; commodities: Commodity[]; parcels: Parcel[]; cropCycles: CropCycle[];
   harvests: Harvest[]; audit: Audit[]; permissions: { canVerify: boolean };
 };
 const unitLabels: Record<string, string> = { kg: "Kilogram (kg)", kuintal: "Kuintal", ton: "Ton", liter: "Liter", buah: "Buah", ikat: "Ikat", batang: "Batang" };
@@ -38,10 +38,10 @@ const numberLabel = (value: string | number) => new Intl.NumberFormat("id-ID", {
 const dateLabel = (value: string) => value ? new Date(value.slice(0, 10) + "T12:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
 export default function AgricultureWorkspace({ role, programIds = [] }: { role: string; programIds?: string[] }) {
-  const canManageTechnical = ["admin", "ketua"].includes(role) || role === "koordinator" && programIds.includes("3");
-  const canManageCommodity = ["admin", "ketua"].includes(role);
-  const canManageLand = canManageTechnical || role === "sekretaris";
-  const [data, setData] = useState<Data>({ members: [], commodities: [], parcels: [], cropCycles: [], harvests: [], audit: [], permissions: { canVerify: false } });
+  const canManageTechnical = role === "koordinator" && programIds.includes("3");
+  const canManageCommodity = role === "sekretaris";
+  const canManageLand = role === "sekretaris";
+  const [data, setData] = useState<Data>({ members: [], memberCount: 0, commodities: [], parcels: [], cropCycles: [], harvests: [], audit: [], permissions: { canVerify: false } });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -139,7 +139,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Perubahan register lahan belum tersimpan.");
       setEditingParcelId("");
-      setNotice("Register lahan diperbarui. Status verifikasi dikembalikan ke antrean Ketua.");
+      setNotice("Register lahan diperbarui. Status verifikasi dikembalikan ke antrean Sekretariat.");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Koneksi terputus.");
@@ -205,7 +205,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
     </div>}
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Anggota aktif terverifikasi</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.members.length}</p><p className="text-xs text-muted-foreground">Tersedia untuk pencatatan lahan</p></div>
+      <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Anggota aktif terverifikasi</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.memberCount}</p><p className="text-xs text-muted-foreground">Angka agregat; identitas anggota dibatasi sesuai peran</p></div>
       <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Lahan terdaftar</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.parcels.length}</p><p className="text-xs text-muted-foreground">{data.parcels.filter(p => p.verification_status === "verified").length} terverifikasi</p></div>
       <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Siklus tanam</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.cropCycles.length}</p><p className="text-xs text-muted-foreground">{data.cropCycles.filter(c => c.verification_status === "verified").length} terverifikasi</p></div>
       <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Catatan panen</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.harvests.length}</p><p className="text-xs text-muted-foreground">{data.harvests.filter(h => h.verification_status === "verified").length} terverifikasi</p></div>
@@ -266,7 +266,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
     <section className="rounded-2xl border bg-card p-5">
       <div className="flex items-center gap-2"><ClipboardCheck size={19}/><h2 className="font-semibold">Register lahan dan verifikasi</h2></div>
       <div className="mt-4 grid gap-3">{data.parcels.map(parcel => <article key={parcel.id} className="rounded-xl border p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{parcel.parcel_code} · {parcel.member_name}</p><h3 className="font-semibold">{parcel.name}</h3><p className="mt-1 text-xs text-muted-foreground">{numberLabel(parcel.area_m2)} m² · {tenureLabels[parcel.tenure_type] || parcel.tenure_type}{parcel.location_label ? " · "+parcel.location_label : ""}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${verificationStyle[parcel.verification_status] || ""}`}>{verificationLabels[parcel.verification_status] || parcel.verification_status}</span></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{parcel.parcel_code} · {parcel.member_name || "Identitas anggota dibatasi"}</p><h3 className="font-semibold">{parcel.name}</h3><p className="mt-1 text-xs text-muted-foreground">{numberLabel(parcel.area_m2)} m² · {tenureLabels[parcel.tenure_type] || parcel.tenure_type}{parcel.location_label ? " · "+parcel.location_label : ""}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${verificationStyle[parcel.verification_status] || ""}`}>{verificationLabels[parcel.verification_status] || parcel.verification_status}</span></div>
         {parcel.status === "archived" && <p className="mt-2 text-xs font-medium text-muted-foreground">Register diarsipkan · tidak tersedia untuk siklus tanam baru</p>}
         {parcel.verification_note && <p className="mt-2 text-xs text-muted-foreground">{parcel.verification_note}</p>}
         {role === "sekretaris" && parcel.status === "active" && <div className="mt-3">
