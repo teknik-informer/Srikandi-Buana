@@ -92,6 +92,7 @@ Persiapan instrumen dan zona; penugasan surveyor/enumerator; pengumpulan; pemeri
 - Geotag bidang lahan tidak boleh otomatis menjadi data publik. Simpan koordinat presisi dengan akses terbatas; gunakan ringkasan atau generalisasi pada laporan publik.
 - Persetujuan penggunaan foto dan persetujuan pendataan adalah tujuan berbeda dan harus dicatat terpisah.
 - Daftar nama dan nomor kontak 50 anggota yang diberikan sebagai lampiran **tidak dimasukkan ke repository Git atau data publik**. Entri ke database produksi menunggu verifikasi keaslian, tujuan pemrosesan, serta pemberitahuan/persetujuan yang diperlukan.
+- Ketua mendapat ringkasan pengawasan anggota dan status persetujuan, bukan nomor kontak, catatan kebutuhan pribadi, atau rincian tujuan persetujuan secara default. Sekretariat menjadi pemegang register identitas dan satu-satunya role internal yang dapat mengunduh paket sumber lengkap yang memuat identitas pribadi. Administrator Sistem dan Ketua hanya menerima metadata nonpribadi dari endpoint sumber.
 
 ## 6. Keuangan dan batas otorisasi yang belum ditentukan
 
