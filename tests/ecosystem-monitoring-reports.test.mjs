@@ -216,7 +216,7 @@ test("only the Secretariat can verify a completed task result", () => {
 
 test("requesting correction requires a reason and reopens the task", () => {
   const review = {
-    role: "ketua",
+    role: "sekretaris",
     previousVerification: "Menunggu verifikasi",
     previousStatus: "Selesai",
     verification: "Perlu perbaikan",
@@ -251,7 +251,7 @@ test("coordinators cannot alter reviewer notes or reopen an already verified res
     verification.taskVerificationError(base) || "",
     /Catatan pemeriksaan hanya dapat diubah/,
   );
-  assert.match(
+    /dibuka kembali melalui pemeriksaan Sekretariat/,
     verification.taskVerificationError({
       ...base,
       previousVerification: "Terverifikasi",
@@ -303,7 +303,7 @@ test("monitoring exposes actionable ownership, deadline, verification and blocke
   const snapshot = monitoring.buildEnterpriseMonitoring(
     expanded,
     [],
-    principal("admin"),
+    principal("ketua"),
     new Date("2026-11-07T04:00:00.000Z"),
   );
   assert.equal(snapshot.operational.tasksWithoutAssignee, 2);
@@ -336,7 +336,7 @@ test("program evaluation compares actual reports without inventing numerical pro
   ];
   const evaluations = programEvaluation.buildProgramEvaluations(
     expanded,
-    principal("admin"),
+    principal("ketua"),
     "2026-11",
   );
   const first = evaluations.find((item) => item.programId === "1");
@@ -365,7 +365,7 @@ test("period evaluation keeps the latest prior report visible and asks for an up
   ];
   const evaluations = programEvaluation.buildProgramEvaluations(
     expanded,
-    principal("admin"),
+    principal("ketua"),
     "2026-12",
   );
   const first = evaluations.find((item) => item.programId === "1");
@@ -464,7 +464,7 @@ test("meeting decision evaluations require a dated leadership review and a reaso
   assert.equal(meetingCycle.meetingReviewError(review), null);
   assert.match(meetingCycle.meetingReviewError({ ...review, role: "admin" }) || "", /Sekretariat/);
   assert.match(
-    meetingCycle.meetingReviewError({ ...review, role: "sekretaris" }) || "",
+    meetingCycle.meetingReviewError({ ...review, role: "ketua" }) || "",
     /Sekretariat/,
   );
   assert.match(
