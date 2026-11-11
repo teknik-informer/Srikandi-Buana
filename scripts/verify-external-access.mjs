@@ -156,7 +156,7 @@ const activateRoute = readFileSync("src/app/api/auth/activate-external/route.ts"
 const auth = readFileSync("src/lib/external-auth.ts", "utf8");
 const login = readFileSync("src/app/api/auth/login/route.ts", "utf8");
 const logout = readFileSync("src/app/api/auth/logout/route.ts", "utf8");
-assert(adminRoute.includes("getAdminUser()") && adminRoute.includes("sameOrigin(request)"));
+assert(adminRoute.includes("getGovernanceAdminUser()") && adminRoute.includes("sameOrigin(request)"));
 assert(adminRoute.includes("WHERE id=? AND workspace_owner=?"), "Organization lookup must be workspace-scoped");
 assert(adminRoute.includes("DELETE FROM external_portal_sessions WHERE account_id=?"), "Disabling account must revoke its sessions");
 assert(adminRoute.includes("status='revoked'") && adminRoute.includes("revoked_at=?"), "Grant revocation must be recorded");
