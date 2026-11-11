@@ -219,7 +219,7 @@ export default function ManagementDashboard({
     .sort((a, b) => a.urgency - b.urgency || a.id.localeCompare(b.id))
     .slice(0, 8);
 
-  const attendanceAccess = user.role === "admin" || user.role === "sekretaris";
+  const attendanceAccess = ["admin", "ketua", "sekretaris"].includes(user.role);
   const upcomingEvents = view.rows
     .filter((row) =>
       row.kind === "kegiatan" &&
