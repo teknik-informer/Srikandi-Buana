@@ -156,7 +156,7 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
 
 export function canReadSectionForRole(role: Role, id: string): boolean {
   if (id === "akun-saya" || id === "panduan" || id === "notifikasi" || id === "ringkasan") return true;
-  if (role === "admin") return ["pengaturan", "sumber"].includes(id);
+  if (role === "admin") return ["akun", "pengaturan", "sumber", "monitoring"].includes(id);
   if (id === "pengaturan") return false;
   if (id === "akun") return ["admin", "ketua"].includes(role);
   if (id === "akses-eksternal") return role === "ketua";
