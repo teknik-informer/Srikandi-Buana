@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
+import { AudienceBarChart } from "./audience-dashboard-charts";
 import type { Principal } from "@/lib/permissions";
 import type { Row } from "@/lib/srikandi";
 
@@ -40,6 +41,22 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
     .sort((a, b) => String(a.data.date).localeCompare(String(b.data.date)))
     .slice(0, 5), [rows, today]);
   const nextEvent = events[0] as Row | undefined;
+  const agendaMonthly = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, index) => {
+      const month = new Date(now.getFullYear(), now.getMonth() + index, 1);
+      const key = month.getFullYear() + "-" + String(month.getMonth() + 1).padStart(2, "0");
+      return {
+        label: month.toLocaleDateString("id-ID", { month: "short", timeZone: "Asia/Jakarta" }),
+        value: rows.filter((row) =>
+          row.kind === "kegiatan" &&
+          String(row.data.date || "").slice(0, 7) === key &&
+          String(row.data.date || "") >= today
+        ).length,
+      };
+    });
+  }, [rows, today]);
+
 
   return (
     <main className="workspace-page space-y-6" aria-labelledby="member-dashboard-title">
@@ -111,6 +128,15 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
             </div>
           </CardContent>
         </Card>
+      </section>
+
+      <section aria-label="Analisis agenda anggota">
+        <AudienceBarChart
+          title="Agenda enam bulan mendatang"
+          description="Jumlah kegiatan yang sudah dijadwalkan dan dapat diakses anggota, dikelompokkan menurut bulan."
+          data={agendaMonthly}
+          emptyMessage="Belum ada agenda yang tercatat untuk enam bulan mendatang."
+        />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
