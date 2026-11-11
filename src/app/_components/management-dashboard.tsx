@@ -1099,6 +1099,19 @@ export default function ManagementDashboard({
                                 Detail & sunting
                               </Button>
                             </>
+                          ) : user.role === "sekretaris" && (
+                            ["Menunggu verifikasi", "Perlu perbaikan"].includes(String(row.data.verification || "")) ||
+                            String(row.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi"
+                          ) ? (
+                            <Button
+                              className="w-full"
+                              variant="outline"
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => openEditor(row)}
+                            >
+                              Periksa hasil
+                            </Button>
                           ) : (
                             <Button variant="outline" size="sm" asChild>
                               <Link href={recordHref(row)}>Lihat detail</Link>
@@ -1328,6 +1341,16 @@ export default function ManagementDashboard({
                           : ""
                         : String(editor.data[field.key] ?? "");
                     const reviewer = user.role === "sekretaris";
+                    const reviewerFields = ["verification", "reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"];
+                    if (reviewer && !reviewerFields.includes(field.key)) {
+                      return (
+                        <Field key={field.key}>
+                          <FieldLabel>{field.label}</FieldLabel>
+                          <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm whitespace-pre-wrap">{value || "—"}</p>
+                          <input type="hidden" name={field.key} value={value} />
+                        </Field>
+                      );
+                    }
                     const options =
                       field.key === "programId" && user.role === "koordinator"
                         ? user.programIds
