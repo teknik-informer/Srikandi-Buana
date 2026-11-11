@@ -180,7 +180,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
 
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Sprout size={19} className="text-emerald-700"/><h2 className="font-semibold">Catat siklus tanam</h2></div>
-        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_crop_cycle", { parcelId, commodityId, seasonLabel, plantedAreaM2, plantingDate, expectedHarvestDate }, () => { setSeasonLabel(""); setPlantedAreaM2(""); setPlantingDate(""); setExpectedHarvestDate(""); })}>
+        {canManageTechnical && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_crop_cycle", { parcelId, commodityId, seasonLabel, plantedAreaM2, plantingDate, expectedHarvestDate }, () => { setSeasonLabel(""); setPlantedAreaM2(""); setPlantingDate(""); setExpectedHarvestDate(""); })}>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Lahan<select required value={parcelId} onChange={e => setParcelId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih lahan aktif</option>{activeParcels.map(p => <option key={p.id} value={p.id}>{p.parcel_code} · {p.name} ({numberLabel(p.area_m2)} m²)</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Komoditas<select required value={commodityId} onChange={e => setCommodityId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih komoditas</option>{activeCommodities.map(c => <option key={c.id} value={c.id}>{c.name} · {c.default_unit}</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium">Musim/periode tanam<input required minLength={2} maxLength={100} value={seasonLabel} onChange={e => setSeasonLabel(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Musim hujan 2026"/></label>
@@ -188,7 +188,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
           <label className="grid gap-1 text-sm font-medium">Tanggal tanam<input required type="date" value={plantingDate} onChange={e => setPlantingDate(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1 text-sm font-medium">Perkiraan panen<input type="date" min={plantingDate || undefined} value={expectedHarvestDate} onChange={e => setExpectedHarvestDate(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <button disabled={busy || !activeParcels.length || !activeCommodities.length} className="sm:col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Simpan siklus tanam</button>
-        </form>
+        </form>}
       </section>
 
       <section className="rounded-2xl border bg-card p-5">
