@@ -5,7 +5,7 @@ import {balancedLines} from '@/features/finance/validation.mjs';
 import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
 export const dynamic='force-dynamic';
-const canRead=(role:string)=>['admin','ketua','sekretaris','bendahara'].includes(role),canWrite=(role:string)=>['admin','bendahara'].includes(role);
+const canRead=(role:string)=>['admin','ketua','sekretaris','bendahara'].includes(role),canWrite=(role:string)=>['admin','ketua','bendahara'].includes(role);
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!canRead(c.user.role))return json({error:'Akses akuntansi dibatasi.'},403);
  try{
  if(new URL(request.url).searchParams.get('format')==='csv'){
