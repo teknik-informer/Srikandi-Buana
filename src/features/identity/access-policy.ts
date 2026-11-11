@@ -35,7 +35,7 @@ export const canFinalApprove = (role: Role) => role === "ketua";
 const secretariatWrite = [
   "anggota", "pengurus", "musyawarah", "persetujuan", "kegiatan",
   "kehadiran", "kelembagaan", "register", "transkripsi", "surat",
-  "alsintan", "publikasi", "galeri",
+  "alsintan", "survei", "publikasi", "galeri",
 ];
 const secretariatReadOnly = [
   "kas", "aset", "akuntansi", "program", "pertanian",
@@ -53,7 +53,7 @@ export function canReadKindForRole(role: Role, kind: string): boolean {
   if (isSuperAdmin(role)) return true;
   if (role === "sekretaris") return secretariatWrite.includes(kind) || secretariatReadOnly.includes(kind);
   if (role === "bendahara") return financeWrite.includes(kind) || financeReadOnly.includes(kind);
-  if (role === "koordinator") return coordinationWrite.includes(kind);
+  if (role === "koordinator") return coordinationWrite.includes(kind) || kind === "survei";
   return kind === "anggota" || kind === "kegiatan";
 }
 
