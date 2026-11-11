@@ -203,6 +203,14 @@ test("chair records decisions through the task workspace rather than a context-f
 });
 
 
+test("Chair and Secretariat receive their privileged screens through the authenticated role route", () => {
+  const route = read("src/app/dashboard/[[...section]]/page.tsx");
+  assert.ok(route.includes('admin.role === "ketua" && ["akun", "pengaturan"].includes(active)'));
+  assert.ok(route.includes('["admin", "ketua", "sekretaris"].includes(admin.role)'));
+  assert.ok(route.includes("<Inbox />"));
+  assert.ok(route.includes("getGovernanceAdminUser") === false, "Page visibility is role-driven; API guards remain authoritative");
+});
+
 test("task completion evidence is submitted by implementers and verified only by leadership", () => {
   const schema = read("src/lib/srikandi.ts");
   const policy = read("src/lib/enterprise/task-verification.ts");
