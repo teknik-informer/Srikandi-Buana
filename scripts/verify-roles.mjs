@@ -111,7 +111,7 @@ const photoData={name:'Synthetic group photo',date:'2026-11-04',fileId:secretary
 const unconfirmed=await secretaryRecords.POST(req('/api/records','POST',{kind:'galeri',data:photoData}));assert.equal(unconfirmed.status,400);assert.match((await unconfirmed.json()).error,/izin publikasi/);
 const draftData={...photoData,status:'Draf',publicationPermission:'Dikonfirmasi',altText:'Synthetic plants in garden'};
 const draftCreated=await secretaryRecords.POST(req('/api/records','POST',{kind:'galeri',data:draftData}));assert.equal(draftCreated.status,200,'Secretariat can create a gallery draft');
-const draftRow=(await (await secretaryRecords.GET(req('/api/records'))).json()).records.find(r=>r.id===(await draftCreated.json()).id);
+const draftId=(await draftCreated.json()).id;const draftRow=(await (await secretaryRecords.GET(req('/api/records'))).json()).records.find(r=>r.id===draftId);
 assert.equal(draftRow.data.status,'Draf');
 assert.equal((await secretaryRecords.PUT(req('/api/records','PUT',{id:draftRow.id,kind:'galeri',expectedUpdated:draftRow.updated,data:{...draftRow.data,status:'Terbit'}}))).status,403,'Secretariat cannot publish its own gallery draft');
 assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'galeri',data:draftData}))).status,403,'Technical administrator cannot create public content');
