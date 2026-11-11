@@ -94,7 +94,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   if (active === "surat-resmi") {
     const settings = await getSiteSettings();
     return <WorkspaceShell user={admin} section={active} title="Penyusunan Surat Resmi" defaultSidebarOpen={defaultSidebarOpen}>
-      <OfficialLetterWorkspace settings={{ address: settings.address, email: settings.email, phone: settings.phone }} />
+      <OfficialLetterWorkspace role={admin.role} settings={{ address: settings.address, email: settings.email, phone: settings.phone }} />
     </WorkspaceShell>;
   }
   if (active === "akses-eksternal") {
