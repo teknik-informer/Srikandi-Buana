@@ -1,9 +1,14 @@
 /**
  * Server-side organization access policy.
  *
- * "admin" is the protected technical owner / Developer account and "ketua" is
- * the elected Chair. Both have Super Admin access to the workspace. Business
- * approvals that carry organizational authority remain reserved to the Chair.
+ * Organizational authority and technical administration are separate:
+ * - admin: platform configuration and technical maintenance only
+ * - ketua: organizational oversight and explicit final decisions
+ * - sekretaris / bendahara: their respective business domains
+ * - koordinator: assigned program scope
+ * - anggota: own profile and member-facing information
+ *
+ * No role inherits broad business access merely because it is called admin.
  */
 export const roles = {
   admin: "Administrator Sistem",
@@ -29,9 +34,6 @@ export type Principal = {
 };
 export type AccessRecord = { id: string; kind: string; data: Record<string, unknown> };
 
-const isSuperAdmin = (role: Role) => role === "admin" || role === "ketua";
-export const canFinalApprove = (role: Role) => role === "ketua";
-
 const secretariatWrite = [
   "anggota", "pengurus", "musyawarah", "persetujuan", "kegiatan",
   "kehadiran", "kelembagaan", "register", "transkripsi", "surat", "surat_resmi",
@@ -50,7 +52,8 @@ const financeReadOnly = [
 const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_program", "usaha", "kemitraan"];
 
 export function canReadKindForRole(role: Role, kind: string): boolean {
-  if (isSuperAdmin(role)) return true;
+  if (role === "admin") return false;
+  if (role === "ketua") return true;
   if (role === "sekretaris") return secretariatWrite.includes(kind) || secretariatReadOnly.includes(kind);
   if (role === "bendahara") return financeWrite.includes(kind) || financeReadOnly.includes(kind);
   if (role === "koordinator") return coordinationWrite.includes(kind) || kind === "survei";
@@ -62,7 +65,6 @@ export function canReadKind(user: Principal, kind: string): boolean {
 }
 
 export function canWriteKind(user: Principal, kind: string): boolean {
-  if (isSuperAdmin(user.role)) return true;
   if (user.role === "sekretaris") return secretariatWrite.includes(kind);
   if (user.role === "bendahara") return financeWrite.includes(kind);
   if (user.role === "koordinator") return coordinationWrite.includes(kind);
@@ -84,13 +86,9 @@ export function canReadRecord(user: Principal, record: AccessRecord): boolean {
 
 export function canWriteRecord(user: Principal, record: AccessRecord): boolean {
   if (["publikasi", "galeri"].includes(record.kind) && record.data.status === "Terbit") {
-    return canFinalApprove(user.role);
+    return false;
   }
-  if (isSuperAdmin(user.role)) return true;
-  if (user.role === "sekretaris") {
-    return secretariatWrite.includes(record.kind) &&
-      !(["publikasi", "galeri"].includes(record.kind) && record.data.status === "Terbit");
-  }
+  if (user.role === "sekretaris") return secretariatWrite.includes(record.kind);
   if (user.role === "bendahara") return financeWrite.includes(record.kind);
   if (user.role === "koordinator") {
     if (!coordinationWrite.includes(record.kind) || !user.programIds.includes(String(record.data.programId))) return false;
@@ -104,6 +102,38 @@ export function canWriteRecord(user: Principal, record: AccessRecord): boolean {
     if (record.kind === "kemitraan") return ["6", "8"].includes(String(record.data.programId)) && ["Referensi", "Rencana penjajakan", "Komunikasi awal", "Pembahasan"].includes(String(record.data.status));
   }
   return false;
+}
+
+const taskReviewFields = new Set([
+  "verification", "reviewNote", "meetingReviewStatus",
+  "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote",
+]);
+
+function stableValue(value: unknown): string {
+  if (Array.isArray(value)) return "[" + value.map(stableValue).join(",") + "]";
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return "{" + Object.keys(record).sort().map((key) => JSON.stringify(key) + ":" + stableValue(record[key])).join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+/** The Secretary may verify task outcomes, but cannot rewrite the task itself. */
+export function canReviewFollowup(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
+  if (user.role !== "sekretaris" || previous.kind !== "tindaklanjut" || next.kind !== "tindaklanjut" || previous.id !== next.id) return false;
+  const stripReview = (data: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(data).filter(([key]) => !taskReviewFields.has(key)));
+  return stableValue(stripReview(previous.data)) === stableValue(stripReview(next.data));
+}
+
+/** The Chair can publish an existing, unchanged draft; the Chair does not author its content. */
+export function canPublishRecord(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
+  if (user.role !== "ketua" || previous.id !== next.id || previous.kind !== next.kind) return false;
+  if (!["publikasi", "galeri"].includes(next.kind)) return false;
+  if (previous.data.status === "Terbit" || next.data.status !== "Terbit") return false;
+  const stripStatus = (data: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(data).filter(([key]) => key !== "status"));
+  return stableValue(stripStatus(previous.data)) === stableValue(stripStatus(next.data));
 }
 
 export function visibleRecord(user: Principal, record: AccessRecord): AccessRecord {
@@ -125,17 +155,22 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
 }
 
 export function canReadSectionForRole(role: Role, id: string): boolean {
-  if (isSuperAdmin(role)) return true;
-  if (["notifikasi", "penjualan"].includes(id)) return true;
-  if (id === "akuntansi") return ["sekretaris", "bendahara"].includes(role);
-  if (id === "pertanian") return ["sekretaris", "bendahara", "koordinator"].includes(role);
-  if (["ringkasan", "akun-saya", "portal", "pengajuan", "monitoring"].includes(id)) return true;
-  if (id === "enterprise") return ["sekretaris", "bendahara"].includes(role);
-  if (id === "dokumen") return ["sekretaris", "bendahara", "koordinator"].includes(role);
-  if (id === "pesan") return role === "sekretaris";
-  if (id === "surat-resmi") return ["sekretaris", "bendahara"].includes(role);
-  if (["sumber", "panduan", "pengaturan", "akun", "akses-eksternal"].includes(id)) return false;
-  if (id === "laporan") return ["sekretaris", "bendahara"].includes(role);
+  if (id === "akun-saya" || id === "panduan" || id === "notifikasi" || id === "ringkasan") return true;
+  if (role === "admin") return ["pengaturan", "sumber"].includes(id);
+  if (id === "pengaturan") return false;
+  if (id === "akun" || id === "akses-eksternal") return role === "ketua";
+  if (id === "sumber") return ["ketua", "sekretaris"].includes(role);
+  if (id === "penjualan") return role !== "admin";
+  if (id === "akuntansi") return ["ketua", "sekretaris", "bendahara"].includes(role);
+  if (id === "pertanian") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
+  if (["portal", "pengajuan"].includes(id)) return true;
+  if (id === "enterprise") return ["ketua", "sekretaris", "bendahara"].includes(role);
+  if (id === "dokumen") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
+  if (id === "pesan") return ["ketua", "sekretaris"].includes(role);
+  if (id === "surat-resmi") return ["ketua", "sekretaris", "bendahara"].includes(role);
+  if (id === "laporan") return ["ketua", "sekretaris", "bendahara"].includes(role);
+  if (["publikasi", "galeri"].includes(id)) return ["ketua", "sekretaris"].includes(role);
+  if (["sistem", "akun", "akses-eksternal"].includes(id)) return role === "ketua" || id === "pengaturan" && role === "admin";
   return canReadKindForRole(role, id);
 }
 
