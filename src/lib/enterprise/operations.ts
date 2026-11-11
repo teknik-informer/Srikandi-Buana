@@ -10,6 +10,7 @@ export const canReview = (user: Principal) => user.role === "ketua";
 export const canInspectOperations = (user: Principal) => user.role === "ketua";
 export function canFulfillCategory(user: Principal, category: Category) { return (isFinancial(category) || category === "asset_loan" ? user.role === "bendahara" : user.role === "sekretaris"); }
 export function canViewOperation(user: Principal, item: Operation) {
+  if (user.role === "admin") return false;
   return item.owner === user.userId && (item.requester_id === user.accountId || canInspectOperations(user) && item.status !== "draft" || canFulfillCategory(user,item.category) && ["approved","in_progress","completed"].includes(item.status));
 }
 export function operationActions(user: Principal, item: Operation): string[] {
