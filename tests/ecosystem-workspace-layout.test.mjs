@@ -87,7 +87,7 @@ test("meeting follow-ups can be promoted to permission-checked task drafts witho
 test("upcoming agenda links to the selected event attendance record with role-limited editing", () => {
   const dashboard = read("src/app/_components/management-dashboard.tsx");
   const attendance = read("src/app/_components/attendance.tsx");
-  assert.ok(dashboard.includes('const attendanceAccess = ["admin", "ketua", "sekretaris"].includes(user.role)'));
+  const attendanceAccess = user.role === "sekretaris";
   assert.ok(dashboard.includes('row.kind === "kehadiran" && row.data.eventId === event.id'));
   assert.ok(dashboard.includes('"/dashboard/kehadiran?eventId=" + encodeURIComponent(event.id)'));
   assert.ok(dashboard.includes("Daftar hadir belum dibuat"));
@@ -186,7 +186,7 @@ test("chair task management preserves the follow-up record deletion boundary", (
   const api = read("src/app/api/records/route.ts");
   const workspace = read("src/app/_components/access/role-workspace.tsx");
   const policy = read("src/features/identity/access-policy.ts");
-  assert.ok(policy.includes("if (isSuperAdmin(user.role)) return true;"));
+  assert.ok(!policy.includes("isSuperAdmin"), "No role has blanket CRUD access");
   assert.ok(api.includes("Ketua dapat memperbarui status tugas, tetapi tidak menghapus riwayat tindak lanjut."));
   assert.ok(workspace.includes('user.role !== "ketua" &&'));
 });
@@ -207,8 +207,8 @@ test("chair records decisions through the task workspace rather than a context-f
 
 test("Chair and Secretariat receive their privileged screens through the authenticated role route", () => {
   const route = read("src/app/dashboard/[[...section]]/page.tsx");
-  assert.ok(route.includes('admin.role === "ketua" && ["akun", "pengaturan"].includes(active)'));
-  assert.ok(route.includes('["admin", "ketua", "sekretaris"].includes(admin.role)'));
+  assert.ok(route.includes('admin.role === "ketua" && active === "akun"'));
+  assert.ok(route.includes('["ketua", "sekretaris"].includes(admin.role)'));
   assert.ok(route.includes("<Inbox />"));
   assert.ok(route.includes("getGovernanceAdminUser") === false, "Page visibility is role-driven; API guards remain authoritative");
 });
@@ -227,12 +227,12 @@ test("task completion evidence is submitted by implementers and verified only by
   }
   assert.ok(api.includes('import { taskVerificationError } from "@/lib/enterprise/task-verification"'));
   assert.ok(api.includes("taskVerificationError({"));
-  assert.ok(policy.includes('input.role === "ketua"'));
+  assert.ok(policy.includes('input.role === "sekretaris"'));
   assert.ok(policy.includes("completionEvidence"));
   assert.ok(policy.includes("previousVerification === \"Terverifikasi\""));
   assert.ok(workspace.includes('["reviewNote", "meetingReviewNote"].includes(f.key)'));
   assert.ok(workspace.includes('f.key === "verification"'));
-  assert.ok(management.includes('!["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || user.role === "ketua"'));
+  assert.ok(management.includes('!["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || user.role === "sekretaris"'));
   assert.ok(management.includes('field.key === "verification" && !reviewer'));
   assert.ok(monitoring.includes('title: "Hasil menunggu verifikasi"'));
   assert.ok(monitoring.includes('title: "Tugas tanpa PIC"'));
@@ -248,8 +248,8 @@ test("leadership task decisions are retained as distinct audit events and shown 
   for (const action of ["Hasil diajukan untuk verifikasi", "Hasil tugas disahkan", "Perbaikan tugas diminta"]) {
     assert.ok(api.includes(action));
   }
-  assert.ok(api.includes("audit:['admin','ketua'].includes(u.role)?audit.results:[]"));
-  assert.ok(monitoring.includes('["admin", "ketua"].includes(user.role) && audit.length > 0'));
+  assert.ok(api.includes("audit:u.role===\'ketua\'?audit.results:[]"));
+  assert.ok(monitoring.includes('user.role === "ketua" && audit.length > 0'));
   assert.ok(monitoring.includes("Aktivitas tercatat"));
 });
 
@@ -297,7 +297,7 @@ test("meeting decisions become individually linked tasks only after approval and
   assert.ok(dashboard.includes("meetingActionSourceMarker(row.id, index)"));
   assert.ok(dashboard.includes("Lanjutkan "));
   assert.ok(dashboard.includes("Evaluasi pelaksanaan keputusan rapat"));
-  assert.ok(dashboard.includes('user.role === "ketua" && canWriteRecord(user, task)'));
+  assert.ok(dashboard.includes('user.role === "sekretaris" && (reviewStatus === "Belum dievaluasi"'));
   assert.ok(api.includes("Keputusan harus tercatat Disepakati sebelum dibuat menjadi tugas."));
   assert.ok(api.includes("Keputusan rapat ini sudah memiliki tugas."));
   assert.ok(api.includes("Daftar keputusan sudah memiliki tugas terkait."));
