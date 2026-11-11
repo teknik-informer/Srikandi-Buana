@@ -116,7 +116,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
   function editParcel(parcel: Parcel) {
     setEditingParcelId(parcel.id);
     setParcelDraft({
-      memberId: parcel.member_id,
+      memberId: parcel.member_id || "",
       parcelCode: parcel.parcel_code,
       name: parcel.name,
       areaM2: String(parcel.area_m2),
