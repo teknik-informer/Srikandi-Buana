@@ -29,7 +29,7 @@ Keputusan arsitektur: **jangan gunakan satu role Super Admin yang menggabungkan 
 | Pemerintah/Dinas | Laporan kelompok, monografi, agregat lahan/komoditas, bantuan, dan dokumen yang secara khusus dibagikan | Akses berbasis grant, tujuan, masa berlaku, dan minimisasi data |
 | NGO/LSM/Yayasan/Mitra | Laporan capaian dan milestone program serta alokasi dana program yang secara khusus dibagikan | Tidak memperoleh akses bebas ke data pribadi, buku kas lengkap, atau catatan internal yang tidak relevan |
 
-**Tidak ada akun bersama.** Setiap orang yang bertindak atas nama jabatan menggunakan akun pribadi. Hak akses Ketua hanya diberikan kepada orang yang kewenangannya tercantum jelas pada SK final; nama yang belum terverifikasi tidak otomatis diberi role Ketua.
+**Tidak ada akun bersama.** Setiap orang yang bertindak atas nama jabatan menggunakan akun pribadi. Hak akses Ketua hanya diberikan kepada orang yang kewenangannya tercantum jelas pada SK final; nama yang belum terverifikasi tidak otomatis diberi role Ketua. Untuk menjaga satu otoritas keputusan final, hanya satu akun aktif per workspace yang boleh memegang role `ketua`. Role tersebut hanya dapat diberikan pada bootstrap Ketua pertama; undangan biasa dan edit role tidak dapat membuat Ketua kedua. Penggantian Ketua harus mengikuti serah-terima resmi berdasarkan SK/keputusan musyawarah dan memerlukan prosedur khusus yang diaudit; alur transfer tersebut belum diaktifkan di UI.
 
 ### Pemisahan akun teknis dan keputusan organisasi
 
