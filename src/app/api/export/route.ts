@@ -1,5 +1,7 @@
 import {env} from '@/lib/runtime';
 import {getGovernanceAdminUser} from '../../admin-auth';
+import {visibleRecord} from '@/lib/permissions';
+import {allowedFileIds} from '@/lib/file-access';
 
 export const dynamic='force-dynamic';
 
@@ -21,12 +23,16 @@ export async function GET(){
    env.DB.prepare("SELECT * FROM operational_requests WHERE owner=? AND (status<>'draft' OR requester_id=?) ORDER BY created,id").bind(user.userId,user.accountId).all(),
    env.DB.prepare("SELECT e.* FROM operational_events e JOIN operational_requests r ON r.id=e.request_id AND r.owner=e.owner WHERE e.owner=? AND (r.status<>'draft' OR r.requester_id=?) ORDER BY e.request_id,e.version").bind(user.userId,user.accountId).all()
   ]);
+  const fileIds=await allowedFileIds(user);
   const archive={
    formatVersion:3,
    organisasi:'KWT Srikandi Buana',
    diekspor:exportedAt,
-   records:rows.results.map(row=>({...row,data:JSON.parse(String(row.data))})),
-   files:files.results,
+   records:rows.results.map(row=>{
+    const record={id:String(row.id),kind:String(row.kind),data:JSON.parse(String(row.data)) as Record<string,unknown>};
+    return {...row,data:visibleRecord(user,record).data};
+   }),
+   files:files.results.filter(file=>fileIds.has(String(file.id))),
    messages:messages.results,
    settings:settings.results.map(row=>({...row,data:JSON.parse(String(row.data))})),
    operations:operations.results,
