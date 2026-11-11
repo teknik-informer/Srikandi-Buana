@@ -178,12 +178,6 @@ export default function RoleWorkspace({
         ? modules[editor.kind]?.fields.map((field) => {
             if (field.key === "programId" && user.role === "koordinator")
               return { ...field, options: field.options?.filter((option) => user.programIds.includes(option)) };
-            if (user.role === "ketua" && editor.kind === "tindaklanjut") {
-              if (field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan" };
-              if (field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan" };
-              if (field.key === "evidence") return { ...field, label: "Hasil yang diharapkan / indikator selesai" };
-              if (field.key === "notes") return { ...field, label: "Keputusan Ketua / perkembangan" };
-            }
             return field;
           })
         : [];
