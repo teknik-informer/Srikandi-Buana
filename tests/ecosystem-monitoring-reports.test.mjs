@@ -89,9 +89,7 @@ test("the report center exposes only report groups covered by the current role",
   assert.equal(memberReport[0]?.data.potential, undefined, "Member needs remain redacted in treasury reports");
 
   const adminGroups = reporting.getVisibleReportGroups(principal("admin")).map((group) => group.id);
-  assert.deepEqual(plain(adminGroups), [
-    "operasional", "keanggotaan", "administrasi", "keuangan", "usaha", "publikasi",
-  ]);
+  assert.deepEqual(plain(adminGroups), [], "Technical administrator does not receive organizational reports");
 });
 
 test("member reports contain only the member's own records and readable activities", () => {
@@ -117,7 +115,7 @@ test("coordinator report rows are limited to assigned program IDs", () => {
 });
 
 test("period filters use the activity or due date and keep all-period reports available", () => {
-  const user = principal("admin");
+  const user = principal("ketua");
   const november = reporting.selectReportRows(records, user, "operasional", "2026-11");
   assert.equal(november.length, 6);
   const october = reporting.selectReportRows(records, user, "operasional", "2026-10");
@@ -125,7 +123,7 @@ test("period filters use the activity or due date and keep all-period reports av
 });
 
 test("membership reporting aggregates status without including personal information in the summary", () => {
-  const rows = reporting.selectReportRows(records, principal("admin"), "keanggotaan");
+  const rows = reporting.selectReportRows(records, principal("ketua"), "keanggotaan");
   const summary = reporting.summarizeReportRows(rows);
   assert.equal(summary.reduce((total, item) => total + item.count, 0), rows.length);
   assert.ok(summary.some((item) => item.status === "Aktif" && item.count === 2));
@@ -146,20 +144,19 @@ test("monitoring metrics are role-scoped and finance data is withheld from membe
   assert.equal(memberSnapshot.visibleRecords, 2);
 });
 
-test("administrator monitoring calculates operational, finance, business and publication signals", () => {
+test("technical administrator cannot inspect business monitoring signals", () => {
   const adminSnapshot = monitoring.buildEnterpriseMonitoring(
     records,
     [],
     principal("admin"),
     new Date("2026-11-07T04:00:00.000Z"),
   );
-  assert.equal(adminSnapshot.membership.total, 2);
-  assert.equal(adminSnapshot.membership.needsVerification, 1);
-  assert.equal(adminSnapshot.operational.overdueTasks, 2);
-  assert.equal(adminSnapshot.finance.missingEvidence, 1);
-  assert.equal(adminSnapshot.business.assetsNeedAttention, 1);
-  assert.equal(adminSnapshot.publication.drafts, 1);
-  assert.ok(adminSnapshot.qualityFindings >= 1);
+  assert.equal(adminSnapshot.membership, null);
+  assert.equal(adminSnapshot.operational, null);
+  assert.equal(adminSnapshot.finance, null);
+  assert.equal(adminSnapshot.business, null);
+  assert.equal(adminSnapshot.publication, null);
+  assert.equal(adminSnapshot.visibleRecords, 0);
 });
 
 test("coordinator monitoring omits non-assigned program activity", () => {
@@ -209,7 +206,7 @@ test("only the Chair can approve a completed task result", () => {
     reviewNote: "",
   };
   assert.equal(verification.taskVerificationError(pending), null);
-  assert.match(verification.taskVerificationError({ ...pending, role: "admin" }) || "", /Hanya Ketua/);
+  assert.match(verification.taskVerificationError({ ...pending, role: "admin" }) || "", /Hanya Sekretariat/);
   assert.match(
     verification.taskVerificationError({ ...pending, role: "koordinator" }) || "",
     /Hanya Ketua/,
@@ -394,7 +391,7 @@ test("meeting agenda carries task review and missing-accountability decisions wi
       name: "Tugas tanpa pelaksana", programId: "1", status: "Berjalan",
     }),
   ];
-  const evaluations = programEvaluation.buildProgramEvaluations(expanded, principal("admin"));
+  const evaluations = programEvaluation.buildProgramEvaluations(expanded, principal("ketua"));
   const agenda = programEvaluation.buildMeetingPriorities(evaluations);
   assert.ok(agenda.some((item) => item.title === "Verifikasi hasil tugas" && item.task?.id === "task-awaiting-verification"));
   assert.ok(agenda.some((item) => item.title === "Tetapkan pelaksana tugas" && item.task?.id === "task-no-pic"));
@@ -468,10 +465,10 @@ test("meeting decision evaluations require a dated leadership review and a reaso
     note: "Satu keputusan selesai; jadwal pelatihan menunggu penyuluh.",
   };
   assert.equal(meetingCycle.meetingReviewError(review), null);
-  assert.equal(meetingCycle.meetingReviewError({ ...review, role: "admin" }), null);
+  assert.match(meetingCycle.meetingReviewError({ ...review, role: "admin" }) || "", /Sekretariat/);
   assert.match(
     meetingCycle.meetingReviewError({ ...review, role: "sekretaris" }) || "",
-    /Hanya Ketua atau Administrator/,
+    /Sekretariat/,
   );
   assert.match(
     meetingCycle.meetingReviewError({ ...review, meeting: "" }) || "",
