@@ -6,3 +6,9 @@ export async function getGovernanceAdminUser(){
  const u=await getAuthenticatedUser();
  return u&&["admin","ketua"].includes(u.role)?u:null;
 }
+
+/** Secretariat inbox: operational messages are handled by the Chair, system owner, or Secretary. */
+export async function getMessageManagerUser(){
+ const u=await getAuthenticatedUser();
+ return u&&["admin","ketua","sekretaris"].includes(u.role)?u:null;
+}
