@@ -193,14 +193,14 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
 
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Wheat size={19} className="text-emerald-700"/><h2 className="font-semibold">Catat hasil panen</h2></div>
-        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_harvest", { cropCycleId, harvestDate, quantity, notes: harvestNotes }, () => { setHarvestDate(""); setQuantity(""); setHarvestNotes(""); })}>
+        {canManageTechnical && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_harvest", { cropCycleId, harvestDate, quantity, notes: harvestNotes }, () => { setHarvestDate(""); setQuantity(""); setHarvestNotes(""); })}>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Siklus tanam<select required value={cropCycleId} onChange={e => setCropCycleId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih siklus tanam</option>{data.cropCycles.filter(c => c.status !== "failed").map(c => <option key={c.id} value={c.id}>{c.commodity_name} · {c.parcel_code} · {c.season_label}</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium">Tanggal panen<input required type="date" value={harvestDate} onChange={e => setHarvestDate(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1 text-sm font-medium">Jumlah hasil ({selectedCycle?.default_unit || "satuan"})<input required type="number" min="0.001" step="0.001" max="100000000000" value={quantity} onChange={e => setQuantity(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Catatan panen (opsional)<textarea maxLength={2000} rows={2} value={harvestNotes} onChange={e => setHarvestNotes(e.target.value)} className="rounded-lg border bg-background p-3" placeholder="Kualitas, kondisi, atau keterangan pencatatan"/></label>
           <p className="sm:col-span-2 text-xs text-muted-foreground">Satuan mengikuti master komoditas. Hasil panen belum masuk ringkasan eksternal sebelum catatan, siklus, dan lahannya diverifikasi.</p>
           <button disabled={busy || !data.cropCycles.length} className="sm:col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Simpan catatan panen</button>
-        </form>
+        </form>}
       </section>
     </div>
 
