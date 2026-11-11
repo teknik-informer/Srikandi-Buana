@@ -171,6 +171,14 @@ assert(api.includes("memberData.status !== \"Aktif\"") && api.includes("memberDa
 assert(api.includes('user.role !== "sekretaris"'), "Only Secretariat may verify agriculture records");
 assert(api.includes('user.programIds.includes("3")'), "Coordinator write access must require agriculture program assignment");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
+assert(api.includes("const memberOptions = isSecretariat ?"), "Only the Secretariat may receive individual member choices");
+assert(api.includes("const memberCount = members.results.reduce"), "Other roles receive an aggregate member count rather than identities");
+assert(api.includes("member_id: _memberId") && api.includes("verification_note: _verificationNote"), "Non-Secretariat parcel responses must hide member mapping and free-text verification notes");
+assert(api.includes("audit: isSecretariat ? auditRows.results : []"), "Agriculture actor-level audit is restricted to the Secretariat");
+assert(agricultureWorkspace.includes('const canManageCommodity = role === "sekretaris";'), "The Secretariat owns commodity master maintenance");
+assert(agricultureWorkspace.includes('const canManageLand = role === "sekretaris";'), "The Secretariat owns the land register");
+assert(agricultureWorkspace.includes('const canManageTechnical = role === "koordinator" && programIds.includes("3");'), "Only the assigned agriculture coordinator records technical cycles and harvests");
+
 assert(summary.includes("data::jsonb->>'status'='Aktif'") && summary.includes("data::jsonb->>'verification'='Terverifikasi'"));
 assert(summary.includes("p.verification_status='verified'") && summary.includes("c.verification_status='verified'") && summary.includes("h.verification_status='verified'"));
 assert(summary.includes("COUNT(DISTINCT p.member_id)") && summary.includes("COUNT(*) AS verified_count"), "Aggregates must be based on unique members and verified records");
