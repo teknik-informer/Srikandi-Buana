@@ -8,7 +8,7 @@ import {skuValid} from '@/features/commerce/validation.mjs';
 export const dynamic='force-dynamic';
 export async function GET(request:Request){try{
  const user=await getAuthenticatedUser();const db=env.DB;if(!db)return json({error:'Katalog belum tersedia.'},503);
- const managed=user?.role==='bendahara'&&new URL(request.url).searchParams.get('manage')==='1';
+ const managed=!!user&&['ketua','bendahara'].includes(user.role)&&new URL(request.url).searchParams.get('manage')==='1';
  const rows=managed?await db.prepare('SELECT id,sku,name,description,unit,price,stock,published,updated FROM commerce_products WHERE owner=? ORDER BY updated DESC LIMIT 100').bind(user.userId).all():await db.prepare("SELECT p.id,p.sku,p.name,p.description,p.unit,p.price,p.stock FROM commerce_products p JOIN users u ON u.id=p.owner AND u.role='admin' WHERE p.published=TRUE AND u.enabled=TRUE AND LOWER(u.email)=LOWER(?) ORDER BY p.name ASC LIMIT 100").bind(process.env.ADMIN_EMAIL||'').all();
  return json({items:rows.results,manage:managed});
  }catch(e){return errorReply(e)}}
