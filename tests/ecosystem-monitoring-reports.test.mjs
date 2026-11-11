@@ -111,7 +111,7 @@ test("coordinator report rows are limited to assigned program IDs", () => {
   assert.equal(permissions.canReadRecord(principal("koordinator"), { id: "program-report-2", kind: "laporan_program", data: { programId: "2" } }), false);
   assert.equal(permissions.canReadKind(principal("sekretaris"), "laporan_program"), true);
   assert.equal(permissions.canWriteKind(principal("sekretaris"), "laporan_program"), false);
-  assert.equal(permissions.canWriteKind(principal("ketua"), "tindaklanjut"), true);
+  assert.equal(permissions.canWriteKind(principal("ketua"), "tindaklanjut"), false);
 });
 
 test("period filters use the activity or due date and keep all-period reports available", () => {
@@ -258,7 +258,7 @@ test("coordinators cannot alter reviewer notes or reopen an already verified res
       previousReviewNote: "",
       reviewNote: "",
     }) || "",
-    /sudah diverifikasi hanya dapat diubah kembali/,
+    /dibuka kembali melalui pemeriksaan Sekretariat/,
   );
 });
 
