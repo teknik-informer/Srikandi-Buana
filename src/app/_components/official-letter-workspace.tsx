@@ -29,6 +29,7 @@ type LetterForm = {
 
 type Props = {
   settings: Pick<SiteSettings, "address" | "email" | "phone">;
+  role: string;
 };
 
 const localDate = () => {
@@ -162,8 +163,9 @@ function TextField({
   );
 }
 
-export default function OfficialLetterWorkspace({ settings }: Props) {
+export default function OfficialLetterWorkspace({ settings, role }: Props) {
   const { rows, loading, error: loadError, load } = useWorkspaceData();
+  const readOnly = role === "bendahara";
   const [form, setForm] = useState<LetterForm>(() => emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expectedUpdated, setExpectedUpdated] = useState("");
@@ -275,11 +277,11 @@ export default function OfficialLetterWorkspace({ settings }: Props) {
           <h1 id="letter-workspace-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">Penyusunan Surat Resmi</h1>
           <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
             Buat draf surat pada kop organisasi, periksa pratinjau A4, lalu simpan untuk pemeriksaan.
-            Penerbitan final menunggu prosedur persetujuan organisasi.
+            Penerbitan final menunggu prosedur persetujuan organisasi. {readOnly ? "Akun Bendahara berada pada mode baca-saja." : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={newDraft} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
+          <button type="button" disabled={readOnly} onClick={newDraft} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
             <Plus className="size-4" /> Draf baru
           </button>
           <button type="button" disabled={!editingId || isDirty || busy} onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50">
@@ -306,10 +308,12 @@ export default function OfficialLetterWorkspace({ settings }: Props) {
               <div>
                 <h2 className="font-semibold">Isi naskah surat</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Kolom bertanda * wajib diisi. Nomor resmi belum dibuat pada tahap draf.</p>
+                {readOnly && <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">Mode baca-saja: draf dapat dibuka dan dicetak sebagai draf, tetapi tidak dapat diubah atau dibuat dari akun ini.</p>}
               </div>
               <span className="rounded-full border border-amber-600/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-800 dark:text-amber-200">DRAF</span>
             </div>
             <form onSubmit={saveDraft} className="space-y-4">
+              <fieldset disabled={readOnly} className="space-y-4">
               <Field label="Perihal / judul surat" value={form.name} required maxLength={180} onChange={(value) => set("name", value)} />
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-sm">
@@ -360,6 +364,7 @@ export default function OfficialLetterWorkspace({ settings }: Props) {
                 <Save className="size-4" /> {busy ? "Menyimpan..." : editingId ? "Simpan perubahan draf" : "Simpan draf surat"}
               </button>
               {editingId && isDirty && <p className="text-xs text-amber-700 dark:text-amber-300">Ada perubahan yang belum disimpan. Simpan kembali sebelum mencetak.</p>}
+              </fieldset>
             </form>
           </div>
 
