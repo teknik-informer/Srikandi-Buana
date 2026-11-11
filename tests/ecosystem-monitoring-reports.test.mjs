@@ -72,7 +72,13 @@ test("the report center exposes only report groups covered by the current role",
   assert.deepEqual(plain(memberGroups), ["operasional", "keanggotaan"]);
 
   const coordinatorGroups = reporting.getVisibleReportGroups(principal("koordinator")).map((group) => group.id);
-  assert.deepEqual(plain(coordinatorGroups), ["operasional"]);
+  assert.deepEqual(plain(coordinatorGroups), ["operasional", "usaha"]);
+  const coordinatorBusiness = reporting.selectReportRows([
+    ...records,
+    row("business-1", "usaha", { name: "Kajian usaha program 5", programId: "5", status: "Kajian kelayakan" }),
+    row("business-other", "usaha", { name: "Kajian usaha program 2", programId: "2", status: "Pemetaan" }),
+  ], principal("koordinator", { programIds: ["1", "5"] }), "usaha");
+  assert.deepEqual(plain(coordinatorBusiness.map((item) => item.id)), ["business-1"], "Coordinator business reports remain limited to assigned programs");
 
   const financeGroups = reporting.getVisibleReportGroups(principal("bendahara")).map((group) => group.id);
   assert.ok(financeGroups.includes("keuangan"));
