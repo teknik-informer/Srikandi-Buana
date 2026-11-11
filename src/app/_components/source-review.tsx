@@ -95,7 +95,9 @@ export default function SourceReview({
           <CardDescription>
             {role === "admin"
               ? "Administrator Sistem hanya dapat menerapkan metadata nonpribadi satu kali. Identitas, alamat, dan nomor kontak tidak ditampilkan pada layar ini."
-              : "Sekretariat dan Ketua dapat memeriksa isi dokumen sumber secara privat. Impor awal tidak mengganti catatan yang sudah ada."}
+              : role === "ketua"
+                ? "Ketua melihat status dan metadata kelembagaan. Identitas anggota, alamat, kontak, serta dokumen asli dikelola terbatas oleh Sekretariat."
+                : "Sekretariat memeriksa dokumen asli, mencocokkan identitas, dan mencatat hasil verifikasi. Impor metadata tidak mengganti catatan yang sudah ada."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -110,7 +112,7 @@ export default function SourceReview({
               Metadata kelembagaan diterapkan. {summary.personalDataImported === false ? "Tidak ada identitas atau nomor kontak pribadi yang disalin ke database." : `Riwayat impor lama mencatat ${summary.importedMembers} nama ditambahkan.`} {summary.deferredMembers ?? summary.sourceMembers ?? 0} catatan calon anggota dan {summary.sourceAttendance ?? 0} peserta tetap ditahan untuk verifikasi dokumen dan dasar pemrosesan.
             </p>
           )}
-          {role !== "admin" && (
+          {role === "sekretaris" && (
             <Button asChild variant="outline">
               <a href="/api/source-document">
                 <Download data-icon="inline-start" />
@@ -131,6 +133,11 @@ export default function SourceReview({
               {summary
                 ? "Impor awal selesai. Pemeriksaan identitas, alamat, status keanggotaan, dan persetujuan data dilakukan oleh pengelola organisasi."
                 : "Metadata nonpribadi dapat diterapkan satu kali. Data individu tidak disalin ke database melalui akun teknis; pemeriksaan identitas dan dasar pemrosesan dilakukan oleh pengelola organisasi."}
+            </p>
+          ) : role === "ketua" ? (
+            <p className="section-note">
+              Ketua memperoleh ringkasan nonpribadi untuk pengawasan. Daftar nama, alamat, nomor kontak, transkripsi daftar hadir, dan paket dokumen lengkap hanya tersedia bagi Sekretariat sesuai kebutuhan verifikasi.
+              {summary ? " Metadata paket sudah diterapkan dan identitas individu tetap ditahan." : " Pemeriksaan dokumen asli dan pencocokan identitas menunggu proses Sekretariat."}
             </p>
           ) : (
             source && (
