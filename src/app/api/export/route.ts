@@ -11,10 +11,10 @@ export async function GET(){
  if(!env.DB)return new Response('Database belum tersedia.',{status:503,headers:{'Cache-Control':'no-store'}});
  try{
   const exportedAt=new Date().toISOString();
-  // A full JSON archive contains personal, operational, financial, and correspondence data.
-  // Record the event before returning the archive; an audit failure blocks the export.
+  // This is a limited JSON data export, not a full database or storage backup.
+  // Record the event before returning it; an audit failure blocks the export.
   await env.DB.prepare('INSERT INTO access_audit(id,owner,actor,action,target,created) VALUES(?,?,?,?,?,?)')
-   .bind(crypto.randomUUID(),user.userId,user.accountId,'Ekspor arsip organisasi','JSON penuh',exportedAt).run();
+   .bind(crypto.randomUUID(),user.userId,user.accountId,'Ekspor data dasar terbatas','JSON terbatas',exportedAt).run();
   const [rows,files,messages,settings,operations,operationHistory]=await Promise.all([
    env.DB.prepare('SELECT id,kind,data,created,updated FROM records WHERE owner=? ORDER BY created').bind(user.userId).all(),
    env.DB.prepare('SELECT id,name,mime,size,created,deleted_at FROM files WHERE owner=?').bind(user.userId).all(),
@@ -37,7 +37,7 @@ export async function GET(){
    settings:settings.results.map(row=>({...row,data:JSON.parse(String(row.data))})),
    operations:operations.results,
    operationHistory:operationHistory.results,
-   catatan:'Arsip JSON internal untuk Ketua. Draf operasional pribadi akun lain tidak disertakan. Berkas asli diunduh terpisah dari arsip. Ekspor ini tidak memuat isi biner lampiran; bukan paket laporan eksternal yang telah disahkan.'
+   catatan:'Ekspor JSON dasar terbatas untuk Ketua; record mengikuti masking field, dan draf pengajuan pribadi akun lain tidak disertakan. Berisi record JSON, metadata file yang diizinkan, pesan masuk, pengaturan, dan histori pengajuan operasional yang dapat diakses. Tidak mencakup isi biner lampiran, buku besar/jurnal terstruktur, katalog dan pesanan terstruktur, tabel pertanian terstruktur, grant eksternal, atau seluruh state penyimpanan. Bukan backup penuh untuk pemulihan dan bukan paket laporan eksternal yang telah disahkan.'
   };
   return Response.json(archive,{headers:{
    'Content-Disposition':'attachment; filename=srikandi-buana-data.json',
