@@ -331,7 +331,7 @@ const timeoutForm={dataset:{unsaved:'true'},fields:{memberId:'member',email:'kep
 const timedAccounts=await harness('src/app/_components/access/accounts.tsx',{
  ...deadlines,FormData:FieldsFixture,fetch:(url,options)=>options.method?stall(url,options):Promise.resolve(response(200,accountPayload)),
 });
-const timedAccountRender=()=>timedAccounts.render(()=>timedAccounts.exports.default());
+const timedAccountRender=()=>timedAccounts.render(()=>timedAccounts.exports.default({}));
 let timedAccountTree=timedAccountRender();timedAccounts.effects();await new Promise(r=>setImmediate(r));timedAccountTree=timedAccountRender();
 const timedInvite=find(timedAccountTree,n=>n.type==='form').props.onSubmit({preventDefault(){},currentTarget:timeoutForm});
 await expire(25000);await timedInvite;timedAccountTree=timedAccountRender();
