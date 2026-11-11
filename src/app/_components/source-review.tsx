@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, ShieldCheck, Upload } from "lucide-react";
+import type { Role } from "@/lib/permissions";
 type Source = {
   version: string;
   date: string;
@@ -13,7 +14,7 @@ type Source = {
   board: { role: string; names: string }[];
   attendance: { number: string; name: string; address: string }[];
 };
-export default function SourceReview({ refreshKey = 0, onImported }: { refreshKey?: number; onImported?: () => void }) {
+export default function SourceReview({ role, refreshKey = 0, onImported }: { role: Role; refreshKey?: number; onImported?: () => void }) {
   const [importing, setImporting] = useState(false);
   async function importSource() {
     setImporting(true);
@@ -34,6 +35,7 @@ export default function SourceReview({ refreshKey = 0, onImported }: { refreshKe
     }
   }
   const [source, setSource] = useState<Source | null>(null),
+    [canImport, setCanImport] = useState(false),
     [error, setError] = useState(""),
     [summary, setSummary] = useState<{ importedMembers: number; skippedMembers: number } | null>(null);
   async function load() {
@@ -43,6 +45,7 @@ export default function SourceReview({ refreshKey = 0, onImported }: { refreshKe
         source: Source;
         error?: string;
         importSummary?: { importedMembers: number; skippedMembers: number };
+        canImport?: boolean;
       };
       if (!r.ok) throw Error(d.error);
       setSource(d.source);
@@ -75,7 +78,7 @@ export default function SourceReview({ refreshKey = 0, onImported }: { refreshKe
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!summary && source && (
+          {canImport && !summary && source && (
             <Button onClick={importSource} disabled={importing}>
               <Upload data-icon="inline-start" />
               {importing ? "Mengimpor…" : "Impor data sumber yang perlu diverifikasi"}
@@ -103,7 +106,7 @@ export default function SourceReview({ refreshKey = 0, onImported }: { refreshKe
             <Skeleton className="h-40 w-full mt-5" />
           ) : (
             source && (
-              <div className="source-review">
+              {role !== "admin" && <div className="source-review">
                 <h3>Perbedaan yang harus diperiksa</h3>
                 <ul>
                   <li>Ada perbedaan ejaan nama antara rekap anggota, struktur pengurus dan daftar hadir.</li>
