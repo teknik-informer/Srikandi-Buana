@@ -181,3 +181,5 @@ assert(access.includes('if (id === "pertanian") return ["sekretaris", "bendahara
 
 console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, two-person verification, scoped external grants, and privacy thresholds.");
 await pool.end();
+
+assert(access.includes("canFinalApprove = (role: Role) => role === \"ketua\""));
