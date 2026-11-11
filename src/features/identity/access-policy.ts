@@ -130,7 +130,8 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
   if (["ringkasan", "akun-saya", "portal", "pengajuan", "monitoring"].includes(id)) return true;
   if (id === "enterprise") return ["sekretaris", "bendahara"].includes(role);
   if (id === "dokumen") return ["sekretaris", "bendahara", "koordinator"].includes(role);
-  if (["sumber", "panduan", "pesan", "pengaturan", "akun", "akses-eksternal"].includes(id)) return false;
+  if (id === "pesan") return role === "sekretaris";
+  if (["sumber", "panduan", "pengaturan", "akun", "akses-eksternal"].includes(id)) return false;
   if (id === "laporan") return ["sekretaris", "bendahara"].includes(role);
   return canReadKindForRole(role, id);
 }
