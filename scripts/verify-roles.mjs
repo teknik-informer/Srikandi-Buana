@@ -41,6 +41,10 @@ assert.equal(secretaryMember.data.phone,'081234567890','Secretariat retains memb
 const consentFixture={id:'consent-1',kind:'persetujuan',data:{name:'Nama uji',date:'2026-11-01',purpose:'Tujuan pribadi',status:'Setuju untuk tujuan tercatat',photo:'Belum dikonfirmasi'}};
 assert.equal(policy.visibleRecord(chair,consentFixture).data.name,undefined,'Chair sees consent status, not the subject identity');
 assert.equal(policy.visibleRecord(chair,consentFixture).data.purpose,undefined,'Chair does not receive detailed consent-purpose notes');
+const transcriptFixture={id:'transcript-1',kind:'transkripsi',data:{name:'Pemeriksaan daftar hadir',date:'2026-10-25',status:'Perlu verifikasi',notes:'Nama dan alamat peserta pribadi',attachmentId:'private-source-scan'}};
+assert.equal(policy.visibleRecord(chair,transcriptFixture).data.notes,undefined,'Chair receives transcription status, not raw personal source notes');
+assert.equal(policy.visibleRecord(chair,transcriptFixture).data.attachmentId,undefined,'Chair cannot access private identity-bearing source attachments by default');
+assert.equal(policy.visibleRecord(secretary,transcriptFixture).data.notes,'Nama dan alamat peserta pribadi','Secretariat retains access for source verification');
 const galleryPublished={...galleryDraft,data:{...galleryDraft.data,status:'Terbit'}};
 assert.equal(policy.canPublishRecord(chair,galleryDraft,galleryPublished),true,'Chair can publish an unchanged Secretariat draft');
 assert.equal(policy.canPublishRecord(secretary,galleryDraft,galleryPublished),false,'Secretariat cannot publish its own draft');
