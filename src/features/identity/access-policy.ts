@@ -161,7 +161,7 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
   if (id === "akun") return ["admin", "ketua"].includes(role);
   if (id === "akses-eksternal") return role === "ketua";
   if (id === "sumber") return ["ketua", "sekretaris"].includes(role);
-  if (id === "penjualan") return role !== "admin";
+  if (id === "penjualan") return true;
   if (id === "akuntansi") return ["ketua", "sekretaris", "bendahara"].includes(role);
   if (id === "pertanian") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
   if (["portal", "pengajuan"].includes(id)) return true;
@@ -171,7 +171,7 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
   if (id === "surat-resmi") return ["ketua", "sekretaris", "bendahara"].includes(role);
   if (id === "laporan") return ["ketua", "sekretaris", "bendahara"].includes(role);
   if (["publikasi", "galeri"].includes(id)) return ["ketua", "sekretaris"].includes(role);
-  if (["sistem", "akun", "akses-eksternal"].includes(id)) return role === "ketua" || id === "pengaturan" && role === "admin";
+  if (id === "sistem") return role === "ketua";
   return canReadKindForRole(role, id);
 }
 
