@@ -66,7 +66,7 @@ const recordsRouteSource=readFileSync('src/app/api/records/route.ts','utf8');
 assert(recordsRouteSource.includes('if(kind==="surat_resmi"){out.number="";out.status="Draf";}'),'API must force all official-letter records to draft status and clear any claimed official number');
 
 let failProfileCommit=false;
-const mem=newDb();mem.public.registerFunction({name:'strpos',args:[DataType.text,DataType.text],returns:DataType.integer,implementation:(value,search)=>String(value??'').indexOf(String(search??''))+1});mem.public.registerFunction({name:'decode',args:[DataType.text,DataType.text],returns:DataType.bytea,implementation:(value,encoding)=>Buffer.from(value,encoding)});mem.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});mem.public.none(readFileSync('migrations/001_initial.sql','utf8'));mem.public.none(readFileSync('migrations/002_roles.sql','utf8'));mem.public.none(readFileSync('migrations/003_message_consent.sql','utf8'));mem.public.none(readFileSync('migrations/004_enterprise_operations.sql','utf8'));const {Pool}=mem.adapters.createPg(),pool=new Pool();
+const mem=newDb();mem.public.registerFunction({name:'strpos',args:[DataType.text,DataType.text],returns:DataType.integer,implementation:(value,search)=>String(value??'').indexOf(String(search??''))+1});mem.public.registerFunction({name:'decode',args:[DataType.text,DataType.text],returns:DataType.bytea,implementation:(value,encoding)=>Buffer.from(value,encoding)});mem.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});mem.public.none(readFileSync('migrations/001_initial.sql','utf8'));mem.public.none(readFileSync('migrations/002_roles.sql','utf8'));mem.public.none(readFileSync('migrations/003_message_consent.sql','utf8'));mem.public.none(readFileSync('migrations/004_enterprise_operations.sql','utf8'));mem.public.none(readFileSync('migrations/008_single_chair_guard.sql','utf8'));const {Pool}=mem.adapters.createPg(),pool=new Pool();
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});const translate=compat.exports.postgresStatement;
 // pg-mem cannot execute data-modifying CTEs. Only this SQL primitive is emulated;
 // the unmodified activation/reset SQL is separately exercised on the isolated Neon branch.
@@ -104,6 +104,15 @@ firstChairMember=await member('Synthetic first Chair');
 assert.equal((await accountAdmin.GET()).status,200,'Technical administrator receives only the one-time Chair bootstrap view');
 firstChairInvite=await invite(firstChairMember,'ketua');assert.equal(firstChairInvite.response.status,200,firstChairInvite.data.error||'First Chair invite');
 firstChair=await activate(firstChairInvite);assert.equal(firstChair.response.status,200,await firstChair.response.clone().text());
+const duplicateChairId=randomUUID();await assert.rejects(
+ prepare('INSERT INTO users(id,email,password_hash,full_name,created,workspace_owner,role) VALUES(?,?,?,?,?,?,?)').bind(duplicateChairId,'duplicate-chair-'+randomUUID()+'@example.test','HASH','Duplicate Chair',now,owner,'ketua').run(),
+ /users_one_active_chair_per_workspace|unique|duplicate/i,
+ 'Database must prevent a second active Chair in one workspace'
+);
+const pendingChairInvite=(suffix)=>prepare('INSERT INTO account_invitations(id,token_hash,owner,member_id,email,full_name,role,position,program_ids,purpose,expires,created_by,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(randomUUID(),randomUUID(),owner,firstChairMember,'pending-'+suffix+'@example.test','Pending Chair','ketua','Ketua','[]','activate',new Date(Date.now()+3600000).toISOString(),owner,now).run();
+await pendingChairInvite('one');
+await assert.rejects(pendingChairInvite('two'),/account_invitations_one_pending_chair_per_workspace|unique|duplicate/i,'Database must prevent concurrent pending Chair invitations');
+
 const firstChairUser=await (await load('src/lib/auth.ts',firstChair.j)).getAuthenticatedUser();created.push(firstChairUser.accountId);accountManager=await load('src/app/api/accounts/route.ts',firstChair.j);
 assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{action:'invite',memberId:firstChairMember,email:'second-chair@example.test',role:'ketua'}))).status,403,'Technical administrator cannot provision a second Chair');
 assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{},'https://evil.test'))).status,403);
