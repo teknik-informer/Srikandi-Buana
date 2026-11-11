@@ -27,7 +27,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/ecosystem",
     label: "Organisasi",
     description: "Profil, keanggotaan, pengurus, program, kegiatan, dan dokumen organisasi.",
-    features: features(["portal", "notifikasi", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
+    features: features(["portal", "notifikasi", "anggota", "alsintan", "pengurus", "musyawarah", "persetujuan", "program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
   },
   {
     id: "publication",
