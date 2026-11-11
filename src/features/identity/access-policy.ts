@@ -47,7 +47,7 @@ const financeReadOnly = [
   ...secretariatReadOnly,
   "lotkopi",
 ];
-const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_program"];
+const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_program", "usaha", "kemitraan"];
 
 export function canReadKindForRole(role: Role, kind: string): boolean {
   if (isSuperAdmin(role)) return true;
@@ -100,6 +100,8 @@ export function canWriteRecord(user: Principal, record: AccessRecord): boolean {
       return record.data.status !== "Selesai" && record.data.verification !== "Terverifikasi";
     }
     if (record.kind === "laporan_program") return record.data.status !== "Selesai";
+    if (record.kind === "usaha") return ["5", "6"].includes(String(record.data.programId)) && ["Pemetaan", "Kajian kelayakan", "Menunggu musyawarah", "Evaluasi"].includes(String(record.data.status));
+    if (record.kind === "kemitraan") return ["6", "8"].includes(String(record.data.programId)) && ["Referensi", "Rencana penjajakan", "Komunikasi awal", "Pembahasan"].includes(String(record.data.status));
   }
   return false;
 }
