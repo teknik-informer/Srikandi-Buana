@@ -106,7 +106,8 @@ const uploaded=await ownerFiles.POST(imageRequest(imageBytes));assert.equal(uplo
 const preview=await ownerFiles.GET(req('/api/files?id='+imageId+'&preview=1'));assert.equal(preview.status,200);assert(preview.headers.get('content-disposition').startsWith('inline'));assert(preview.headers.get('cache-control').includes('no-store'));
 const anonymousFiles=await load('src/app/api/files/route.ts',jar());assert.equal((await anonymousFiles.GET(req('/api/files?id='+imageId+'&preview=1'))).status,401);
 assert.equal((await memberFiles.GET(req('/api/files?id='+imageId+'&preview=1'))).status,404,'Private preview never expands access');
-const photoData={name:'Synthetic group photo',date:'2026-11-04',fileId:imageId,notes:'Synthetic credit',status:'Terbit'};
+const secretaryUpload=await secretaryFiles.POST(imageRequest(imageBytes));assert.equal(secretaryUpload.status,200);const secretaryImageId=(await secretaryUpload.json()).id;
+const photoData={name:'Synthetic group photo',date:'2026-11-04',fileId:secretaryImageId,notes:'Synthetic credit',status:'Terbit'};
 const unconfirmed=await secretaryRecords.POST(req('/api/records','POST',{kind:'galeri',data:photoData}));assert.equal(unconfirmed.status,400);assert.match((await unconfirmed.json()).error,/izin publikasi/);
 const draftData={...photoData,status:'Draf',publicationPermission:'Dikonfirmasi',altText:'Synthetic plants in garden'};
 const draftCreated=await secretaryRecords.POST(req('/api/records','POST',{kind:'galeri',data:draftData}));assert.equal(draftCreated.status,200,'Secretariat can create a gallery draft');
@@ -117,7 +118,7 @@ assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'galeri',d
 assert.equal((await chairRecords.POST(req('/api/records','POST',{kind:'galeri',data:{...draftData,status:'Terbit'}}))).status,403,'Chair cannot author a new publication record');
 const publication=await chairRecords.PUT(req('/api/records','PUT',{id:draftRow.id,kind:'galeri',expectedUpdated:draftRow.updated,data:{...draftRow.data,status:'Terbit'}}));
 assert.equal(publication.status,200,await publication.clone().text());
-const chairPublishedFile=await chairFiles.GET(req('/api/files?id='+imageId+'&preview=1'));assert.equal(chairPublishedFile.status,200,'Chair can read a file referenced by a record within organizational oversight');
+const chairPublishedFile=await chairFiles.GET(req('/api/files?id='+secretaryImageId+'&preview=1'));assert.equal(chairPublishedFile.status,200,'Chair can read a file referenced by a record within organizational oversight');
 assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:chairAccountId,role:'anggota',position:'Changed',programIds:[],enabled:true}))).status,200,'Chair session can be revoked after approval');assert.equal(await chairAuth.getAuthenticatedUser(),null,'Role changes revoke the Chair session immediately');
 console.log('PASS gallery handlers: invalid/cross-origin upload rejected, valid PNG saved privately, authenticated owner preview only, unconfirmed publication rejected, draft and confirmed publication accepted.');
 // Self-service display name and avatar: all roles can update only their own preferences.
