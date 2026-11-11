@@ -27,5 +27,5 @@ test('Tidak mengubah nilai status yang disimpan pada database',()=>{
  for(const s of ['Draf','Terbit','Pemasukan','Pengeluaran','Perlu verifikasi','Disepakati'])assert.ok(mods.includes(`"${s}"`),s);
 });
 test('Menu publik tidak terpengaruh dan tidak ada menu tanpa endpoint',()=>{
- const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.ok(ids.includes('akses-eksternal'));assert.equal(ids.length,37); // Existing routes plus external access, agriculture management, and Alsintan register
+ const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.ok(ids.includes('akses-eksternal'));assert.equal(ids.length,38); // Existing routes plus external access, agriculture management, Alsintan, and field survey instruments
 });
