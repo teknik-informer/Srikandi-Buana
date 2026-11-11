@@ -19,7 +19,14 @@ test('Nama modul database cocok dengan menu pengguna',()=>{
  const found=mods.match(new RegExp(String.raw`\b${id}:\{title:"([^"]+)"`));assert.ok(found,id);assert.equal(found[1],labels[id],id);
  }
 });
-test('Penyusunan surat resmi memiliki skema draf yang terpisah dari register surat',()=>{\n assert(navLabels.get('surat-resmi')==='Penyusunan Surat Resmi');\n const found=mods.match(/\\bsurat_resmi:\\{title:"([^"]+)"/);\n assert.ok(found);\n assert.equal(found[1],'Penyusunan Surat Resmi');\n assert(mods.includes('options:["Draf"]'));\n});\ntest('Tidak menggunakan label yang berpotensi menyesatkan',()=>{
+test('Penyusunan surat resmi memiliki skema draf yang terpisah dari register surat',()=>{
+ assert(navLabels.get('surat-resmi')==='Penyusunan Surat Resmi');
+ const found=mods.match(/\bsurat_resmi:\{title:"([^"]+)"/);
+ assert.ok(found);
+ assert.equal(found[1],'Penyusunan Surat Resmi');
+ assert(mods.includes('options:["Draf"]'));
+});
+test('Tidak menggunakan label yang berpotensi menyesatkan',()=>{
  const forbidden=['Employee Portal','Keuangan & Akuntansi','Laporan Keuangan','Pusat operasional','Checklist kelembagaan','Lot kopi','Sembilan prioritas tahun pertama'];
  for(const term of forbidden)assert.ok(!nav.includes(term),term);
 });
