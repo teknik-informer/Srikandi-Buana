@@ -6,7 +6,7 @@ export type OperationStatus = keyof typeof statuses;
 export type Operation = { id: string; owner: string; requester_id: string; requester_name: string; category: Category; title: string; description: string; amount: number; fund: string; asset_id: string | null; quantity: number; desired_date: string; end_date: string; status: OperationStatus; version: number; last_event_id: string; cash_record_id: string | null; proof_id: string | null; proof_name: string | null; proof_mime: string | null; created: string; updated: string };
 export type OperationInput = Pick<Operation,"category"|"title"|"description"|"amount"|"fund"|"asset_id"|"quantity"|"desired_date"|"end_date">;
 export const isFinancial = (category: Category) => category === "purchase" || category === "expense";
-export const canReview = (user: Principal) => ["admin","ketua"].includes(user.role);
+export const canReview = (user: Principal) => user.role === "ketua";
 export function canFulfillCategory(user: Principal, category: Category) { return (isFinancial(category) || category === "asset_loan" ? ["admin","bendahara"] : ["admin","sekretaris"]).includes(user.role); }
 export function canViewOperation(user: Principal, item: Operation) {
   return item.owner === user.userId && (item.requester_id === user.accountId || canReview(user) && item.status !== "draft" || canFulfillCategory(user,item.category) && ["approved","in_progress","completed"].includes(item.status));
