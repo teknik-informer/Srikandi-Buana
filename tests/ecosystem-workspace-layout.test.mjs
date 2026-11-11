@@ -248,7 +248,7 @@ test("leadership task decisions are retained as distinct audit events and shown 
   for (const action of ["Hasil diajukan untuk verifikasi", "Hasil tugas disahkan", "Perbaikan tugas diminta"]) {
     assert.ok(api.includes(action));
   }
-  assert.ok(api.includes("audit:u.role===\'ketua\'?audit.results:[]"));
+  assert.ok(api.includes("audit:u.role==='ketua'?audit.results.map(row=>({action:row.action,title:'Catatan organisasi diperbarui',created:row.created})):[]"));
 
   assert.ok(monitoring.includes("Aktivitas tercatat"));
 });
