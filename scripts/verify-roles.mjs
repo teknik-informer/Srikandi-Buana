@@ -51,7 +51,7 @@ assert.equal((await (await recordsAdmin.GET(req('/api/records'))).json()).record
 assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'tindaklanjut',data:deadlineData}))).status,403,'Technical administrator cannot create business records');
 assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'tindaklanjut',data:{...deadlineData,dueDate:'2026-02-30'}}))).status,400,'Impossible dates rejected');
 assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'tindaklanjut',data:{...deadlineData,priority:'Unknown priority'}}))).status,400,'Unknown priority rejected');
-assert.equal((await recordsAdmin.PUT(req('/api/records','PUT',{id:deadlineId,kind:'tindaklanjut',expectedUpdated:'1900-01-01',data:{...deadlineData,status:'Selesai'}}))).status,409,'Stale board writes rejected');
+assert.equal((await recordsAdmin.PUT(req('/api/records','PUT',{id:deadlineId,kind:'tindaklanjut',expectedUpdated:'1900-01-01',data:{...deadlineData,status:'Selesai'}}))).status,403,'Technical administrator cannot edit operational task records');
 async function member(name,status='Aktif',verification='Terverifikasi'){const id=randomUUID();await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(id,owner,'anggota',JSON.stringify({name,dusun:'Synthetic address',status,verification,phone:'081234567890',notes:'PRIVATE-CANARY',potential:'PRIVATE-POTENTIAL',role:'Anggota'}),now,now).run();return id}
 async function invite(memberId,role='anggota',extra={}){const email=role+'-'+randomUUID()+'@example.test';const r=await accountManager.POST(req('/api/accounts','POST',{action:'invite',memberId,email,role,position:role,programIds:role==='koordinator'?['1','5','8']:[],...extra}));return {response:r,data:await r.json(),email}}
 async function activate(inv,j=jar(),extra={}){const route=await load('src/app/api/auth/activate/route.ts',j);const t=new URL(inv.data.url).hash.slice('#token='.length);const response=await route.POST(req('/api/auth/activate','POST',{token:t,email:inv.email,password,confirmation:password,...extra}));return {response,j,route,t}}
@@ -65,7 +65,7 @@ assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{action:'invite
 assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{},'https://evil.test'))).status,403);
 const inactive=await member('Unverified','Perlu verifikasi','Perlu verifikasi');assert.equal((await invite(inactive)).response.status,400);
 const ordinaryMember=await member('Synthetic member');assert.equal((await invite(ordinaryMember,'admin')).response.status,400);
-const inv=await invite(ordinaryMember);assert.equal(inv.response.status,200);assert(!JSON.stringify((await (await accountAdmin.GET()).json())).includes(new URL(inv.data.url).hash.slice(7)),'Raw token not returned by listings');
+const inv=await invite(ordinaryMember);assert.equal(inv.response.status,200);assert(!JSON.stringify((await (await accountManager.GET()).json())).includes(new URL(inv.data.url).hash.slice(7)),'Raw token not returned by listings');
 let a=await activate(inv,jar(),{email:'wrong@example.test'});assert.equal(a.response.status,400);a=await activate(inv,jar(),{confirmation:'mismatch'});assert.equal(a.response.status,400);a=await activate(inv);assert.equal(a.response.status,200,await a.response.text());assert(a.j.options.httpOnly&&a.j.options.secure);assert.equal((await activate(inv)).response.status,400,'Single use');
 const memberJar=a.j,memberAuth=await load('src/lib/auth.ts',memberJar),principal=await memberAuth.getAuthenticatedUser();assert.equal(principal.userId,owner);assert.equal(principal.role,'anggota');created.push(principal.accountId);
 const privateId=randomUUID();await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(privateId,owner,'kas',JSON.stringify({name:'CONFIDENTIAL-FINANCE',amount:100}),now,now).run();
@@ -97,7 +97,7 @@ const memberFiles=await load('src/app/api/files/route.ts',memberJar);assert.equa
 const chairFiles=await load('src/app/api/files/route.ts',chairJar);assert.equal((await chairFiles.PATCH(req('/api/files','PATCH',{id:fixtureFile,name:'chair-renamed.pdf'}))).status,403,'Chair cannot rename files uploaded by another account');assert.equal((await chairFiles.DELETE(req('/api/files?id='+fixtureFile,'DELETE'))).status,403,'Chair cannot archive files uploaded by another account');
 const linked=await secretaryRecords.DELETE(req('/api/records?id='+ordinaryMember,'DELETE'));assert.equal(linked.status,409,'Linked member records are retained');
 // Actual upload/preview and publication handlers, isolated storage/database only.
-const ownerFiles=await load('src/app/api/files/route.ts',ownerJar);
+const ownerFiles=await load('src/app/api/files/route.ts',ownerJar),secretaryFiles=await load('src/app/api/files/route.ts',secretaryJar);
 const imageBytes=await require('sharp')({create:{width:2,height:2,channels:3,background:'white'}}).png().toBuffer();
 function imageRequest(bytes,name='fixture.png',origin='https://test.local'){const form=new FormData();form.append('file',new File([bytes],name,{type:'image/png'}));return new Request('https://test.local/api/files',{method:'POST',headers:{origin},body:form});}
 assert.equal((await ownerFiles.POST(imageRequest(imageBytes,'fixture.png','https://evil.test'))).status,403);
@@ -107,9 +107,17 @@ const preview=await ownerFiles.GET(req('/api/files?id='+imageId+'&preview=1'));a
 const anonymousFiles=await load('src/app/api/files/route.ts',jar());assert.equal((await anonymousFiles.GET(req('/api/files?id='+imageId+'&preview=1'))).status,401);
 assert.equal((await memberFiles.GET(req('/api/files?id='+imageId+'&preview=1'))).status,404,'Private preview never expands access');
 const photoData={name:'Synthetic group photo',date:'2026-11-04',fileId:imageId,notes:'Synthetic credit',status:'Terbit'};
-const deniedPhoto=await recordsAdmin.POST(req('/api/records','POST',{kind:'galeri',data:photoData}));assert.equal(deniedPhoto.status,400);assert.match((await deniedPhoto.json()).error,/izin publikasi/);
-assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'galeri',data:{...photoData,status:'Draf'}}))).status,200,'Draft is allowed before publication permission');
-assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'galeri',data:{...photoData,publicationPermission:'Dikonfirmasi',altText:'Synthetic plants in garden'}}))).status,403,'Technical administrator cannot perform Chair-only official publication');assert.equal((await chairRecords.POST(req('/api/records','POST',{kind:'galeri',data:{...photoData,publicationPermission:'Dikonfirmasi',altText:'Synthetic plants in garden'}}))).status,200,'Only the Chair can approve publication');
+const unconfirmed=await secretaryRecords.POST(req('/api/records','POST',{kind:'galeri',data:photoData}));assert.equal(unconfirmed.status,400);assert.match((await unconfirmed.json()).error,/izin publikasi/);
+const draftData={...photoData,status:'Draf',publicationPermission:'Dikonfirmasi',altText:'Synthetic plants in garden'};
+const draftCreated=await secretaryRecords.POST(req('/api/records','POST',{kind:'galeri',data:draftData}));assert.equal(draftCreated.status,200,'Secretariat can create a gallery draft');
+const draftRow=(await (await secretaryRecords.GET(req('/api/records'))).json()).records.find(r=>r.id===(await draftCreated.json()).id);
+assert.equal(draftRow.data.status,'Draf');
+assert.equal((await secretaryRecords.PUT(req('/api/records','PUT',{id:draftRow.id,kind:'galeri',expectedUpdated:draftRow.updated,data:{...draftRow.data,status:'Terbit'}}))).status,403,'Secretariat cannot publish its own gallery draft');
+assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'galeri',data:draftData}))).status,403,'Technical administrator cannot create public content');
+assert.equal((await chairRecords.POST(req('/api/records','POST',{kind:'galeri',data:{...draftData,status:'Terbit'}}))).status,403,'Chair cannot author a new publication record');
+const publication=await chairRecords.PUT(req('/api/records','PUT',{id:draftRow.id,kind:'galeri',expectedUpdated:draftRow.updated,data:{...draftRow.data,status:'Terbit'}}));
+assert.equal(publication.status,200,await publication.clone().text());
+const chairPublishedFile=await chairFiles.GET(req('/api/files?id='+imageId+'&preview=1'));assert.equal(chairPublishedFile.status,200,'Chair can read a file referenced by a record within organizational oversight');
 assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:chairAccountId,role:'anggota',position:'Changed',programIds:[],enabled:true}))).status,200,'Chair session can be revoked after approval');assert.equal(await chairAuth.getAuthenticatedUser(),null,'Role changes revoke the Chair session immediately');
 console.log('PASS gallery handlers: invalid/cross-origin upload rejected, valid PNG saved privately, authenticated owner preview only, unconfirmed publication rejected, draft and confirmed publication accepted.');
 // Self-service display name and avatar: all roles can update only their own preferences.
