@@ -5,7 +5,7 @@ import {balancedLines} from '@/features/finance/validation.mjs';
 import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
 export const dynamic='force-dynamic';
-const canRead=(role:string)=>['admin','ketua','sekretaris','bendahara'].includes(role),canWrite=(role:string)=>['admin','ketua','bendahara'].includes(role);
+const canRead=(role:string)=>['ketua','sekretaris','bendahara'].includes(role),canWrite=(role:string)=>role==='bendahara';
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!canRead(c.user.role))return json({error:'Akses akuntansi dibatasi.'},403);
  try{
  if(new URL(request.url).searchParams.get('format')==='csv'){
@@ -15,7 +15,7 @@ export async function GET(request:Request){const c=await required(request);if(c.
  }
  const accounts=await c.db.prepare('SELECT a.id,a.code,a.name,a.category,a.active,COALESCE(SUM(l.debit),0) AS debit,COALESCE(SUM(l.credit),0) AS credit FROM ledger_accounts a LEFT JOIN ledger_lines l ON l.account_id=a.id AND l.owner=a.owner WHERE a.owner=? GROUP BY a.id ORDER BY a.code LIMIT 150').bind(c.user.userId).all();const entries=await c.db.prepare('SELECT e.id,e.posted_date,e.memo,e.reference,e.created,(SELECT COUNT(*) FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id) AS correction_count FROM ledger_entries e WHERE e.owner=? ORDER BY e.posted_date DESC,e.created DESC LIMIT 50').bind(c.user.userId).all();return json({accounts:accounts.results,entries:entries.results});}catch(e){return errorReply(e)}
 }
-export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!canWrite(c.user.role))return json({error:'Pencatatan jurnal hanya untuk bendahara atau administrator.'},403);
+export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!canWrite(c.user.role))return json({error:'Pencatatan jurnal dan koreksi merupakan kewenangan Bendahara.'},403);
  try{const b=await readJsonObject(request,9000),now=new Date().toISOString();
  if(!await consumeRateLimit(c.db,'ledger:write:'+c.user.accountId,120,3600000))return json({error:'Batas pencatatan per jam telah tercapai.'},429);
  if(b.action==='reverse'){
