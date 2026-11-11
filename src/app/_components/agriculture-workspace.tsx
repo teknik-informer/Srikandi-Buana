@@ -156,11 +156,11 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Leaf size={19} className="text-emerald-700"/><h2 className="font-semibold">Master komoditas</h2></div>
         <p className="mt-1 text-sm text-muted-foreground">Satuan dasar harus konsisten untuk setiap komoditas. Panen akan dicatat menggunakan satuan ini.</p>
-        <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px_auto]" onSubmit={(event) => void create(event, "create_commodity", { name: commodityName, defaultUnit: commodityUnit }, () => setCommodityName(""))}>
+        {canManageTechnical && <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px_auto]" onSubmit={(event) => void create(event, "create_commodity", { name: commodityName, defaultUnit: commodityUnit }, () => setCommodityName(""))}>
           <label className="grid gap-1 text-sm font-medium">Nama komoditas<input required minLength={2} maxLength={120} value={commodityName} onChange={e => setCommodityName(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Contoh: Cabai rawit"/></label>
           <label className="grid gap-1 text-sm font-medium">Satuan dasar<select value={commodityUnit} onChange={e => setCommodityUnit(e.target.value)} className="min-h-10 rounded-lg border bg-background px-2">{Object.entries(unitLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <div className="flex items-end"><button disabled={busy} className="inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-lg bg-emerald-800 px-3 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Tambah</button></div>
-        </form>
+        </form>}
         <div className="mt-4 flex flex-wrap gap-2">{data.commodities.map(c => <span key={c.id} className="rounded-full border bg-muted/40 px-3 py-1.5 text-xs font-medium">{c.name} · {c.default_unit}</span>)}{!data.commodities.length && <p className="text-sm text-muted-foreground">Belum ada komoditas. Tambahkan daftar komoditas yang benar-benar dikelola.</p>}</div>
       </section>
 
