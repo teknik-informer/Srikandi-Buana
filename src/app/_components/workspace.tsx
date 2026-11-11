@@ -941,7 +941,7 @@ export default function Workspace({
         {section === "akun" && <Accounts userRole={principal.role} />}
         {section === "akun-saya" && <MyAccount />}
         {section === "sumber" && (
-          <SourceReview refreshKey={rows.length} onImported={load} />
+          <SourceReview role={principal.role} refreshKey={rows.length} onImported={load} />
         )}
         {section === "pesan" && <Inbox />}
         {section === "pengaturan" && (
