@@ -938,7 +938,7 @@ export default function Workspace({
             </Alert>
           </>
         )}
-        {section === "akun" && <Accounts />}
+        {section === "akun" && <Accounts userRole={principal.role} />}
         {section === "akun-saya" && <MyAccount />}
         {section === "sumber" && (
           <SourceReview refreshKey={rows.length} onImported={load} />
