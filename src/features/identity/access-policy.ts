@@ -137,6 +137,10 @@ export function canPublishRecord(user: Principal, previous: AccessRecord, next: 
 }
 
 export function visibleRecord(user: Principal, record: AccessRecord): AccessRecord {
+  if (user.role === "ketua" && record.kind === "transkripsi") {
+    const keys = ["name", "date", "status"];
+    return { ...record, data: Object.fromEntries(keys.filter((key) => key in record.data).map((key) => [key, record.data[key]])) };
+  }
   if (user.role === "anggota") {
     const keys = record.kind === "anggota"
       ? ["name", "dusun", "phone", "role", "status", "verification"]
