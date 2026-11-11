@@ -16,7 +16,7 @@ assert.equal(policy.canReadSectionForRole('sekretaris','surat-resmi'),true,'Secr
 assert.equal(policy.canWriteKind({role:'sekretaris'},'surat_resmi'),true,'Secretary can save official-letter drafts');
 assert.equal(policy.canReadKindForRole('bendahara','surat_resmi'),true,'Treasurer has read-only access to administrative letter records');
 assert.equal(policy.canWriteKind({role:'bendahara'},'surat_resmi'),false,'Treasurer cannot create or change official-letter drafts');
-assert.equal(policy.canReadSectionForRole('bendahara','surat-resmi'),false,'Treasurer does not receive the letter-writing workspace');
+assert.equal(policy.canReadSectionForRole('bendahara','surat-resmi'),true,'Treasurer can open the letter workspace in read-only mode');
 assert.equal(policy.canWriteKind({role:'koordinator'},'surat_resmi'),false,'Coordinators cannot create official correspondence');
 
 let failProfileCommit=false;
