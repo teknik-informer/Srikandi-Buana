@@ -37,7 +37,9 @@ const verificationStyle: Record<string, string> = {
 const numberLabel = (value: string | number) => new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(Number(value || 0));
 const dateLabel = (value: string) => value ? new Date(value.slice(0, 10) + "T12:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-export default function AgricultureWorkspace() {
+export default function AgricultureWorkspace({ role, programIds = [] }: { role: string; programIds?: string[] }) {
+  const canManageTechnical = ["admin", "ketua"].includes(role) || role === "koordinator" && programIds.includes("3");
+  const canManageLand = canManageTechnical || role === "sekretaris";
   const [data, setData] = useState<Data>({ members: [], commodities: [], parcels: [], cropCycles: [], harvests: [], audit: [], permissions: { canVerify: false } });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
