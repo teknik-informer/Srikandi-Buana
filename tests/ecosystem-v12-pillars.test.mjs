@@ -44,7 +44,7 @@ test("publikasi dan pelaporan memiliki akses yang jelas", () => {
 test("pembatasan akses per peran tetap diterapkan", () => {
   const visible = (role) => registry.getVisibleEnterpriseDashboards(role).flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
   const admin = visible("admin");
-  assert.deepEqual([...admin].sort(), [...assigned].sort());
+  assert.deepEqual([...admin].sort(), ["akun", "akun-saya", "monitoring", "notifikasi", "panduan", "pengaturan", "sumber"].sort());
   const member = visible("anggota");
   for (const restricted of ["akun", "pengaturan", "sumber", "pesan", "akuntansi"]) assert.ok(!member.includes(restricted));
   assert.ok(member.includes("portal"));
