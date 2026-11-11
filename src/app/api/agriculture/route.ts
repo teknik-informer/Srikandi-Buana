@@ -223,7 +223,7 @@ export async function PATCH(request: Request) {
     const now = new Date().toISOString();
     const user = userContext.user!;
     const db = userContext.db!;
-    if (!["admin", "ketua"].includes(user.role)) return json({ error: "Verifikasi hanya dapat dilakukan Administrator atau Ketua." }, 403);
+    if (user.role !== "ketua") return json({ error: "Pengesahan data pertanian hanya dapat dilakukan Ketua." }, 403);
     if (!["verify_parcel", "reject_parcel", "verify_crop_cycle", "reject_crop_cycle", "verify_harvest", "reject_harvest"].includes(action)) {
       return json({ error: "Tindakan verifikasi tidak dikenal." }, 400);
     }
