@@ -40,8 +40,10 @@ async function context(request: Request, write = false, verification = false) {
   if (write && !sameOrigin(request)) return { error: json({ error: "Permintaan lintas situs ditolak." }, 403) };
   if (!env.DB) return { error: json({ error: "Database belum tersedia." }, 503) };
   const assignedAgriculture = user.role === "koordinator" && user.programIds.includes("3");
-  if (!["admin", "ketua"].includes(user.role) && !assignedAgriculture) {
-    return { error: json({ error: "Modul pertanian hanya tersedia bagi Administrator, Ketua, atau Koordinator Program Pertanian." }, 403) };
+  const mayRead = ["admin", "ketua", "sekretaris", "bendahara"].includes(user.role) || assignedAgriculture;
+  const mayWrite = ["admin", "ketua", "sekretaris"].includes(user.role) || assignedAgriculture;
+  if (!mayRead || write && !mayWrite) {
+    return { error: json({ error: "Modul pertanian berada di luar kewenangan akun ini." }, 403) };
   }
   if (verification && !["admin", "ketua"].includes(user.role)) {
     return { error: json({ error: "Verifikasi data hanya dapat dilakukan Administrator atau Ketua." }, 403) };
