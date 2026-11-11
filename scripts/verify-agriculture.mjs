@@ -168,7 +168,7 @@ assert.equal(dateRegex.test("2026-11-10"), true, "A valid ISO date must pass val
 assert.equal(dateRegex.test("2026-11-1"), false, "A malformed ISO date must fail validation");
 assert(api.includes('.replace(/[\\u0300-\\u036f]/g, "")'), "Commodity slugs must normalize combining Unicode accents");
 assert(api.includes("memberData.status !== \"Aktif\"") && api.includes("memberData.verification !== \"Terverifikasi\""), "Lands must be linked to active, verified members");
-assert(api.includes('user.role !== "ketua"'), "Only Chair may verify agriculture records");
+assert(api.includes('user.role !== "sekretaris"'), "Only Secretariat may verify agriculture records");
 assert(api.includes('user.programIds.includes("3")'), "Coordinator write access must require agriculture program assignment");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
 assert(summary.includes("data::jsonb->>'status'='Aktif'") && summary.includes("data::jsonb->>'verification'='Terverifikasi'"));
@@ -180,13 +180,13 @@ assert(portal.includes("getExternalAgricultureSummary(user)") && externalDashboa
 assert(nav.includes("admin('pertanian','Pengelolaan Pertanian'"));
 assert(access.includes('if (id === "pertanian") return ["sekretaris", "bendahara", "koordinator"].includes(role);'));
 
-assert(access.includes("canFinalApprove = (role: Role) => role === \"ketua\""));
-assert(api.includes("Master komoditas hanya dapat dikelola Ketua atau Administrator Sistem."));
-assert(api.includes("Pengesahan data pertanian hanya dapat dilakukan Ketua."));
+assert(access.includes('user.role === "sekretaris") return secretariatWrite.includes(kind)'));
+assert(api.includes("Master komoditas merupakan register referensi yang dikelola Sekretariat."));
+assert(api.includes("Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis."));
 assert(api.includes('action === "update_parcel"') && api.includes("verification_status='pending'"), "Secretariat edits must return land records to Chair re-verification");
 assert(api.includes('action === "archive_parcel"') && api.includes("status='archived'"), "Land register archiving must preserve linked history rather than hard-delete");
 assert(agricultureWorkspace.includes('action: "update_parcel"') && agricultureWorkspace.includes('action: "archive_parcel"'), "Secretariat land edit/archive controls must be present");
 
-console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, Chair-only verification, scoped external grants, and privacy thresholds.");
+console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, Secretariat verification, scoped external grants, and privacy thresholds.");
 await pool.end();
 
