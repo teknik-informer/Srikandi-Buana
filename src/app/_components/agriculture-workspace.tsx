@@ -166,7 +166,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
 
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Sprout size={19} className="text-emerald-700"/><h2 className="font-semibold">Catat lahan anggota</h2></div>
-        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_parcel", { memberId, parcelCode, name: parcelName, areaM2, tenureType, locationLabel }, () => { setParcelCode(""); setParcelName(""); setAreaM2(""); setLocationLabel(""); })}>
+        {canManageLand && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_parcel", { memberId, parcelCode, name: parcelName, areaM2, tenureType, locationLabel }, () => { setParcelCode(""); setParcelName(""); setAreaM2(""); setLocationLabel(""); })}>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Anggota pemilik/penanggung jawab<select required value={memberId} onChange={e => setMemberId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih anggota aktif terverifikasi</option>{data.members.map(m => <option key={m.id} value={m.id}>{m.name}{m.dusun ? " · "+m.dusun : ""}</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium">Kode lahan<input required minLength={2} maxLength={80} value={parcelCode} onChange={e => setParcelCode(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="SB-LHN-001"/></label>
           <label className="grid gap-1 text-sm font-medium">Nama/pengenal lahan<input required minLength={2} maxLength={140} value={parcelName} onChange={e => setParcelName(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Kebun utara"/></label>
@@ -175,7 +175,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Lokasi umum (opsional)<input maxLength={200} value={locationLabel} onChange={e => setLocationLabel(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Dusun / wilayah umum; jangan masukkan koordinat atau alamat pribadi"/></label>
           <p className="sm:col-span-2 text-xs leading-5 text-muted-foreground">Data lahan selalu berstatus menunggu verifikasi setelah dicatat. Alamat rinci dan koordinat GPS tidak diminta pada formulir ini.</p>
           <button disabled={busy || !data.members.length} className="sm:col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Simpan data lahan</button>
-        </form>
+        </form>}
       </section>
 
       <section className="rounded-2xl border bg-card p-5">
