@@ -251,7 +251,7 @@ test("coordinators cannot alter reviewer notes or reopen an already verified res
     verification.taskVerificationError(base) || "",
     /Catatan pemeriksaan hanya dapat diubah/,
   );
-    /dibuka kembali melalui pemeriksaan Sekretariat/,
+  assert.match(
     verification.taskVerificationError({
       ...base,
       previousVerification: "Terverifikasi",
