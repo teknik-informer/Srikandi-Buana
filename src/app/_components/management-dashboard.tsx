@@ -757,7 +757,7 @@ export default function ManagementDashboard({
             <CardContent className="divide-y p-0">
               {meetingDecisionTasks.slice(0, 10).map((task) => {
                 const reviewStatus = String(task.data.meetingReviewStatus || "Belum dievaluasi");
-                const canReview = ["admin", "ketua"].includes(user.role) && canWriteRecord(user, task);
+                const canReview = user.role === "ketua" && canWriteRecord(user, task);
                 return (
                   <div key={task.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1 space-y-1">
@@ -1319,7 +1319,7 @@ export default function ManagementDashboard({
             >
               <fieldset disabled={busy} className="min-w-0">
                 <FieldGroup>
-                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || ["admin", "ketua"].includes(user.role)).map((field) => {
+                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || user.role === "ketua").map((field) => {
                     const value =
                       editor === "new"
                         ? field.key === "programId" &&
@@ -1327,7 +1327,7 @@ export default function ManagementDashboard({
                           ? user.programIds[0]
                           : ""
                         : String(editor.data[field.key] ?? "");
-                    const reviewer = user.role === "admin" || user.role === "ketua";
+                    const reviewer = user.role === "ketua";
                     const options =
                       field.key === "programId" && user.role === "koordinator"
                         ? user.programIds
