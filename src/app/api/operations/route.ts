@@ -58,7 +58,7 @@ export async function POST(request:Request){
  if(submit&&input.category==='expense')throw new OperationError('Simpan draf dan unggah bukti pengeluaran sebelum mengajukan penggantian biaya.');
  if(!await consumeRateLimit(db,'operations:create:'+user.accountId,30,3600000))return json({error:'Terlalu banyak pengajuan. Coba kembali setelah satu jam.'},429);
  const item=await createOperation(user,String(raw.clientRequestId),input,submit);
- if(submit){const managers=await db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='admin' AND enabled=TRUE LIMIT 1").bind(user.userId).all();for(const m of managers.results)if(String(m.id)!==user.accountId)await notifyOwner(user.userId,String(m.id),'operation:'+item.id+':submitted','Pengajuan baru',input.title,'/dashboard/enterprise','operasional');}
+ if(submit){const approvers=await db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' AND enabled=TRUE ORDER BY created,id").bind(user.userId).all();for(const approver of approvers.results)if(String(approver.id)!==user.accountId)await notifyOwner(user.userId,String(approver.id),'operation:'+item.id+':submitted','Pengajuan menunggu persetujuan Ketua',input.title,'/dashboard/enterprise','operasional');}
  return json({ok:true,item});
  }catch(error){return failure(error);}
 }
