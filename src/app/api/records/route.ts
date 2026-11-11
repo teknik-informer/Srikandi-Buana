@@ -3,7 +3,7 @@ import {OperationError} from '@/lib/enterprise/repository';
 import {readJsonObject,RequestBodyError} from "@/lib/request-body";
 import { env } from "@/lib/runtime";
 import {getAuthenticatedUser} from "@/lib/auth";
-import {canReadRecord,canWriteRecord,visibleRecord} from "@/lib/permissions";
+import {canReadRecord,canWriteRecord,canReviewFollowup,canPublishRecord,visibleRecord} from "@/lib/permissions";
 import {allowedFileIds} from "@/lib/file-access";
 import { modules, programs, type Data } from "@/lib/srikandi";
 import { taskVerificationError } from "@/lib/enterprise/task-verification";
