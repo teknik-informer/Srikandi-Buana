@@ -54,6 +54,8 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
   const [areaM2, setAreaM2] = useState("");
   const [tenureType, setTenureType] = useState("owned");
   const [locationLabel, setLocationLabel] = useState("");
+  const [editingParcelId, setEditingParcelId] = useState("");
+  const [parcelDraft, setParcelDraft] = useState({ memberId: "", parcelCode: "", name: "", areaM2: "", tenureType: "owned", locationLabel: "" });
   const [parcelId, setParcelId] = useState("");
   const [commodityId, setCommodityId] = useState("");
   const [seasonLabel, setSeasonLabel] = useState("");
@@ -105,6 +107,62 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Koneksi terputus. Periksa kembali status data.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function editParcel(parcel: Parcel) {
+    setEditingParcelId(parcel.id);
+    setParcelDraft({
+      memberId: parcel.member_id,
+      parcelCode: parcel.parcel_code,
+      name: parcel.name,
+      areaM2: String(parcel.area_m2),
+      tenureType: parcel.tenure_type,
+      locationLabel: parcel.location_label || "",
+    });
+    setError("");
+    setNotice("");
+  }
+
+  async function saveParcel(event: FormEvent<HTMLFormElement>, id: string) {
+    event.preventDefault();
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/agriculture", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_parcel", id, ...parcelDraft }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Perubahan register lahan belum tersimpan.");
+      setEditingParcelId("");
+      setNotice("Register lahan diperbarui. Status verifikasi dikembalikan ke antrean Ketua.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Koneksi terputus.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function archiveParcel(id: string) {
+    const reason = window.prompt("Alasan pengarsipan register lahan (minimal 10 karakter).") || "";
+    if (reason.trim().length < 10) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/agriculture", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive_parcel", id, reason }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Register lahan belum dapat diarsipkan.");
+      setNotice("Register lahan diarsipkan. Riwayat dan hubungan siklus tanam tetap dipertahankan.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Koneksi terputus.");
     } finally {
       setBusy(false);
     }
@@ -208,7 +266,20 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
       <div className="flex items-center gap-2"><ClipboardCheck size={19}/><h2 className="font-semibold">Register lahan dan verifikasi</h2></div>
       <div className="mt-4 grid gap-3">{data.parcels.map(parcel => <article key={parcel.id} className="rounded-xl border p-4">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{parcel.parcel_code} · {parcel.member_name}</p><h3 className="font-semibold">{parcel.name}</h3><p className="mt-1 text-xs text-muted-foreground">{numberLabel(parcel.area_m2)} m² · {tenureLabels[parcel.tenure_type] || parcel.tenure_type}{parcel.location_label ? " · "+parcel.location_label : ""}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${verificationStyle[parcel.verification_status] || ""}`}>{verificationLabels[parcel.verification_status] || parcel.verification_status}</span></div>
+        {parcel.status === "archived" && <p className="mt-2 text-xs font-medium text-muted-foreground">Register diarsipkan · tidak tersedia untuk siklus tanam baru</p>}
         {parcel.verification_note && <p className="mt-2 text-xs text-muted-foreground">{parcel.verification_note}</p>}
+        {role === "sekretaris" && parcel.status === "active" && <div className="mt-3">
+          {editingParcelId === parcel.id ? <form className="grid gap-3 rounded-xl bg-muted/30 p-3 sm:grid-cols-2" onSubmit={(event) => void saveParcel(event, parcel.id)}>
+            <label className="grid gap-1 text-xs font-medium sm:col-span-2">Anggota penanggung jawab<select required value={parcelDraft.memberId} onChange={e => setParcelDraft(v => ({ ...v, memberId: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm">{data.members.map(m => <option key={m.id} value={m.id}>{m.name}{m.dusun ? " · "+m.dusun : ""}</option>)}</select></label>
+            <label className="grid gap-1 text-xs font-medium">Kode lahan<input required minLength={2} maxLength={80} value={parcelDraft.parcelCode} onChange={e => setParcelDraft(v => ({ ...v, parcelCode: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <label className="grid gap-1 text-xs font-medium">Nama/pengenal lahan<input required minLength={2} maxLength={140} value={parcelDraft.name} onChange={e => setParcelDraft(v => ({ ...v, name: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <label className="grid gap-1 text-xs font-medium">Luas (m²)<input required type="number" min="0.01" max="100000000" step="0.01" value={parcelDraft.areaM2} onChange={e => setParcelDraft(v => ({ ...v, areaM2: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <label className="grid gap-1 text-xs font-medium">Status penguasaan<select value={parcelDraft.tenureType} onChange={e => setParcelDraft(v => ({ ...v, tenureType: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm">{Object.entries(tenureLabels).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            <label className="grid gap-1 text-xs font-medium sm:col-span-2">Lokasi umum<input maxLength={200} value={parcelDraft.locationLabel} onChange={e => setParcelDraft(v => ({ ...v, locationLabel: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <p className="sm:col-span-2 text-xs text-muted-foreground">Perubahan data mengembalikan status verifikasi menjadi menunggu pemeriksaan Ketua.</p>
+            <div className="sm:col-span-2 flex flex-wrap gap-2"><button disabled={busy} className="min-h-9 rounded-lg bg-emerald-800 px-3 text-xs font-semibold text-white disabled:opacity-50">Simpan perubahan</button><button type="button" disabled={busy} onClick={() => setEditingParcelId("")} className="min-h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-50">Batal</button></div>
+          </form> : <div className="flex flex-wrap gap-2"><button disabled={busy} onClick={() => editParcel(parcel)} className="min-h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-50">Ubah register</button><button disabled={busy} onClick={() => void archiveParcel(parcel.id)} className="min-h-9 rounded-lg border border-amber-300 px-3 text-xs font-semibold text-amber-800 disabled:opacity-50">Arsipkan lahan</button></div>}
+        </div>}
         {data.permissions.canVerify && parcel.verification_status !== "verified" && <div className="mt-3 flex flex-wrap gap-2"><button disabled={busy} onClick={() => void verify("parcel", parcel.id, true)} className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-emerald-800 px-3 text-xs font-semibold text-white disabled:opacity-50"><ShieldCheck size={14}/> Verifikasi lahan</button><button disabled={busy} onClick={() => void verify("parcel", parcel.id, false)} className="min-h-9 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Kembalikan</button></div>}
       </article>)}{!data.parcels.length && <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada lahan yang dicatat.</p>}</div>
     </section>
