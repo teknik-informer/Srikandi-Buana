@@ -12,10 +12,10 @@ export async function getGovernanceAdminUser(){
  return u?.role==='ketua'?u:null;
 }
 
-/** Internal source documents may be handled by the Chair or Secretariat. */
+/** Source documents contain member identities and are available only to the Secretariat. */
 export async function getSecretariatUser(){
  const u=await getAuthenticatedUser();
- return u&&['ketua','sekretaris'].includes(u.role)?u:null;
+ return u?.role==='sekretaris'?u:null;
 }
 
 /** Public enquiries are handled by the Secretariat, with Chair oversight. */
