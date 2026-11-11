@@ -544,7 +544,7 @@ export default function EnterpriseMonitoring({
         </Card>
       </section>
 
-      {["admin", "ketua"].includes(user.role) && audit.length > 0 && (
+      {user.role === "ketua" && audit.length > 0 && (
         <section className="space-y-3" aria-labelledby="monitoring-audit-title">
           <div>
             <h2 id="monitoring-audit-title" className="text-base font-semibold">Aktivitas tercatat</h2>
