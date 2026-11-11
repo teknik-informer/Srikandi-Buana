@@ -178,12 +178,12 @@ assert(summary.includes("count >= 5") && summary.includes("contributors >= 3"), 
 assert(!/NIK|phone|coordinate|latitude|longitude/i.test(summary), "External summary must not query personal contact or precise location fields");
 assert(portal.includes("getExternalAgricultureSummary(user)") && externalDashboard.includes("Monografi dan indikator pertanian") && externalDashboard.includes("summary.harvest"), "The external audience dashboard must render the server-computed agriculture summary");
 assert(nav.includes("admin('pertanian','Pengelolaan Pertanian'"));
-assert(access.includes('if (id === "pertanian") return ["sekretaris", "bendahara", "koordinator"].includes(role);'));
+assert(access.includes('if (id === "pertanian") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);'));
 
 assert(access.includes('user.role === "sekretaris") return secretariatWrite.includes(kind)'));
 assert(api.includes("Master komoditas merupakan register referensi yang dikelola Sekretariat."));
 assert(api.includes("Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis."));
-assert(api.includes('action === "update_parcel"') && api.includes("verification_status='pending'"), "Secretariat edits must return land records to Chair re-verification");
+assert(api.includes('action === "update_parcel"') && api.includes("verification_status='pending'"), "Secretariat edits must return land records to Secretariat re-verification");
 assert(api.includes('action === "archive_parcel"') && api.includes("status='archived'"), "Land register archiving must preserve linked history rather than hard-delete");
 assert(agricultureWorkspace.includes('action: "update_parcel"') && agricultureWorkspace.includes('action: "archive_parcel"'), "Secretariat land edit/archive controls must be present");
 
