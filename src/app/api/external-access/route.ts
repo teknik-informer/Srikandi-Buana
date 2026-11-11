@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { env } from "@/lib/runtime";
-import { getAdminUser } from "../../admin-auth";
+import { getGovernanceAdminUser } from "../../admin-auth";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { digest } from "@/lib/auth";
 import { json, sameOrigin } from "@/lib/account-access";
@@ -75,7 +75,7 @@ function failure(error: unknown) {
 }
 
 export async function GET() {
-  const user = await getAdminUser();
+  const user = await getGovernanceAdminUser();
   if (!user) return json({ error: "Akses khusus administrator." }, 403);
   if (!env.DB) return json({ error: "Database belum tersedia." }, 503);
   try {
@@ -108,7 +108,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getAdminUser();
+  const user = await getGovernanceAdminUser();
   if (!user) return json({ error: "Akses khusus administrator." }, 403);
   if (!sameOrigin(request)) return json({ error: "Permintaan lintas situs ditolak." }, 403);
   if (!env.DB) return json({ error: "Database belum tersedia." }, 503);
@@ -197,7 +197,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const user = await getAdminUser();
+  const user = await getGovernanceAdminUser();
   if (!user) return json({ error: "Akses khusus administrator." }, 403);
   if (!sameOrigin(request)) return json({ error: "Permintaan lintas situs ditolak." }, 403);
   if (!env.DB) return json({ error: "Database belum tersedia." }, 503);
