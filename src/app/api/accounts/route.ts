@@ -1,5 +1,6 @@
 import {env} from '@/lib/runtime';
 import {getGovernanceAdminUser} from '../../admin-auth';
+import {getAuthenticatedUser} from '@/lib/auth';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
 export const dynamic='force-dynamic';
@@ -9,8 +10,22 @@ export async function GET(){const u=await getGovernanceAdminUser();if(!u)return 
  env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 50').bind(u.userId).all(),
  env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all()]);
  return json({users:users.results,invitations:invitations.results,audit:audit.results,members:members.results.map(r=>({id:r.id,...JSON.parse(String(r.data))}))});}catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}}
-export async function POST(request:Request){const u=await getGovernanceAdminUser();if(!u)return json({error:'Akses khusus administrator.'},403);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(!env.DB)return json({error:'Database belum tersedia.'},503);
- try{const raw=await readJsonObject(request,8000),purpose=raw.action==='reset'?'reset':'activate';if(!['invite','reset'].includes(String(raw.action)))return json({error:'Tindakan tidak valid.'},400);
+export async function POST(request:Request){
+ const u=await getAuthenticatedUser();
+ if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus Ketua.'},403);
+ if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
+ if(!env.DB)return json({error:'Database belum tersedia.'},503);
+ try{
+  const raw=await readJsonObject(request,8000);
+  if(u.role==='admin'){
+   if(raw.action!=='invite'||raw.role!=='ketua')return json({error:'Administrator Sistem hanya dapat memulai undangan Ketua pertama; pengelolaan akun organisasi selanjutnya menjadi kewenangan Ketua.'},403);
+   const nowCheck=new Date().toISOString();
+   const activeChair=await env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' AND enabled=TRUE LIMIT 1").bind(u.userId).first();
+   const pendingChair=await env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,nowCheck).first();
+   if(activeChair||pendingChair)return json({error:'Undangan Ketua pertama sudah digunakan atau masih berlaku. Pengelolaan akun kini hanya melalui Ketua.'},403);
+  }
+  const purpose=raw.action==='reset'?'reset':'activate';
+  if(!['invite','reset'].includes(String(raw.action)))return json({error:'Tindakan tidak valid.'},400);
  let memberId=String(raw.memberId||''),email=String(raw.email||'').trim().toLowerCase(),fullName='',targetId:string|null=null,access=accessInput(raw);
  if(purpose==='reset'){const target=await env.DB.prepare('SELECT id,email,full_name,member_id,role,position,program_ids FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();if(!target||target.role==='admin')return json({error:'Pemulihan ini hanya untuk akun anggota dan pengurus.'},403);targetId=String(target.id);memberId=String(target.member_id);email=String(target.email);fullName=String(target.full_name);access=accessInput({role:target.role,position:target.position,programIds:JSON.parse(String(target.program_ids))})}
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan email pribadi yang valid.'},400);
