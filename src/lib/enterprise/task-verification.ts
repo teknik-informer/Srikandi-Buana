@@ -21,8 +21,8 @@ export type TaskVerificationInput = {
 
 /**
  * Enforce the hand-off between execution and leadership review.
- * Coordinators and secretariat can submit results, but only the chair or
- * administrator can approve them or request a correction.
+ * Coordinators and secretariat can submit results, but only the Chair can
+ * approve them or request a correction.
  */
 export function taskVerificationError(input: TaskVerificationInput): string | null {
   const reviewer = input.role === "ketua";
