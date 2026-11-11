@@ -167,7 +167,7 @@ assert.equal(dateRegex.test("2026-11-10"), true, "A valid ISO date must pass val
 assert.equal(dateRegex.test("2026-11-1"), false, "A malformed ISO date must fail validation");
 assert(api.includes('.replace(/[\\u0300-\\u036f]/g, "")'), "Commodity slugs must normalize combining Unicode accents");
 assert(api.includes("memberData.status !== \"Aktif\"") && api.includes("memberData.verification !== \"Terverifikasi\""), "Lands must be linked to active, verified members");
-assert(api.includes('!["admin", "ketua"].includes(user.role)'), "Verification must require administrator or chair");
+assert(api.includes('user.role !== "ketua"'), "Only Chair may verify agriculture records");
 assert(api.includes('user.programIds.includes("3")'), "Coordinator write access must require agriculture program assignment");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
 assert(summary.includes("data::jsonb->>'status'='Aktif'") && summary.includes("data::jsonb->>'verification'='Terverifikasi'"));
@@ -183,3 +183,5 @@ console.log("PASS agriculture: migration constraints, workspace/member isolation
 await pool.end();
 
 assert(access.includes("canFinalApprove = (role: Role) => role === \"ketua\""));
+assert(api.includes("Master komoditas hanya dapat dikelola Ketua atau Administrator Sistem."));
+assert(api.includes("Pengesahan data pertanian hanya dapat dilakukan Ketua."));
