@@ -1121,7 +1121,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["verification", "meetingReviewStatus"].includes(f.key) &&
-                            !["admin", "ketua"].includes(principal.role)
+                            principal.role !== "ketua"
                           }
                           defaultValue={String(
                             editor.row?.data[f.key] ??
@@ -1129,7 +1129,7 @@ export default function Workspace({
                               f.options[0],
                           )}
                         >
-                          {(editor.kind === "tindaklanjut" && f.key === "verification" && !["admin", "ketua"].includes(principal.role) ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
+                          {(editor.kind === "tindaklanjut" && f.key === "verification" && principal.role !== "ketua" ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
                             <NativeSelectOption key={o}>
                               {f.key === "programId"
                                 ? o
@@ -1163,7 +1163,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["reviewNote", "meetingReviewNote"].includes(f.key) &&
-                            !["admin", "ketua"].includes(principal.role)
+                            principal.role !== "ketua"
                           }
                         />
                       ) : (
@@ -1186,7 +1186,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["meetingReviewMeeting", "meetingReviewDate"].includes(f.key) &&
-                            !["admin", "ketua"].includes(principal.role)
+                            principal.role !== "ketua"
                           }
                         />
                       )}
