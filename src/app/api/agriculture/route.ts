@@ -40,13 +40,13 @@ async function context(request: Request, write = false, verification = false) {
   if (write && !sameOrigin(request)) return { error: json({ error: "Permintaan lintas situs ditolak." }, 403) };
   if (!env.DB) return { error: json({ error: "Database belum tersedia." }, 503) };
   const assignedAgriculture = user.role === "koordinator" && user.programIds.includes("3");
-  const mayRead = ["admin", "ketua", "sekretaris", "bendahara"].includes(user.role) || assignedAgriculture;
-  const mayWrite = ["admin", "ketua", "sekretaris"].includes(user.role) || assignedAgriculture;
+  const mayRead = ["ketua", "sekretaris", "bendahara"].includes(user.role) || assignedAgriculture;
+  const mayWrite = user.role === "sekretaris" || assignedAgriculture;
   if (!mayRead || write && !mayWrite) {
     return { error: json({ error: "Modul pertanian berada di luar kewenangan akun ini." }, 403) };
   }
-  if (verification && user.role !== "ketua") {
-    return { error: json({ error: "Pengesahan data pertanian hanya dapat dilakukan Ketua." }, 403) };
+  if (verification && user.role !== "sekretaris") {
+    return { error: json({ error: "Verifikasi data pertanian merupakan kewenangan Sekretariat." }, 403) };
   }
   return { user, db: env.DB };
 }
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
       cropCycles: cycles.results,
       harvests: harvests.results,
       audit: auditRows.results,
-      permissions: { canVerify: c.user!.role === "ketua" },
+      permissions: { canVerify: c.user!.role === "sekretaris" },
     });
   } catch {
     return json({ error: "Data pertanian belum dapat dimuat. Periksa apakah migrasi 006 sudah diterapkan pada database aplikasi." }, 503);
@@ -113,16 +113,16 @@ export async function POST(request: Request) {
     const user = c.user!;
     const db = c.db!;
     const now = new Date().toISOString();
-    if (user.role === "sekretaris" && action !== "create_parcel") {
+    if (user.role === "sekretaris" && !["create_parcel", "create_commodity"].includes(action)) {
       return json({ error: "Sekretariat hanya dapat mengelola Buku Induk Lahan pada modul pertanian. Data teknis tanam dan panen dicatat Koordinator Bidang." }, 403);
     }
-    if (user.role === "koordinator" && !["create_commodity", "create_crop_cycle", "create_harvest"].includes(action)) {
+    if (user.role === "koordinator" && !["create_crop_cycle", "create_harvest"].includes(action)) {
       return json({ error: "Koordinator Bidang mengelola data teknis komoditas, siklus tanam, dan panen. Register lahan dikelola Sekretariat." }, 403);
     }
 
     if (action === "create_commodity") {
-      if (!["admin", "ketua"].includes(user.role)) {
-        return json({ error: "Master komoditas hanya dapat dikelola Ketua atau Administrator Sistem." }, 403);
+      if (user.role !== "sekretaris") {
+        return json({ error: "Master komoditas merupakan register referensi yang dikelola Sekretariat." }, 403);
       }
       const name = textValue(raw.name, "Nama komoditas", 2, 120);
       const code = slug(name);
@@ -262,7 +262,7 @@ export async function PATCH(request: Request) {
       ]);
       return json({ ok: true, status: "archived" });
     }
-    if (user.role !== "ketua") return json({ error: "Pengesahan data pertanian hanya dapat dilakukan Ketua. Sekretariat hanya dapat mengubah atau mengarsipkan register lahan." }, 403);
+    if (user.role !== "sekretaris") return json({ error: "Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis." }, 403);
     if (!["verify_parcel", "reject_parcel", "verify_crop_cycle", "reject_crop_cycle", "verify_harvest", "reject_harvest"].includes(action)) {
       return json({ error: "Tindakan verifikasi tidak dikenal." }, 400);
     }
