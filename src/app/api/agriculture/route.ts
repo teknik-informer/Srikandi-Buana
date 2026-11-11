@@ -116,6 +116,9 @@ export async function POST(request: Request) {
     if (user.role === "sekretaris" && action !== "create_parcel") {
       return json({ error: "Sekretariat hanya dapat mengelola Buku Induk Lahan pada modul pertanian. Data teknis tanam dan panen dicatat Koordinator Bidang." }, 403);
     }
+    if (user.role === "koordinator" && !["create_commodity", "create_crop_cycle", "create_harvest"].includes(action)) {
+      return json({ error: "Koordinator Bidang mengelola data teknis komoditas, siklus tanam, dan panen. Register lahan dikelola Sekretariat." }, 403);
+    }
 
     if (action === "create_commodity") {
       if (!["admin", "ketua"].includes(user.role)) {
