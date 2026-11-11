@@ -113,6 +113,9 @@ export async function POST(request: Request) {
     const user = c.user!;
     const db = c.db!;
     const now = new Date().toISOString();
+    if (user.role === "sekretaris" && action !== "create_parcel") {
+      return json({ error: "Sekretariat hanya dapat mengelola Buku Induk Lahan pada modul pertanian. Data teknis tanam dan panen dicatat Koordinator Bidang." }, 403);
+    }
 
     if (action === "create_commodity") {
       const name = textValue(raw.name, "Nama komoditas", 2, 120);
