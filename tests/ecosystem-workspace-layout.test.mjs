@@ -87,7 +87,7 @@ test("meeting follow-ups can be promoted to permission-checked task drafts witho
 test("upcoming agenda links to the selected event attendance record with role-limited editing", () => {
   const dashboard = read("src/app/_components/management-dashboard.tsx");
   const attendance = read("src/app/_components/attendance.tsx");
-  assert.ok(dashboard.includes('const attendanceAccess = user.role === "admin" || user.role === "sekretaris"'));
+  assert.ok(dashboard.includes('const attendanceAccess = ["admin", "ketua", "sekretaris"].includes(user.role)'));
   assert.ok(dashboard.includes('row.kind === "kehadiran" && row.data.eventId === event.id'));
   assert.ok(dashboard.includes('"/dashboard/kehadiran?eventId=" + encodeURIComponent(event.id)'));
   assert.ok(dashboard.includes("Daftar hadir belum dibuat"));
@@ -115,8 +115,8 @@ test("members receive guided self-service without direct edits to verified membe
   assert.ok(workspace.includes('href="/dashboard/pengajuan"'));
   assert.ok(workspace.includes('href="/dashboard/portal"'));
   assert.ok(policy.includes("return false") || policy.includes("canWriteKind"));
-  assert.ok(policy.includes("r.id===u.memberId"));
-  assert.ok(policy.includes("role==='anggota'"));
+  assert.ok(policy.includes("record.id === user.memberId"));
+  assert.ok(policy.includes('user.role === "anggota"'));
 });
 
 
