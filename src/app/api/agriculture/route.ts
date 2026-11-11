@@ -45,8 +45,8 @@ async function context(request: Request, write = false, verification = false) {
   if (!mayRead || write && !mayWrite) {
     return { error: json({ error: "Modul pertanian berada di luar kewenangan akun ini." }, 403) };
   }
-  if (verification && !["admin", "ketua"].includes(user.role)) {
-    return { error: json({ error: "Verifikasi data hanya dapat dilakukan Administrator atau Ketua." }, 403) };
+  if (verification && user.role !== "ketua") {
+    return { error: json({ error: "Pengesahan data pertanian hanya dapat dilakukan Ketua." }, 403) };
   }
   return { user, db: env.DB };
 }
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
       cropCycles: cycles.results,
       harvests: harvests.results,
       audit: auditRows.results,
-      permissions: { canVerify: ["admin", "ketua"].includes(c.user!.role) },
+      permissions: { canVerify: c.user!.role === "ketua" },
     });
   } catch {
     return json({ error: "Data pertanian belum dapat dimuat. Periksa apakah migrasi 006 sudah diterapkan pada database aplikasi." }, 503);
