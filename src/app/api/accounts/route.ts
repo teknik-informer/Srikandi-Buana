@@ -4,12 +4,22 @@ import {getAuthenticatedUser} from '@/lib/auth';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
 export const dynamic='force-dynamic';
-export async function GET(){const u=await getGovernanceAdminUser();if(!u)return json({error:'Akses khusus administrator.'},403);if(!env.DB)return json({error:'Database belum tersedia.'},503);try{const [users,invitations,audit,members]=await Promise.all([
+export async function GET(){const u=await getAuthenticatedUser();if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus Ketua.'},403);if(!env.DB)return json({error:'Database belum tersedia.'},503);try{
+ if(u.role==='admin'){
+  const activeChair=await env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' AND enabled=TRUE LIMIT 1").bind(u.userId).first();
+  const pendingChair=await env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,new Date().toISOString()).first();
+  const firstChairAvailable=!activeChair&&!pendingChair;
+  const candidateRows=firstChairAvailable?await env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all():{results:[]};
+  const members=candidateRows.results.flatMap(r=>{try{const d=JSON.parse(String(r.data));return d.status==='Aktif'&&d.verification==='Terverifikasi'?[{id:String(r.id),name:String(d.name||''),status:d.status,verification:d.verification}]:[]}catch{return[]}});
+  return json({users:[],invitations:[],audit:[],members,firstChairAvailable});
+ }
+ if(u.role!=='ketua')return json({error:'Akses khusus Ketua.'},403);
+ const [users,invitations,audit,members]=await Promise.all([
  env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE workspace_owner=? ORDER BY created').bind(u.userId).all(),
  env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,purpose,expires,consumed_at,revoked_at,created FROM account_invitations WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all(),
  env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 50').bind(u.userId).all(),
  env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all()]);
- return json({users:users.results,invitations:invitations.results,audit:audit.results,members:members.results.map(r=>({id:r.id,...JSON.parse(String(r.data))}))});}catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}}
+ return json({users:users.results,invitations:invitations.results,audit:audit.results,members:members.results.map(r=>({id:r.id,...JSON.parse(String(r.data))})),firstChairAvailable:false});}catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}}
 export async function POST(request:Request){
  const u=await getAuthenticatedUser();
  if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus Ketua.'},403);
