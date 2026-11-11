@@ -76,28 +76,49 @@ export async function GET(request: Request) {
       c.db!.prepare("SELECT h.id,h.crop_cycle_id,h.harvest_date,h.quantity,h.unit_code,h.notes,h.verification_status,h.verification_note,h.created_at,c.season_label,p.name AS parcel_name,p.parcel_code,a.name AS commodity_name FROM harvest_records h JOIN crop_cycles c ON c.id=h.crop_cycle_id AND c.workspace_owner=h.workspace_owner JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner WHERE h.workspace_owner=? ORDER BY h.harvest_date DESC,h.created_at DESC").bind(owner).all(),
       c.db!.prepare("SELECT actor_id,actor_role,action,target_type,target_id,reason,created_at FROM agriculture_audit WHERE workspace_owner=? ORDER BY created_at DESC LIMIT 40").bind(owner).all(),
     ]);
-    const memberOptions = members.results.flatMap((row) => {
+    const isSecretariat = c.user!.role === "sekretaris";
+    const isCoordinator = c.user!.role === "koordinator";
+    const memberOptions = isSecretariat ? members.results.flatMap((row) => {
       try {
         const data = JSON.parse(String(row.data));
         return data.status === "Aktif" && data.verification === "Terverifikasi"
           ? [{ id: String(row.id), name: String(data.name || "Anggota"), dusun: String(data.dusun || "") }]
           : [];
       } catch { return []; }
-    });
+    }) : [];
+    const memberCount = members.results.reduce((total, row) => {
+      try {
+        const data = JSON.parse(String(row.data));
+        return total + (data.status === "Aktif" && data.verification === "Terverifikasi" ? 1 : 0);
+      } catch { return total; }
+    }, 0);
     const parcelRows = parcels.results.map((row) => {
       let memberName = "Anggota";
       try { memberName = String(JSON.parse(String(row.member_data)).name || memberName); } catch {}
       const { member_data: _privateMemberData, ...parcel } = row;
-      return { ...parcel, member_name: memberName };
+      if (isSecretariat) return { ...parcel, member_name: memberName };
+      const { member_id: _memberId, member_name: _memberName, verification_note: _verificationNote, ...oversight } = { ...parcel, member_name: memberName };
+      return oversight;
+    });
+    const cropCycleRows = cycles.results.map((row) => {
+      if (isSecretariat || isCoordinator) return row;
+      const { verification_note: _verificationNote, ...oversight } = row;
+      return oversight;
+    });
+    const harvestRows = harvests.results.map((row) => {
+      if (isSecretariat || isCoordinator) return row;
+      const { notes: _notes, verification_note: _verificationNote, ...oversight } = row;
+      return oversight;
     });
     return json({
       members: memberOptions,
+      memberCount,
       commodities: commodities.results,
       parcels: parcelRows,
-      cropCycles: cycles.results,
-      harvests: harvests.results,
-      audit: auditRows.results,
-      permissions: { canVerify: c.user!.role === "sekretaris" },
+      cropCycles: cropCycleRows,
+      harvests: harvestRows,
+      audit: isSecretariat ? auditRows.results : [],
+      permissions: { canVerify: isSecretariat },
     });
   } catch {
     return json({ error: "Data pertanian belum dapat dimuat. Periksa apakah migrasi 006 sudah diterapkan pada database aplikasi." }, 503);
