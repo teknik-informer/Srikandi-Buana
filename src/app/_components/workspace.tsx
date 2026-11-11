@@ -960,7 +960,7 @@ export default function Workspace({
         {section === "panduan" && (
           <>
             <Box title="Portal & layanan operasional">
-              <p>Buka Portal Anggota untuk kebutuhan pribadi. Buat dan simpan draf pengajuan, lengkapi bukti, lalu kirim. Ketua atau administrator lain memeriksa pengajuan; petugas keuangan/aset atau sekretariat mencatat realisasinya. Pengaju tidak dapat menyetujui atau merealisasikan pengajuannya sendiri.</p>
+              <p>Buka Portal Anggota untuk kebutuhan pribadi. Buat dan simpan draf pengajuan, lengkapi bukti, lalu kirim. Ketua memeriksa pengajuan; Bendahara atau Sekretariat mencatat realisasinya sesuai domain. Pengaju tidak dapat menyetujui atau merealisasikan pengajuannya sendiri.</p>
               <p>Persetujuan biaya belum berarti pembayaran. Hubungkan realisasi dengan transaksi Pengeluaran yang nominal dan pos dananya sesuai serta memiliki bukti. Untuk pinjaman, aset dicadangkan saat disetujui dan dilepas setelah pengembalian dicatat.</p>
               <Button variant="outline" asChild><Link href="/dashboard/portal">Buka Portal Anggota</Link></Button>
             </Box>
@@ -1062,7 +1062,7 @@ export default function Workspace({
               {editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
-              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Pengesahan hanya dapat dilakukan Ketua atau Administrator." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
+              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Verifikasi administratif dilakukan Sekretariat; Ketua mengesahkan paket laporan dan keputusan organisasi." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
             </DialogDescription>
           </DialogHeader>
           <form
