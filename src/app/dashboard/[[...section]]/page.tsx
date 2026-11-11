@@ -15,6 +15,8 @@ import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem
 import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-overview";
 import ExternalAccessWorkspace from "../../_components/external-access-workspace";
 import AgricultureWorkspace from "../../_components/agriculture-workspace";
+import ManagementAudienceDashboard from "../../_components/management-audience-dashboard";
+import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
@@ -45,6 +47,21 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     );
   const defaultSidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   const active = section?.[0] || "ringkasan";
+  if (active === "ringkasan") {
+    const isMember = admin.role === "anggota";
+    return (
+      <WorkspaceShell
+        user={admin}
+        section={active}
+        title={isMember ? "Dashboard Anggota" : "Dashboard Pengurus"}
+        defaultSidebarOpen={defaultSidebarOpen}
+      >
+        {isMember
+          ? <MemberAudienceDashboard user={admin} />
+          : <ManagementAudienceDashboard user={admin} />}
+      </WorkspaceShell>
+    );
+  }
   const dashboardDefinition = getEnterpriseDashboardById(active);
   const visibleDashboard = dashboardDefinition
     ? getVisibleEnterpriseDashboards(admin.role).find((dashboard) => dashboard.id === active)
