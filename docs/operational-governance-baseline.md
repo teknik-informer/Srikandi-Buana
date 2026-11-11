@@ -101,3 +101,16 @@ EUDR relevan terhadap komoditas dan pelaku usaha tertentu dalam rantai pasok yan
 ## 9. Status implementasi pada saat baseline dicatat
 
 PR #17 pada branch `feat/governance-rbac-v1` tetap Draft. Fondasi role-scoped access, register administrasi/survei, dan studio surat resmi berstatus draf telah dibuat. Universal approval workflow, snapshot persetujuan, generator PDF/Excel final, pembagian eksternal berdasarkan persetujuan, serta pemetaan lengkap dataset survei masih merupakan pekerjaan lanjutan. Tidak ada perubahan database Neon produksi, branch utama, atau deployment Vercel sebagai akibat pencatatan baseline ini.
+
+## 10. Penyelarasan tambahan terhadap pengajuan operasional yang sudah ada
+
+Modul pengajuan operasional yang telah ada (pengadaan, penggantian biaya, peminjaman aset, layanan administrasi, dan izin kegiatan) adalah alur tersendiri, bukan pengganti workflow pengesahan laporan universal.
+
+Pemisahan kewenangan yang telah diselaraskan pada PR:
+- Ketua dapat meninjau, meminta revisi, menolak, dan menyetujui pengajuan pada antrean keputusan organisasi.
+- Administrator Sistem/Developer dapat memeriksa pengajuan non-draf untuk keperluan teknis/pengawasan, tetapi tidak dapat membuka antrean keputusan Ketua, menyetujui, meminta revisi, atau menolak atas nama organisasi.
+- Bendahara mengeksekusi realisasi pengajuan keuangan/peminjaman aset pada tahap yang diizinkan setelah persetujuan.
+- Sekretaris mengeksekusi realisasi layanan administrasi/non-keuangan sesuai lingkup yang diizinkan.
+- Pengaju tidak dapat menyetujui atau merealisasikan pengajuannya sendiri.
+
+Notifikasi pengajuan baru dikirim kepada akun Ketua aktif. Keputusan dan transisi pengajuan tetap menggunakan versi dan event audit yang tersedia pada modul operasional. Kebijakan ini tidak menyelesaikan seluruh otorisasi pembelian aset atau ambang nominal yang belum ditetapkan dalam keputusan tertulis.
