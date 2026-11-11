@@ -114,6 +114,10 @@ await pendingChairInvite('one');
 await assert.rejects(pendingChairInvite('two'),/account_invitations_one_pending_chair_per_workspace|unique|duplicate/i,'Database must prevent concurrent pending Chair invitations');
 
 const firstChairUser=await (await load('src/lib/auth.ts',firstChair.j)).getAuthenticatedUser();created.push(firstChairUser.accountId);accountManager=await load('src/app/api/accounts/route.ts',firstChair.j);
+await prepare('UPDATE users SET enabled=FALSE WHERE id=?').bind(firstChairUser.accountId).run();
+assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{action:'invite',memberId:firstChairMember,email:'replacement-chair@example.test',role:'ketua'}))).status,403,'Disabling a Chair must not reopen the one-time technical bootstrap');
+await prepare('UPDATE users SET enabled=TRUE WHERE id=?').bind(firstChairUser.accountId).run();
+
 assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{action:'invite',memberId:firstChairMember,email:'second-chair@example.test',role:'ketua'}))).status,403,'Technical administrator cannot provision a second Chair');
 assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{},'https://evil.test'))).status,403);
 const inactive=await member('Unverified','Perlu verifikasi','Perlu verifikasi');assert.equal((await invite(inactive)).response.status,400);
