@@ -194,9 +194,9 @@ test("task result handoff requires real evidence and a leadership decision", () 
   );
 });
 
-test("only the Chair can approve a completed task result", () => {
+test("only the Secretariat can verify a completed task result", () => {
   const pending = {
-    role: "ketua",
+    role: "sekretaris",
     previousVerification: "Menunggu verifikasi",
     previousStatus: "Selesai",
     verification: "Terverifikasi",
@@ -206,15 +206,12 @@ test("only the Chair can approve a completed task result", () => {
     reviewNote: "",
   };
   assert.equal(verification.taskVerificationError(pending), null);
-  assert.match(verification.taskVerificationError({ ...pending, role: "admin" }) || "", /Hanya Sekretariat/);
-  assert.match(
-    verification.taskVerificationError({ ...pending, role: "koordinator" }) || "",
-    /Hanya Ketua/,
-  );
-  assert.match(
-    verification.taskVerificationError({ ...pending, role: "sekretaris" }) || "",
-    /Hanya Ketua/,
-  );
+  for (const role of ["admin", "ketua", "koordinator"]) {
+    assert.match(
+      verification.taskVerificationError({ ...pending, role }) || "",
+      /Hanya Sekretariat/,
+    );
+  }
 });
 
 test("requesting correction requires a reason and reopens the task", () => {
