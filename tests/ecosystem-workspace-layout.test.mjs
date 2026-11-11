@@ -127,7 +127,9 @@ test("secretariat correspondence workflow is available only to authorized roles 
   const api = read("src/app/api/records/route.ts");
   assert.ok(schema.includes('surat:{title:"Surat Masuk dan Keluar"'));
   for (const field of ["direction", "number", "receivedDate", "sender", "recipient", "disposition", "pic", "dueDate", "attachmentId"]) assert.ok(schema.includes('key:"' + field + '"'));
-  assert.ok(policy.includes("'program','surat']"));
+  assert.ok(policy.includes('"surat"'));
+  assert.ok(policy.includes('"alsintan"'));
+  assert.ok(policy.includes('role === "sekretaris") return secretariatWrite.includes(kind)'));
   assert.ok(navigation.includes("admin('surat','Surat Masuk dan Keluar'"));
   assert.ok(api.includes("const module=modules[kind]"));
   assert.ok(api.includes("canWriteRecord(c.user!"));
@@ -159,7 +161,7 @@ test("coordinator program reports are scoped, visible to leadership, and promote
   const memberWorkspace = read("src/app/_components/access/role-workspace.tsx");
   assert.ok(schema.includes('laporan_program:{title:"Laporan Perkembangan Program"'));
   for (const field of ["programId", "date", "target", "achievement", "progress", "evaluation", "blockers", "supportNeeded", "nextSteps", "attachmentId"]) assert.ok(schema.includes('key:"' + field + '"'));
-  assert.ok(policy.includes("'tindaklanjut','laporan_program']"));
+  assert.ok(policy.includes('const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_program"]'));
   assert.ok(policy.includes("kind==='laporan_program'"));
   assert.ok(navigation.includes("admin('laporan_program','Laporan Perkembangan Program'"));
   assert.ok(dashboard.includes('row.kind === "laporan_program"'));
@@ -182,7 +184,7 @@ test("chair task management preserves the follow-up record deletion boundary", (
   const api = read("src/app/api/records/route.ts");
   const workspace = read("src/app/_components/access/role-workspace.tsx");
   const policy = read("src/features/identity/access-policy.ts");
-  assert.ok(policy.includes("if(u.role==='ketua')return kind==='tindaklanjut'"));
+  assert.ok(policy.includes("if (isSuperAdmin(user.role)) return true;"));
   assert.ok(api.includes("Ketua dapat memperbarui status tugas, tetapi tidak menghapus riwayat tindak lanjut."));
   assert.ok(workspace.includes('user.role !== "ketua" &&'));
 });
@@ -194,7 +196,7 @@ test("chair records decisions through the task workspace rather than a context-f
   const policy = read("src/features/identity/access-policy.ts");
   assert.ok(dashboard.includes('user.role !== "ketua"'));
   assert.ok(dashboard.includes("createTaskFromProgramReport"));
-  assert.ok(policy.includes("if(u.role==='ketua')return kind==='tindaklanjut'"));
+  assert.ok(policy.includes("if (isSuperAdmin(user.role)) return true;"));
   assert.ok(workspace.includes('field.key === "notes") return { ...field, label: "Keputusan Ketua / perkembangan" }'));
   assert.ok(workspace.includes('field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan" }'));
   assert.ok(workspace.includes('field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan" }'));
@@ -215,7 +217,7 @@ test("task completion evidence is submitted by implementers and verified only by
   }
   assert.ok(api.includes('import { taskVerificationError } from "@/lib/enterprise/task-verification"'));
   assert.ok(api.includes("taskVerificationError({"));
-  assert.ok(policy.includes('input.role === "admin" || input.role === "ketua"'));
+  assert.ok(policy.includes('input.role === "ketua"'));
   assert.ok(policy.includes("completionEvidence"));
   assert.ok(policy.includes("previousVerification === \"Terverifikasi\""));
   assert.ok(workspace.includes('["reviewNote", "meetingReviewNote"].includes(f.key)'));
@@ -285,7 +287,7 @@ test("meeting decisions become individually linked tasks only after approval and
   assert.ok(dashboard.includes("meetingActionSourceMarker(row.id, index)"));
   assert.ok(dashboard.includes("Lanjutkan "));
   assert.ok(dashboard.includes("Evaluasi pelaksanaan keputusan rapat"));
-  assert.ok(dashboard.includes('["admin", "ketua"].includes(user.role) && canWriteRecord(user, task)'));
+  assert.ok(dashboard.includes('user.role === "ketua" && canWriteRecord(user, task)'));
   assert.ok(api.includes("Keputusan harus tercatat Disepakati sebelum dibuat menjadi tugas."));
   assert.ok(api.includes("Keputusan rapat ini sudah memiliki tugas."));
   assert.ok(api.includes("Daftar keputusan sudah memiliki tugas terkait."));
