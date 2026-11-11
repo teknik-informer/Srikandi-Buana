@@ -14,38 +14,60 @@ Dokumen ini mencatat kebutuhan yang telah diterima untuk implementasi PR #17. Do
 - Kedudukan dalam rancangan: kelembagaan petani rintisan yang diarahkan berkembang; jangan menyatakan organisasi sudah menjadi KUB atau koperasi sebelum status dan dokumen legalnya benar-benar terbit.
 - Periode pengurus pada draf SK: 2026–2029; tanggal penetapan yang tertulis: 11 November 2026.
 
-## 2. Peran dan batas kewenangan
+## 2. Model peran dan batas kewenangan — tanpa Super Admin serba-kuasa
 
-| Peran | Hak operasional pokok | Batas penting |
+Keputusan arsitektur: **jangan gunakan satu role Super Admin yang menggabungkan akses platform, perubahan data operasional, persetujuan organisasi, dan penerbitan dokumen.** Jabatan organisasi dan kewenangan teknis adalah dua hal berbeda.
+
+| Peran | Wewenang yang tepat | Larangan / batas |
 | --- | --- | --- |
-| Ketua | Akses organisasi tertinggi; meninjau dan mengesahkan laporan; mengesahkan anggaran; persetujuan akhir dan rilis dokumen publik | Persetujuan yang mengikat organisasi harus tercatat atas akun Ketua yang berwenang |
-| Sekretaris | CRUD administrasi, anggota, rapat/notulen, persuratan, dokumen legal, register lahan/alsintan, pengawasan dan verifikasi data survei | Keuangan hanya baca; tidak dapat menggantikan persetujuan akhir Ketua |
-| Bendahara | CRUD transaksi kas, iuran/tabungan, aset/inventaris, rekonsiliasi dan pelaporan keuangan | Administrasi umum hanya baca; transaksi harus memiliki bukti serta jejak koreksi |
-| Koordinator Bidang | Menyusun dan memperbarui rencana serta realisasi teknis pada bidang/program yang ditugaskan | Tidak memiliki akses lintas-bidang, CRUD keuangan, atau kewenangan pengesahan/rilis akhir |
-| Anggota | Profil sendiri, agenda, informasi program, iuran/tabungan sendiri | Tidak melihat profil, transaksi, atau dokumen pribadi anggota lain |
-| Pemerintah/Dinas | Laporan kelompok, monografi, data agregat lahan/komoditas, bantuan dan dokumen yang dibagikan | Akses berbasis undangan/grant, tujuan, masa berlaku, dan minimisasi data |
-| NGO/LSM/Yayasan | Laporan capaian program, milestone, dan alokasi dana program yang dibagikan | Tidak mendapat data pribadi mentah atau akses ke seluruh buku kas tanpa dasar dan persetujuan |
-| Administrator Sistem/Developer | Pemeliharaan teknis dan administrasi sistem yang diperlukan | Tidak otomatis menjadi pemegang persetujuan organisasi atau penandatangan dokumen |
+| Ketua | Pengawasan seluruh domain, membaca laporan lintas bidang, menetapkan keputusan organisasi, mengesahkan anggaran sesuai keputusan, menyetujui paket laporan, serta mengotorisasi dokumen resmi untuk diterbitkan | Tidak perlu menjadi operator pencatatan harian atau mengedit jurnal keuangan sumber; perubahan data tetap dilakukan pemilik domain dan tercatat |
+| Sekretaris | CRUD administrasi, data keanggotaan, rapat/notulen, persuratan, dokumen legal, agenda, daftar hadir, register lahan/alsintan, serta verifikasi administrasi dan data survei | Tidak mengubah transaksi keuangan atau melakukan rekonsiliasi Bendahara |
+| Bendahara | CRUD transaksi kas, iuran/tabungan, pembelian/penjualan dan register aset sesuai lingkup keuangan; verifikasi bukti dan rekonsiliasi | Tidak mengubah data induk administrasi atau hasil verifikasi Sekretariat |
+| Koordinator Bidang | Membuat dan memperbarui rencana, kegiatan, dan laporan teknis sesuai program/bidang yang ditugaskan | Tidak memiliki akses lintas-bidang, CRUD keuangan, perubahan master data, atau persetujuan final |
+| Administrator Sistem/Developer | Konfigurasi platform, keamanan teknis, integrasi, pemeliharaan, monitoring, backup/restore, dan pemulihan layanan | Tidak memiliki kewenangan organisasi, tidak menyetujui transaksi/laporan/dokumen, dan tidak menjadi penandatangan. Akses bantuan ke data bisnis harus berupa akses sementara, beralasan, dibatasi, dan tercatat |
+| Anggota | Profil sendiri, agenda, program, serta catatan iuran/tabungan miliknya sendiri | Tidak melihat atau mengubah data pribadi dan transaksi anggota lain |
+| Pemerintah/Dinas | Laporan kelompok, monografi, agregat lahan/komoditas, bantuan, dan dokumen yang secara khusus dibagikan | Akses berbasis grant, tujuan, masa berlaku, dan minimisasi data |
+| NGO/LSM/Yayasan/Mitra | Laporan capaian dan milestone program serta alokasi dana program yang secara khusus dibagikan | Tidak memperoleh akses bebas ke data pribadi, buku kas lengkap, atau catatan internal yang tidak relevan |
 
-### Catatan konflik redaksional sumber
+**Tidak ada akun bersama.** Setiap orang yang bertindak atas nama jabatan menggunakan akun pribadi. Hak akses Ketua hanya diberikan kepada orang yang kewenangannya tercantum jelas pada SK final; nama yang belum terverifikasi tidak otomatis diberi role Ketua.
 
-Naskah memuat dua bagian bernomor VI. Pada satu matriks, label Super Admin mencantumkan Ketua dan Sistem Developer; pada uraian lain, Super Admin adalah Ketua. Prinsip yang dapat diterapkan tanpa mengubah kewenangan organisasi: pisahkan role teknis `admin` dari role organisasi `ketua`; developer dapat melakukan operasi teknis sesuai hak sistem, tetapi tindakan approval final, pengesahan anggaran, dan penerbitan yang mewakili organisasi tetap harus diverifikasi sebagai tindakan akun Ketua. Hindari berbagi kredensial antarorang.
+### Pemisahan akun teknis dan keputusan organisasi
 
-Daftar Ketua memuat tiga nama, sementara blok penandatanganan draf SK mencantumkan satu nama sebagai Ketua. Jangan mengubah atau mengarang titel wakil/ketua bidang. Setiap orang yang diberi akun `ketua` harus ditetapkan oleh SK final dan memiliki akun pribadi; catatan persetujuan harus menyimpan identitas akun yang benar-benar menyetujui.
+Naskah sumber memakai istilah Super Admin secara tidak konsisten: satu bagian menyebut Ketua dan Sistem Developer, sedangkan bagian lain menyebut Ketua. Implementasi profesional tidak mempertahankan ambiguitas tersebut sebagai satu role.
 
-## 3. Alur verifikasi dan persetujuan
+- `ketua` adalah otoritas organisasi untuk persetujuan dan rilis.
+- `admin` adalah administrator teknis/platform, bukan pejabat organisasi.
+- Administrator teknis tidak boleh memakai endpoint atau sesi teknis untuk menyetujui keputusan organisasi.
+- Akses darurat/bantuan teknis ke data bisnis, bila suatu saat diperlukan, harus menggunakan mekanisme *break-glass* dengan justifikasi, persetujuan yang sesuai, durasi singkat, pembatasan record, dan audit yang tidak dapat dihapus.
+- Hak akses di atas harus ditegakkan di API dan layanan data, bukan hanya dengan menyembunyikan menu.
 
-Alur target:
+Daftar Ketua memuat tiga nama, sementara blok penandatanganan draf SK mencantumkan satu nama. Struktur wakil/ketua harian dan pihak yang sah menandatangani harus mengikuti SK final; sistem tidak boleh mengarang jabatan atau menganggap semua tiga nama otomatis mempunyai kewenangan tanda tangan yang sama.
 
-1. **Draf:** Koordinator bidang atau petugas enumerasi yang ditugaskan menginput data awal.
-2. **Verifikasi domain:** Sekretaris memeriksa anggota, administrasi, rapat, persuratan, hasil survei, dan data kegiatan; Bendahara memeriksa transaksi, bukti kas, iuran/tabungan, aset, dan rekonsiliasi keuangan.
-3. **Perbaikan:** data yang tidak lengkap dikembalikan kepada pengaju dengan catatan; versi sebelumnya dan alasan perubahan tetap tersimpan.
-4. **Menunggu Ketua:** setelah verifikasi domain selesai, data/laporan diajukan kepada Ketua.
-5. **Persetujuan akhir:** Ketua menyetujui atau menolak dengan catatan. Persetujuan harus melekat pada snapshot versi data yang ditinjau, bukan sekadar status yang dapat diganti melalui form.
-6. **Generator:** hanya snapshot yang disetujui Ketua yang boleh dikonversi menjadi PDF/Excel final. Draf, data revisi, dan laporan yang belum disahkan harus tetap diberi tanda draf.
-7. **Distribusi:** dokumen final dapat dibagikan kepada dashboard Pemerintah atau NGO sesuai lingkup, tujuan, dan masa berlaku grant akses.
+## 3. Alur verifikasi dan persetujuan — efisien, berbasis domain, berbasis paket
 
-Setiap tahap perlu mencatat aktor, waktu, tindakan, status sebelum/sesudah, catatan, versi data, dan hash/snapshot dokumen. Pengubahan data setelah persetujuan harus membatalkan status final versi lama dan memulai siklus verifikasi yang baru.
+**Jangan menerapkan persetujuan Ketua pada setiap edit kecil atau setiap baris transaksi.** Model seperti itu membuat antrean macet, mendorong persetujuan formalitas, dan mengalihkan waktu Ketua dari keputusan strategis. Namun, tidak ada data yang boleh langsung dianggap valid hanya karena sudah disimpan.
+
+Alur yang disarankan:
+
+1. **Pencatatan harian:** Koordinator, enumerator yang ditugaskan, Sekretaris, dan Bendahara memasukkan data sesuai peran. Status awal jelas sebagai draf/belum diverifikasi.
+2. **Validasi domain:** Sekretaris memeriksa data administrasi, anggota, rapat, surat, kegiatan, dan hasil survei. Bendahara memeriksa transaksi, bukti kas, iuran/tabungan, aset, dan rekonsiliasi. Tiap verifikasi mencatat pemeriksa, waktu, hasil, dan catatan.
+3. **Perbaikan:** data yang tidak lengkap dikembalikan kepada penginput. Riwayat dan alasan perubahan dipertahankan.
+4. **Penyusunan paket laporan:** backend menyusun snapshot periode/jenis laporan dari entri yang telah lolos pemeriksaan domain. Paket berisi daftar sumber, versi, tanggal batas, ringkasan validasi, dan hash integritas.
+5. **Pengesahan Ketua:** Ketua meninjau paket yang sudah siap, melihat anomali dan ringkasan keputusan, lalu menyetujui, meminta revisi, atau menolak. Persetujuan mengikat pada snapshot paket yang spesifik.
+6. **Generator dokumen:** hanya paket yang disetujui Ketua menghasilkan dokumen final PDF/Excel. Perubahan sumber setelah snapshot membuat paket lama kedaluwarsa dan memerlukan pembentukan/pemeriksaan ulang.
+7. **Distribusi:** dokumen final tersedia bagi Pemerintah/NGO hanya sesuai grant, tujuan, periode akses, dan klasifikasi datanya.
+
+### Jenis tindakan yang memerlukan persetujuan tersendiri
+
+- Pengesahan paket laporan eksternal, laporan pertanggungjawaban, monografi yang akan diserahkan, dan dokumen legal resmi.
+- Penerbitan surat yang memerlukan tanda tangan Ketua.
+- Pengeluaran atau pembelian aset yang memenuhi ambang otorisasi tertulis.
+- Pinjaman, utang, atau komitmen finansial pihak ketiga, mengikuti keputusan Musyawarah Anggota dan Pengurus Harian.
+- Pembagian dataset sensitif atau lokasi presisi kepada pihak luar, setelah dasar dan kewenangannya diperiksa.
+
+Dengan cara ini, seluruh entri tetap diverifikasi oleh penanggung jawab domain, sedangkan Ketua mengesahkan keluaran dan keputusan yang benar-benar memerlukan otoritas organisasi. Sistem generator tidak boleh menjadi *black box*: pengguna berwenang harus dapat melihat sumber, periode, validasi, versi, dan alasan dokumen diterbitkan.
+
+Setiap keputusan pengesahan harus mencatat aktor, waktu, tindakan, status sebelum/sesudah, catatan, versi, dan hash snapshot. Persetujuan tidak boleh dapat dipindahkan ke versi data lain.
 
 ## 4. Modul dan keluaran yang diperlukan
 
@@ -100,7 +122,7 @@ EUDR relevan terhadap komoditas dan pelaku usaha tertentu dalam rantai pasok yan
 
 ## 9. Status implementasi pada saat baseline dicatat
 
-PR #17 pada branch `feat/governance-rbac-v1` tetap Draft. Fondasi role-scoped access, register administrasi/survei, dan studio surat resmi berstatus draf telah dibuat. Universal approval workflow, snapshot persetujuan, generator PDF/Excel final, pembagian eksternal berdasarkan persetujuan, serta pemetaan lengkap dataset survei masih merupakan pekerjaan lanjutan. Tidak ada perubahan database Neon produksi, branch utama, atau deployment Vercel sebagai akibat pencatatan baseline ini.
+PR #17 pada branch `feat/governance-rbac-v1` tetap Draft. Fondasi akses berbasis peran, register administrasi/survei, studio surat resmi berstatus draf, dan antrean pengajuan operasional telah dibuat. Role teknis `admin` masih memiliki hak luas pada beberapa modul record lama dan belum boleh dinyatakan final sebagai pemisahan least-privilege; audit dan refaktor tersebut wajib dilakukan sebelum merge. Prototipe approval universal per-record sempat dibuat lalu dibatalkan karena bukan desain yang tepat; tidak ada migrasi approval itu yang dipertahankan. Persetujuan berbasis paket/snapshot, generator PDF/Excel final, distribusi eksternal, dan pemetaan dataset survei tetap merupakan pekerjaan lanjutan. Tidak ada perubahan database Neon produksi, branch utama, atau deployment Vercel.
 
 ## 10. Penyelarasan tambahan terhadap pengajuan operasional yang sudah ada
 
