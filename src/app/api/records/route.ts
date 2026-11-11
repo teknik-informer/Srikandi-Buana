@@ -82,7 +82,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   const existingReference=edit?parseMeetingTaskReference(previousTaskData?.notes):null;
   if(existingReference&&previousTaskData){
    const source=await c.db!.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='musyawarah'").bind(existingReference.meetingId,c.user!.userId).first();
-   if(!source)return json({error:"Notulen sumber keputusan tidak ditemukan. Riwayat tugas perlu diperiksa Administrator."},409);
+   if(!source)return json({error:"Notulen sumber keputusan tidak ditemukan. Riwayat tugas perlu diperiksa Sekretariat."},409);
    const sourceData=JSON.parse(String(source.data)) as Data;
    const sourceDecision=parseMeetingActions(sourceData.followup)[existingReference.decisionNumber-1];
    if(!sourceDecision||sourceDecision!==String(previousTaskData.name||""))return json({error:"Isi keputusan sumber tidak lagi cocok dengan tugas ini. Periksa riwayat notulen sebelum mengubah tugas."},409);
