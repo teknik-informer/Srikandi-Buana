@@ -30,7 +30,7 @@ export default function SourceReview({
   const [source, setSource] = useState<Source | null>(null);
   const [canImport, setCanImport] = useState(false);
   const [error, setError] = useState("");
-  const [summary, setSummary] = useState<{ importedMembers: number; skippedMembers: number } | null>(null);
+  const [summary, setSummary] = useState<{ importedMembers: number; skippedMembers: number; deferredMembers?: number; sourceMembers?: number; sourceAttendance?: number; personalDataImported?: boolean } | null>(null);
 
   async function load() {
     try {
@@ -39,7 +39,7 @@ export default function SourceReview({
         source?: Source;
         error?: string;
         canImport?: boolean;
-        importSummary?: { importedMembers: number; skippedMembers: number };
+        importSummary?: { importedMembers: number; skippedMembers: number; deferredMembers?: number; sourceMembers?: number; sourceAttendance?: number; personalDataImported?: boolean };
       };
       if (!response.ok || !data.source) throw Error(data.error || "Dokumen belum dapat dimuat.");
       setSource(data.source);
@@ -94,7 +94,7 @@ export default function SourceReview({
           <CardTitle>Referensi dan Verifikasi Dokumen</CardTitle>
           <CardDescription>
             {role === "admin"
-              ? "Akun teknis hanya dapat memulai impor awal satu kali. Isi nama, alamat, dan kontak pribadi tidak ditampilkan pada layar ini."
+              ? "Administrator Sistem hanya dapat menerapkan metadata nonpribadi satu kali. Identitas, alamat, dan nomor kontak tidak ditampilkan pada layar ini."
               : "Sekretariat dan Ketua dapat memeriksa isi dokumen sumber secara privat. Impor awal tidak mengganti catatan yang sudah ada."}
           </CardDescription>
         </CardHeader>
@@ -102,13 +102,12 @@ export default function SourceReview({
           {canImport && !summary && source && (
             <Button onClick={() => void importSource()} disabled={importing}>
               <Upload data-icon="inline-start" />
-              {importing ? "Mengimpor…" : "Impor data sumber yang perlu diverifikasi"}
+              {importing ? "Mengimpor…" : "Terapkan metadata nonpribadi"}
             </Button>
           )}
           {summary && (
             <p className="section-note">
-              Penerapan awal: {summary.importedMembers} nama ditambahkan, {summary.skippedMembers} nama/alamat yang sama
-              dilewati. Tidak ada status aktif atau persetujuan yang diasumsikan.
+              Metadata kelembagaan diterapkan. {summary.personalDataImported === false ? "Tidak ada identitas atau nomor kontak pribadi yang disalin ke database." : `Riwayat impor lama mencatat ${summary.importedMembers} nama ditambahkan.`} {summary.deferredMembers ?? summary.sourceMembers ?? 0} catatan calon anggota dan {summary.sourceAttendance ?? 0} peserta tetap ditahan untuk verifikasi dokumen dan dasar pemrosesan.
             </p>
           )}
           {role !== "admin" && (
@@ -131,7 +130,7 @@ export default function SourceReview({
             <p className="section-note">
               {summary
                 ? "Impor awal selesai. Pemeriksaan identitas, alamat, status keanggotaan, dan persetujuan data dilakukan oleh pengelola organisasi."
-                : "Setelah impor, data sumber tetap berstatus perlu verifikasi. Administrator Sistem tidak memperoleh akses ke identitas atau kontak anggota."}
+                : "Metadata nonpribadi dapat diterapkan satu kali. Data individu tidak disalin ke database melalui akun teknis; pemeriksaan identitas dan dasar pemrosesan dilakukan oleh pengelola organisasi."}
             </p>
           ) : (
             source && (
