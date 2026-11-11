@@ -219,7 +219,7 @@ export default function ManagementDashboard({
     .sort((a, b) => a.urgency - b.urgency || a.id.localeCompare(b.id))
     .slice(0, 8);
 
-  const attendanceAccess = ["admin", "ketua", "sekretaris"].includes(user.role);
+  const attendanceAccess = user.role === "sekretaris";
   const upcomingEvents = view.rows
     .filter((row) =>
       row.kind === "kegiatan" &&
@@ -750,14 +750,14 @@ export default function ManagementDashboard({
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Setelah rapat berikutnya, Ketua atau Administrator mencatat hasil pelaksanaan, nama dan tanggal rapat evaluasi, serta keputusan lanjutan pada tugas terkait. Riwayat notulen asal tetap terhubung.
+              Setelah rapat berikutnya, Sekretariat mencatat hasil pelaksanaan, nama dan tanggal rapat evaluasi, serta keputusan lanjutan pada tugas terkait. Riwayat notulen asal tetap terhubung.
             </p>
           </div>
           <Card>
             <CardContent className="divide-y p-0">
               {meetingDecisionTasks.slice(0, 10).map((task) => {
                 const reviewStatus = String(task.data.meetingReviewStatus || "Belum dievaluasi");
-                const canReview = user.role === "ketua" && canWriteRecord(user, task);
+                const canReview = user.role === "sekretaris" && (reviewStatus === "Belum dievaluasi" || task.data.verification === "Menunggu verifikasi" || task.data.verification === "Perlu perbaikan");
                 return (
                   <div key={task.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1 space-y-1">
@@ -969,7 +969,7 @@ export default function ManagementDashboard({
               </CardContent>
             </Card>
           </div>
-          {audit.length > 0 && user.role === "admin" && (
+          {audit.length > 0 && user.role === "ketua" && (
             <Card>
               <CardHeader>
                 <CardTitle>Aktivitas terbaru</CardTitle>
@@ -1305,7 +1305,7 @@ export default function ManagementDashboard({
             <DialogDescription>
               {editor === "new"
                 ? "Tentukan tindakan, penanggung jawab, prioritas, dan tanggal tenggat yang disepakati."
-                : "Perbarui pelaksanaan tugas. Ketua atau Administrator juga dapat mencatat evaluasi keputusan rapat setelah rapat peninjauan."}
+                : "Perbarui pelaksanaan tugas. Sekretariat dapat memeriksa hasil dan mencatat evaluasi keputusan rapat sesuai dokumen peninjauan."}
             </DialogDescription>
           </DialogHeader>
           {editor && (
@@ -1319,7 +1319,7 @@ export default function ManagementDashboard({
             >
               <fieldset disabled={busy} className="min-w-0">
                 <FieldGroup>
-                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || user.role === "ketua").map((field) => {
+                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || user.role === "sekretaris").map((field) => {
                     const value =
                       editor === "new"
                         ? field.key === "programId" &&
@@ -1327,7 +1327,7 @@ export default function ManagementDashboard({
                           ? user.programIds[0]
                           : ""
                         : String(editor.data[field.key] ?? "");
-                    const reviewer = user.role === "ketua";
+                    const reviewer = user.role === "sekretaris";
                     const options =
                       field.key === "programId" && user.role === "koordinator"
                         ? user.programIds
