@@ -162,6 +162,8 @@ test("coordinator program reports are scoped, visible to leadership, and promote
   assert.ok(schema.includes('laporan_program:{title:"Laporan Perkembangan Program"'));
   for (const field of ["programId", "date", "target", "achievement", "progress", "evaluation", "blockers", "supportNeeded", "nextSteps", "attachmentId"]) assert.ok(schema.includes('key:"' + field + '"'));
   assert.ok(policy.includes('const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_program", "usaha", "kemitraan"]'));
+  assert.ok(schema.includes('survei:{title:"Instrumen Survei Lapangan"'));
+  assert.ok(policy.includes('kind === "survei"'));
   assert.ok(policy.includes('record.kind === "laporan_program"'));
   assert.ok(navigation.includes("admin('laporan_program','Laporan Perkembangan Program'"));
   assert.ok(dashboard.includes('row.kind === "laporan_program"'));
