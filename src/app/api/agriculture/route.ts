@@ -226,7 +226,43 @@ export async function PATCH(request: Request) {
     const now = new Date().toISOString();
     const user = userContext.user!;
     const db = userContext.db!;
-    if (user.role !== "ketua") return json({ error: "Pengesahan data pertanian hanya dapat dilakukan Ketua." }, 403);
+    if (user.role === "sekretaris" && action === "update_parcel") {
+      const current = await db.prepare("SELECT id,member_id,status FROM farm_parcels WHERE id=? AND workspace_owner=?").bind(id, user.userId).first();
+      if (!current || current.status !== "active") return json({ error: "Lahan aktif tidak ditemukan." }, 404);
+      const memberId = textValue(raw.memberId, "Anggota penanggung jawab", 1, 100);
+      const member = await db.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(memberId, user.userId).first();
+      if (!member) return json({ error: "Anggota tidak ditemukan dalam workspace ini." }, 404);
+      const memberData = JSON.parse(String(member.data));
+      if (memberData.status !== "Aktif" || memberData.verification !== "Terverifikasi") {
+        return json({ error: "Lahan hanya dapat dikaitkan dengan anggota aktif yang datanya telah diverifikasi." }, 409);
+      }
+      const parcelCode = textValue(raw.parcelCode, "Kode lahan", 2, 80).toUpperCase();
+      const name = textValue(raw.name, "Nama/pengenal lahan", 2, 140);
+      const areaM2 = numericValue(raw.areaM2, "Luas lahan (m²)", 0.01, 100000000);
+      const tenureType = String(raw.tenureType || "");
+      if (!tenureTypes.has(tenureType)) throw new Error("Pilih status penguasaan lahan yang valid.");
+      const locationLabel = typeof raw.locationLabel === "string" ? raw.locationLabel.trim().slice(0, 200) : "";
+      const duplicate = await db.prepare("SELECT id FROM farm_parcels WHERE workspace_owner=? AND parcel_code=? AND id<>?").bind(user.userId, parcelCode, id).first();
+      if (duplicate) return json({ error: "Kode lahan sudah digunakan dalam workspace ini." }, 409);
+      await db.batch([
+        db.prepare("UPDATE farm_parcels SET member_id=?,parcel_code=?,name=?,area_m2=?,tenure_type=?,location_label=?,verification_status='pending',verification_note='',verified_by=NULL,verified_at=NULL,updated_by=?,updated_at=? WHERE id=? AND workspace_owner=?")
+          .bind(memberId, parcelCode, name, areaM2, tenureType, locationLabel, user.accountId, now, id, user.userId),
+        await audit(user, "Register lahan diperbarui; verifikasi ulang diperlukan", "parcel", id, "", { parcelCode, areaM2, tenureType, memberId }),
+      ]);
+      return json({ ok: true, verificationStatus: "pending" });
+    }
+    if (user.role === "sekretaris" && action === "archive_parcel") {
+      if (reason.length < 10) throw new Error("Alasan pengarsipan harus dijelaskan minimal 10 karakter.");
+      const current = await db.prepare("SELECT id,status FROM farm_parcels WHERE id=? AND workspace_owner=?").bind(id, user.userId).first();
+      if (!current || current.status !== "active") return json({ error: "Lahan aktif tidak ditemukan." }, 404);
+      await db.batch([
+        db.prepare("UPDATE farm_parcels SET status='archived',updated_by=?,updated_at=? WHERE id=? AND workspace_owner=?")
+          .bind(user.accountId, now, id, user.userId),
+        await audit(user, "Register lahan diarsipkan", "parcel", id, reason),
+      ]);
+      return json({ ok: true, status: "archived" });
+    }
+    if (user.role !== "ketua") return json({ error: "Pengesahan data pertanian hanya dapat dilakukan Ketua. Sekretariat hanya dapat mengubah atau mengarsipkan register lahan." }, 403);
     if (!["verify_parcel", "reject_parcel", "verify_crop_cycle", "reject_crop_cycle", "verify_harvest", "reject_harvest"].includes(action)) {
       return json({ error: "Tindakan verifikasi tidak dikenal." }, 400);
     }
