@@ -85,7 +85,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   }
   if (active === "pertanian") {
     return <WorkspaceShell user={admin} section={active} title="Pengelolaan Pertanian" defaultSidebarOpen={defaultSidebarOpen}>
-      <AgricultureWorkspace />
+      <AgricultureWorkspace role={admin.role} programIds={admin.programIds} />
     </WorkspaceShell>;
   }
   if (active === "akses-eksternal") {
