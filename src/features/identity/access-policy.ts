@@ -143,6 +143,14 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
       : ["name", "date", "location", "status"];
     return { ...record, data: Object.fromEntries(keys.filter((key) => key in record.data).map((key) => [key, record.data[key]])) };
   }
+  if (user.role === "ketua" && record.kind === "anggota") {
+    const keys = ["name", "dusun", "role", "status", "verification"];
+    return { ...record, data: Object.fromEntries(keys.filter((key) => key in record.data).map((key) => [key, record.data[key]])) };
+  }
+  if (user.role === "ketua" && record.kind === "persetujuan") {
+    const keys = ["date", "status", "photo"];
+    return { ...record, data: Object.fromEntries(keys.filter((key) => key in record.data).map((key) => [key, record.data[key]])) };
+  }
   if (user.role === "bendahara" && record.kind === "anggota") {
     const keys = ["name", "role", "status", "verification"];
     return { ...record, data: Object.fromEntries(keys.filter((key) => key in record.data).map((key) => [key, record.data[key]])) };
