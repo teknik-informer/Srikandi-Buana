@@ -25,7 +25,7 @@ export type TaskVerificationInput = {
  * administrator can approve them or request a correction.
  */
 export function taskVerificationError(input: TaskVerificationInput): string | null {
-  const reviewer = input.role === "admin" || input.role === "ketua";
+  const reviewer = input.role === "ketua";
   const valid = taskVerificationStatuses.includes(
     input.verification as TaskVerificationStatus,
   );
@@ -33,13 +33,13 @@ export function taskVerificationError(input: TaskVerificationInput): string | nu
 
   if (!reviewer) {
     if (input.previousVerification === "Terverifikasi") {
-      return "Tugas yang sudah diverifikasi hanya dapat diubah kembali oleh Ketua atau Administrator.";
+      return "Tugas yang sudah diverifikasi hanya dapat diubah kembali oleh Ketua.";
     }
     if (["Terverifikasi", "Perlu perbaikan"].includes(input.verification)) {
-      return "Hanya Ketua atau Administrator yang dapat mengesahkan hasil atau meminta perbaikan.";
+      return "Hanya Ketua yang dapat mengesahkan hasil atau meminta perbaikan.";
     }
     if ((input.reviewNote || "") !== (input.previousReviewNote || "")) {
-      return "Catatan pemeriksaan hanya dapat diubah oleh Ketua atau Administrator.";
+      return "Catatan pemeriksaan hanya dapat diubah oleh Ketua.";
     }
   }
 
@@ -57,7 +57,7 @@ export function taskVerificationError(input: TaskVerificationInput): string | nu
   }
 
   if (input.verification === "Terverifikasi" && !reviewer) {
-    return "Hanya Ketua atau Administrator yang dapat mengesahkan hasil.";
+    return "Hanya Ketua yang dapat mengesahkan hasil.";
   }
 
   if (input.verification === "Perlu perbaikan") {
