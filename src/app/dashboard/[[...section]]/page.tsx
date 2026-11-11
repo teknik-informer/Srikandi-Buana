@@ -18,6 +18,8 @@ import AgricultureWorkspace from "../../_components/agriculture-workspace";
 import ManagementAudienceDashboard from "../../_components/management-audience-dashboard";
 import Inbox from "../../_components/inbox";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
+import OfficialLetterWorkspace from "../../_components/official-letter-workspace";
+import { getSiteSettings } from "@/lib/site-settings";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
@@ -87,6 +89,12 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   if (active === "pertanian") {
     return <WorkspaceShell user={admin} section={active} title="Pengelolaan Pertanian" defaultSidebarOpen={defaultSidebarOpen}>
       <AgricultureWorkspace role={admin.role} programIds={admin.programIds} />
+    </WorkspaceShell>;
+  }
+  if (active === "surat-resmi") {
+    const settings = await getSiteSettings();
+    return <WorkspaceShell user={admin} section={active} title="Penyusunan Surat Resmi" defaultSidebarOpen={defaultSidebarOpen}>
+      <OfficialLetterWorkspace settings={{ address: settings.address, email: settings.email, phone: settings.phone }} />
     </WorkspaceShell>;
   }
   if (active === "akses-eksternal") {
