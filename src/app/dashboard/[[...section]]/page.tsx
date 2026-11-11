@@ -113,7 +113,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       <Inbox />
     </WorkspaceShell>;
   }
-  if (admin.role === "ketua" && active === "akun" || admin.role === "admin" && active === "pengaturan") {
+  if ((admin.role === "ketua" && active === "akun") || (admin.role === "admin" && active === "pengaturan")) {
     return <Workspace section={active} principal={admin} defaultSidebarOpen={defaultSidebarOpen} />;
   }
   if (["portal","pengajuan","enterprise"].includes(active)) return <EnterpriseWorkspace user={admin} section={active} defaultSidebarOpen={defaultSidebarOpen} />;
