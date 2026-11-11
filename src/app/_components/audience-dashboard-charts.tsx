@@ -64,9 +64,10 @@ export function AudienceBarChart({
   suffix?: string;
 }) {
   const visible = data.filter((item) => Number.isFinite(item.value) && item.value >= 0);
+  const hasValues = visible.some((item) => item.value > 0);
   return (
     <ChartFrame title={title} description={description}>
-      {visible.length ? (
+      {hasValues ? (
         <div className="h-64 min-h-64 w-full" role="img" aria-label={title + ". " + description}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={visible} margin={{ top: 8, right: 8, left: -20, bottom: 4 }}>
