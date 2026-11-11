@@ -48,7 +48,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/system",
     label: "Administrasi",
     description: "Surat, arsip, referensi, akun, hak akses, dan pengaturan.",
-    features: features(["surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen", "akses-eksternal", "akun", "akun-saya", "pengaturan", "panduan"]),
+    features: features(["surat", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "akses-eksternal", "akun", "akun-saya", "pengaturan", "panduan"]),
   },
 ];
 
