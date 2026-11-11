@@ -179,9 +179,10 @@ assert(portal.includes("getExternalAgricultureSummary(user)") && externalDashboa
 assert(nav.includes("admin('pertanian','Pengelolaan Pertanian'"));
 assert(access.includes('if (id === "pertanian") return ["sekretaris", "bendahara", "koordinator"].includes(role);'));
 
-console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, two-person verification, scoped external grants, and privacy thresholds.");
-await pool.end();
-
 assert(access.includes("canFinalApprove = (role: Role) => role === \"ketua\""));
 assert(api.includes("Master komoditas hanya dapat dikelola Ketua atau Administrator Sistem."));
 assert(api.includes("Pengesahan data pertanian hanya dapat dilakukan Ketua."));
+
+console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, Chair-only verification, scoped external grants, and privacy thresholds.");
+await pool.end();
+
