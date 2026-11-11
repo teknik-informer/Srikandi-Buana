@@ -196,7 +196,7 @@ const accounts=await harness('src/app/_components/access/accounts.tsx',{
  FormData:FieldsFixture,document:{querySelector:()=>accountForm.dataset.unsaved?accountForm:null},window:{confirm:()=>false},
  fetch:(_url,options)=>{if(options?.method){accountPosts++;return accountPost.promise;}return Promise.resolve(response(200,accountPayload));},
 });
-const accountsRender=()=>accounts.render(()=>accounts.exports.default());
+const accountsRender=()=>accounts.render(()=>accounts.exports.default({}));
 let accountTree=accountsRender();accounts.effects();await new Promise(r=>setImmediate(r));accountTree=accountsRender();
 const inviteSubmit=find(accountTree,n=>n.type==='form').props.onSubmit;
 const invitation=inviteSubmit({preventDefault(){},currentTarget:accountForm});await inviteSubmit({preventDefault(){},currentTarget:accountForm});assert.equal(accountPosts,1);
