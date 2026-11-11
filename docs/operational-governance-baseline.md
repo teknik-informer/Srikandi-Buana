@@ -120,10 +120,28 @@ EUDR relevan terhadap komoditas dan pelaku usaha tertentu dalam rantai pasok yan
 6. Paket laporan yang benar-benar boleh diakses setiap instansi/mitra, termasuk masa berlaku, dasar pembagian, serta tingkat agregasi lokasi dan anggota.
 7. Data 50 anggota, nomor kontak, luas lahan, dan koordinat harus diverifikasi terpisah sebelum dianggap sebagai master data produksi.
 
-## 9. Status implementasi pada saat baseline dicatat
+## 9. Status implementasi setelah refaktor least-privilege
 
-PR #17 pada branch `feat/governance-rbac-v1` tetap Draft. Fondasi akses berbasis peran, register administrasi/survei, studio surat resmi berstatus draf, dan antrean pengajuan operasional telah dibuat. Role teknis `admin` masih memiliki hak luas pada beberapa modul record lama dan belum boleh dinyatakan final sebagai pemisahan least-privilege; audit dan refaktor tersebut wajib dilakukan sebelum merge. Prototipe approval universal per-record sempat dibuat lalu dibatalkan karena bukan desain yang tepat; tidak ada migrasi approval itu yang dipertahankan. Persetujuan berbasis paket/snapshot, generator PDF/Excel final, distribusi eksternal, dan pemetaan dataset survei tetap merupakan pekerjaan lanjutan. Tidak ada perubahan database Neon produksi, branch utama, atau deployment Vercel.
+PR #17 pada branch `feat/governance-rbac-v1` tetap Draft dan belum digabung atau diterapkan ke produksi. Fondasi kebijakan akses telah dipisahkan dari konsep Super Admin serba-kuasa:
 
+- `admin` adalah Administrator Sistem. Aksesnya terbatas pada pengaturan platform, penyiapan awal, dan impor paket sumber satu kali; tidak mempunyai akses rutin ke rekaman bisnis, keuangan, file organisasi, operasi, atau monitoring bisnis.
+- `ketua` mempunyai hak baca-pengawasan lintas domain dan kewenangan keputusan organisasi, tetapi tidak mendapat CRUD rutin pada catatan sumber.
+- `sekretaris` dan `bendahara` mengelola domain masing-masing. Koordinator dibatasi pada program yang ditugaskan; anggota hanya pada profil dan informasi anggota yang dibuka untuknya.
+- Verifikasi hasil tugas, evaluasi tindak lanjut rapat, register pertanian, dan daftar hadir ditempatkan pada Sekretariat. Bendahara mengelola buku besar, katalog/stok, dan realisasi pesanan. Ketua tidak menjadi operator harian.
+- Ketua dapat menerbitkan draf publikasi yang disiapkan Sekretariat tanpa mengubah isi konten; akses berkas mengikuti catatan yang dapat dibaca atau kepemilikan pengunggah.
+- Pengaturan situs hanya untuk Administrator Sistem. Pengelolaan akun organisasi dilakukan Ketua; akun teknis hanya dapat mengirim undangan Ketua pertama satu kali melalui daftar anggota yang sudah berstatus Aktif dan Terverifikasi.
+
+Tes regresi arsitektur (87/87), akses eksternal, domain pertanian, dan integrasi keamanan telah lolos pada salah satu putaran CI. Putaran yang lebih baru telah melewati seluruh tes tersebut, tetapi gagal pada `tsc --noEmit` akibat empat kesalahan integrasi impor/role yang sedang diperbaiki. Karena itu, pekerjaan ini belum boleh dinyatakan lulus keseluruhan pipeline sampai typecheck, rangkaian regresi penuh, dan build berhasil.
+
+### Pekerjaan yang masih belum selesai
+
+1. Persetujuan paket laporan yang immutable (manifest, snapshot, versi, hash, persetujuan Ketua yang terikat pada snapshot) belum dibangun.
+2. Generator PDF/Excel final yang hanya mengambil paket disetujui, serta invalidasi otomatis saat data sumber berubah, belum dibangun.
+3. Alur operasional grant eksternal masih memerlukan pengujian ujung-ke-ujung untuk tujuan, cakupan, masa berlaku, pencabutan, dan minimisasi data.
+4. Hak tanda tangan Ketua harus mengikuti SK final. Sistem belum boleh menetapkan siapa dari nama-nama yang tercantum sebagai pejabat penandatangan berdasarkan asumsi.
+5. Bootstrap akun Ketua pertama hanya dapat dilakukan setelah satu identitas anggota dipastikan sesuai SK final, data anggota berstatus Aktif dan Terverifikasi, serta email pribadinya dikonfirmasi. Impor sumber tidak mengaktifkan anggota secara otomatis.
+
+Prototipe persetujuan universal per-record telah dibatalkan; model yang dipertahankan adalah verifikasi domain dan pengesahan paket/keputusan yang memang memerlukan otoritas Ketua. Tidak ada migrasi approval eksperimental yang diterapkan. Tidak ada perubahan database Neon produksi, branch utama, atau deployment Vercel.
 ## 10. Penyelarasan tambahan terhadap pengajuan operasional yang sudah ada
 
 Modul pengajuan operasional yang telah ada (pengadaan, penggantian biaya, peminjaman aset, layanan administrasi, dan izin kegiatan) adalah alur tersendiri, bukan pengganti workflow pengesahan laporan universal.
