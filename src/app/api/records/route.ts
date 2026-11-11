@@ -20,7 +20,7 @@ export async function GET(req:Request){try{const c=await context(req);if(c.error
  c.db!.prepare("SELECT * FROM records WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT action,title,created FROM audit WHERE owner=? ORDER BY created DESC LIMIT 12").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT id,name,size,mime,created,deleted_at,uploader_id FROM files WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all()
- ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=u.role==='admin'?null:await allowedFileIds(u);return json({records:readable,audit:['admin','ketua'].includes(u.role)?audit.results:[],files:fileIds?files.results.filter(f=>fileIds.has(String(f.id))):files.results,user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
+ ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=await allowedFileIds(u);return json({records:readable,audit:u.role==='ketua'?audit.results:[],files:files.results.filter(f=>fileIds.has(String(f.id))),user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
 function validate(kind:string,raw:unknown):Data{
  if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("Formulir tidak valid.");
  const d=raw as Data;const out:Data={};
@@ -43,7 +43,7 @@ export async function POST(req:Request){return save(req,false)}
 export async function PUT(req:Request){return save(req,true)}
 async function save(req:Request,edit:boolean){try{const c=await context(req,true);if(c.error)return c.error;
  if(Number(req.headers.get("content-length")||0)>40000)return json({error:"Formulir terlalu besar."},413);
- const body=await readJsonObject(req,40000) as {kind:string;id?:string;data:unknown;expectedUpdated?:string};const data=validate(body.kind,body.data);if(body.kind==='galeri'&&data.status==='Terbit'&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin publikasi foto sebelum menerbitkan. Simpan sebagai Draf jika izin belum tersedia.'},400);if(body.kind==='publikasi'&&data.status==='Terbit'&&data.fileId&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin foto sampul sebelum menerbitkan konten. Hapus foto sampul jika tidak digunakan.'},400);if(!canWriteRecord(c.user!,{id:body.id||'',kind:body.kind,data}))return json({error:'Anda tidak memiliki izin mengubah data ini.'},403);const readableFiles=c.user!.role==='admin'?null:await allowedFileIds(c.user!);if(readableFiles&&[data.fileId,data.attachmentId].some(id=>id&&!readableFiles.has(String(id))))return json({error:'Berkas di luar hak akses Anda.'},403);if(data.fileId){const file=await c.db!.prepare("SELECT mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.fileId,c.user!.userId).first();if(!file||!["image/png","image/jpeg"].includes(String(file.mime)))return json({error:"Pilih foto JPG/PNG yang tersedia di arsip akun Anda."},400);}
+ const body=await readJsonObject(req,40000) as {kind:string;id?:string;data:unknown;expectedUpdated?:string};const data=validate(body.kind,body.data);if(body.kind==='galeri'&&data.status==='Terbit'&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin publikasi foto sebelum menerbitkan. Simpan sebagai Draf jika izin belum tersedia.'},400);if(body.kind==='publikasi'&&data.status==='Terbit'&&data.fileId&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin foto sampul sebelum menerbitkan konten. Hapus foto sampul jika tidak digunakan.'},400);const mayAttemptExistingReview=edit&&c.user!.role==='sekretaris'&&body.kind==='tindaklanjut';const mayAttemptPublication=edit&&c.user!.role==='ketua'&&['publikasi','galeri'].includes(body.kind);if(!canWriteRecord(c.user!,{id:body.id||'',kind:body.kind,data})&&!mayAttemptExistingReview&&!mayAttemptPublication)return json({error:'Anda tidak memiliki izin mengubah data ini.'},403);const readableFiles=await allowedFileIds(c.user!);if([data.fileId,data.attachmentId].some(id=>id&&!readableFiles.has(String(id))))return json({error:'Berkas di luar hak akses Anda.'},403);if(data.fileId){const file=await c.db!.prepare("SELECT mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.fileId,c.user!.userId).first();if(!file||!["image/png","image/jpeg"].includes(String(file.mime)))return json({error:"Pilih foto JPG/PNG yang tersedia di arsip akun Anda."},400);}
  if(data.attachmentId){const attachment=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.attachmentId,c.user!.userId).first();if(!attachment)return json({error:"Lampiran tidak tersedia di arsip Anda."},400);}
  if(body.kind==="lotkopi"){const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='lotkopi' AND json_extract(data,'$.name')=? AND id!=?").bind(c.user!.userId,data.name,body.id||"").first();if(duplicate)return json({error:"Kode lot sudah digunakan. Gunakan kode unik."},409);}
  const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);
@@ -54,11 +54,11 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   if(!old)return json({error:"Data tidak ditemukan."},404);
   const oldData=JSON.parse(String(old.data)) as Data;
   previousRecordData=oldData;
-  if(!canWriteRecord(c.user!,{id:String(old.id),kind:body.kind,data:oldData}))return json({error:'Data di luar penugasan Anda.'},403);
+  const oldRecord={id:String(old.id),kind:body.kind,data:oldData};const nextRecord={id:String(old.id),kind:body.kind,data};if(!canWriteRecord(c.user!,oldRecord)&&!canReviewFollowup(c.user!,oldRecord,nextRecord)&&!canPublishRecord(c.user!,oldRecord,nextRecord))return json({error:'Perubahan ini bukan kewenangan akun atau domain Anda.'},403);
   if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
   if(body.kind==="tindaklanjut"){
    previousTaskData=oldData;
-   if(c.user!.role!=="admin"&&c.user!.role!=="ketua"){
+   if(c.user!.role!=="sekretaris"){
     for(const key of ["reviewNote","meetingReviewMeeting","meetingReviewDate","meetingReviewNote"]){
      data[key]=String(oldData[key]||"");
     }
@@ -77,7 +77,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
    data.meetingReviewMeeting="";
    data.meetingReviewDate="";
    data.meetingReviewNote="";
-   if(c.user!.role!=="admin"&&c.user!.role!=="ketua")data.reviewNote="";
+   data.reviewNote="";
   }
   const existingReference=edit?parseMeetingTaskReference(previousTaskData?.notes):null;
   if(existingReference&&previousTaskData){
