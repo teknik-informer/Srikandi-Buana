@@ -177,7 +177,7 @@ assert(summary.includes("count >= 5") && summary.includes("contributors >= 3"), 
 assert(!/NIK|phone|coordinate|latitude|longitude/i.test(summary), "External summary must not query personal contact or precise location fields");
 assert(portal.includes("getExternalAgricultureSummary(user)") && externalDashboard.includes("Monografi dan indikator pertanian") && externalDashboard.includes("summary.harvest"), "The external audience dashboard must render the server-computed agriculture summary");
 assert(nav.includes("admin('pertanian','Pengelolaan Pertanian'"));
-assert(access.includes("if(id==='pertanian')return ['admin','ketua','koordinator'].includes(role)"));
+assert(access.includes('if (id === "pertanian") return ["sekretaris", "bendahara", "koordinator"].includes(role);'));
 
 console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, two-person verification, scoped external grants, and privacy thresholds.");
 await pool.end();
