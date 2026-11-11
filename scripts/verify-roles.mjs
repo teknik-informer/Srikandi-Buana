@@ -51,7 +51,7 @@ const sourceDocumentRouteSource=readFileSync('src/app/api/source-document/route.
 assert(sourceDocumentRouteSource.includes('getSecretariatUser()'),'Private source document download must use the Secretariat-only guard');
 assert(!sourceImportRouteSource.includes('member.phone'),'Source bootstrap must not copy member phone numbers into business records');
 assert(!sourceImportRouteSource.includes('source.attendance.map'),'Source bootstrap must not copy personal attendance names or addresses');
-assert(sourceImportRouteSource.includes("user.role==='admin'?{...fullSource,members:[],board:[],attendance:[]}"),'The technical administrator must not receive raw personal source data');
+assert(!sourceImportRouteSource.includes('user.role===\'ketua\'?fullSource'),'Chair must not receive raw personal source details');
 const recordsRouteSource=readFileSync('src/app/api/records/route.ts','utf8');
 assert(recordsRouteSource.includes('if(kind==="surat_resmi"){out.number="";out.status="Draf";}'),'API must force all official-letter records to draft status and clear any claimed official number');
 
