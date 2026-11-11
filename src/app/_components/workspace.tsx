@@ -1008,15 +1008,17 @@ export default function Workspace({
                 terdaftar.
               </p>
               <p className="section-note">
-                Ekspor JSON mencakup catatan, pesan, pengaturan, dan metadata
-                berkas. Isi lampiran diunduh terpisah dari Arsip dokumen.
-                Preferensi tema disimpan pada perangkat.
+                Ekspor JSON adalah data dasar terbatas: catatan sesuai hak
+                akses, pesan, pengaturan, metadata berkas, dan histori pengajuan
+                operasional. Isi lampiran, buku besar, katalog/pesanan, tabel
+                pertanian, serta grant eksternal tidak tercakup. Ini bukan backup
+                penuh atau dokumen laporan resmi. Preferensi tema disimpan pada perangkat.
               </p>
               <div className="flex gap-3 flex-wrap mt-4">
                 <Button asChild variant="outline">
                   <a href="/api/export" download>
                     <Download data-icon="inline-start" />
-                    Ekspor semua catatan
+                    Ekspor data dasar (JSON)
                   </a>
                 </Button>
                 <Button asChild variant="outline">
