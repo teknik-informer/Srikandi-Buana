@@ -33,13 +33,13 @@ export function taskVerificationError(input: TaskVerificationInput): string | nu
 
   if (!reviewer) {
     if (input.previousVerification === "Terverifikasi") {
-      return "Tugas yang sudah diverifikasi hanya dapat diubah kembali oleh Ketua.";
+      return "Tugas yang sudah diverifikasi hanya dapat dibuka kembali melalui pemeriksaan Sekretariat.";
     }
     if (["Terverifikasi", "Perlu perbaikan"].includes(input.verification)) {
       return "Hanya Sekretariat yang dapat mengesahkan hasil atau meminta perbaikan.";
     }
     if ((input.reviewNote || "") !== (input.previousReviewNote || "")) {
-      return "Catatan pemeriksaan hanya dapat diubah oleh Ketua.";
+      return "Catatan pemeriksaan hanya dapat diubah oleh Sekretariat.";
     }
   }
 
