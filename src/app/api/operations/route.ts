@@ -37,6 +37,7 @@ export async function GET(request:Request){
   }
   const scope=url.searchParams.get('scope')||'mine',filter=url.searchParams.get('status')||'all',query=(url.searchParams.get('q')||'').trim().slice(0,160);
   if(!['mine','review','fulfill','all'].includes(scope))return json({error:'Lingkup tidak valid.'},400);
+  if(scope==='all'&&user.role!=='ketua')return json({error:'Pemantauan lintas pengajuan hanya menjadi kewenangan Ketua.'},403);
   if(scope==='review'&&!canReview(user)||scope==='fulfill'&&!(Object.keys(categories)as Category[]).some(c=>canFulfillCategory(user,c)))return json({error:'Lingkup di luar kewenangan.'},403);
   const visibility=visibleSQL(user),conditions=['owner=?',visibility.sql],args:unknown[]=[user.userId,...visibility.args];
   if(scope==='mine'){conditions.push('requester_id=?');args.push(user.accountId);}
