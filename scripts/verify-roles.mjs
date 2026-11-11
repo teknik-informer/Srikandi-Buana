@@ -8,6 +8,17 @@ import {createRequire} from 'node:module';
 import {randomUUID,createHash} from 'node:crypto';
 import {hashPassword} from '../src/lib/password.mjs';
 const require=createRequire(import.meta.url),hash=s=>createHash('sha256').update(s).digest('hex');
+const policyBuild=await build({entryPoints:['src/features/identity/access-policy.ts'],bundle:true,write:false,format:'cjs',platform:'node'});
+const policyModule={exports:{}};
+vm.runInNewContext(policyBuild.outputFiles[0].text,{module:policyModule,exports:policyModule.exports});
+const policy=policyModule.exports;
+assert.equal(policy.canReadSectionForRole('sekretaris','surat-resmi'),true,'Secretary can access the official-letter workspace');
+assert.equal(policy.canWriteKind({role:'sekretaris'},'surat_resmi'),true,'Secretary can save official-letter drafts');
+assert.equal(policy.canReadKindForRole('bendahara','surat_resmi'),true,'Treasurer has read-only access to administrative letter records');
+assert.equal(policy.canWriteKind({role:'bendahara'},'surat_resmi'),false,'Treasurer cannot create or change official-letter drafts');
+assert.equal(policy.canReadSectionForRole('bendahara','surat-resmi'),false,'Treasurer does not receive the letter-writing workspace');
+assert.equal(policy.canWriteKind({role:'koordinator'},'surat_resmi'),false,'Coordinators cannot create official correspondence');
+
 let failProfileCommit=false;
 const mem=newDb();mem.public.registerFunction({name:'strpos',args:[DataType.text,DataType.text],returns:DataType.integer,implementation:(value,search)=>String(value??'').indexOf(String(search??''))+1});mem.public.registerFunction({name:'decode',args:[DataType.text,DataType.text],returns:DataType.bytea,implementation:(value,encoding)=>Buffer.from(value,encoding)});mem.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});mem.public.none(readFileSync('migrations/001_initial.sql','utf8'));mem.public.none(readFileSync('migrations/002_roles.sql','utf8'));mem.public.none(readFileSync('migrations/003_message_consent.sql','utf8'));mem.public.none(readFileSync('migrations/004_enterprise_operations.sql','utf8'));const {Pool}=mem.adapters.createPg(),pool=new Pool();
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});const translate=compat.exports.postgresStatement;
