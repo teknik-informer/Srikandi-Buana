@@ -18,6 +18,8 @@ assert.equal(policy.canReadKindForRole('bendahara','surat_resmi'),true,'Treasure
 assert.equal(policy.canWriteKind({role:'bendahara'},'surat_resmi'),false,'Treasurer cannot create or change official-letter drafts');
 assert.equal(policy.canReadSectionForRole('bendahara','surat-resmi'),true,'Treasurer can open the letter workspace in read-only mode');
 assert.equal(policy.canWriteKind({role:'koordinator'},'surat_resmi'),false,'Coordinators cannot create official correspondence');
+const recordsRouteSource=readFileSync('src/app/api/records/route.ts','utf8');
+assert(recordsRouteSource.includes('if(kind==="surat_resmi"){out.number="";out.status="Draf";}'),'API must force all official-letter records to draft status and clear any claimed official number');
 
 let failProfileCommit=false;
 const mem=newDb();mem.public.registerFunction({name:'strpos',args:[DataType.text,DataType.text],returns:DataType.integer,implementation:(value,search)=>String(value??'').indexOf(String(search??''))+1});mem.public.registerFunction({name:'decode',args:[DataType.text,DataType.text],returns:DataType.bytea,implementation:(value,encoding)=>Buffer.from(value,encoding)});mem.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});mem.public.none(readFileSync('migrations/001_initial.sql','utf8'));mem.public.none(readFileSync('migrations/002_roles.sql','utf8'));mem.public.none(readFileSync('migrations/003_message_consent.sql','utf8'));mem.public.none(readFileSync('migrations/004_enterprise_operations.sql','utf8'));const {Pool}=mem.adapters.createPg(),pool=new Pool();
