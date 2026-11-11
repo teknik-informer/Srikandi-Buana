@@ -8,7 +8,7 @@ export type OperationInput = Pick<Operation,"category"|"title"|"description"|"am
 export const isFinancial = (category: Category) => category === "purchase" || category === "expense";
 export const canReview = (user: Principal) => user.role === "ketua";
 export const canInspectOperations = (user: Principal) => ["admin", "ketua"].includes(user.role);
-export function canFulfillCategory(user: Principal, category: Category) { return (isFinancial(category) || category === "asset_loan" ? ["admin","bendahara"] : ["admin","sekretaris"]).includes(user.role); }
+export function canFulfillCategory(user: Principal, category: Category) { return (isFinancial(category) || category === "asset_loan" ? user.role === "bendahara" : user.role === "sekretaris"); }
 export function canViewOperation(user: Principal, item: Operation) {
   return item.owner === user.userId && (item.requester_id === user.accountId || canInspectOperations(user) && item.status !== "draft" || canFulfillCategory(user,item.category) && ["approved","in_progress","completed"].includes(item.status));
 }
