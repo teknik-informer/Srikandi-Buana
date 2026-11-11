@@ -1141,7 +1141,7 @@ export default function ManagementDashboard({
             {!canCreate && user.role === "koordinator" && (
               <p className="text-sm text-muted-foreground">
                 Penugasan program diperlukan sebelum Anda dapat menambah tugas.
-                Hubungi administrator.
+                Hubungi Ketua atau Sekretariat untuk penetapan penugasan.
               </p>
             )}
           </TabsContent>
