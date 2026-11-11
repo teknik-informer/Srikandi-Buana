@@ -20,7 +20,7 @@ export async function GET(req:Request){try{const c=await context(req);if(c.error
  c.db!.prepare("SELECT * FROM records WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT action,title,created FROM audit WHERE owner=? ORDER BY created DESC LIMIT 12").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT id,name,size,mime,created,deleted_at,uploader_id FROM files WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all()
- ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=await allowedFileIds(u);return json({records:readable,audit:u.role==='ketua'?audit.results:[],files:files.results.filter(f=>fileIds.has(String(f.id))),user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
+ ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=await allowedFileIds(u);return json({records:readable,audit:u.role==='ketua'?audit.results.map(row=>({action:row.action,title:'Catatan organisasi diperbarui',created:row.created})):[],files:files.results.filter(f=>fileIds.has(String(f.id))),user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
 function validate(kind:string,raw:unknown):Data{
  if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("Formulir tidak valid.");
  const d=raw as Data;const out:Data={};
