@@ -137,10 +137,26 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
     financeAccess ? { href: "/dashboard/kas", label: "Buku kas", icon: Wallet } : null,
   ].filter((item): item is { href: string; label: string; icon: LucideIcon } => item !== null);
   const foundationSteps = [
+    canReadSection(user, "kegiatan") ? {
+      id: "kegiatan",
+      label: "Jadwalkan musyawarah awal",
+      detail: "Catat tanggal, tempat, dan tujuan pertemuan pertama.",
+      href: "/dashboard/kegiatan",
+      icon: CalendarDays,
+      hasRecord: insights.rows.some((row) => row.kind === "kegiatan"),
+    } : null,
+    canReadSection(user, "musyawarah") ? {
+      id: "musyawarah",
+      label: "Catat hasil musyawarah",
+      detail: "Simpan pembahasan dan keputusan yang benar-benar disepakati.",
+      href: "/dashboard/musyawarah",
+      icon: ClipboardCheck,
+      hasRecord: insights.rows.some((row) => row.kind === "musyawarah"),
+    } : null,
     canReadSection(user, "pengurus") ? {
       id: "pengurus",
       label: "Catat susunan pengurus",
-      detail: "Masukkan nama dan peran yang sudah disepakati.",
+      detail: "Masukkan nama dan peran berdasarkan hasil kesepakatan.",
       href: "/dashboard/pengurus",
       icon: ShieldCheck,
       hasRecord: insights.rows.some((row) => row.kind === "pengurus"),
@@ -148,7 +164,7 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
     membersAccess ? {
       id: "anggota",
       label: "Mulai daftar anggota",
-      detail: "Catat anggota yang benar-benar sudah bergabung.",
+      detail: "Catat anggota yang benar-benar sudah bergabung dan menyetujui pendataan.",
       href: "/dashboard/anggota",
       icon: Users,
       hasRecord: memberRows.length > 0,
@@ -156,18 +172,10 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
     programAccess ? {
       id: "program",
       label: "Pilih program awal",
-      detail: "Mulai dengan program sederhana yang realistis.",
+      detail: "Mulai dengan satu sampai tiga program yang realistis.",
       href: "/dashboard/program",
       icon: Sprout,
       hasRecord: programRows.length > 0,
-    } : null,
-    canReadSection(user, "kegiatan") ? {
-      id: "kegiatan",
-      label: "Jadwalkan pertemuan pertama",
-      detail: "Catat waktu, tempat, dan tujuan pertemuan.",
-      href: "/dashboard/kegiatan",
-      icon: CalendarDays,
-      hasRecord: insights.rows.some((row) => row.kind === "kegiatan"),
     } : null,
   ].filter((step): step is {
     id: string; label: string; detail: string; href: string;
@@ -238,7 +246,7 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
               <p className="mt-2 text-xs leading-5 text-muted-foreground">{foundationRecorded === foundationSteps.length ? "Semua jenis catatan awal sudah tersedia." : "Pilih satu langkah dan lengkapi seperlunya."}</p>
             </div>
           </div>
-          <div className="grid gap-2 border-t p-3 sm:grid-cols-2 sm:p-4">
+          <div className="grid gap-2 border-t p-3 sm:grid-cols-2 xl:grid-cols-3 sm:p-4">
             {foundationSteps.map((step, index) => {
               const Icon = step.icon;
               return (
