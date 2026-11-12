@@ -42,6 +42,18 @@ test("early-stage setup steps use actual accessible records and never imply form
   assert.match(operatingModel, /Administrator teknis bukan pengganti keputusan/);
 });
 
+test("member dashboard stays focused on personal information and real group activity", () => {
+  const member = read("src/app/_components/member-audience-dashboard.tsx");
+  assert.match(member, /Profil keanggotaan saya/);
+  assert.match(member, /Agenda dan pertemuan mendatang/);
+  assert.match(member, /Pengumuman kelompok/);
+  assert.match(member, /Profil belum tertaut/);
+  assert.doesNotMatch(member, /Akun anggota aktif/);
+  assert.doesNotMatch(member, /Iuran dan tabungan pribadi/);
+  assert.doesNotMatch(member, /Analisis agenda anggota/);
+  assert.doesNotMatch(member, /AudienceBarChart/);
+});
+
 test("management landing page surfaces role-scoped priorities before analytics", () => {
   const management = read("src/app/_components/management-audience-dashboard.tsx");
   const priority = management.indexOf("Prioritas pekerjaan");
