@@ -133,7 +133,7 @@ export default function DashboardNavigation({ section, user }: { section: string
                   >
                     <Icon />
                     <span className="dashboard-category-label">{group.label}</span>
-                    <span className="dashboard-category-count">{group.items.length}</span>
+                    <span className="dashboard-category-count">{group.features.length}</span>
                     <ChevronDown
                       className={shown ? "dashboard-category-chevron expanded" : "dashboard-category-chevron"}
                     />
@@ -152,7 +152,7 @@ export default function DashboardNavigation({ section, user }: { section: string
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-                      {group.items.map((item) => (
+                      {group.features.map((item) => (
                         <SidebarMenuSubItem key={item.id}>
                           <SidebarMenuSubButton asChild isActive={section === item.id}>
                             <Link
