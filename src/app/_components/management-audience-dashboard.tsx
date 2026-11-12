@@ -224,7 +224,7 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
             <div className="min-w-0">
               <Badge variant="outline" className="border-emerald-700/20 bg-background/80 text-emerald-800">LANGKAH AWAL</Badge>
               <h2 id="foundation-start-title" className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Mulai dari fondasi kelompok</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Empat hal sederhana untuk membantu kelompok mulai tertata. Anda hanya melihat langkah yang sesuai dengan akses akun ini.</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Hal-hal sederhana untuk membantu kelompok mulai tertata. Anda hanya melihat langkah yang sesuai dengan akses akun ini.</p>
             </div>
             <div className="rounded-xl border bg-background/85 p-4">
               <div className="flex items-end justify-between gap-2">
