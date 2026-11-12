@@ -48,11 +48,13 @@ Notulen musyawarah menjadi sumber catatan keputusan. Bila status keputusan sudah
 1. Jadwalkan musyawarah awal untuk menyepakati kebutuhan dasar kelompok; jangan mengisi jabatan atau keputusan yang belum pernah disepakati.
 2. Catat notulen, pokok pembahasan, dan keputusan yang benar-benar diambil. Biarkan keputusan yang belum pasti tetap sebagai rancangan.
 3. Masukkan susunan pengurus berdasarkan hasil kesepakatan yang tercatat.
-4. Mulai daftar anggota berdasarkan persetujuan pendataan; tandai data yang belum lengkap atau belum diverifikasi.
-5. Pilih satu sampai tiga program awal yang realistis berdasarkan kemampuan dan minat anggota.
-6. Ubah butir keputusan operasional menjadi draf tugas; tetapkan PIC dan tenggat sesuai kesepakatan, bukan secara otomatis.
-7. Setelah aktivitas dan transaksi nyata berjalan, gunakan buku kas untuk mencatat pemasukan/pengeluaran beserta bukti.
-8. Buka akses pihak luar hanya ketika ada tujuan, data yang dibagikan, penanggung jawab, dan masa berlaku yang jelas.
+4. Jelaskan tujuan dan ruang penggunaan data kepada calon anggota, lalu simpan catatan di menu Persetujuan Data (nama yang cocok, tanggal, tujuan, dan status persetujuan). Baru setelah itu masukkan data anggota; status awal tetap Perlu verifikasi.
+5. Verifikasi identitas dan data sebelum menetapkan status Aktif atau mengirim undangan akun. Izin foto untuk publikasi dicatat terpisah dari persetujuan pendataan.
+6. Jika persetujuan diperbarui, dibatasi, atau ditarik, sesuaikan status keanggotaan dan nonaktifkan akun terkait bila diperlukan. Pertahankan riwayat administrasi sesuai kebutuhan arsip.
+7. Pilih satu sampai tiga program awal yang realistis berdasarkan kemampuan dan minat anggota.
+8. Ubah butir keputusan operasional menjadi draf tugas; tetapkan PIC dan tenggat sesuai kesepakatan, bukan secara otomatis.
+9. Setelah aktivitas dan transaksi nyata berjalan, gunakan buku kas untuk mencatat pemasukan/pengeluaran beserta bukti.
+10. Buka akses pihak luar hanya ketika ada tujuan, data yang dibagikan, penanggung jawab, dan masa berlaku yang jelas.
 
 ## 6. Dokumen, laporan, dan keuangan
 - PDF adalah keluaran dokumen yang siap dibaca/dicetak setelah isi diperiksa; status draf harus tetap terlihat sebelum persetujuan.
@@ -72,3 +74,10 @@ Notulen musyawarah menjadi sumber catatan keputusan. Bila status keputusan sudah
 
 ## 8. Batas penerapan
 Rancangan ini tidak mengubah kebijakan organisasi secara otomatis. Penyesuaian struktur jabatan, hak suara, kewenangan hukum, kuorum, persetujuan anggaran, pembukaan rekening, tanda tangan, atau pengesahan laporan harus menunggu keputusan kelompok yang berwenang. Sampai ada keputusan tersebut, aplikasi harus menjaga status sebagai rancangan/draf dan tidak mengarang keputusan organisasi.
+
+
+## 9. Pendataan dan persetujuan anggota
+- Catatan Persetujuan Data harus disimpan lebih dahulu dengan nama anggota yang cocok, tanggal penjelasan/persetujuan, tujuan penggunaan, dan status **Setuju untuk tujuan tercatat**.
+- Catatan ringkas persetujuan pada profil anggota tidak berdiri sendiri; aplikasi mencocokkannya dengan catatan rinci tersebut sebelum menerima pendaftaran anggota baru atau membuat undangan akun.
+- Foto untuk publikasi memerlukan persetujuan foto tersendiri. Persetujuan pendataan bukan izin untuk menerbitkan foto.
+- Status **Aktif** memerlukan data terverifikasi dan persetujuan pendataan yang masih terdokumentasi. Persetujuan yang ditarik dapat dicatat dengan menonaktifkan status keanggotaan dan menyesuaikan akses akun; riwayat tidak dihapus otomatis.
