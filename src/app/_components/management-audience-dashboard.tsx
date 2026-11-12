@@ -136,6 +136,44 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
     canReadSection(user, "tindaklanjut") ? { href: "/dashboard/tindaklanjut", label: "Tugas & tindak lanjut", icon: ClipboardCheck } : null,
     financeAccess ? { href: "/dashboard/kas", label: "Buku kas", icon: Wallet } : null,
   ].filter((item): item is { href: string; label: string; icon: LucideIcon } => item !== null);
+  const foundationSteps = [
+    canReadSection(user, "pengurus") ? {
+      id: "pengurus",
+      label: "Catat susunan pengurus",
+      detail: "Masukkan nama dan peran yang sudah disepakati.",
+      href: "/dashboard/pengurus",
+      icon: ShieldCheck,
+      hasRecord: insights.rows.some((row) => row.kind === "pengurus"),
+    } : null,
+    membersAccess ? {
+      id: "anggota",
+      label: "Mulai daftar anggota",
+      detail: "Catat anggota yang benar-benar sudah bergabung.",
+      href: "/dashboard/anggota",
+      icon: Users,
+      hasRecord: memberRows.length > 0,
+    } : null,
+    programAccess ? {
+      id: "program",
+      label: "Pilih program awal",
+      detail: "Mulai dengan program sederhana yang realistis.",
+      href: "/dashboard/program",
+      icon: Sprout,
+      hasRecord: programRows.length > 0,
+    } : null,
+    canReadSection(user, "kegiatan") ? {
+      id: "kegiatan",
+      label: "Jadwalkan pertemuan pertama",
+      detail: "Catat waktu, tempat, dan tujuan pertemuan.",
+      href: "/dashboard/kegiatan",
+      icon: CalendarDays,
+      hasRecord: insights.rows.some((row) => row.kind === "kegiatan"),
+    } : null,
+  ].filter((step): step is {
+    id: string; label: string; detail: string; href: string;
+    icon: LucideIcon; hasRecord: boolean;
+  } => step !== null);
+  const foundationRecorded = foundationSteps.filter((step) => step.hasRecord).length;
   const today = new Date().toLocaleDateString("id-ID", { dateStyle: "full", timeZone: "Asia/Jakarta" });
 
   return (
@@ -178,6 +216,45 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
             <Button size="sm" variant="outline" onClick={() => void load()}>Coba lagi</Button>
           </CardContent>
         </Card>
+      )}
+
+      {foundationSteps.length > 0 && (
+        <section className="overflow-hidden rounded-2xl border bg-card shadow-sm" aria-labelledby="foundation-start-title">
+          <div className="grid gap-5 bg-[linear-gradient(120deg,rgba(16,185,129,0.09),transparent_65%)] p-5 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center sm:p-6">
+            <div className="min-w-0">
+              <Badge variant="outline" className="border-emerald-700/20 bg-background/80 text-emerald-800">LANGKAH AWAL</Badge>
+              <h2 id="foundation-start-title" className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">Mulai dari fondasi kelompok</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Empat hal sederhana untuk membantu kelompok mulai tertata. Anda hanya melihat langkah yang sesuai dengan akses akun ini.</p>
+            </div>
+            <div className="rounded-xl border bg-background/85 p-4">
+              <div className="flex items-end justify-between gap-2">
+                <span className="text-sm font-medium">Catatan awal tersedia</span>
+                <strong className="text-2xl tabular-nums">{foundationRecorded}<span className="text-sm font-normal text-muted-foreground">/{foundationSteps.length}</span></strong>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Catatan fondasi yang sudah tersedia" aria-valuemin={0} aria-valuemax={foundationSteps.length} aria-valuenow={foundationRecorded}>
+                <div className="h-full rounded-full bg-emerald-700 transition-[width]" style={{ width: (foundationRecorded / foundationSteps.length * 100) + "%" }} />
+              </div>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">{foundationRecorded === foundationSteps.length ? "Semua jenis catatan awal sudah tersedia." : "Pilih satu langkah dan lengkapi seperlunya."}</p>
+            </div>
+          </div>
+          <div className="grid gap-2 border-t p-3 sm:grid-cols-2 sm:p-4">
+            {foundationSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <Link key={step.id} href={step.href} className="group flex min-h-20 items-center gap-3 rounded-xl border p-3 transition-colors hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-primary"><Icon className="size-5" aria-hidden="true" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">{index + 1}. {step.label}</span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">{step.detail}</span>
+                    <span className="mt-1 block text-xs font-medium text-primary">{step.hasRecord ? "Catatan sudah ada · Periksa" : "Belum ada catatan · Mulai di sini"}</span>
+                  </span>
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </Link>
+              );
+            })}
+          </div>
+          <p className="border-t px-4 py-3 text-xs leading-5 text-muted-foreground">Indikator ini hanya memeriksa keberadaan catatan. Status tercatat tidak otomatis berarti data telah diverifikasi atau disahkan.</p>
+        </section>
       )}
 
       <div className="flex flex-wrap items-end justify-between gap-3">
