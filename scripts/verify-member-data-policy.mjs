@@ -36,7 +36,7 @@ test("active membership and account invitations require documented consent and v
   assert.match(memberRecordPolicyError({ ...base, status: "Aktif" }) || "", /Verifikasi data anggota terlebih dahulu/);
   assert.equal(memberRecordPolicyError({ ...base, status: "Aktif", verification: "Terverifikasi" }), null);
   assert.match(memberAccountInvitationError({ ...base, status: "Aktif", verification: "Terverifikasi", consent: "Belum dikonfirmasi" }) || "", /persetujuan pendataan/);
-  assert.match(memberAccountInvitationError({ ...base, status: "Aktif" }) || "", /verifikasi data anggota/);
+  assert.match(memberAccountInvitationError({ ...base, status: "Aktif" }) || "", /verifikasi data anggota/i);
   assert.equal(memberAccountInvitationError({ ...base, status: "Aktif", verification: "Terverifikasi" }), null);
 });
 
