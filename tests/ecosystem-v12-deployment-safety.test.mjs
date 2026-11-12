@@ -42,7 +42,10 @@ test("health and readiness endpoints return minimal non-cacheable status", () =>
   const ready = readFileSync("src/app/api/ready/route.ts", "utf8");
   assert.ok(health.includes('status: "ok"'));
   assert.ok(health.includes('"Cache-Control": "no-store"'));
-  assert.ok(ready.includes('await env.DB.prepare("SELECT 1 AS ok").first()'));
+  assert.ok(ready.includes("information_schema.columns"));
+  assert.ok(ready.includes("('rate_limits','key')"));
+  assert.ok(ready.includes("('users','workspace_owner')"));
+  assert.ok(ready.includes("logServerFailure"));
   assert.ok(ready.includes("status: 503"));
   assert.ok(ready.includes('"Cache-Control": "no-store"'));
   assert.ok(!ready.includes("process.env.DATABASE_URL"));
