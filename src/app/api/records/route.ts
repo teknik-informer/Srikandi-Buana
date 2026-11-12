@@ -49,6 +49,14 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
  const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);
  let previousTaskData:Data|undefined;
  let previousRecordData:Data|undefined;
+ if(!edit&&body.kind==="anggota"){
+  const policyError=memberRecordPolicyError(data);
+  if(policyError)return json({error:policyError},400);
+  if(data.consent==="Terdokumentasi"){
+   const consentRows=await c.db!.prepare("SELECT data FROM records WHERE owner=? AND kind='persetujuan'").bind(c.user!.userId).all();
+   if(!hasDocumentedMemberConsent(String(data.name||""),consentRows.results))return json({error:"Catatan Persetujuan Data atas nama anggota ini belum ditemukan. Pastikan nama cocok, tanggal dan tujuan terisi, serta status persetujuan adalah Setuju untuk tujuan tercatat."},400);
+  }
+ }
  if(edit){
   const old=await c.db!.prepare("SELECT id,updated,data FROM records WHERE id=? AND owner=? AND kind=?").bind(id,c.user!.userId,body.kind).first();
   if(!old)return json({error:"Data tidak ditemukan."},404);
