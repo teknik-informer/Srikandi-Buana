@@ -30,6 +30,8 @@ test("early-stage setup steps use actual accessible records and never imply form
   const operatingModel = read("docs/RANCANGAN_OPERASIONAL_AWAL_KWT_SRIKANDI_BUANA.md");
 
   assert.match(management, /const foundationSteps = \[/);
+  assert.match(management, /const isFoundationStage = !loading && foundationSteps\.length > 0 && foundationRecorded === 0/);
+  assert.match(management, /!isFoundationStage && \(/);
   assert.match(management, /canReadSection\(user, "pengurus"\)/);
   assert.match(management, /membersAccess \?/);
   assert.match(management, /programAccess \?/);
