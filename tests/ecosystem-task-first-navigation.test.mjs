@@ -16,8 +16,12 @@ test("dashboard navigation has one clearly labeled global menu search", () => {
   assert.match(sidebar, /getVisibleEnterpriseDashboards\(user\.role\)/);
   assert.match(sidebar, /getVisibleEnterpriseUtilities\(user\.role\)/);
   assert.match(navigation, /navigationMatches\(feature, query\)/);
-  assert.match(navigation, /Cari menu<kbd>⌘ K<\/kbd>/);
+  assert.match(navigation, /dashboard-app-menu-label[^>]*>Cari menu/);
+  assert.match(navigation, /<kbd>⌘ K<\/kbd>/);
   assert.match(shell, /<DashboardMegaMenu section=\{section\} user=\{user\} \/>/);
+  const css = read("src/app/globals.css");
+  assert.match(css, /@media\(max-width:550px\)[^}]*dashboard-app-menu-label/s);
+  assert.match(css, /@media\(pointer:coarse\)[^}]*dashboard-app-menu\{min-width:44px;min-height:44px\}/s);
   assert.doesNotMatch(shell, /<DashboardMegaMenu[^>]*compact/);
 });
 
