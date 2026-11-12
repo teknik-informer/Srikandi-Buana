@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import vm from "node:vm";
 
 const bundle = await build({
-  entryPoints: ["src/features/membership/member-data-policy.ts"],
+  entryPoints: ["src/lib/member-data-policy.ts"],
   bundle: true,
   write: false,
   platform: "node",
