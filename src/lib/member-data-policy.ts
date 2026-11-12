@@ -38,6 +38,8 @@ export function hasDocumentedMemberConsent(
       && normalizedName(data.name) === expected
       && String(data.status) === "Setuju untuk tujuan tercatat"
       && /^\d{4}-\d{2}-\d{2}$/.test(String(data.date ?? ""))
+      && Number.isFinite(Date.parse(String(data.date) + "T00:00:00Z"))
+      && new Date(String(data.date) + "T00:00:00Z").toISOString().slice(0, 10) === String(data.date)
       && !!String(data.purpose ?? "").trim();
   });
 }
@@ -89,9 +91,6 @@ export function memberRecordPolicyError(
 export function memberAccountInvitationError(data: MemberData): string | null {
   if (String(data.consent ?? "") !== "Terdokumentasi") {
     return "Undangan akun memerlukan catatan persetujuan pendataan yang masih terdokumentasi.";
-  }
-  if (!hasDocumentedMemberConsent(String(data.name ?? ""), [])) {
-    // The detailed consent record is verified separately by the route handler.
   }
   if (String(data.status ?? "") !== "Aktif" || String(data.verification ?? "") !== "Terverifikasi") {
     return "Verifikasi data anggota dan tetapkan status Aktif sebelum membuat undangan.";
