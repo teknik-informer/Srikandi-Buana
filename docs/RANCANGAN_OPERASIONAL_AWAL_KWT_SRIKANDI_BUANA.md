@@ -42,13 +42,17 @@ Pembagian ini adalah usulan untuk memudahkan operasional. Nama pemegang jabatan 
 
 Untuk pekerjaan sederhana yang tidak memerlukan persetujuan formal, aplikasi cukup mencatat siapa yang membuat/memeriksa dan statusnya. Jangan menambah lapisan persetujuan tanpa alasan.
 
+Notulen musyawarah menjadi sumber catatan keputusan. Bila status keputusan sudah dipilih Disepakati dan ringkasan keputusan diisi, butir tindak lanjut dapat diajukan menjadi draf tugas satu per satu. Penanggung jawab (PIC) dan tenggat tetap perlu ditetapkan secara nyata; aplikasi tidak mengarang keduanya.
+
 ## 5. Urutan memulai kelompok
-1. Catat susunan pengurus yang benar-benar sudah disepakati.
-2. Mulai daftar anggota berdasarkan persetujuan mereka; tandai yang belum lengkap/belum diverifikasi.
-3. Pilih satu sampai tiga program awal yang realistis, bukan langsung mengaktifkan seluruh daftar program.
-4. Jadwalkan pertemuan/kegiatan pertama dan catat hasilnya.
-5. Setelah aktivitas berjalan, aktifkan pembukuan kas dan laporan berdasarkan transaksi sebenarnya.
-6. Buka akses pihak luar hanya ketika ada tujuan, data yang dibagikan, penanggung jawab, dan masa berlaku yang jelas.
+1. Jadwalkan musyawarah awal untuk menyepakati kebutuhan dasar kelompok; jangan mengisi jabatan atau keputusan yang belum pernah disepakati.
+2. Catat notulen, pokok pembahasan, dan keputusan yang benar-benar diambil. Biarkan keputusan yang belum pasti tetap sebagai rancangan.
+3. Masukkan susunan pengurus berdasarkan hasil kesepakatan yang tercatat.
+4. Mulai daftar anggota berdasarkan persetujuan pendataan; tandai data yang belum lengkap atau belum diverifikasi.
+5. Pilih satu sampai tiga program awal yang realistis berdasarkan kemampuan dan minat anggota.
+6. Ubah butir keputusan operasional menjadi draf tugas; tetapkan PIC dan tenggat sesuai kesepakatan, bukan secara otomatis.
+7. Setelah aktivitas dan transaksi nyata berjalan, gunakan buku kas untuk mencatat pemasukan/pengeluaran beserta bukti.
+8. Buka akses pihak luar hanya ketika ada tujuan, data yang dibagikan, penanggung jawab, dan masa berlaku yang jelas.
 
 ## 6. Dokumen, laporan, dan keuangan
 - PDF adalah keluaran dokumen yang siap dibaca/dicetak setelah isi diperiksa; status draf harus tetap terlihat sebelum persetujuan.
