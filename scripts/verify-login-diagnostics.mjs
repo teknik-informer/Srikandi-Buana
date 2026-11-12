@@ -89,6 +89,7 @@ assert.equal(logs[0][1].environment, "preview");
 assert.equal(logs[0][1].requestId, "login-diagnostic-test");
 assert.equal(logs[0][1].errorName, "NeonDbError");
 assert.equal(logs[0][1].errorCode, "42P01");
+assert.equal(logs[0][1].errorCategory, "schema_object_missing");
 
 const logged = JSON.stringify(logs);
 assert.doesNotMatch(logged, /SENSITIVE_DATABASE_DETAIL|NeverLogThisPassword|admin@example\.test/);
