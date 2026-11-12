@@ -549,3 +549,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5}butto
 .dashboard-mega-shortcuts strong{display:block;font-size:12px;font-weight:600}
 .dashboard-mega-shortcuts small{display:block;margin-top:3px;font-size:10px;line-height:1.5;color:var(--muted-foreground)}
 @media(max-width:550px){.dashboard-mega-shortcuts>div{grid-template-columns:1fr}}
+
+/* Dashboard menu search: readable label on desktop, compact and touch-friendly on mobile. */
+.workspace-header .dashboard-app-menu{min-height:36px;padding-inline:10px;flex-shrink:0}
+@media(max-width:550px){.workspace-header .dashboard-app-menu{width:44px;min-width:44px;min-height:44px;justify-content:center;padding:8px}.workspace-header .dashboard-app-menu-label,.workspace-header .dashboard-app-menu kbd{display:none}}
+@media(pointer:coarse){.workspace-header .dashboard-app-menu{min-width:44px;min-height:44px}}
