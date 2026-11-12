@@ -42,7 +42,7 @@ Pembagian ini adalah usulan untuk memudahkan operasional. Nama pemegang jabatan 
 
 Untuk pekerjaan sederhana yang tidak memerlukan persetujuan formal, aplikasi cukup mencatat siapa yang membuat/memeriksa dan statusnya. Jangan menambah lapisan persetujuan tanpa alasan.
 
-Notulen musyawarah menjadi sumber catatan keputusan. Bila status keputusan sudah dipilih Disepakati dan ringkasan keputusan diisi, butir tindak lanjut dapat diajukan menjadi draf tugas satu per satu. Penanggung jawab (PIC) dan tenggat tetap perlu ditetapkan secara nyata; aplikasi tidak mengarang keduanya.
+Notulen musyawarah menjadi sumber catatan keputusan. Bila status keputusan sudah dipilih Disepakati dan ringkasan keputusan diisi, butir tindak lanjut dapat diajukan menjadi draf tugas satu per satu. Penanggung jawab (PIC) dan tenggat tetap perlu ditetapkan secara nyata; aplikasi tidak mengarang keduanya. Halaman Rapat dan Notulen menyediakan kerangka opsional musyawarah pertama; kerangka hanya berisi usulan pokok bahasan dengan status Rancangan, tanpa tanggal, isi notulen, keputusan, PIC, atau tindak lanjut yang dibuat otomatis.
 
 ## 5. Urutan memulai kelompok
 1. Jadwalkan musyawarah awal untuk menyepakati kebutuhan dasar kelompok; jangan mengisi jabatan atau keputusan yang belum pernah disepakati.
