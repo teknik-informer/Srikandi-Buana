@@ -2,7 +2,7 @@ import {env} from '@/lib/runtime';
 import {getAdminUser} from '../../admin-auth';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
-import { hasDocumentedMemberConsent, memberAccountInvitationError } from '@/features/membership/member-data-policy';
+import { hasDocumentedMemberConsent, memberAccountInvitationError } from '@/lib/member-data-policy';
 export const dynamic='force-dynamic';
 export async function GET(){const u=await getAdminUser();if(!u)return json({error:'Akses khusus administrator.'},403);if(!env.DB)return json({error:'Database belum tersedia.'},503);try{const [users,invitations,audit,members]=await Promise.all([
  env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE workspace_owner=? ORDER BY created').bind(u.userId).all(),
