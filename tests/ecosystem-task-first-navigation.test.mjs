@@ -25,6 +25,21 @@ test("dashboard navigation has one clearly labeled global menu search", () => {
   assert.doesNotMatch(shell, /<DashboardMegaMenu[^>]*compact/);
 });
 
+test("early-stage setup steps use actual accessible records and never imply formal verification", () => {
+  const management = read("src/app/_components/management-audience-dashboard.tsx");
+  const operatingModel = read("docs/RANCANGAN_OPERASIONAL_AWAL_KWT_SRIKANDI_BUANA.md");
+
+  assert.match(management, /const foundationSteps = \[/);
+  assert.match(management, /canReadSection\(user, "pengurus"\)/);
+  assert.match(management, /membersAccess \?/);
+  assert.match(management, /programAccess \?/);
+  assert.match(management, /insights\.rows\.some\(\(row\) => row\.kind === "kegiatan"\)/);
+  assert.match(management, /Status tercatat tidak otomatis berarti data telah diverifikasi atau disahkan/);
+  assert.match(management, /Belum ada catatan · Mulai di sini/);
+  assert.match(operatingModel, /RANCANGAN KERJA — belum disahkan oleh kelompok/);
+  assert.match(operatingModel, /Administrator teknis bukan pengganti keputusan/);
+});
+
 test("management landing page surfaces role-scoped priorities before analytics", () => {
   const management = read("src/app/_components/management-audience-dashboard.tsx");
   const priority = management.indexOf("Prioritas pekerjaan");
