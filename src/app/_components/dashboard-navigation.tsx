@@ -258,7 +258,8 @@ export function DashboardMegaMenu({
         <Search data-icon="inline-start" />
         {!compact && (
           <>
-            Cari menu<kbd>⌘ K</kbd>
+            <span className="dashboard-app-menu-label">Cari menu</span>
+            <kbd>⌘ K</kbd>
           </>
         )}
       </Button></DialogTrigger>
