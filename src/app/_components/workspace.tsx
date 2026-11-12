@@ -117,7 +117,7 @@ const firstMeetingTemplate: Data = {
     "Pembagian tugas dan penanggung jawab jika sudah disepakati",
     "Jadwal kegiatan atau pertemuan berikutnya",
     "Hal yang masih perlu dibahas kembali",
-  ].map((item, index) => (index + 1) + ". " + item).join("\\n"),
+  ].map((item, index) => (index + 1) + ". " + item).join("\n"),
   status: "Rancangan",
 };
 function FarmArt() {
