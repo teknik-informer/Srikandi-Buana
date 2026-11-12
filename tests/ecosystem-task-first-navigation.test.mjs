@@ -35,11 +35,20 @@ test("early-stage setup steps use actual accessible records and never imply form
   assert.match(management, /canReadSection\(user, "pengurus"\)/);
   assert.match(management, /membersAccess \?/);
   assert.match(management, /programAccess \?/);
-  assert.match(management, /insights\.rows\.some\(\(row\) => row\.kind === "kegiatan"\)/);
+  assert.match(management, /id: "kegiatan"/);
+  assert.match(management, /label: "Jadwalkan musyawarah awal"/);
+  assert.match(management, /canReadSection\(user, "musyawarah"\)/);
+  assert.match(management, /href: "\/dashboard\/musyawarah"/);
+  assert.match(management, /row\.kind === "musyawarah"/);
+  assert.match(management, /label: "Catat hasil musyawarah"/);
+  assert.match(management, /label: "Pilih program awal"/);
+  assert.match(management, /xl:grid-cols-3/);
   assert.match(management, /Status tercatat tidak otomatis berarti data telah diverifikasi atau disahkan/);
   assert.match(management, /Belum ada catatan · Mulai di sini/);
   assert.match(operatingModel, /RANCANGAN KERJA — belum disahkan oleh kelompok/);
   assert.match(operatingModel, /Administrator teknis bukan pengganti keputusan/);
+  assert.match(operatingModel, /Catat notulen, pokok pembahasan, dan keputusan yang benar-benar diambil/);
+  assert.match(operatingModel, /aplikasi tidak mengarang keduanya/);
 });
 
 test("member dashboard stays focused on personal information and real group activity", () => {
