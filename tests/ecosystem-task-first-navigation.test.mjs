@@ -20,8 +20,8 @@ test("dashboard navigation has one clearly labeled global menu search", () => {
   assert.match(navigation, /<kbd>⌘ K<\/kbd>/);
   assert.match(shell, /<DashboardMegaMenu section=\{section\} user=\{user\} \/>/);
   const css = read("src/app/globals.css");
-  assert.match(css, /@media\(max-width:550px\)[^}]*dashboard-app-menu-label/s);
-  assert.match(css, /@media\(pointer:coarse\)[^}]*dashboard-app-menu\{min-width:44px;min-height:44px\}/s);
+  assert.ok(css.includes(".workspace-header .dashboard-app-menu-label,.workspace-header .dashboard-app-menu kbd{display:none}"));
+  assert.ok(css.includes("@media(pointer:coarse){.workspace-header .dashboard-app-menu{min-width:44px;min-height:44px}}"));
   assert.doesNotMatch(shell, /<DashboardMegaMenu[^>]*compact/);
 });
 
