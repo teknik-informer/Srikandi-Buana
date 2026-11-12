@@ -11,18 +11,12 @@ export async function GET(){
  try{
   if(u.role==='admin'){
    const now=new Date().toISOString();
-   const [activeChair,pendingChair,members]=await Promise.all([
+   const [activeChair,pendingChair]=await Promise.all([
     env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' AND enabled=TRUE LIMIT 1").bind(u.userId).first(),
-    env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,now).first(),
-    env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all()
+    env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,now).first()
    ]);
-   const eligible=members.results.flatMap(row=>{
-    try{
-     const data=JSON.parse(String(row.data));
-     return data.status==='Aktif'&&data.verification==='Terverifikasi'?[{id:String(row.id),name:String(data.name||'Anggota'),status:String(data.status),verification:String(data.verification)}]:[];
-    }catch{return [];}
-   });
-   return json({users:[],invitations:[],audit:[],members:eligible,firstChairAvailable:!activeChair&&!pendingChair});
+   // Technical setup can see whether bootstrap is available, never the membership roster.
+   return json({users:[],invitations:[],audit:[],members:[],firstChairAvailable:!activeChair&&!pendingChair});
   }
   const [users,invitations,audit,members]=await Promise.all([
    env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE workspace_owner=? ORDER BY created').bind(u.userId).all(),
