@@ -51,6 +51,22 @@ test("early-stage setup steps use actual accessible records and never imply form
   assert.match(operatingModel, /aplikasi tidak mengarang keduanya/);
 });
 
+test("first meeting note template offers prompts without inventing decisions or assignments", () => {
+  const workspace = read("src/app/_components/workspace.tsx");
+  const operatingModel = read("docs/RANCANGAN_OPERASIONAL_AWAL_KWT_SRIKANDI_BUANA.md");
+
+  assert.match(workspace, /const firstMeetingTemplate: Data = \{/);
+  assert.match(workspace, /section === "musyawarah" && !loading && !error && records\("musyawarah"\)\.length === 0/);
+  assert.match(workspace, /openEditor\("musyawarah", undefined, firstMeetingTemplate\)/);
+  assert.match(workspace, /Gunakan kerangka awal/);
+  assert.match(workspace, /status: "Rancangan"/);
+  assert.match(workspace, /Pilihan satu sampai tiga program awal yang realistis/);
+  assert.match(workspace, /catat hanya hasil yang disepakati/);
+  assert.match(workspace, /Tanggal, notulen, keputusan, penanggung jawab, dan tindak lanjut tetap Anda isi/);
+  assert.match(operatingModel, /Notulen musyawarah menjadi sumber catatan keputusan/);
+  assert.match(operatingModel, /aplikasi tidak mengarang keduanya/);
+});
+
 test("member dashboard stays focused on personal information and real group activity", () => {
   const member = read("src/app/_components/member-audience-dashboard.tsx");
   assert.match(member, /Profil keanggotaan saya/);
