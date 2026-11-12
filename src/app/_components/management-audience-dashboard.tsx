@@ -201,25 +201,13 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
         )}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2" aria-label="Analisis organisasi">
-        <AudienceTrendChart title="Aktivitas pencatatan" description="Jumlah catatan organisasi yang dibuat dalam enam bulan terakhir, berdasarkan waktu pencatatan." data={activityData} />
-        {membersAccess ? (
-          <AudienceBarChart title="Status keanggotaan" description="Komposisi anggota sesuai status dan verifikasi pada data yang dapat diakses." data={memberStatus} />
-        ) : (
-          <AudienceBarChart title="Status tindak lanjut" description="Komposisi pekerjaan sesuai penugasan yang dapat diakses." data={taskStatus} />
-        )}
-        {programAccess && <AudienceBarChart title="Perkembangan program kerja" description="Jumlah program menurut status yang tercatat, bukan estimasi capaian." data={programStatus} />}
-        {canReadSection(user, "tindaklanjut") && <AudienceBarChart title="Status tugas dan tindak lanjut" description="Sebaran tugas berdasarkan status yang tercatat." data={taskStatus} />}
-        {financeAccess && <CashFlowTrendChart data={cashData} />}
-      </section>
-
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <CardTitle className="text-base">Perlu perhatian</CardTitle>
-                <CardDescription>Temuan pemeriksaan data, verifikasi, dan tindak lanjut.</CardDescription>
+                <CardTitle className="text-base">Prioritas pekerjaan</CardTitle>
+                <CardDescription>Mulai dari catatan yang memerlukan perhatian. Buka catatan sumber untuk memahami konteks dan langkah berikutnya.</CardDescription>
               </div>
               <Badge variant="outline">{loading ? "…" : insights.issues.length + " temuan"}</Badge>
             </div>
@@ -250,6 +238,20 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
           </CardContent>
         </Card>
       </section>
+
+      <section className="grid gap-4 xl:grid-cols-2" aria-label="Analisis organisasi">
+        <AudienceTrendChart title="Aktivitas pencatatan" description="Jumlah catatan organisasi yang dibuat dalam enam bulan terakhir, berdasarkan waktu pencatatan." data={activityData} />
+        {membersAccess ? (
+          <AudienceBarChart title="Status keanggotaan" description="Komposisi anggota sesuai status dan verifikasi pada data yang dapat diakses." data={memberStatus} />
+        ) : (
+          <AudienceBarChart title="Status tindak lanjut" description="Komposisi pekerjaan sesuai penugasan yang dapat diakses." data={taskStatus} />
+        )}
+        {programAccess && <AudienceBarChart title="Perkembangan program kerja" description="Jumlah program menurut status yang tercatat, bukan estimasi capaian." data={programStatus} />}
+        {canReadSection(user, "tindaklanjut") && <AudienceBarChart title="Status tugas dan tindak lanjut" description="Sebaran tugas berdasarkan status yang tercatat." data={taskStatus} />}
+        {financeAccess && <CashFlowTrendChart data={cashData} />}
+      </section>
+
+
 
       <section>
         <div className="mb-3 flex items-end justify-between gap-3">
