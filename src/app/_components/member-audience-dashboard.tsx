@@ -53,7 +53,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
             <h1 id="member-dashboard-title" className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Sugeng rawuh, {profile?.data.name || user.displayName || user.fullName}.</h1>
             <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">Ruang pribadi anggota Srikandi Buana. Pantau informasi kelompok, agenda pertemuan, dan data keanggotaan Anda.</p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="border-emerald-700/20 bg-white/70 text-emerald-900"><ShieldCheck className="mr-1 size-3" />Akun anggota aktif</Badge>
+              <Badge variant="outline" className="border-emerald-700/20 bg-white/70 text-emerald-900"><ShieldCheck className="mr-1 size-3" />{profile ? "Status: " + String(profile.data.status || "Belum dicatat") : "Profil belum tertaut"}</Badge>
               <Link href="/kabar" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white hover:bg-emerald-900">Pengumuman kelompok<ArrowRight className="size-4" /></Link>
             </div>
           </div>
