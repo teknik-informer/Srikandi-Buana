@@ -101,7 +101,7 @@ async function invite(memberId,role='anggota',extra={}){const email=role+'-'+ran
 async function activate(inv,j=jar(),extra={}){const route=await load('src/app/api/auth/activate/route.ts',j);const t=new URL(inv.data.url).hash.slice('#token='.length);const response=await route.POST(req('/api/auth/activate','POST',{token:t,email:inv.email,password,confirmation:password,...extra}));return {response,j,route,t}}
 // A technical owner can bootstrap only the first Chair account; all later organizational accounts belong to the Chair.
 firstChairMember=await member('Synthetic first Chair');
-assert.equal((await accountAdmin.GET()).status,200,'Technical administrator receives only the one-time Chair bootstrap view');
+const adminBootstrapView=await accountAdmin.GET();assert.equal(adminBootstrapView.status,200,'Technical administrator receives only the one-time Chair bootstrap view');const adminBootstrapData=await adminBootstrapView.json();assert.equal(adminBootstrapData.firstChairAvailable,true);assert.deepEqual(adminBootstrapData.members,[],'Technical administrator never receives member names or roster data');assert(!JSON.stringify(adminBootstrapData).includes('Synthetic first Chair'),'Technical bootstrap view must not reveal member identities');
 firstChairInvite=await invite(firstChairMember,'ketua');assert.equal(firstChairInvite.response.status,200,firstChairInvite.data.error||'First Chair invite');
 firstChair=await activate(firstChairInvite);assert.equal(firstChair.response.status,200,await firstChair.response.clone().text());
 const duplicateChairId=randomUUID();await assert.rejects(
