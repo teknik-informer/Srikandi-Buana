@@ -174,6 +174,7 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
     icon: LucideIcon; hasRecord: boolean;
   } => step !== null);
   const foundationRecorded = foundationSteps.filter((step) => step.hasRecord).length;
+  const isFoundationStage = !loading && foundationSteps.length > 0 && foundationRecorded === 0;
   const today = new Date().toLocaleDateString("id-ID", { dateStyle: "full", timeZone: "Asia/Jakarta" });
 
   return (
@@ -257,6 +258,8 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
         </section>
       )}
 
+      {!isFoundationStage && (
+        <>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Ringkasan organisasi</h2>
@@ -347,6 +350,9 @@ export default function ManagementAudienceDashboard({ user }: { user: Principal 
           </div>
         ) : <div className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Belum ada catatan yang dapat ditampilkan.</div>}
       </section>
+
+        </>
+      )}
     </main>
   );
 }
