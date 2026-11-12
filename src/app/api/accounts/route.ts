@@ -12,7 +12,7 @@ export async function GET(){
   if(u.role==='admin'){
    const now=new Date().toISOString();
    const [activeChair,pendingChair]=await Promise.all([
-    env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' AND enabled=TRUE LIMIT 1").bind(u.userId).first(),
+    env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' LIMIT 1").bind(u.userId).first(),
     env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,now).first()
    ]);
    // Technical setup can see whether bootstrap is available, never the membership roster.
