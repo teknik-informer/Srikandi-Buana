@@ -24,7 +24,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   NativeSelect,
@@ -600,6 +600,17 @@ export default function Workspace({
                 </CardContent>
               </Card>
             )}
+            {section === "anggota" && (
+              <Alert>
+                <ShieldCheck className="size-4" />
+                <AlertTitle>Persetujuan sebelum pendataan</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>Jelaskan terlebih dahulu data apa yang dikumpulkan dan untuk apa digunakan. Catat persetujuan dengan nama, tanggal, tujuan, dan status yang jelas sebelum menambahkan anggota.</p>
+                  <p><Link href="/dashboard/persetujuan" className="font-semibold underline underline-offset-4">Buka Persetujuan Data</Link>. Izin foto untuk publikasi tetap diminta secara terpisah.</p>
+                  <p>Data yang belum diverifikasi tetap berstatus Perlu verifikasi. Status Aktif hanya dapat diberikan setelah data diperiksa.</p>
+                </AlertDescription>
+              </Alert>
+            )}
             <Box
               title={module.title}
               description={
@@ -1118,6 +1129,7 @@ export default function Workspace({
                         {f.label}
                         {f.required ? " *" : ""}
                       </FieldLabel>
+                      {f.help && <FieldDescription>{f.help}</FieldDescription>}
                       {f.key === "fileId" ? (<ImagePicker id={f.key} name={f.key} files={files} defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={saving} />) : ["fileId", "attachmentId"].includes(f.key) ? (
                         <NativeSelect
                           id={f.key}
