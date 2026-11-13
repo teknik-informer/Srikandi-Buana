@@ -87,7 +87,7 @@ export default function WorkspaceShell({
             className="workspace-header-actions"
             aria-label="Akun dan tindakan utama"
           >
-            <DashboardMegaMenu section={section} user={user} compact />
+            <DashboardMegaMenu section={section} user={user} />
             <NotificationCenter compact />
             <ThemeControl />
             <AccountMenu user={user} />
