@@ -272,7 +272,7 @@ Langkah coding pertama setelah kontrak ditinjau adalah membangun tabel grant dan
 
 ## Tahap 2 — Domain pertanian dan ringkasan mitra (10 November 2026)
 
-Tahap ini memperluas fondasi akses eksternal dengan data pertanian terstruktur. Migrasi baru adalah `migrations/006_agriculture_domain.sql`; migrasi tersebut **belum diterapkan** ke Neon atau lingkungan produksi.
+Catatan historis tahap 2 pada 10 November 2026: migrasi `migrations/006_agriculture_domain.sql` saat itu masih menunggu penerapan. Catatan status tersebut sudah superseded; migrasi 006 kemudian diterapkan ke Neon produksi pada tahap sebelumnya dengan persetujuan pengguna. Jangan menggunakan pernyataan status lama di dokumen arsip ini sebagai status database saat ini.
 
 ### Entitas dan relasi
 
