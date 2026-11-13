@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS report_packages (
  rejected_at TIMESTAMPTZ,
  rejection_note TEXT NOT NULL DEFAULT '',
  superseded_at TIMESTAMPTZ,
- UNIQUE(owner,group_id,period_start,period_end,package_version),
  CHECK(period_start IS NULL OR period_end IS NULL OR period_start <= period_end),
  CHECK((status IN ('verified','approved') AND verified_by IS NOT NULL AND verified_at IS NOT NULL) OR status NOT IN ('verified','approved')),
  CHECK((status='approved' AND approved_by IS NOT NULL AND approved_at IS NOT NULL) OR status<>'approved'),
@@ -36,6 +35,16 @@ CREATE INDEX IF NOT EXISTS report_packages_owner_status_created
  ON report_packages(owner,status,created_at DESC);
 CREATE INDEX IF NOT EXISTS report_packages_owner_group_period
  ON report_packages(owner,group_id,period_start,period_end,package_version DESC);
+-- PostgreSQL UNIQUE constraints treat NULL values as distinct. Normalize an open
+-- period boundary to an infinite date so unbounded periods cannot duplicate versions.
+CREATE UNIQUE INDEX IF NOT EXISTS report_packages_owner_group_period_version_unique
+ ON report_packages(
+  owner,
+  group_id,
+  COALESCE(period_start, '-infinity'::date),
+  COALESCE(period_end, 'infinity'::date),
+  package_version
+ );
 
 CREATE TABLE IF NOT EXISTS report_package_events (
  id TEXT PRIMARY KEY,
