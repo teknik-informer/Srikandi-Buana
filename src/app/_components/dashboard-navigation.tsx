@@ -1,6 +1,4 @@
 "use client";
-import UserAvatar from "./access/user-avatar";
-import { useProfileIdentity } from "@/hooks/use-profile-identity";
 import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
 import BrandLogo from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -9,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -22,7 +19,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { navigationMatches } from "@/lib/navigation-config";
-import { roles, type Principal } from "@/lib/permissions";
+import { type Principal } from "@/lib/permissions";
 import { enterpriseDashboards, getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
   Activity,
@@ -39,13 +36,11 @@ import {
   Megaphone,
   Search,
   Settings2,
-  ShieldCheck,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
-import LogoutButton from "./access/logout-button";
 const dashboardIcons: Record<string, typeof Grid2X2> = {
   ecosystem: Grid2X2,
   management: BriefcaseBusiness,
@@ -56,20 +51,14 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   system: Settings2,
 };
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
-  const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
-  const [expanded, setExpanded] = useState(active?.id || ""),
-    [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState(active?.id || "");
   useEffect(() => {
     setExpanded(active?.id || "");
-    setQuery("");
   }, [section, active?.id]);
-  const groups = getVisibleEnterpriseDashboards(user.role)
-    .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
-    .filter((pillar) => pillar.items.length);
-  const utilities = getVisibleEnterpriseUtilities(user.role)
-    .filter((item) => navigationMatches(item, query));
+  const groups = getVisibleEnterpriseDashboards(user.role);
+  const utilities = getVisibleEnterpriseUtilities(user.role);
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
       setOpen(true);
@@ -120,31 +109,13 @@ export default function DashboardNavigation({ section, user }: { section: string
             })}
           </SidebarMenu>
         </SidebarGroup>
-        <SidebarGroup className="dashboard-menu-search">
-          <label htmlFor="dashboard-menu-query" className="sr-only">
-            Cari menu dashboard
-          </label>
-          <div className="dashboard-nav-search">
-            <Search size={14} />
-            <Input
-              id="dashboard-menu-query"
-              placeholder="Cari halaman…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button aria-label="Hapus pencarian menu" onClick={() => setQuery("")}>
-                <X size={13} />
-              </button>
-            )}
-          </div>
-        </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel>MENU UTAMA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
-              const shown = !!query || expanded === group.id;
+              const shown = expanded === group.id;
               return (
                 <SidebarMenuItem key={group.id} className="dashboard-category">
                   <SidebarMenuButton
@@ -156,7 +127,6 @@ export default function DashboardNavigation({ section, user }: { section: string
                   >
                     <Icon />
                     <span className="dashboard-category-label">{group.label}</span>
-                    <span className="dashboard-category-count">{group.items.length}</span>
                     <ChevronDown
                       className={shown ? "dashboard-category-chevron expanded" : "dashboard-category-chevron"}
                     />
@@ -175,7 +145,7 @@ export default function DashboardNavigation({ section, user }: { section: string
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-                      {group.items.map((item) => (
+                      {group.features.map((item) => (
                         <SidebarMenuSubItem key={item.id}>
                           <SidebarMenuSubButton asChild isActive={section === item.id}>
                             <Link
@@ -197,9 +167,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           </SidebarMenu>
           {!groups.length && (
             <div className="dashboard-nav-empty">
-              <Search size={20} />
-              <p>Menu belum ditemukan.</p>
-              <button onClick={() => setQuery("")}>Tampilkan semua kategori</button>
+              <p>Belum ada modul yang tersedia pada akun ini.</p>
             </div>
           )}
         </SidebarGroup>
@@ -218,24 +186,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           )}
         </div>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <div className="account">
-          <UserAvatar user={identity} className="size-9" />
-          <div className="min-w-0 flex-1">
-            <strong className="block truncate">{identity.displayName || user.email}</strong>
-            <small>{roles[user.role]}</small>
-          </div>
-          <ShieldCheck size={17} />
-        </div>
-        <div className="sidebar-account-actions">
-          <Button variant="ghost" asChild className="min-h-11">
-            <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)}>
-              Akun saya
-            </Link>
-          </Button>
-          <LogoutButton compact />
-        </div>
-      </SidebarFooter>
+
     </Sidebar>
   );
 }
@@ -283,7 +234,8 @@ export function DashboardMegaMenu({
         <Search data-icon="inline-start" />
         {!compact && (
           <>
-            Cari menu<kbd>⌘ K</kbd>
+            <span className="dashboard-app-menu-label">Cari menu</span>
+            <kbd>⌘ K</kbd>
           </>
         )}
       </Button></DialogTrigger>
