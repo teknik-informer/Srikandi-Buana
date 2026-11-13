@@ -1,6 +1,4 @@
 "use client";
-import UserAvatar from "./access/user-avatar";
-import { useProfileIdentity } from "@/hooks/use-profile-identity";
 import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
 import BrandLogo from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -21,7 +19,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { navigationMatches } from "@/lib/navigation-config";
-import { roles, type Principal } from "@/lib/permissions";
+import { type Principal } from "@/lib/permissions";
 import { enterpriseDashboards, getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
   Activity,
@@ -53,7 +51,6 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   system: Settings2,
 };
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
-  const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
   const [expanded, setExpanded] = useState(active?.id || "");
