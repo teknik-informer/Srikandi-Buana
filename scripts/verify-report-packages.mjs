@@ -22,10 +22,10 @@ for(const token of [
 ]){
  assert.ok(migration.includes(token),'Missing database invariant: '+token);
 }
-assert.doesNotMatch(migration,/UNIQUE\\(owner,group_id,period_start,period_end,package_version\\)/);
-assert.match(migration,/NEW\\.source_manifest IS DISTINCT FROM OLD\\.source_manifest/);
-assert.match(migration,/NEW\\.snapshot IS DISTINCT FROM OLD\\.snapshot/);
-assert.match(migration,/NEW\\.snapshot_hash IS DISTINCT FROM OLD\\.snapshot_hash/);
+assert.ok(!migration.includes('UNIQUE(owner,group_id,period_start,period_end,package_version)'));
+assert.ok(migration.includes('NEW.source_manifest IS DISTINCT FROM OLD.source_manifest'));
+assert.ok(migration.includes('NEW.snapshot IS DISTINCT FROM OLD.snapshot'));
+assert.ok(migration.includes('NEW.snapshot_hash IS DISTINCT FROM OLD.snapshot_hash'));
 assert.match(workflow,/server wajib membaca ulang setiap sumber/);
 assert.match(workflow,/Administrator Sistem tidak membaca/);
 assert.match(workflow,/belum selesai|belum dibangun|belum diterapkan/i);
