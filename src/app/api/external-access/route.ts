@@ -138,6 +138,9 @@ export async function POST(request: Request) {
       const organization = await env.DB.prepare("SELECT id,organization_type,legal_name,verification_status FROM external_organizations WHERE id=? AND workspace_owner=?")
         .bind(organizationId, user.userId).first();
       if (!organization) return json({ error: "Organisasi eksternal tidak ditemukan dalam workspace ini." }, 404);
+      if (organization.verification_status !== "verified") {
+        return json({ error: "Verifikasi organisasi harus diselesaikan sebelum undangan atau grant dibuat." }, 409);
+      }
       const email = normalizedEmail(raw.email);
       const fullName = requiredText(raw.fullName, "Nama pengguna", 2, 120);
       const purpose = requiredText(raw.purpose, "Tujuan pemberian akses", 12, 500);
