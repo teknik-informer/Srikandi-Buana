@@ -39,7 +39,7 @@ import {
   Megaphone,
   Search,
   Settings2,
-  ShieldCheck,
+  Settings,
   Wallet,
   X,
 } from "lucide-react";
@@ -65,6 +65,7 @@ export default function DashboardNavigation({ section, user }: { section: string
   }, [section, active?.id]);
   const groups = getVisibleEnterpriseDashboards(user.role);
   const utilities = getVisibleEnterpriseUtilities(user.role);
+  const canOpenSettings = groups.some((group) => group.features.some((feature) => feature.id === "pengaturan"));
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
       setOpen(true);
@@ -133,7 +134,6 @@ export default function DashboardNavigation({ section, user }: { section: string
                   >
                     <Icon />
                     <span className="dashboard-category-label">{group.label}</span>
-                    <span className="dashboard-category-count">{group.features.length}</span>
                     <ChevronDown
                       className={shown ? "dashboard-category-chevron expanded" : "dashboard-category-chevron"}
                     />
@@ -193,22 +193,23 @@ export default function DashboardNavigation({ section, user }: { section: string
           )}
         </div>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <div className="account">
-          <UserAvatar user={identity} className="size-9" />
-          <div className="min-w-0 flex-1">
-            <strong className="block truncate">{identity.displayName || user.email}</strong>
-            <small>{roles[user.role]}</small>
+      <SidebarFooter className="sidebar-footer-clean p-3">
+        <div className="sidebar-footer-account">
+          <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)} className="sidebar-footer-identity" title="Buka profil akun">
+            <UserAvatar user={identity} className="size-9" />
+            <span className="min-w-0">
+              <strong className="block truncate">{identity.displayName || user.email}</strong>
+              <small className="block truncate">{roles[user.role]}</small>
+            </span>
+          </Link>
+          <div className="sidebar-footer-tools">
+            {canOpenSettings && (
+              <Link href="/dashboard/pengaturan" onClick={() => setOpenMobile(false)} className="sidebar-footer-setting" aria-label="Pengaturan" title="Pengaturan">
+                <Settings size={17} />
+              </Link>
+            )}
+            <div className="sidebar-footer-logout"><LogoutButton compact /></div>
           </div>
-          <ShieldCheck size={17} />
-        </div>
-        <div className="sidebar-account-actions">
-          <Button variant="ghost" asChild className="min-h-11">
-            <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)}>
-              Akun saya
-            </Link>
-          </Button>
-          <LogoutButton compact />
         </div>
       </SidebarFooter>
     </Sidebar>
