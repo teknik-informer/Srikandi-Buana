@@ -2,6 +2,7 @@ import {env} from '@/lib/runtime';
 import {getAdminUser} from '../../admin-auth';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
+import { hasDocumentedMemberConsent, memberAccountInvitationError } from '@/lib/member-data-policy';
 export const dynamic='force-dynamic';
 export async function GET(){const u=await getAdminUser();if(!u)return json({error:'Akses khusus administrator.'},403);if(!env.DB)return json({error:'Database belum tersedia.'},503);try{const [users,invitations,audit,members]=await Promise.all([
  env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE workspace_owner=? ORDER BY created').bind(u.userId).all(),
@@ -14,7 +15,14 @@ export async function POST(request:Request){const u=await getAdminUser();if(!u)r
  let memberId=String(raw.memberId||''),email=String(raw.email||'').trim().toLowerCase(),fullName='',targetId:string|null=null,access=accessInput(raw);
  if(purpose==='reset'){const target=await env.DB.prepare('SELECT id,email,full_name,member_id,role,position,program_ids FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();if(!target||target.role==='admin')return json({error:'Pemulihan ini hanya untuk akun anggota dan pengurus.'},403);targetId=String(target.id);memberId=String(target.member_id);email=String(target.email);fullName=String(target.full_name);access=accessInput({role:target.role,position:target.position,programIds:JSON.parse(String(target.program_ids))})}
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan email pribadi yang valid.'},400);
- const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(memberId,u.userId).first();if(!member)return json({error:'Pilih anggota yang terdaftar.'},400);const data=JSON.parse(String(member.data));if(data.verification!=='Terverifikasi'||data.status!=='Aktif')return json({error:'Verifikasi data anggota dan tetapkan status Aktif sebelum membuat undangan.'},400);fullName=String(data.name);
+ const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(memberId,u.userId).first();if(!member)return json({error:'Pilih anggota yang terdaftar.'},400);const data=JSON.parse(String(member.data));
+ if(purpose==='activate'){
+  const policyError=memberAccountInvitationError(data);
+  if(policyError)return json({error:policyError},400);
+  const consentRows=await env.DB.prepare("SELECT data FROM records WHERE owner=? AND kind='persetujuan'").bind(u.userId).all();
+  if(!hasDocumentedMemberConsent(String(data.name||""),consentRows.results))return json({error:'Catatan persetujuan pendataan yang cocok belum ditemukan. Pastikan nama, tanggal, tujuan, dan status persetujuan telah dicatat.'},400);
+ }else if(data.verification!=='Terverifikasi'||data.status!=='Aktif')return json({error:'Verifikasi data anggota dan tetapkan status Aktif sebelum membuat undangan.'},400);
+ fullName=String(data.name);
  if(purpose==='activate'){const duplicate=await env.DB.prepare('SELECT id FROM users WHERE email=? OR (workspace_owner=? AND member_id=?)').bind(email,u.userId,memberId).first();if(duplicate)return json({error:'Akun untuk email atau anggota ini sudah ada. Gunakan pemulihan password.'},409)}
  const {token,hash}=inviteToken(),id=crypto.randomUUID(),now=new Date().toISOString(),expires=new Date(Date.now()+(purpose==='reset'?3600000:48*3600000)).toISOString();const url=activationLink(request,token);
  await env.DB.batch([env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL').bind(now,u.userId,memberId),env.DB.prepare('INSERT INTO account_invitations(id,token_hash,owner,member_id,email,full_name,role,position,program_ids,purpose,target_user_id,expires,created_by,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,hash,u.userId,memberId,email,fullName,access.role,access.position,JSON.stringify(access.programIds),purpose,targetId,expires,u.accountId,now),await accessAudit(u.userId,u.accountId,purpose==='reset'?'Tautan pemulihan dibuat':'Undangan dibuat',email)]);

@@ -2,6 +2,13 @@ import {neon} from '@neondatabase/serverless';
 import {postgresStatement} from './sql-compat';
 import {databaseUrlForEnvironment} from '../features/shared/database-target.mjs';
 type Row=Record<string,unknown>;
+
+function databaseFailure(message:string,cause:unknown){
+ const failure=new Error(message);
+ Object.defineProperty(failure,'cause',{value:cause,enumerable:false});
+ return failure;
+}
+
 export class PreparedStatement{
  constructor(readonly database:NeonDatabase,readonly text:string,readonly args:unknown[]=[]){ }
  bind(...args:unknown[]){return new PreparedStatement(this.database,this.text,args)}
@@ -12,8 +19,14 @@ export class PreparedStatement{
 export class NeonDatabase{
  private sql;constructor(url:string){this.sql=neon(url)}
  prepare(text:string){return new PreparedStatement(this,text)}
- async execute(statement:PreparedStatement){try{return await this.sql.query(postgresStatement(statement.text),statement.args,{fullResults:true})}catch{throw Error('Database belum dapat memproses permintaan.')}}
- async batch(statements:PreparedStatement[]){try{return await this.sql.transaction(statements.map(s=>this.sql.query(postgresStatement(s.text),s.args)),{fullResults:true,isolationLevel:'Serializable'})}catch{throw Error('Database belum dapat menyimpan perubahan.')}}
+ async execute(statement:PreparedStatement){
+  try{return await this.sql.query(postgresStatement(statement.text),statement.args,{fullResults:true})}
+  catch(error){throw databaseFailure('Database belum dapat memproses permintaan.',error)}
+ }
+ async batch(statements:PreparedStatement[]){
+  try{return await this.sql.transaction(statements.map(s=>this.sql.query(postgresStatement(s.text),s.args)),{fullResults:true,isolationLevel:'Serializable'})}
+  catch(error){throw databaseFailure('Database belum dapat menyimpan perubahan.',error)}
+ }
 }
 let connection:NeonDatabase|undefined;
 let connectionUrl:string|undefined;

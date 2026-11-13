@@ -24,7 +24,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   NativeSelect,
@@ -107,6 +107,19 @@ const href = (id: string) =>
     : id === "ringkasan"
       ? "/dashboard"
       : `/dashboard/${id}`;
+const firstMeetingTemplate: Data = {
+  name: "Musyawarah Awal KWT Srikandi Buana",
+  agendaPoints: [
+    "Tujuan dan harapan anggota terhadap kelompok",
+    "Kondisi, pengalaman, minat, dan kebutuhan anggota",
+    "Pembahasan susunan pengurus; catat hanya hasil yang disepakati",
+    "Pilihan satu sampai tiga program awal yang realistis",
+    "Pembagian tugas dan penanggung jawab jika sudah disepakati",
+    "Jadwal kegiatan atau pertemuan berikutnya",
+    "Hal yang masih perlu dibahas kembali",
+  ].map((item, index) => (index + 1) + ". " + item).join("\n"),
+  status: "Rancangan",
+};
 function FarmArt() {
   return (
     <svg
@@ -566,6 +579,37 @@ export default function Workspace({
                 awal. Catat transaksi nyata beserta dasar persetujuan dan bukti
                 pendukungnya.
               </p>
+            )}
+            {section === "musyawarah" && !loading && !error && records("musyawarah").length === 0 && (
+              <Card className="border-dashed border-primary/30 bg-primary/[0.025]">
+                <CardHeader className="pb-3">
+                  <Badge variant="outline" className="w-fit">KERANGKA OPSIONAL</Badge>
+                  <CardTitle className="text-base">Siapkan musyawarah pertama</CardTitle>
+                  <CardDescription>
+                    Mulai dari agenda pembahasan yang sederhana. Tanggal, notulen, keputusan, penanggung jawab, dan tindak lanjut tetap Anda isi berdasarkan hasil pertemuan nyata.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-0">
+                  <p className="max-w-xl text-xs leading-5 text-muted-foreground">
+                    Kerangka ini bukan keputusan atau aturan resmi. Ubah atau hapus butir yang tidak sesuai dengan kebutuhan kelompok.
+                  </p>
+                  <Button type="button" variant="outline" onClick={() => openEditor("musyawarah", undefined, firstMeetingTemplate)}>
+                    <ClipboardList data-icon="inline-start" />
+                    Gunakan kerangka awal
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            {section === "anggota" && (
+              <Alert>
+                <ShieldCheck className="size-4" />
+                <AlertTitle>Persetujuan sebelum pendataan</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>Jelaskan terlebih dahulu data apa yang dikumpulkan dan untuk apa digunakan. Catat persetujuan dengan nama, tanggal, tujuan, dan status yang jelas sebelum menambahkan anggota.</p>
+                  <p><Link href="/dashboard/persetujuan" className="font-semibold underline underline-offset-4">Buka Persetujuan Data</Link>. Izin foto untuk publikasi tetap diminta secara terpisah.</p>
+                  <p>Data yang belum diverifikasi tetap berstatus Perlu verifikasi. Status Aktif hanya dapat diberikan setelah data diperiksa.</p>
+                </AlertDescription>
+              </Alert>
             )}
             <Box
               title={module.title}
@@ -1085,6 +1129,7 @@ export default function Workspace({
                         {f.label}
                         {f.required ? " *" : ""}
                       </FieldLabel>
+                      {f.help && <FieldDescription>{f.help}</FieldDescription>}
                       {f.key === "fileId" ? (<ImagePicker id={f.key} name={f.key} files={files} defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={saving} />) : ["fileId", "attachmentId"].includes(f.key) ? (
                         <NativeSelect
                           id={f.key}
