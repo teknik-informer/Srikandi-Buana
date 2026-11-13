@@ -46,3 +46,13 @@
 .public-social-links>.social-unconfigured{color:var(--color-stone-500);background:var(--color-stone-100)}
 
 .pub-cta .site-wordmark{width:132px}.pub-cta .site-brand{flex-shrink:0}.pub-news-art .site-wordmark{width:180px}.public-mega-feature .site-wordmark{width:155px}
+
+/* Authentic public hero: no unverified stock or illustrative fallback. */
+.premium-hero-image{z-index:-4}
+.premium-hero-art{position:absolute;inset:0;z-index:-3;pointer-events:none;background:radial-gradient(ellipse at 78% 28%,color-mix(in srgb,var(--color-emerald-600),transparent 58%) 0%,transparent 38%),radial-gradient(ellipse at 92% 88%,color-mix(in srgb,var(--color-amber-300),transparent 88%) 0%,transparent 34%),linear-gradient(118deg,var(--color-emerald-950) 0%,var(--color-emerald-900) 52%,#174b39 100%)}
+.premium-hero-art:before,.premium-hero-art:after{content:"";position:absolute;border:1px solid color-mix(in srgb,var(--color-amber-200),transparent 82%);border-radius:50%;pointer-events:none}
+.premium-hero-art:before{width:min(62vw,760px);aspect-ratio:1;right:-9%;top:-28%;box-shadow:0 0 0 48px color-mix(in srgb,var(--color-amber-100),transparent 96%),0 0 0 96px color-mix(in srgb,var(--color-amber-100),transparent 97%)}
+.premium-hero-art:after{width:min(34vw,420px);aspect-ratio:1;right:12%;bottom:-42%;border-color:color-mix(in srgb,var(--color-amber-200),transparent 88%)}
+.premium-hero-shade{z-index:-2;background:linear-gradient(90deg,color-mix(in srgb,var(--color-emerald-950),transparent 5%) 0%,color-mix(in srgb,var(--color-emerald-950),transparent 25%) 55%,transparent 100%),linear-gradient(0deg,color-mix(in srgb,var(--color-emerald-950),transparent 38%),transparent 65%)}
+.premium-hero[data-has-image="true"] .premium-hero-art{opacity:0}
+@media(max-width:760px){.premium-hero,.premium-hero .pub-hero-copy{min-height:620px}.premium-hero .pub-hero-copy{padding:68px 24px 34px}.premium-hero h1{font-size:clamp(46px,11vw,68px);letter-spacing:-2.2px}.premium-hero-bottom{gap:12px;flex-wrap:wrap;margin-top:32px}.premium-hero-bottom>span:last-child{border-left:0;padding-left:0}.premium-hero-art:before{width:100vw;right:-48%;top:-6%}.premium-hero-art:after{width:65vw;right:-8%;bottom:-24%}}
