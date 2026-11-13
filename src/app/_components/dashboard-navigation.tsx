@@ -206,6 +206,7 @@ export default function DashboardNavigation({ section, user }: { section: string
             {canOpenSettings && (
               <Link href="/dashboard/pengaturan" onClick={() => setOpenMobile(false)} className="sidebar-footer-setting" aria-current={section === "pengaturan" ? "page" : undefined} aria-label="Pengaturan" title="Pengaturan">
                 <Settings size={17} />
+                <span>Pengaturan</span>
               </Link>
             )}
             <div className="sidebar-footer-logout"><LogoutButton compact /></div>
