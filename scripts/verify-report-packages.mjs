@@ -12,7 +12,9 @@ for(const token of [
  "source_manifest JSONB NOT NULL",
  "snapshot JSONB NOT NULL",
  "snapshot_hash CHAR(64) NOT NULL",
- "UNIQUE(owner,group_id,period_start,period_end,package_version)",
+ "CREATE UNIQUE INDEX IF NOT EXISTS report_packages_owner_group_period_version_unique",
+ "COALESCE(period_start, '-infinity'::date)",
+ "COALESCE(period_end, 'infinity'::date)",
  "CREATE TRIGGER srikandi_report_package_snapshot_immutable",
  "CREATE TRIGGER srikandi_report_package_events_immutable",
  "BEFORE UPDATE OR DELETE ON report_packages",
@@ -20,10 +22,11 @@ for(const token of [
 ]){
  assert.ok(migration.includes(token),'Missing database invariant: '+token);
 }
-assert.match(migration,/NEW\.source_manifest IS DISTINCT FROM OLD\.source_manifest/);
-assert.match(migration,/NEW\.snapshot IS DISTINCT FROM OLD\.snapshot/);
-assert.match(migration,/NEW\.snapshot_hash IS DISTINCT FROM OLD\.snapshot_hash/);
+assert.doesNotMatch(migration,/UNIQUE\\(owner,group_id,period_start,period_end,package_version\\)/);
+assert.match(migration,/NEW\\.source_manifest IS DISTINCT FROM OLD\\.source_manifest/);
+assert.match(migration,/NEW\\.snapshot IS DISTINCT FROM OLD\\.snapshot/);
+assert.match(migration,/NEW\\.snapshot_hash IS DISTINCT FROM OLD\\.snapshot_hash/);
 assert.match(workflow,/server wajib membaca ulang setiap sumber/);
 assert.match(workflow,/Administrator Sistem tidak membaca/);
 assert.match(workflow,/belum selesai|belum dibangun|belum diterapkan/i);
-console.log('PASS: report-package schema invariants, append-only history, snapshot immutability, and workflow guardrails (static contract check; not a PostgreSQL migration execution).');
+console.log('PASS: report-package schema invariants, null-safe version uniqueness, append-only history, snapshot immutability, and workflow guardrails (static contract check; not a PostgreSQL migration execution).');
