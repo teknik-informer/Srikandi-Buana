@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       " AND owner.enabled=TRUE AND owner.role='admin' AND lower(owner.email)=lower(?)" +
       " AND EXISTS (SELECT 1 FROM external_access_grants g JOIN external_access_grant_scopes sc ON sc.grant_id=g.id AND sc.workspace_owner=g.workspace_owner" +
       " WHERE g.account_id=a.id AND g.workspace_owner=a.workspace_owner AND g.organization_id=a.organization_id" +
-      " AND g.audience=o.organization_type AND g.status='active' AND g.valid_from<=? AND g.valid_until>? " +
+      " AND g.audience=o.organization_type AND g.status='active' AND g.valid_until>? " +
       " AND sc.permission IN ('read','aggregate'))) RETURNING i.account_id,i.workspace_owner" +
       "), changed AS (" +
       " UPDATE external_portal_accounts a SET password_hash=?,status='active',updated_at=? " +
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       " INSERT INTO external_access_audit(id,workspace_owner,actor_id,actor_type,action,target_type,target_id,reason,created_at) " +
       " SELECT ?,c.workspace_owner,c.id,'external','Akun eksternal diaktifkan','external_account',c.id,'Aktivasi melalui undangan sekali pakai',? FROM changed c RETURNING id" +
       ") SELECT c.id,c.workspace_owner FROM changed c CROSS JOIN audited"
-    ).bind(now, digest(token), email, now, process.env.ADMIN_EMAIL?.trim() || "", now, now, passwordHash, now, auditId, now).first();
+    ).bind(now, digest(token), email, now, process.env.ADMIN_EMAIL?.trim() || "", now, passwordHash, now, auditId, now).first();
     if (!changed) {
       return json({ error: "Undangan tidak valid, sudah digunakan, dicabut, kedaluwarsa, atau organisasi belum diverifikasi. Hubungi pengelola." }, 409);
     }
