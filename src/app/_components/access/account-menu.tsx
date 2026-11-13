@@ -15,12 +15,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { roles, type Principal } from "@/lib/permissions";
 import { getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
-import { getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
 import { useLogout } from "@/hooks/use-logout";
 export default function AccountMenu({ user }: { user: Principal }) {
   const { busy, error, logout } = useLogout();
   const identity = useProfileIdentity(user);
-  const canOpenSettings = getVisibleEnterpriseDashboards(user.role).some((group) => group.features.some((feature) => feature.id === "pengaturan"));
   const canOpenSettings = getVisibleEnterpriseDashboards(user.role).some((group) => group.features.some((feature) => feature.id === "pengaturan"));
   return (
     <DropdownMenu>
@@ -51,14 +49,6 @@ export default function AccountMenu({ user }: { user: Principal }) {
               Akun saya
             </Link>
           </DropdownMenuItem>
-          {canOpenSettings && (
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/pengaturan">
-                <Settings />
-                Pengaturan
-              </Link>
-            </DropdownMenuItem>
-          )}
           {canOpenSettings && (
             <DropdownMenuItem asChild>
               <Link href="/dashboard/pengaturan">
