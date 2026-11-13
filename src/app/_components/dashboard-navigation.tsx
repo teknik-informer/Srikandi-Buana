@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -39,13 +38,11 @@ import {
   Megaphone,
   Search,
   Settings2,
-  Settings,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
-import LogoutButton from "./access/logout-button";
 const dashboardIcons: Record<string, typeof Grid2X2> = {
   ecosystem: Grid2X2,
   management: BriefcaseBusiness,
@@ -65,7 +62,6 @@ export default function DashboardNavigation({ section, user }: { section: string
   }, [section, active?.id]);
   const groups = getVisibleEnterpriseDashboards(user.role);
   const utilities = getVisibleEnterpriseUtilities(user.role);
-  const canOpenSettings = groups.some((group) => group.features.some((feature) => feature.id === "pengaturan"));
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
       setOpen(true);
@@ -193,26 +189,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           )}
         </div>
       </SidebarContent>
-      <SidebarFooter className="sidebar-footer-clean p-3">
-        <div className="sidebar-footer-account">
-          <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)} className="sidebar-footer-identity" title="Buka profil akun">
-            <UserAvatar user={identity} className="size-9" />
-            <span className="min-w-0">
-              <strong className="block truncate">{identity.displayName || user.email}</strong>
-              <small className="block truncate">{roles[user.role]}</small>
-            </span>
-          </Link>
-          <div className="sidebar-footer-tools">
-            {canOpenSettings && (
-              <Link href="/dashboard/pengaturan" onClick={() => setOpenMobile(false)} className="sidebar-footer-setting" aria-current={section === "pengaturan" ? "page" : undefined} aria-label="Pengaturan" title="Pengaturan">
-                <Settings size={17} />
-                <span>Pengaturan</span>
-              </Link>
-            )}
-            <div className="sidebar-footer-logout"><LogoutButton compact /></div>
-          </div>
-        </div>
-      </SidebarFooter>
+
     </Sidebar>
   );
 }
