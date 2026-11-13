@@ -70,7 +70,7 @@ const mem=newDb();mem.public.registerFunction({name:'strpos',args:[DataType.text
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});const translate=compat.exports.postgresStatement;
 // pg-mem cannot execute data-modifying CTEs. Only this SQL primitive is emulated;
 // the unmodified activation/reset SQL is separately exercised on the isolated Neon branch.
-async function execute(text,args){if(failProfileCommit&&text.startsWith('INSERT INTO access_audit')&&args[3]==='Foto profil diperbarui'){failProfileCommit=false;throw Error('Synthetic commit failure');}if(text.startsWith('WITH claimed AS (UPDATE account_invitations')){
+async function execute(text,args){if(failProfileCommit&&text.startsWith('INSERT INTO access_audit')&&args[3]==='Foto profil diperbarui'){failProfileCommit=false;throw Error('Synthetic commit failure');}if(text.trim().replace(/\\s+/g,' ').toLowerCase()==='select id,member_id from users where workspace_owner=?'){const rows=(await pool.query('SELECT id,workspace_owner,member_id FROM users')).rows.filter(row=>String(row.workspace_owner)===String(args[0])).map(row=>({id:row.id,member_id:row.member_id}));return {rows,rowCount:rows.length};}if(text.startsWith('WITH claimed AS (UPDATE account_invitations')){
  const [now,id,tokenHash,email,time]=args;
  const invitation=(await pool.query('SELECT * FROM account_invitations WHERE id=$1 AND token_hash=$2 AND email=$3 AND consumed_at IS NULL AND revoked_at IS NULL AND expires>$4',[id,tokenHash,email,time])).rows[0];
  if(!invitation)return {rows:[],rowCount:0};
