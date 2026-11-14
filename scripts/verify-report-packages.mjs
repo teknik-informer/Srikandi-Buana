@@ -53,6 +53,12 @@ assert.match(api,/if \(user\.role === "bendahara"\) return \["keuangan","usaha"\
   "Treasury package reads must stay within finance and business domains");
 assert.match(api,/if \(user\.role === "ketua"\) return true/,
   "Chair must retain cross-domain package review authority");
+assert.match(api,/function chairSafeSnapshot\(value: unknown\)/,
+  "Chair report views must use a dedicated privacy projection");
+assert.match(api,/metadataKeys = \["date","status","type","category","programId","period","code"\]/,
+  "Chair report views must omit private source fields");
+assert.match(api,/c\.user!\.role === "ketua"\s*\? \{\.\.\.row,snapshot:chairSafeSnapshot\(row\.snapshot\)\}/,
+  "Chair GET responses must sanitize stored snapshots");
 assert.match(api,/user\.role === "koordinator" && group === "operasional" && createdBy === user\.accountId/,
   "Coordinator package reads must remain limited to own operational packages");
 for(const token of [
