@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 
 const migration=readFileSync('migrations/009_report_packages.sql','utf8');
 const workflow=readFileSync('docs/report-package-workflow.md','utf8');
+const api=readFileSync('src/app/api/report-packages/route.ts','utf8');
 for(const table of ['report_packages','report_package_events']){
  assert.match(migration,new RegExp('CREATE TABLE IF NOT EXISTS '+table+'\\b'),'Report package table must exist: '+table);
 }
@@ -29,4 +30,19 @@ assert.ok(migration.includes('NEW.snapshot_hash IS DISTINCT FROM OLD.snapshot_ha
 assert.match(workflow,/server wajib membaca ulang setiap sumber/);
 assert.match(workflow,/Administrator Sistem tidak membaca/);
 assert.match(workflow,/belum selesai|belum dibangun|belum diterapkan/i);
+for(const token of [
+  "export async function GET()",
+  "export async function POST(req: Request)",
+  "export async function PATCH(req: Request)",
+  "user.role === \"admin\"",
+  "canReadRecord(c.user!,row)",
+  "sourceHash",
+  "md5(r.data::jsonb::text)",
+  "created_by<>?",
+  "status='superseded'",
+  "consentRecorded",
+  "sourceManifest",
+  "snapshotHash",
+]) assert.ok(api.includes(token),'Missing report package API guardrail: '+token);
+assert.match(api,/Paket belum dapat disahkan: status berubah atau ada sumber yang berubah/);
 console.log('PASS: report-package schema invariants, null-safe version uniqueness, append-only history, snapshot immutability, and workflow guardrails (static contract check; not a PostgreSQL migration execution).');
