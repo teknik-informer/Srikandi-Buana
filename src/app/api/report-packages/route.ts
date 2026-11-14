@@ -161,7 +161,7 @@ export async function POST(req: Request) {
       now,c.user!.userId,group,start||null,end||null,c.user!.accountId,now,
       id,c.user!.userId,group,title,start||null,end||null,version,
       JSON.stringify(sourceManifest),JSON.stringify(snapshot),snapshotHash,c.user!.accountId,now,
-      eventId,c.user!.userId,id,c.user!.accountId,now
+      eventId,c.user!.userId,c.user!.accountId,now
     ).all();
     if (!inserted.results.length) return json({error:"Paket belum dapat dibuat. Periksa kembali periode dan versi."},409);
     return json({ok:true,id,version,snapshotHash},201);
