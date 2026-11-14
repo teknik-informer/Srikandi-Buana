@@ -47,6 +47,14 @@ for(const token of [
   "snapshotHash",
 ]) assert.ok(api.includes(token),'Missing report package API guardrail: '+token);
 assert.match(api,/Paket belum dapat disahkan: status berubah atau ada sumber yang berubah/);
+assert.match(api,/if \(user\.role === "sekretaris"\) return \["operasional","keanggotaan","administrasi","publikasi"\]\.includes\(group\)/,
+  "Secretariat package reads must stay within its own domains");
+assert.match(api,/if \(user\.role === "bendahara"\) return \["keuangan","usaha"\]\.includes\(group\)/,
+  "Treasury package reads must stay within finance and business domains");
+assert.match(api,/if \(user\.role === "ketua"\) return true/,
+  "Chair must retain cross-domain package review authority");
+assert.match(api,/user\.role === "koordinator" && group === "operasional" && createdBy === user\.accountId/,
+  "Coordinator package reads must remain limited to own operational packages");
 for(const token of [
   "export default function ReportPackageManager",
   "Buat draf paket",
