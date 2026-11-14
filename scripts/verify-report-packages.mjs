@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 const migration=readFileSync('migrations/009_report_packages.sql','utf8');
 const workflow=readFileSync('docs/report-package-workflow.md','utf8');
 const api=readFileSync('src/app/api/report-packages/route.ts','utf8');
+const ui=readFileSync('src/app/_components/report-package-manager.tsx','utf8');
+const policy=readFileSync('src/features/identity/access-policy.ts','utf8');
 for(const table of ['report_packages','report_package_events']){
  assert.match(migration,new RegExp('CREATE TABLE IF NOT EXISTS '+table+'\\b'),'Report package table must exist: '+table);
 }
@@ -45,4 +47,14 @@ for(const token of [
   "snapshotHash",
 ]) assert.ok(api.includes(token),'Missing report package API guardrail: '+token);
 assert.match(api,/Paket belum dapat disahkan: status berubah atau ada sumber yang berubah/);
+for(const token of [
+  "export default function ReportPackageManager",
+  "Buat draf paket",
+  "Verifikasi domain",
+  "Setujui paket",
+  "Tolak paket",
+  "generator PDF/Excel",
+]) assert.ok(ui.includes(token),'Missing report package UI workflow: '+token);
+assert.ok(policy.includes('if (id === "laporan") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);'));
+
 console.log('PASS: report-package schema invariants, null-safe version uniqueness, append-only history, snapshot immutability, and workflow guardrails (static contract check; not a PostgreSQL migration execution).');
