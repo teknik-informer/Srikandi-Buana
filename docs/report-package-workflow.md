@@ -21,6 +21,7 @@ Perubahan isi sumber setelah paket dibuat harus membuat paket tidak layak disahk
 - Sekretaris menyusun, memverifikasi, dan membaca paket operasional, keanggotaan, administrasi, dan publikasi; tidak membaca paket keuangan/usaha.
 - Bendahara menyusun, memverifikasi, dan membaca paket keuangan dan usaha/aset; tidak membaca paket sekretariat.
 - Ketua dapat membaca paket lintas domain untuk keputusan organisasi. Koordinator hanya membaca paket operasional yang dibuat oleh akunnya sendiri.
+- Tampilan paket lintas domain untuk Ketua menerapkan proyeksi privasi: jenis sumber yang berpotensi memuat identitas atau dokumen privat hanya menampilkan metadata terbatas; snapshot tersimpan tetap utuh untuk integritas dan verifikasi internal.
 - Koordinator hanya dapat menyusun paket operasional dari program yang ditugaskan; Sekretariat memeriksa kelengkapan administrasi sebelum diajukan kepada Ketua.
 - Ketua hanya menyetujui paket yang sudah diverifikasi, bukan mengedit baris sumber atau mengesahkan paket buatannya sendiri.
 - Administrator Sistem tidak membaca, menyusun, memverifikasi, atau menyetujui paket bisnis.
