@@ -129,6 +129,6 @@ export default function ReportPackageManager({user}:{user:Principal}){
     </CardContent>
    </Card>)}
   </div>
-  <p className="text-xs leading-relaxed text-muted-foreground">Paket yang disetujui belum otomatis menjadi surat resmi atau dokumen bertanda tangan. Generator PDF/Excel dan distribusi eksternal masih menunggu tahap lanjutan. Migrasi database diperlukan sebelum fitur ini aktif.</p>
+  <p className="text-xs leading-relaxed text-muted-foreground">Paket yang disetujui belum otomatis menjadi surat resmi atau dokumen bertanda tangan. Fitur ini tersedia untuk pengujian pada Preview/QA yang telah menerapkan migrasi 009; belum diaktifkan di Production. Generator PDF/Excel dan distribusi eksternal masih menunggu tahap lanjutan.</p>
  </section>;
 }
