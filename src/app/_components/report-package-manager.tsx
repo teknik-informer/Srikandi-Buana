@@ -96,7 +96,7 @@ export default function ReportPackageManager({user}:{user:Principal}){
     <div className="space-y-2 sm:col-span-2 xl:col-span-1"><Label htmlFor="package-title">Judul paket</Label><Input id="package-title" value={title} onChange={e=>setTitle(e.target.value)} maxLength={200} placeholder="Contoh: Laporan kegiatan triwulan I"/></div>
     <div className="space-y-2"><Label htmlFor="package-start">Tanggal awal (opsional)</Label><Input id="package-start" type="date" value={start} onChange={e=>setStart(e.target.value)}/></div>
     <div className="space-y-2"><Label htmlFor="package-end">Tanggal akhir (opsional)</Label><Input id="package-end" type="date" value={end} onChange={e=>setEnd(e.target.value)}/></div>
-    <div className="flex items-end"><Button onClick={()=>void create()} disabled={busy||title.trim().length<3||(start&&end&&start>end)}><Plus data-icon="inline-start"/>Buat draf paket</Button></div>
+    <div className="flex items-end"><Button onClick={()=>void create()} disabled={busy||title.trim().length<3||Boolean(start&&end&&start>end)}><Plus data-icon="inline-start"/>Buat draf paket</Button></div>
    </CardContent>
   </Card>}
   <div className="space-y-3">
