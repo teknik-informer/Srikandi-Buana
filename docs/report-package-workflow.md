@@ -1,6 +1,6 @@
 # Paket Laporan Resmi — Fondasi dan Kontrak Alur
 
-**Status:** fondasi skema disiapkan pada PR #17; API, antarmuka, generator, dan UAT belum selesai. Migrasi `009_report_packages.sql` belum diterapkan ke database mana pun.
+**Status:** fondasi skema dan endpoint API awal (GET/POST/PATCH) telah ditambahkan pada PR #17. Implementasi masih menunggu CI terbaru, uji integrasi database QA, antarmuka, generator PDF/Excel, dan UAT. Migrasi `009_report_packages.sql` belum diterapkan ke database mana pun.
 
 ## Tujuan
 
@@ -39,17 +39,17 @@ Database menolak perubahan atau penghapusan snapshot, manifest, hash, identitas 
 - Paket keanggotaan hanya memuat agregat status; jangan menyimpan nama, alamat, nomor telepon, NIK, atau daftar anggota dalam snapshot ekspor.
 - Kehadiran disimpan sebagai jumlah agregat untuk laporan lintas organisasi, bukan daftar identitas.
 - Laporan keuangan harus menggunakan ledger yang telah diposting dan seimbang; jangan menjumlahkan Buku Kas dan Buku Besar yang belum direkonsiliasi.
-- Setiap sumber harus memiliki ID, jenis, waktu pembaruan, dan hash konten yang benar-benar digunakan.
+- Setiap sumber harus memiliki ID, jenis, waktu pembaruan, dan fingerprint konten yang benar-benar digunakan. API awal memakai MD5 atas representasi JSONB bersama timestamp untuk mendeteksi perubahan sumber; MD5 ini hanya fingerprint perubahan, bukan bukti keamanan atau tanda tangan. Hash snapshot paket tetap SHA-256.
 - Hash snapshot adalah checksum integritas, bukan tanda tangan elektronik atau bukti identitas pejabat.
 - Persetujuan Ketua belum menggantikan nomor surat resmi, tanda tangan basah/elektronik, atau prosedur pengesahan yang ditetapkan organisasi.
 
 ## Kriteria selesai sebelum produksi
 
-1. API server-side membuat dan membaca paket sesuai role dan scope.
+1. API awal tersedia untuk membuat, membaca, memverifikasi, menyetujui, dan menolak paket sesuai role; tetap perlu uji integrasi database QA dan pengujian negatif lintas peran.
 2. Verifikasi domain serta persetujuan Ketua terikat pada hash yang sama dan mencegah persetujuan sendiri.
-3. Pemeriksaan sumber saat persetujuan mendeteksi data yang berubah, dihapus, atau dicabut aksesnya.
+3. Pemeriksaan sumber saat persetujuan mendeteksi data yang berubah atau dihapus; uji pencabutan akses dan kondisi konkurensi masih perlu dibuktikan pada QA.
 4. Uji integrasi membuktikan Administrator Sistem dan akun eksternal tidak dapat membaca paket internal.
 5. Generator PDF/Excel hanya membaca paket berstatus approved dan mencantumkan versi, periode, hash, waktu, serta identitas pengesah.
 6. Distribusi eksternal menggunakan grant yang dapat dicabut dan tidak membocorkan data pribadi.
-7. Migrasi diuji pada database QA yang disanitasi; belum ada izin untuk menerapkannya ke Neon produksi.
+7. Migrasi diuji pada database QA yang disanitasi; belum ada izin untuk menerapkannya ke Neon produksi. Tidak ada migrasi otomatis yang dijalankan oleh endpoint API.
 
