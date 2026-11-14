@@ -193,7 +193,7 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
   if (id === "dokumen") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
   if (id === "pesan") return ["ketua", "sekretaris"].includes(role);
   if (id === "surat-resmi") return ["ketua", "sekretaris", "bendahara"].includes(role);
-  if (id === "laporan") return ["ketua", "sekretaris", "bendahara"].includes(role);
+  if (id === "laporan") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
   if (["publikasi", "galeri"].includes(id)) return ["ketua", "sekretaris"].includes(role);
   if (id === "sistem") return role === "ketua";
   return canReadKindForRole(role, id);
