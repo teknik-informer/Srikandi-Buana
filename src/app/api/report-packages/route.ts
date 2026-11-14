@@ -2,7 +2,7 @@ import {createHash, randomUUID} from "node:crypto";
 import {getAuthenticatedUser} from "@/lib/auth";
 import {env} from "@/lib/runtime";
 import {canReadRecord, visibleRecord, type Principal} from "@/lib/permissions";
-import {getVisibleReportGroups, type ReportGroupId} from "@/lib/enterprise-reporting";
+import type {ReportGroupId} from "@/lib/enterprise-reporting";
 import type {Row} from "@/lib/srikandi";
 import {readJsonObject, RequestBodyError} from "@/lib/request-body";
 
@@ -140,14 +140,17 @@ export async function POST(req: Request) {
     const prior = await c.db!.prepare("SELECT COALESCE(MAX(package_version),0) AS version FROM report_packages WHERE owner=? AND group_id=? AND period_start IS NOT DISTINCT FROM ?::date AND period_end IS NOT DISTINCT FROM ?::date").bind(c.user!.userId,group,start||null,end||null).first();
     const version = Number(prior?.version || 0)+1;
     const id = randomUUID(), now = new Date().toISOString(), eventId = randomUUID();
-    const inserted = await c.db!.prepare(`WITH superseded AS (
-      UPDATE report_packages SET status='superseded',superseded_at=?
+    const inserted = await c.db!.prepare(`WITH candidates AS MATERIALIZED (
+      SELECT id,owner,status,snapshot_hash FROM report_packages
       WHERE owner=? AND group_id=? AND period_start IS NOT DISTINCT FROM ?::date
         AND period_end IS NOT DISTINCT FROM ?::date AND status<>'superseded'
-      RETURNING id,owner,status,snapshot_hash
+    ), superseded AS (
+      UPDATE report_packages p SET status='superseded',superseded_at=?
+      FROM candidates c WHERE p.id=c.id
+      RETURNING p.id,p.owner,c.status AS previous_status,p.snapshot_hash
     ), old_events AS (
       INSERT INTO report_package_events(id,owner,package_id,actor_id,action,from_status,to_status,note,snapshot_hash,created_at)
-      SELECT gen_random_uuid()::text,owner,id,?,'superseded',status,'superseded','Versi baru dibuat.',snapshot_hash,?
+      SELECT gen_random_uuid()::text,owner,id,?,'superseded',previous_status,'superseded','Versi baru dibuat.',snapshot_hash,?
       FROM superseded RETURNING id
     ), created AS (
       INSERT INTO report_packages(id,owner,group_id,title,period_start,period_end,package_version,status,source_manifest,snapshot,snapshot_hash,created_by,created_at)
@@ -158,7 +161,7 @@ export async function POST(req: Request) {
     INSERT INTO report_package_events(id,owner,package_id,actor_id,action,from_status,to_status,note,snapshot_hash,created_at)
     SELECT ?,?,id,?,'created',NULL,'draft','Paket dibuat dari catatan sumber yang dapat diakses.',snapshot_hash,?
     FROM created RETURNING package_id`).bind(
-      now,c.user!.userId,group,start||null,end||null,c.user!.accountId,now,
+      c.user!.userId,group,start||null,end||null,now,c.user!.accountId,now,
       id,c.user!.userId,group,title,start||null,end||null,version,
       JSON.stringify(sourceManifest),JSON.stringify(snapshot),snapshotHash,c.user!.accountId,now,
       eventId,c.user!.userId,c.user!.accountId,now
