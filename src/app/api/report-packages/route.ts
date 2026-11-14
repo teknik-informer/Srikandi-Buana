@@ -53,6 +53,31 @@ function inPeriod(row: Row, start: string, end: string) {
   const date = rowDate(row);
   return (!start || (date && date >= start)) && (!end || (date && date <= end));
 }
+function chairSafeSnapshot(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const snapshot = value as Record<string, unknown>;
+  const rows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
+  const safeRows = rows.filter((item): item is Row =>
+    Boolean(item && typeof item === "object" && !Array.isArray(item) &&
+      typeof (item as Row).kind === "string" && (item as Row).data &&
+      typeof (item as Row).data === "object")
+  ).map(row => {
+    if (["kehadiran","transkripsi","anggota","persetujuan"].includes(row.kind)) {
+      return visibleRecord({role:"ketua"} as Principal,row);
+    }
+    const metadataKeys = ["date","status","type","category","programId","period","code"];
+    return {
+      id: row.id,
+      kind: row.kind,
+      created: row.created,
+      updated: row.updated,
+      data: Object.fromEntries(metadataKeys
+        .filter(key => key in row.data)
+        .map(key => [key,row.data[key]])),
+    };
+  });
+  return {...snapshot,rows:safeRows};
+}
 function snapshotRows(group: ReportGroupId, rows: Row[]) {
   if (group === "keanggotaan") {
     const count = (predicate: (row: Row) => boolean) => rows.filter(predicate).length;
@@ -99,7 +124,9 @@ export async function GET() {
     const visible = result.results.filter(row =>
       groups.includes(String(row.group_id) as ReportGroupId) &&
       canReadPackage(c.user!,String(row.group_id) as ReportGroupId,String(row.created_by))
-    );
+    ).map(row => c.user!.role === "ketua"
+      ? {...row,snapshot:chairSafeSnapshot(row.snapshot)}
+      : row);
     return json({packages:visible});
   } catch {
     return json({error:"Paket laporan belum tersedia. Pastikan migrasi paket laporan telah diterapkan pada database lingkungan ini."},503);
