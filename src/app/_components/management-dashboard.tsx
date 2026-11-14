@@ -219,7 +219,7 @@ export default function ManagementDashboard({
     .sort((a, b) => a.urgency - b.urgency || a.id.localeCompare(b.id))
     .slice(0, 8);
 
-  const attendanceAccess = user.role === "admin" || user.role === "sekretaris";
+  const attendanceAccess = user.role === "sekretaris";
   const upcomingEvents = view.rows
     .filter((row) =>
       row.kind === "kegiatan" &&
@@ -750,14 +750,14 @@ export default function ManagementDashboard({
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Setelah rapat berikutnya, Ketua atau Administrator mencatat hasil pelaksanaan, nama dan tanggal rapat evaluasi, serta keputusan lanjutan pada tugas terkait. Riwayat notulen asal tetap terhubung.
+              Setelah rapat berikutnya, Sekretariat mencatat hasil pelaksanaan, nama dan tanggal rapat evaluasi, serta keputusan lanjutan pada tugas terkait. Riwayat notulen asal tetap terhubung.
             </p>
           </div>
           <Card>
             <CardContent className="divide-y p-0">
               {meetingDecisionTasks.slice(0, 10).map((task) => {
                 const reviewStatus = String(task.data.meetingReviewStatus || "Belum dievaluasi");
-                const canReview = ["admin", "ketua"].includes(user.role) && canWriteRecord(user, task);
+                const canReview = user.role === "sekretaris" && (reviewStatus === "Belum dievaluasi" || task.data.verification === "Menunggu verifikasi" || task.data.verification === "Perlu perbaikan");
                 return (
                   <div key={task.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1 space-y-1">
@@ -969,7 +969,7 @@ export default function ManagementDashboard({
               </CardContent>
             </Card>
           </div>
-          {audit.length > 0 && user.role === "admin" && (
+          {audit.length > 0 && user.role === "ketua" && (
             <Card>
               <CardHeader>
                 <CardTitle>Aktivitas terbaru</CardTitle>
@@ -1099,6 +1099,19 @@ export default function ManagementDashboard({
                                 Detail & sunting
                               </Button>
                             </>
+                          ) : user.role === "sekretaris" && (
+                            ["Menunggu verifikasi", "Perlu perbaikan"].includes(String(row.data.verification || "")) ||
+                            String(row.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi"
+                          ) ? (
+                            <Button
+                              className="w-full"
+                              variant="outline"
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => openEditor(row)}
+                            >
+                              Periksa hasil
+                            </Button>
                           ) : (
                             <Button variant="outline" size="sm" asChild>
                               <Link href={recordHref(row)}>Lihat detail</Link>
@@ -1128,7 +1141,7 @@ export default function ManagementDashboard({
             {!canCreate && user.role === "koordinator" && (
               <p className="text-sm text-muted-foreground">
                 Penugasan program diperlukan sebelum Anda dapat menambah tugas.
-                Hubungi administrator.
+                Hubungi Ketua atau Sekretariat untuk penetapan penugasan.
               </p>
             )}
           </TabsContent>
@@ -1305,7 +1318,7 @@ export default function ManagementDashboard({
             <DialogDescription>
               {editor === "new"
                 ? "Tentukan tindakan, penanggung jawab, prioritas, dan tanggal tenggat yang disepakati."
-                : "Perbarui pelaksanaan tugas. Ketua atau Administrator juga dapat mencatat evaluasi keputusan rapat setelah rapat peninjauan."}
+                : "Perbarui pelaksanaan tugas. Sekretariat dapat memeriksa hasil dan mencatat evaluasi keputusan rapat sesuai dokumen peninjauan."}
             </DialogDescription>
           </DialogHeader>
           {editor && (
@@ -1319,7 +1332,7 @@ export default function ManagementDashboard({
             >
               <fieldset disabled={busy} className="min-w-0">
                 <FieldGroup>
-                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || ["admin", "ketua"].includes(user.role)).map((field) => {
+                  {modules.tindaklanjut.fields.filter((field) => !["reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"].includes(field.key) || user.role === "sekretaris").map((field) => {
                     const value =
                       editor === "new"
                         ? field.key === "programId" &&
@@ -1327,7 +1340,17 @@ export default function ManagementDashboard({
                           ? user.programIds[0]
                           : ""
                         : String(editor.data[field.key] ?? "");
-                    const reviewer = user.role === "admin" || user.role === "ketua";
+                    const reviewer = user.role === "sekretaris";
+                    const reviewerFields = ["verification", "reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"];
+                    if (reviewer && !reviewerFields.includes(field.key)) {
+                      return (
+                        <Field key={field.key}>
+                          <FieldLabel>{field.label}</FieldLabel>
+                          <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm whitespace-pre-wrap">{value || "—"}</p>
+                          <input type="hidden" name={field.key} value={value} />
+                        </Field>
+                      );
+                    }
                     const options =
                       field.key === "programId" && user.role === "koordinator"
                         ? user.programIds

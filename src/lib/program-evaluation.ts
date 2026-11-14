@@ -253,7 +253,7 @@ export function buildMeetingPriorities(
         source: report,
         task,
         priority: "Sedang",
-        reason: "Hasil sudah diajukan dan menunggu pemeriksaan Ketua atau Administrator.",
+        reason: "Hasil sudah diajukan dan menunggu pemeriksaan Sekretariat.",
       });
     }
   }

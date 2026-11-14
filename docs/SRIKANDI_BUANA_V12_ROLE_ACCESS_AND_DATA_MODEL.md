@@ -1,10 +1,14 @@
-# Srikandi Buana v12 — Kontrak Hak Akses, Ruang Lingkup Data, dan Model Domain
+# Srikandi Buana v12 — Arsip Desain Hak Akses dan Model Domain
 
-**Status:** fondasi desain untuk implementasi bertahap  
+**Status:** LEGACY / SUPERSEDED per 11 November 2026  
 **Basis kode:** `feat/ecosystem-v11-5`  
 **Tanggal:** 10 November 2026
 
-Dokumen ini menetapkan batas keamanan dan bentuk data sebelum penambahan dashboard Pemerintah, Mitra/NGO, lahan pertanian, hasil panen, program bantuan, dan integrasi Manager.io. Dokumen ini bukan bukti bahwa fitur-fitur tersebut sudah aktif. Implementasi database dan autentikasi harus mengikuti kontrak ini, diuji di staging, lalu ditinjau sebelum rilis.
+Dokumen ini merupakan arsip rancangan 10 November 2026. **Jangan gunakan matriks role lama di bawah sebagai sumber otorisasi aktif.** Keputusan operasional terbaru berada di `docs/operational-governance-baseline.md` dan implementasi role terbaru berada di `src/features/identity/access-policy.ts`.
+
+Pembaruan 11 November 2026 memisahkan kewenangan organisasi dan teknis: `admin` hanya mengelola platform dan penyiapan Ketua pertama; `ketua` mengawasi lintas domain serta mengesahkan keputusan/keluaran yang ditetapkan, bukan operator CRUD harian; `sekretaris` mengelola administrasi dan verifikasi domain sekretariat; `bendahara` mengelola keuangan, aset dan akuntansi; `koordinator` hanya bekerja pada program yang ditugaskan; `anggota` mengakses data sendiri. Pemerintah dan NGO tetap menggunakan grant eksternal yang terbatas.
+
+Dokumen ini tidak membuktikan bahwa seluruh fitur telah aktif. Untuk status implementasi dan keputusan yang belum final, ikuti baseline operasional terbaru.
 
 ---
 
@@ -23,7 +27,7 @@ Dokumen ini menetapkan batas keamanan dan bentuk data sebelum penambahan dashboa
 - `users.role` dibatasi pada enam role internal melalui migrasi `002_roles.sql`.
 - Akun anggota saat ini divalidasi terhadap record anggota berstatus aktif dan terverifikasi.
 - Principal sudah membawa `workspace_owner` sebagai `userId`, `memberId`, dan `programIds`.
-- Kebijakan lama sudah membatasi anggota ke record miliknya dan koordinator ke program yang ditugaskan.
+- Kebijakan aktif sekarang menolak akses bisnis default untuk Administrator Sistem, membatasi akses anggota pada datanya sendiri, serta membatasi koordinator ke program yang ditugaskan.
 - Database utama menggunakan tabel `records` berbasis `owner` dan `kind`, serta tabel operasional, kas, aset, perdagangan, dan buku besar yang sudah ada.
 
 Konsekuensinya: akses eksternal memerlukan jalur autentikasi dan otorisasi yang dirancang secara eksplisit. Jangan mengubah constraint role atau melewati pemeriksaan keanggotaan sebagai jalan pintas.
@@ -34,7 +38,7 @@ Konsekuensinya: akses eksternal memerlukan jalur autentikasi dan otorisasi yang 
 
 | Pengalaman | Pengguna | Tujuan utama | Batas data |
 |---|---|---|---|
-| **Administrasi / Pengurus** | Admin, Ketua, Sekretaris, Bendahara, Koordinator | Mengelola organisasi, anggota, program, aset, keuangan, publikasi, dan pertanggungjawaban | Role internal, workspace, serta penugasan program |
+| **Administrasi / Pengurus** | Ketua, Sekretaris, Bendahara, Koordinator; Administrator Sistem untuk teknis saja | Mengelola organisasi sesuai pembagian domain; pemeliharaan platform dipisahkan | Role internal, workspace, dan penugasan program |
 | **Portal Anggota** | Anggota terverifikasi | Profil, lahan milik/kelolaan, agenda, informasi harga, pengajuan, dan status bantuan miliknya | Data milik anggota dan informasi publik |
 | **Portal Pemerintah** | Akun institusi pemerintah yang disetujui | Memantau program, sasaran bantuan, capaian, komoditas, dokumen, dan laporan yang diizinkan | Instansi, skema bantuan, wilayah, dan proyek yang secara eksplisit diberikan |
 | **Portal Mitra / NGO** | Akun yayasan, NGO, donor, atau mitra | Memantau proyek dukungan, anggaran hibah, milestone, bukti, hasil, dan evaluasi | Organisasi mitra dan proyek/funding yang ditugaskan |
@@ -49,34 +53,34 @@ Kode: **FULL** = kewenangan penuh dalam workspace; **RW** = baca/tulis sesuai va
 
 Matriks ini adalah **target policy**. Implementasi tetap harus memeriksa kondisi status, kepemilikan, dan workflow; matriks tidak boleh diterjemahkan menjadi akses global tanpa filter data.
 
-| Modul / data | Admin | Ketua | Sekretaris | Bendahara | Koordinator | Anggota | Pemerintah | NGO/Mitra |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Ringkasan organisasi | FULL | R/A | R | R | S | OWN | AGG/S | S |
-| Direktori anggota | FULL | R | RW | — | S terbatas | OWN | AGG; identitas hanya dengan dasar hukum dan izin khusus | Data samaran/agregat; identitas hanya per kasus yang sah |
-| Profil dan akun | FULL | R terbatas | RW data organisasi | — | — | OWN | — | — |
-| Lahan dan luas garapan | FULL | R | Verifikasi administratif terbatas | — | S | OWN; ajukan perubahan | AGG/S wilayah atau program | S proyek, utamakan data agregat |
-| Siklus tanam dan hasil panen | FULL | R | R administratif | R ringkasan biaya bila berwenang | S | OWN; input data sendiri | AGG/S komoditas dan periode | S proyek/komoditas |
-| Program dan kegiatan | FULL | A/R | RW | R | S/RW | R informasi publik dan pengajuan | S program yang ditetapkan | S proyek dukungan |
-| Anggaran dan hibah | FULL | A/R | R dokumen | RW sesuai otorisasi | S terbatas | OWN informasi bantuan | S sesuai skema/instansi | S hanya hibah/proyek sendiri |
-| Kas, jurnal, buku besar | FULL | R/A workflow | — | RW, termasuk posting sesuai pemisahan tugas | —; bukti biaya proyek saja | OWN bukti/pengajuan | AGG laporan resmi, bukan jurnal mentah | AGG/S laporan proyek, bukan buku besar lengkap |
-| Aset dan alat pertanian | FULL | R/A sesuai workflow | R administrasi | RW pencatatan aset | S pemakaian program | OWN pengajuan/peminjaman | S distribusi program | S aset proyek sendiri |
-| Distribusi bantuan | FULL | A | RW verifikasi berkas | RW bukti/penyaluran sesuai tugas | S pelaksanaan | OWN status dan tanda terima | S skema/daftar yang secara sah ditugaskan | S penerima dan output proyek sendiri |
-| Dokumen dan LPJ | FULL | R/A | RW dokumen organisasi | RW laporan keuangan | S laporan program | OWN dokumen pribadi | S dokumen resmi yang ditetapkan | S dokumen proyek hibah |
-| Publikasi dan galeri | FULL | R/A | RW/publikasi | — | S unggah dokumentasi | R publik | R konten publik | R konten publik |
-| Pengaturan, user, dan hak akses | FULL | R audit | — | — | — | — | — | — |
-| Jejak audit | FULL | R ringkasan | R sesuai tugas | R keuangan | R scope penugasan | R aktivitas akun sendiri | R aktivitas aksesnya sendiri | R aktivitas aksesnya sendiri |
+| Domain | Administrator Sistem | Ketua | Sekretaris | Bendahara | Koordinator | Anggota |
+|---|---|---|---|---|---|---|
+| Konfigurasi platform, integrasi, keamanan teknis | RW teknis | — | — | — | — | — |
+| Ringkasan dan pengawasan organisasi | — | R lintas domain; A keputusan | R sesuai tugas | R sesuai tugas | S program | Informasi kelompok yang diumumkan |
+| Keanggotaan dan administrasi | — | R/A | RW; verifikasi administratif | R terbatas sesuai kebutuhan | S terpilih | OWN |
+| Surat, rapat, daftar hadir, arsip | — | R/A keputusan/penerbitan | RW | R terbatas | S sesuai program | R informasi yang diumumkan |
+| Register lahan dan alsintan | — | R | RW dan verifikasi | R terbatas | S data teknis yang ditugaskan | OWN / ajukan perubahan |
+| Siklus tanam dan hasil panen | — | R | R dan verifikasi | R terbatas | RW pencatatan pada program pertanian | OWN bila diaktifkan |
+| Kas, aset keuangan, jurnal, rekonsiliasi | — | R/A keputusan; bukan operator jurnal | R saja | RW dan posting | — | OWN informasi miliknya |
+| Katalog, stok, dan pesanan usaha | — | R pengawasan | — | RW operasional | S bila ditugaskan | Pesanan miliknya |
+| Publikasi dan galeri | — | A penerbitan draf yang tidak diubah | RW draf/konten | — | S dokumentasi | R konten publik |
+| Akun dan hak akses organisasi | Penyiapan Ketua pertama saja | RW pengelolaan akun organisasi | — | — | — | — |
+| Akses Pemerintah/NGO | — | A grant dan tujuan berbagi | R dokumen sesuai tugas | — | — | — |
+
+Ketua tidak mengubah data sumber harian hanya karena memiliki hak baca lintas domain. Sekretariat dan Bendahara memeriksa data pada domain masing-masing. Persetujuan Ketua dilakukan pada keputusan atau paket keluaran yang memang memerlukan otoritas organisasi, bukan setiap edit kecil. Data eksternal hanya tersedia melalui grant aktif dan minimisasi data.
 
 ### Aturan tambahan yang tidak boleh dilewati
 
-- Ketua dapat menyetujui keputusan tertentu, tetapi itu tidak otomatis memberi hak mengubah jurnal keuangan.
-- Bendahara mengelola transaksi dan aset sesuai pemisahan tugas; hak mengubah akun, mengundang pengguna, atau mengubah policy tetap terpisah.
+- Administrator Sistem tidak memperoleh akses rutin ke data bisnis, transaksi, dokumen anggota, atau antrean persetujuan organisasi.
+- Ketua dapat membaca lintas domain dan mengesahkan keputusan yang ditetapkan, tetapi tidak menulis jurnal atau menggantikan pencatatan Sekretariat/Bendahara.
+- Sekretariat memegang administrasi, register lahan/alsintan, daftar hadir, surat, notulen, survei, serta verifikasi administratif dan hasil tugas.
+- Bendahara mengelola transaksi, bukti keuangan, aset, jurnal, rekonsiliasi, katalog/stok, dan realisasi pesanan sesuai alur yang diizinkan.
 - Koordinator hanya menjangkau `programIds` yang ditugaskan dan data turunan program tersebut.
-- Anggota hanya dapat membaca/mengubah field profil yang diizinkan, lahan yang dimilikinya atau dikelolanya, pengajuan miliknya, dan status bantuan miliknya.
-- Pemerintah tidak memperoleh daftar NIK atau seluruh direktori anggota hanya karena memiliki akun pemerintah.
+- Anggota hanya dapat membaca/mengubah field profil yang diizinkan dan melihat pengajuan serta status miliknya.
+- Pemerintah tidak memperoleh daftar NIK atau direktori anggota hanya karena memiliki akun pemerintah.
 - NGO A tidak boleh melihat proyek, penerima, anggaran, bukti, maupun komunikasi milik NGO B.
 - Ekspor PDF/Excel mengikuti policy yang sama dengan layar. Berkas yang bisa dibuka lewat URL langsung tetap harus memeriksa akses.
 - Data yang dicabut izinnya tidak boleh tetap terlihat melalui cache, tautan unduhan lama, notifikasi, atau endpoint pencarian.
-
 ---
 
 ## 4. Model scope dan klasifikasi data
@@ -100,7 +104,7 @@ Setiap permintaan akses privat harus lolos seluruh pemeriksaan yang relevan:
 | Internal | Data kegiatan, daftar tugas, administrasi umum | Pengurus sesuai role |
 | Rahasia organisasi | Kontak anggota, data kelompok, dokumen internal | Akses minimum sesuai kebutuhan |
 | Pribadi terbatas | NIK, alamat detail, rekening, berkas identitas | Field-level authorization, enkripsi, akses tercatat |
-| Keuangan terbatas | Jurnal, rekening, bukti pembayaran, rincian penerima | Bendahara/admin dan auditor yang ditugaskan |
+| Keuangan terbatas | Jurnal, rekening, bukti pembayaran, rincian penerima | Bendahara; Ketua hanya ringkasan/keputusan yang berwenang; Administrator Sistem tidak memiliki akses rutin |
 | Hibah/proyek terbatas | Proposal, anggaran, bukti, evaluasi | Hanya pengurus berwenang dan mitra pada proyeknya |
 
 **NIK:** jangan menyimpan NIK dalam teks biasa atau menampilkannya di tabel/ekspor umum. Sebelum fitur ini dibuat, tetapkan dasar pemrosesan, minimisasi field, enkripsi pada level aplikasi/KMS, masking, rotasi kunci, pembatasan ekspor, dan audit pembukaan. Dokumen ini tidak mengasumsikan bahwa data NIK sudah tersedia atau tersimpan dalam database saat ini.
@@ -268,7 +272,7 @@ Langkah coding pertama setelah kontrak ditinjau adalah membangun tabel grant dan
 
 ## Tahap 2 — Domain pertanian dan ringkasan mitra (10 November 2026)
 
-Tahap ini memperluas fondasi akses eksternal dengan data pertanian terstruktur. Migrasi baru adalah `migrations/006_agriculture_domain.sql`; migrasi tersebut **belum diterapkan** ke Neon atau lingkungan produksi.
+Catatan historis tahap 2 pada 10 November 2026: migrasi `migrations/006_agriculture_domain.sql` saat itu masih menunggu penerapan. Catatan status tersebut sudah superseded; migrasi 006 kemudian diterapkan ke Neon produksi pada tahap sebelumnya dengan persetujuan pengguna. Jangan menggunakan pernyataan status lama di dokumen arsip ini sebagai status database saat ini.
 
 ### Entitas dan relasi
 
@@ -282,7 +286,7 @@ Foreign key komposit dan unique index digunakan untuk mencegah pencampuran anggo
 
 ### Alur kerja dan verifikasi
 
-Menu **Pengelolaan Pertanian** berada di bagian Program dan Kegiatan serta menjadi bagian dari dashboard Organisasi. Data dapat dicatat oleh Administrator, Ketua, atau Koordinator yang ditugaskan pada program pertanian (program ID `3`). Hanya Administrator dan Ketua yang dapat mengesahkan atau mengembalikan catatan.
+Menu **Pengelolaan Pertanian** berada di bagian Program dan Kegiatan serta menjadi bagian dari dashboard Organisasi. Sekretariat mengelola master komoditas dan register lahan; Koordinator yang ditugaskan pada program pertanian (program ID `3`) mencatat siklus tanam dan hasil panen; Ketua membaca untuk pengawasan. Verifikasi administratif dan hierarki data dilakukan Sekretariat. Administrator Sistem tidak memiliki akses rutin ke catatan pertanian.
 
 Hierarki verifikasi diterapkan di server:
 1. Lahan hanya dapat dikaitkan dengan anggota aktif yang datanya telah terverifikasi.

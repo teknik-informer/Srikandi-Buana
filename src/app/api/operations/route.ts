@@ -3,7 +3,7 @@ import {notifyOwner} from "@/lib/ecosystem/notifications";
 import { json, sameOrigin } from "@/lib/account-access";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { categories, statuses, canReview, canViewOperation, canFulfillCategory, operationActions, validateOperation as validateDomainOperation, cleanOperation, isFinancial, type Operation, type Category } from "@/lib/enterprise/operations";
+import { categories, statuses, canReview, canInspectOperations, canViewOperation, canFulfillCategory, operationActions, validateOperation as validateDomainOperation, cleanOperation, isFinancial, type Operation, type Category } from "@/lib/enterprise/operations";
 import { operationDB, findOperation, findAsset, checkInputAsset, createOperation, updateOperation, OperationError } from "@/lib/enterprise/repository";
 import type { Principal } from "@/lib/permissions";
 export const dynamic="force-dynamic";
@@ -11,7 +11,7 @@ function validateOperation(raw:unknown,complete:boolean){try{return validateDoma
 const uuid=(value:unknown)=>typeof value==='string'&&/^[a-f0-9-]{36}$/i.test(value);
 function visibleSQL(user:Principal){
  const parts=['requester_id=?'],args:unknown[]=[user.accountId];
- if(canReview(user))parts.push("status<>'draft'");
+ if(canInspectOperations(user))parts.push("status<>'draft'");
  const allowed=(Object.keys(categories)as Category[]).filter(c=>canFulfillCategory(user,c));
  if(allowed.length){parts.push("(category IN ("+allowed.map(()=>'?').join(',')+") AND status IN ('approved','in_progress','completed'))");args.push(...allowed);}
  return {sql:'('+parts.join(' OR ')+')',args};
@@ -35,8 +35,10 @@ export async function GET(request:Request){
    }
    return json({item,actions:operationActions(user,item),history:history.results,cash,asset:asset?{name:String(asset.data.name),condition:String(asset.data.condition)}:null});
   }
+  if(user.role==='admin')return json({error:'Administrator Sistem tidak mengakses antrean atau daftar pengajuan operasional.'},403);
   const scope=url.searchParams.get('scope')||'mine',filter=url.searchParams.get('status')||'all',query=(url.searchParams.get('q')||'').trim().slice(0,160);
   if(!['mine','review','fulfill','all'].includes(scope))return json({error:'Lingkup tidak valid.'},400);
+  if(scope==='all'&&user.role!=='ketua')return json({error:'Pemantauan lintas pengajuan hanya menjadi kewenangan Ketua.'},403);
   if(scope==='review'&&!canReview(user)||scope==='fulfill'&&!(Object.keys(categories)as Category[]).some(c=>canFulfillCategory(user,c)))return json({error:'Lingkup di luar kewenangan.'},403);
   const visibility=visibleSQL(user),conditions=['owner=?',visibility.sql],args:unknown[]=[user.userId,...visibility.args];
   if(scope==='mine'){conditions.push('requester_id=?');args.push(user.accountId);}
@@ -52,18 +54,18 @@ export async function GET(request:Request){
  }catch(error){return json({error:error instanceof OperationError?error.message:'Layanan operasional belum dapat dimuat. Pastikan migrasi enterprise telah diterapkan.'},error instanceof OperationError?error.status:503);}
 }
 export async function POST(request:Request){
- const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
+ const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(user.role==='admin')return json({error:'Administrator Sistem tidak membuat pengajuan operasional.'},403);
  try{const db=operationDB(),raw=await readJsonObject(request,12000);if(raw.accountId!==user.accountId)return json({error:'Akun aktif berubah. Muat ulang.'},409);if(!uuid(raw.clientRequestId))throw new OperationError('Identitas pengajuan tidak valid. Buka formulir baru.');
  const submit=raw.submit===true,input=validateOperation(raw.data,submit);await checkInputAsset(user.userId,input,submit);
  if(submit&&input.category==='expense')throw new OperationError('Simpan draf dan unggah bukti pengeluaran sebelum mengajukan penggantian biaya.');
  if(!await consumeRateLimit(db,'operations:create:'+user.accountId,30,3600000))return json({error:'Terlalu banyak pengajuan. Coba kembali setelah satu jam.'},429);
  const item=await createOperation(user,String(raw.clientRequestId),input,submit);
- if(submit){const managers=await db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='admin' AND enabled=TRUE LIMIT 1").bind(user.userId).all();for(const m of managers.results)if(String(m.id)!==user.accountId)await notifyOwner(user.userId,String(m.id),'operation:'+item.id+':submitted','Pengajuan baru',input.title,'/dashboard/enterprise','operasional');}
+ if(submit){const approvers=await db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' AND enabled=TRUE ORDER BY created,id").bind(user.userId).all();for(const approver of approvers.results)if(String(approver.id)!==user.accountId)await notifyOwner(user.userId,String(approver.id),'operation:'+item.id+':submitted','Pengajuan menunggu persetujuan Ketua',input.title,'/dashboard/enterprise','operasional');}
  return json({ok:true,item});
  }catch(error){return failure(error);}
 }
 export async function PATCH(request:Request){
- const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
+ const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(user.role==='admin')return json({error:'Administrator Sistem tidak mengubah pengajuan operasional.'},403);
  try{const db=operationDB(),raw=await readJsonObject(request,14000);if(raw.accountId!==user.accountId)return json({error:'Akun aktif berubah. Muat ulang.'},409);
  const item=await findOperation(user.userId,String(raw.id));if(!item||!canViewOperation(user,item))return json({error:'Pengajuan tidak ditemukan.'},404);
  if(Number(raw.version)!==item.version)return json({error:'Pengajuan sudah berubah. Muat ulang sebelum melanjutkan.'},409);

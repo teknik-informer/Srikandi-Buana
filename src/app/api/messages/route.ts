@@ -4,7 +4,7 @@ import {consumeRateLimit} from "@/lib/rate-limit";
 import {isValidContact} from "@/lib/contact-validation";
 import {readJsonObject,RequestBodyError} from "@/lib/request-body";
 import {env} from "@/lib/runtime";
-import {getAdminUser} from "../../admin-auth";
+import {getMessageManagerUser} from "../../admin-auth";
 const json=(d:unknown,status=200)=>Response.json(d,{status,headers:{"Cache-Control":"no-store",...(status===429?{"Retry-After":"600"}:{})}});
 const sameOrigin=(r:Request)=>r.headers.get("origin")===new URL(r.url).origin||r.headers.get("sec-fetch-site")==="same-origin";
 export async function POST(req:Request){
@@ -22,7 +22,7 @@ export async function POST(req:Request){
  }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);return json({error:"Pesan belum tersimpan. Silakan mencoba kembali."},400)}
 }
 export async function GET(req:Request){
- if(!await getAdminUser())return json({error:"Akses khusus pengelola."},401);
+ if(!await getMessageManagerUser())return json({error:"Akses khusus pengelola."},401);
  if(!env.DB)return json({error:"Database belum tersedia."},503);
  try{const params=new URL(req.url).searchParams;const page=Number(params.get('page')||1),limit=Number(params.get('limit')||20),status=params.get('status')||'Semua',query=(params.get('q')||'').trim();
  if(!Number.isSafeInteger(page)||page<1||!Number.isSafeInteger(limit)||limit<1||limit>100||query.length>200||!['Semua','Baru','Dibaca','Ditindaklanjuti'].includes(status))return json({error:'Parameter pencarian atau halaman tidak valid.'},400);
@@ -33,5 +33,5 @@ export async function GET(req:Request){
  return json({messages:rows.results,total,page:currentPage,pages,limit,counts});
  }catch{return json({error:'Pesan belum dapat dimuat. Silakan coba kembali.'},503)}
 }
-export async function PATCH(req:Request){if(!await getAdminUser())return json({error:"Akses khusus pengelola."},401);if(!sameOrigin(req))return json({error:"Permintaan ditolak."},403);if(!env.DB)return json({error:"Database belum tersedia."},503);try{const {id,status}=await readJsonObject(req,16000) as {id:string;status:string};if(!id||!['Baru','Dibaca','Ditindaklanjuti'].includes(status))return json({error:"Status tidak valid."},400);const row=await env.DB.prepare("SELECT id FROM messages WHERE id=?").bind(id).first();if(!row)return json({error:"Pesan tidak ditemukan."},404);await env.DB.prepare("UPDATE messages SET status=? WHERE id=?").bind(status,id).run();return json({ok:true})}catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);return json({error:"Status belum tersimpan."},400)}}
-export async function DELETE(req:Request){if(!await getAdminUser())return json({error:"Akses khusus pengelola."},401);if(!sameOrigin(req))return json({error:"Permintaan ditolak."},403);if(!env.DB)return json({error:"Database belum tersedia."},503);try{const id=new URL(req.url).searchParams.get('id');if(!id)return json({error:"ID pesan wajib diisi."},400);const row=await env.DB.prepare("SELECT id FROM messages WHERE id=?").bind(id).first();if(!row)return json({error:"Pesan tidak ditemukan."},404);await env.DB.prepare("DELETE FROM messages WHERE id=?").bind(id).run();return json({ok:true})}catch{return json({error:"Pesan belum dapat dihapus. Silakan coba kembali."},503)}}
+export async function PATCH(req:Request){if(!await getMessageManagerUser())return json({error:"Akses khusus pengelola."},401);if(!sameOrigin(req))return json({error:"Permintaan ditolak."},403);if(!env.DB)return json({error:"Database belum tersedia."},503);try{const {id,status}=await readJsonObject(req,16000) as {id:string;status:string};if(!id||!['Baru','Dibaca','Ditindaklanjuti'].includes(status))return json({error:"Status tidak valid."},400);const row=await env.DB.prepare("SELECT id FROM messages WHERE id=?").bind(id).first();if(!row)return json({error:"Pesan tidak ditemukan."},404);await env.DB.prepare("UPDATE messages SET status=? WHERE id=?").bind(status,id).run();return json({ok:true})}catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);return json({error:"Status belum tersimpan."},400)}}
+export async function DELETE(req:Request){if(!await getMessageManagerUser())return json({error:"Akses khusus pengelola."},401);if(!sameOrigin(req))return json({error:"Permintaan ditolak."},403);if(!env.DB)return json({error:"Database belum tersedia."},503);try{const id=new URL(req.url).searchParams.get('id');if(!id)return json({error:"ID pesan wajib diisi."},400);const row=await env.DB.prepare("SELECT id FROM messages WHERE id=?").bind(id).first();if(!row)return json({error:"Pesan tidak ditemukan."},404);await env.DB.prepare("DELETE FROM messages WHERE id=?").bind(id).run();return json({ok:true})}catch{return json({error:"Pesan belum dapat dihapus. Silakan coba kembali."},503)}}

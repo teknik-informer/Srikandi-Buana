@@ -42,6 +42,7 @@ import {
 import { jakartaDate, taskIsOpen, validDate } from "@/lib/management-insights";
 import { buildProgramEvaluations } from "@/lib/program-evaluation";
 import CashReports from "./reports";
+import ReportPackageManager from "./report-package-manager";
 import { StatusBadge, WorkspaceMetric } from "./workspace-ui";
 
 const kindLabels: Record<string, string> = {
@@ -525,6 +526,8 @@ export default function EnterpriseReports({
           );
         })}
       </Tabs>
+
+      <ReportPackageManager user={user} />
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         Angka laporan merupakan rekap catatan yang tersedia, bukan audit atau pengesahan otomatis. Periksa dokumen sumber, bukti transaksi, dan keputusan organisasi sebelum laporan ditandatangani atau dibagikan ke pihak luar.
