@@ -61,7 +61,7 @@ export default function ReportPackageManager({user}:{user:Principal}){
   if(busy)return;
   setBusy(true);setError("");setNotice("");
   try{
-   const result=await api<{id:string}>("/api/report-packages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({groupId:group,title,periodStart:start||null,periodEnd:end||null})});
+   await api<{id:string}>("/api/report-packages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({groupId:group,title,periodStart:start||null,periodEnd:end||null})});
    setTitle("");setNotice("Draf paket laporan berhasil dibuat. Paket harus diverifikasi sebelum dapat diajukan untuk persetujuan Ketua.");await load();
   }catch(e){setError((e as Error).message);}
   finally{setBusy(false);}
