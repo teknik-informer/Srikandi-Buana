@@ -1,6 +1,6 @@
 # Paket Laporan Resmi — Fondasi dan Kontrak Alur
 
-**Status per 14 November 2026:** API GET/POST/PATCH dan UI awal telah ditambahkan pada PR #17. Migrasi `009_report_packages.sql` telah diterapkan hanya pada cabang Neon QA `srikandi-v12-sanitized-qa-20261106` (`br-mute-meadow-b4rhx1mn`). Uji trigger imutabilitas database dengan fixture sementara yang di-rollback berhasil. CI 14/14 dan Preview Vercel untuk commit `cb2142c328fe418f09d705bdd8ded7620ea81b43` berhasil. UAT alur API terautentikasi, generator PDF/Excel, distribusi eksternal, dan persetujuan Production masih belum selesai. Tidak ada migrasi Production.
+**Status per 14 November 2026:** API GET/POST/PATCH dan UI awal telah ditambahkan pada PR #17. Migrasi `009_report_packages.sql` telah diterapkan hanya pada cabang Neon QA `srikandi-v12-sanitized-qa-20261106` (`br-mute-meadow-b4rhx1mn`). Uji trigger imutabilitas database dengan fixture sementara yang di-rollback berhasil. CI 14/14 dan Preview Vercel untuk commit `cb2142c328fe418f09d705bdd8ded7620ea81b43` berhasil. UAT alur API terautentikasi, generator PDF/Excel, distribusi eksternal, dan persetujuan Production masih belum selesai. UAT lintas peran saat ini terblokir karena cabang QA hanya memiliki satu akun Administrator Sistem; belum ada akun Ketua, Sekretariat, Bendahara, atau Koordinator. Terdapat satu record anggota Aktif dan Terverifikasi yang belum terhubung ke akun; identitas/jabatannya belum diverifikasi untuk bootstrap Ketua. Tidak ada migrasi Production.
 
 ## Tujuan
 
