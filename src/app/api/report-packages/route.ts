@@ -25,8 +25,8 @@ function canCreate(user: Principal, group: ReportGroupId) {
 }
 function canReadPackage(user: Principal, group: ReportGroupId, createdBy: string) {
   if (user.role === "ketua") return true;
-  if (user.role === "sekretaris") return true;
-  if (user.role === "bendahara") return true;
+  if (user.role === "sekretaris") return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
+  if (user.role === "bendahara") return ["keuangan","usaha"].includes(group);
   return user.role === "koordinator" && group === "operasional" && createdBy === user.accountId;
 }
 function canVerify(user: Principal, group: ReportGroupId) {
