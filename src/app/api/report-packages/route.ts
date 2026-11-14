@@ -199,7 +199,7 @@ export async function PATCH(req: Request) {
         from = "verified"; to = "approved";
         assignments = "approved_by=?,approved_at=?,approval_note=?";
         extraCondition = `AND NOT EXISTS (
-          SELECT 1 FROM jsonb_array_elements(report_packages.source_manifest) AS item
+          SELECT 1 FROM jsonb_array_elements(report_packages.source_manifest) AS items(item)
           LEFT JOIN records r ON r.id=item->>'id' AND r.owner=report_packages.owner AND r.kind=item->>'kind'
           WHERE r.id IS NULL OR r.updated IS DISTINCT FROM item->>'updated'
             OR md5(r.data::jsonb::text) IS DISTINCT FROM item->>'sourceHash'
