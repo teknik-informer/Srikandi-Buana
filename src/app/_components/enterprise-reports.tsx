@@ -42,6 +42,7 @@ import {
 import { jakartaDate, taskIsOpen, validDate } from "@/lib/management-insights";
 import { buildProgramEvaluations } from "@/lib/program-evaluation";
 import CashReports from "./reports";
+import ReportPackageManager from "./report-package-manager";
 import { StatusBadge, WorkspaceMetric } from "./workspace-ui";
 
 const kindLabels: Record<string, string> = {
