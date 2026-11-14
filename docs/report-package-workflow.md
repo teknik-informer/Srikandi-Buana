@@ -1,6 +1,6 @@
 # Paket Laporan Resmi — Fondasi dan Kontrak Alur
 
-**Status:** fondasi skema dan endpoint API awal (GET/POST/PATCH) telah ditambahkan pada PR #17. Implementasi masih menunggu CI terbaru, uji integrasi database QA, antarmuka, generator PDF/Excel, dan UAT. Migrasi `009_report_packages.sql` belum diterapkan ke database mana pun.
+**Status per 14 November 2026:** API GET/POST/PATCH dan UI awal telah ditambahkan pada PR #17. Migrasi `009_report_packages.sql` telah diterapkan hanya pada cabang Neon QA `srikandi-v12-sanitized-qa-20261106` (`br-mute-meadow-b4rhx1mn`). Uji trigger imutabilitas database dengan fixture sementara yang di-rollback berhasil. CI 14/14 dan Preview Vercel untuk commit `cb2142c328fe418f09d705bdd8ded7620ea81b43` berhasil. UAT alur API terautentikasi, generator PDF/Excel, distribusi eksternal, dan persetujuan Production masih belum selesai. Tidak ada migrasi Production.
 
 ## Tujuan
 
@@ -18,8 +18,9 @@ Perubahan isi sumber setelah paket dibuat harus membuat paket tidak layak disahk
 
 ## Pembagian kewenangan
 
-- Sekretaris memverifikasi paket administrasi, keanggotaan, dan dokumen yang menjadi domain sekretariat.
-- Bendahara memverifikasi paket keuangan dan usaha/aset sesuai cakupan tanggung jawabnya.
+- Sekretaris menyusun, memverifikasi, dan membaca paket operasional, keanggotaan, administrasi, dan publikasi; tidak membaca paket keuangan/usaha.
+- Bendahara menyusun, memverifikasi, dan membaca paket keuangan dan usaha/aset; tidak membaca paket sekretariat.
+- Ketua dapat membaca paket lintas domain untuk keputusan organisasi. Koordinator hanya membaca paket operasional yang dibuat oleh akunnya sendiri.
 - Koordinator hanya dapat menyusun paket operasional dari program yang ditugaskan; Sekretariat memeriksa kelengkapan administrasi sebelum diajukan kepada Ketua.
 - Ketua hanya menyetujui paket yang sudah diverifikasi, bukan mengedit baris sumber atau mengesahkan paket buatannya sendiri.
 - Administrator Sistem tidak membaca, menyusun, memverifikasi, atau menyetujui paket bisnis.
@@ -45,11 +46,11 @@ Database menolak perubahan atau penghapusan snapshot, manifest, hash, identitas 
 
 ## Kriteria selesai sebelum produksi
 
-1. API awal tersedia untuk membuat, membaca, memverifikasi, menyetujui, dan menolak paket sesuai role; tetap perlu uji integrasi database QA dan pengujian negatif lintas peran.
-2. Verifikasi domain serta persetujuan Ketua terikat pada hash yang sama dan mencegah persetujuan sendiri.
-3. Pemeriksaan sumber saat persetujuan mendeteksi data yang berubah atau dihapus; uji pencabutan akses dan kondisi konkurensi masih perlu dibuktikan pada QA.
-4. Uji integrasi membuktikan Administrator Sistem dan akun eksternal tidak dapat membaca paket internal.
+1. API awal tersedia untuk membuat, membaca, memverifikasi, menyetujui, dan menolak paket sesuai role; UAT API terautentikasi pada Preview/QA masih diperlukan.
+2. Verifikasi domain serta persetujuan Ketua terikat pada hash yang sama dan mencegah persetujuan sendiri; perlu dibuktikan melalui akun uji tiap role.
+3. Pemeriksaan sumber saat persetujuan mendeteksi data yang berubah atau dihapus; uji perubahan sumber, pencabutan akses, dan kondisi konkurensi masih perlu dibuktikan pada QA.
+4. Regression test statis membatasi pembacaan paket per domain; UAT harus membuktikan Administrator Sistem dan akun eksternal tidak dapat membaca paket internal.
 5. Generator PDF/Excel hanya membaca paket berstatus approved dan mencantumkan versi, periode, hash, waktu, serta identitas pengesah.
 6. Distribusi eksternal menggunakan grant yang dapat dicabut dan tidak membocorkan data pribadi.
-7. Migrasi diuji pada database QA yang disanitasi; belum ada izin untuk menerapkannya ke Neon produksi. Tidak ada migrasi otomatis yang dijalankan oleh endpoint API.
+7. Migrasi telah diterapkan dan diverifikasi pada database QA yang disanitasi; belum ada izin untuk menerapkannya ke Neon produksi. Tidak ada migrasi otomatis yang dijalankan oleh endpoint API.
 
