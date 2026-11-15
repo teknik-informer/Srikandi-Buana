@@ -189,8 +189,8 @@ export async function POST(req: Request) {
         eventId,c.user!.userId,c.user!.accountId,now
       )
     ]);
-    const counterRows = (batchResults[0] as {rows?:Array<{last_version:number|string}>}).rows || [];
-    const insertedRows = (batchResults[1] as {rows?:Array<{package_id:string}>}).rows || [];
+    const counterRows = (batchResults[0] as unknown as {rows?:Array<{last_version:number|string}>}).rows || [];
+    const insertedRows = (batchResults[1] as unknown as {rows?:Array<{package_id:string}>}).rows || [];
     const version = Number(counterRows[0]?.last_version || 0);
     if (!insertedRows.length || version < 1) return json({error:"Paket belum dapat dibuat. Periksa kembali periode dan versi."},409);
     return json({ok:true,id,version,snapshotHash},201);
