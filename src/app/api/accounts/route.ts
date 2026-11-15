@@ -8,7 +8,13 @@ export async function GET(){
  if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus pengelola akun.'},403);
  if(!env.DB)return json({error:'Database belum tersedia.'},503);
  try{
-  const users=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE workspace_owner=?').bind(u.userId).all();
+  const linkedAccounts=await env.DB.prepare('SELECT u.id,u.email,u.full_name,u.role,u.position,u.program_ids,u.member_id,u.enabled,u.created FROM account_invitations i JOIN users u ON u.email=i.email AND u.workspace_owner=i.owner WHERE i.owner=? AND i.consumed_at IS NOT NULL').bind(u.userId).all();
+  const accountRows=[...new Map(linkedAccounts.results.map(row=>[String(row.id),row])).values()];
+  if(u.role==='admin'){
+   const self=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
+   if(self)accountRows.unshift(self);
+  }
+  const users={results:accountRows};
   const invitations=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,purpose,expires,consumed_at,revoked_at,created FROM account_invitations WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
   const audit=await env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 50').bind(u.userId).all();
   const members=await env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all();
