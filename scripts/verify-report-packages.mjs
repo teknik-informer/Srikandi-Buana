@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const migration=readFileSync('migrations/009_report_packages.sql','utf8');
+const scopeMigration=readFileSync('migrations/010_report_package_source_scope.sql','utf8');
 const workflow=readFileSync('docs/report-package-workflow.md','utf8');
 const api=readFileSync('src/app/api/report-packages/route.ts','utf8');
 const ui=readFileSync('src/app/_components/report-package-manager.tsx','utf8');
@@ -29,6 +30,9 @@ assert.ok(!migration.includes('UNIQUE(owner,group_id,period_start,period_end,pac
 assert.ok(migration.includes('NEW.source_manifest IS DISTINCT FROM OLD.source_manifest'));
 assert.ok(migration.includes('NEW.snapshot IS DISTINCT FROM OLD.snapshot'));
 assert.ok(migration.includes('NEW.snapshot_hash IS DISTINCT FROM OLD.snapshot_hash'));
+assert.match(scopeMigration,/ADD COLUMN IF NOT EXISTS source_scope JSONB/);
+assert.match(scopeMigration,/NEW.source_scope IS DISTINCT FROM OLD.source_scope/);
+assert.match(scopeMigration,/source_scope_shape/);
 assert.match(workflow,/server wajib membaca ulang setiap sumber/);
 assert.match(workflow,/Administrator Sistem tidak membaca/);
 assert.match(workflow,/belum selesai|belum dibangun|belum diterapkan/i);
