@@ -31,6 +31,8 @@ assert.ok(migration.includes('NEW.source_manifest IS DISTINCT FROM OLD.source_ma
 assert.ok(migration.includes('NEW.snapshot IS DISTINCT FROM OLD.snapshot'));
 assert.ok(migration.includes('NEW.snapshot_hash IS DISTINCT FROM OLD.snapshot_hash'));
 assert.match(scopeMigration,/ADD COLUMN IF NOT EXISTS source_scope JSONB/);
+assert.match(scopeMigration,/CREATE TABLE IF NOT EXISTS report_package_counters/);
+assert.match(scopeMigration,/PRIMARY KEY\(owner,group_id,period_start_key,period_end_key\)/);
 assert.match(scopeMigration,/NEW.source_scope IS DISTINCT FROM OLD.source_scope/);
 assert.match(scopeMigration,/source_scope_shape/);
 assert.match(scopeMigration,/jsonb_typeof\(source_scope->'kinds'\) = 'array'/);
@@ -77,6 +79,8 @@ for(const token of [
 assert.ok(policy.includes('if (id === "laporan") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);'));
 
 assert.ok(api.includes('source_scope IS NOT NULL'),'Approval must reject legacy packages without a captured scope.');
+assert.ok(api.includes('c.db!.batch(['),'Version allocation and package creation must use one serializable transaction.');
+assert.ok(api.includes('ON CONFLICT(owner,group_id,period_start_key,period_end_key) DO UPDATE SET last_version=report_package_counters.last_version+1'),'Concurrent version allocation must use an atomic counter upsert.');
 assert.ok(api.includes('jsonb_array_elements_text(report_packages.source_scope'),'Coordinator approval must retain the captured program scope.');
 assert.ok(api.includes('items.item->>\'id\'=r.id'),'Approval must detect newly eligible source records.');
 assert.ok(api.includes('const sourceScope'),'Package creation must persist its source visibility scope.');
