@@ -21,7 +21,7 @@ assert.equal(policy.canWriteKind({role:'koordinator'},'surat_resmi'),false,'Coor
 assert.equal(policy.canReadKindForRole('admin','kas'),false,'Technical administrator cannot read business records');
 assert.equal(policy.canWriteKind({role:'admin'},'kas'),false,'Technical administrator cannot write business records');
 assert.equal(policy.canReadSectionForRole('admin','pengaturan'),true,'Technical administrator can configure the platform');
-assert.equal(policy.canReadSectionForRole('admin','akun'),true,'Technical administrator can bootstrap the first Chair only');
+assert.equal(policy.canReadSectionForRole('admin','akun'),true,'Architect can manage structural account identities without business-data access');
 assert.equal(policy.canReadSectionForRole('admin','akuntansi'),false,'Technical administrator cannot browse finance');
 const chair={role:'ketua'};
 const secretary={role:'sekretaris'};
@@ -115,9 +115,9 @@ assert.equal((await recordsAdmin.PUT(req('/api/records','PUT',{id:deadlineId,kin
 async function member(name,status='Aktif',verification='Terverifikasi'){const id=randomUUID();await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(id,owner,'anggota',JSON.stringify({name,dusun:'Synthetic address',status,verification,phone:'081234567890',notes:'PRIVATE-CANARY',potential:'PRIVATE-POTENTIAL',role:'Anggota'}),now,now).run();return id}
 async function invite(memberId,role='anggota',extra={}){const email=role+'-'+randomUUID()+'@example.test';const r=await accountManager.POST(req('/api/accounts','POST',{action:'invite',memberId,email,role,position:role,programIds:role==='koordinator'?['1','5','8']:[],...extra}));return {response:r,data:await r.json(),email}}
 async function activate(inv,j=jar(),extra={}){const route=await load('src/app/api/auth/activate/route.ts',j);const t=new URL(inv.data.url).hash.slice('#token='.length);const response=await route.POST(req('/api/auth/activate','POST',{token:t,email:inv.email,password,confirmation:password,...extra}));return {response,j,route,t}}
-// A technical owner can bootstrap only the first Chair account; all later organizational accounts belong to the Chair.
+// The Architect can manage structural account invitations from a privacy-minimized roster.
 firstChairMember=await member('Synthetic first Chair');
-const adminBootstrapView=await accountAdmin.GET();assert.equal(adminBootstrapView.status,200,'Technical administrator receives only the one-time Chair bootstrap view');const adminBootstrapData=await adminBootstrapView.json();assert.equal(adminBootstrapData.firstChairAvailable,true);assert.deepEqual(adminBootstrapData.members,[],'Technical administrator never receives member names or roster data');assert(!JSON.stringify(adminBootstrapData).includes('Synthetic first Chair'),'Technical bootstrap view must not reveal member identities');
+const adminBootstrapView=await accountAdmin.GET();assert.equal(adminBootstrapView.status,200,'Architect can open the structural account console');const adminBootstrapData=await adminBootstrapView.json();assert.equal(adminBootstrapData.firstChairAvailable,true);assert(adminBootstrapData.members.some(m=>m.id===firstChairMember&&m.name==='Synthetic first Chair'),'Architect receives only the member identity fields needed for account assignment');assert(!JSON.stringify(adminBootstrapData).includes('081234567890'),'Architect roster must not expose member phone numbers');assert(!JSON.stringify(adminBootstrapData).includes('PRIVATE-CANARY'),'Architect roster must not expose private member notes');
 firstChairInvite=await invite(firstChairMember,'ketua');assert.equal(firstChairInvite.response.status,200,firstChairInvite.data.error||'First Chair invite');
 firstChair=await activate(firstChairInvite);assert.equal(firstChair.response.status,200,await firstChair.response.clone().text());
 const duplicateChairId=randomUUID();await assert.rejects(
@@ -134,8 +134,24 @@ await prepare('UPDATE users SET enabled=FALSE WHERE id=?').bind(firstChairUser.a
 assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{action:'invite',memberId:firstChairMember,email:'replacement-chair@example.test',role:'ketua'}))).status,403,'Disabling a Chair must not reopen the one-time technical bootstrap');
 await prepare('UPDATE users SET enabled=TRUE WHERE id=?').bind(firstChairUser.accountId).run();
 
-assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{action:'invite',memberId:firstChairMember,email:'second-chair@example.test',role:'ketua'}))).status,403,'Technical administrator cannot provision a second Chair');
+assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{action:'invite',memberId:firstChairMember,email:'second-chair@example.test',role:'ketua'}))).status,403,'Architect cannot provision a second active Chair');
 assert.equal((await accountAdmin.POST(req('/api/accounts','POST',{},'https://evil.test'))).status,403);
+const architectSecretaryMember=await member('Synthetic architect secretary');
+const architectSecretaryEmail='architect-secretary-'+randomUUID()+'@example.test';
+const architectSecretaryInviteResponse=await accountAdmin.POST(req('/api/accounts','POST',{action:'invite',memberId:architectSecretaryMember,email:architectSecretaryEmail,role:'sekretaris',position:'Sekretaris',programIds:[]}));
+assert.equal(architectSecretaryInviteResponse.status,200,'Architect can invite a Secretary after the Chair account is active');
+const architectSecretaryInviteData=await architectSecretaryInviteResponse.json();
+const architectSecretaryInvite={response:architectSecretaryInviteResponse,data:architectSecretaryInviteData,email:architectSecretaryEmail};
+const architectSecretaryActivation=await activate(architectSecretaryInvite);
+assert.equal(architectSecretaryActivation.response.status,200,'Architect-created structural invitation can be activated');
+const architectSecretaryAuth=await load('src/lib/auth.ts',architectSecretaryActivation.j);
+const architectSecretaryPrincipal=await architectSecretaryAuth.getAuthenticatedUser();
+assert.equal(architectSecretaryPrincipal.role,'sekretaris');
+const architectRoster=await (await accountAdmin.GET()).json();
+assert(architectRoster.users.some(user=>user.id===architectSecretaryPrincipal.accountId&&user.email===architectSecretaryEmail),'Architect can view the active structural account and its configured email');
+const architectRoleChange=await accountAdmin.PATCH(req('/api/accounts','PATCH',{userId:architectSecretaryPrincipal.accountId,role:'bendahara',position:'Bendahara',programIds:[],enabled:true}));
+assert.equal(architectRoleChange.status,200,'Architect can update a non-Chair structural account role');
+assert.equal(await architectSecretaryAuth.getAuthenticatedUser(),null,'Changing a structural role revokes the old session immediately');
 const inactive=await member('Unverified','Perlu verifikasi','Perlu verifikasi');assert.equal((await invite(inactive)).response.status,400);
 const ordinaryMember=await member('Synthetic member');assert.equal((await invite(ordinaryMember,'ketua')).response.status,403,'Chair cannot create a second Chair through a routine invite');assert.equal((await invite(ordinaryMember,'admin')).response.status,400);
 const inv=await invite(ordinaryMember);assert.equal(inv.response.status,200);assert(!JSON.stringify((await (await accountManager.GET()).json())).includes(new URL(inv.data.url).hash.slice(7)),'Raw token not returned by listings');
