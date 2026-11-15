@@ -27,11 +27,13 @@ BEGIN
       CHECK (
         source_scope IS NULL OR (
           jsonb_typeof(source_scope) = 'object'
+          AND source_scope ? 'mode'
+          AND source_scope ? 'kinds'
           AND jsonb_typeof(source_scope->'kinds') = 'array'
           AND source_scope->>'mode' IN ('all', 'program_ids')
           AND (
             source_scope->>'mode' <> 'program_ids'
-            OR jsonb_typeof(source_scope->'programIds') = 'array'
+            OR (source_scope ? 'programIds' AND jsonb_typeof(source_scope->'programIds') = 'array')
           )
         )
       );
