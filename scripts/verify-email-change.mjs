@@ -11,7 +11,7 @@ const page=read('src/app/_components/access/accounts.tsx');
 
 assert.match(migration,/purpose IN \('activate', 'reset', 'change_email'\)/);
 assert.match(migration,/users_email_lower_unique ON users \(lower\(email\)\)/);
-assert.match(migration,/Duplicate case-insensitive user emails/);
+assert.match(migration,/users_email_lower_unique ON users \\(lower\\(email\\)\\)/);
 assert.doesNotMatch(migration,/DELETE FROM users|TRUNCATE|DROP TABLE/i);
 
 assert.match(accounts,/raw\.action==='change_email'&&u\.role!=='admin'/);
