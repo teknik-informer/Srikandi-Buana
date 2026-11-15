@@ -1,7 +1,7 @@
 import {createHash, randomUUID} from "node:crypto";
 import {getAuthenticatedUser} from "@/lib/auth";
 import {env} from "@/lib/runtime";
-import {canReadRecord, visibleRecord, type Principal} from "@/lib/permissions";
+import {canReadKindForRole, canReadRecord, visibleRecord, type Principal} from "@/lib/permissions";
 import type {ReportGroupId} from "@/lib/enterprise-reporting";
 import type {Row} from "@/lib/srikandi";
 import {readJsonObject, RequestBodyError} from "@/lib/request-body";
@@ -157,8 +157,8 @@ export async function POST(req: Request) {
     const sourceManifest = periodRows.map(row => ({id:row.id,kind:row.kind,updated:row.updated,sourceHash:row.sourceHash}));
     // Capture the exact visibility scope used to build this snapshot.
     const sourceScope = c.user!.role === "koordinator"
-      ? {mode:"program_ids",programIds:[...new Set(c.user!.programIds.map(String))].sort()}
-      : {mode:"all"};
+      ? {mode:"program_ids",programIds:[...new Set(c.user!.programIds.map(String))].sort(),kinds:groupKinds[group].filter(kind=>canReadKindForRole(c.user!.role,kind))}
+      : {mode:"all",kinds:groupKinds[group].filter(kind=>canReadKindForRole(c.user!.role,kind))};
     const visibleRows = periodRows.map(row => visibleRecord(c.user!,row) as Row);
     const data = snapshotRows(group,visibleRows);
     const snapshot = {
@@ -218,7 +218,6 @@ export async function PATCH(req: Request) {
     if (!pkg || !groups.includes(String(pkg.group_id) as ReportGroupId)) return json({error:"Paket tidak ditemukan."},404);
     const group = String(pkg.group_id) as ReportGroupId;
     let from = "", to = "", assignments = "", extraCondition = "";
-    let extraParams: unknown[] = [];
     if (action === "verify") {
       if (!canVerify(c.user!,group)) return json({error:"Verifikasi hanya dapat dilakukan pemilik domain."},403);
       from = "draft"; to = "verified";
@@ -230,12 +229,10 @@ export async function PATCH(req: Request) {
       if (action === "approve") {
         from = "verified"; to = "approved";
         assignments = "approved_by=?,approved_at=?,approval_note=?";
-        const kindPlaceholders = groupKinds[group].map(() => "?").join(",");
-        extraParams = [...groupKinds[group]];
         extraCondition = [
           "AND report_packages.source_scope IS NOT NULL",
           "AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(report_packages.source_manifest) AS items(item) LEFT JOIN records r ON r.id=items.item->>'id' AND r.owner=report_packages.owner AND r.kind=items.item->>'kind' WHERE r.id IS NULL OR r.updated IS DISTINCT FROM items.item->>'updated' OR md5(r.data::jsonb::text) IS DISTINCT FROM items.item->>'sourceHash')",
-          "AND NOT EXISTS (SELECT 1 FROM records r CROSS JOIN LATERAL (SELECT LEFT(COALESCE(NULLIF(r.data::jsonb->>'date',''),NULLIF(r.data::jsonb->>'dueDate',''),r.created::text),10) AS source_date) d WHERE r.owner=report_packages.owner AND r.kind IN (" + kindPlaceholders + ") AND (report_packages.source_scope->>'mode'='all' OR (report_packages.source_scope->>'mode'='program_ids' AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(report_packages.source_scope->'programIds') AS scoped(program_id) WHERE scoped.program_id=r.data::jsonb->>'programId'))) AND (report_packages.period_start IS NULL OR (d.source_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND d.source_date >= report_packages.period_start::text)) AND (report_packages.period_end IS NULL OR (d.source_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND d.source_date <= report_packages.period_end::text)) AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(report_packages.source_manifest) AS items(item) WHERE items.item->>'id'=r.id AND items.item->>'kind'=r.kind))"
+          "AND NOT EXISTS (SELECT 1 FROM records r CROSS JOIN LATERAL (SELECT LEFT(COALESCE(NULLIF(r.data::jsonb->>'date',''),NULLIF(r.data::jsonb->>'dueDate',''),r.created::text),10) AS source_date) d WHERE r.owner=report_packages.owner AND r.kind IN (SELECT jsonb_array_elements_text(report_packages.source_scope->'kinds')) AND (report_packages.source_scope->>'mode'='all' OR (report_packages.source_scope->>'mode'='program_ids' AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(report_packages.source_scope->'programIds') AS scoped(program_id) WHERE scoped.program_id=r.data::jsonb->>'programId'))) AND (report_packages.period_start IS NULL OR (d.source_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND d.source_date >= report_packages.period_start::text)) AND (report_packages.period_end IS NULL OR (d.source_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND d.source_date <= report_packages.period_end::text)) AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(report_packages.source_manifest) AS items(item) WHERE items.item->>'id'=r.id AND items.item->>'kind'=r.kind))"
         ].join(" ");
       } else {
         from = "verified"; to = "rejected";
@@ -253,7 +250,6 @@ export async function PATCH(req: Request) {
     RETURNING package_id`).bind(
       to,c.user!.accountId,now,note,id,c.user!.userId,from,
       ...(action==="verify" ? [c.user!.accountId] : []),
-      ...extraParams,
       randomUUID(),c.user!.userId,action==="verify"?"verified":action==="approve"?"approved":"rejected",
       from,to,note,now
     ).all();
