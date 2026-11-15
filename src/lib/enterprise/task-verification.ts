@@ -21,11 +21,11 @@ export type TaskVerificationInput = {
 
 /**
  * Enforce the hand-off between execution and leadership review.
- * Coordinators and secretariat can submit results, but only the chair or
- * administrator can approve them or request a correction.
+ * Coordinators submit results; the Secretariat performs the administrative
+ * verification. The Chair approves report packages rather than each task row.
  */
 export function taskVerificationError(input: TaskVerificationInput): string | null {
-  const reviewer = input.role === "admin" || input.role === "ketua";
+  const reviewer = input.role === "sekretaris";
   const valid = taskVerificationStatuses.includes(
     input.verification as TaskVerificationStatus,
   );
@@ -33,13 +33,13 @@ export function taskVerificationError(input: TaskVerificationInput): string | nu
 
   if (!reviewer) {
     if (input.previousVerification === "Terverifikasi") {
-      return "Tugas yang sudah diverifikasi hanya dapat diubah kembali oleh Ketua atau Administrator.";
+      return "Tugas yang sudah diverifikasi hanya dapat dibuka kembali melalui pemeriksaan Sekretariat.";
     }
     if (["Terverifikasi", "Perlu perbaikan"].includes(input.verification)) {
-      return "Hanya Ketua atau Administrator yang dapat mengesahkan hasil atau meminta perbaikan.";
+      return "Hanya Sekretariat yang dapat mengesahkan hasil atau meminta perbaikan.";
     }
     if ((input.reviewNote || "") !== (input.previousReviewNote || "")) {
-      return "Catatan pemeriksaan hanya dapat diubah oleh Ketua atau Administrator.";
+      return "Catatan pemeriksaan hanya dapat diubah oleh Sekretariat.";
     }
   }
 
@@ -57,7 +57,7 @@ export function taskVerificationError(input: TaskVerificationInput): string | nu
   }
 
   if (input.verification === "Terverifikasi" && !reviewer) {
-    return "Hanya Ketua atau Administrator yang dapat mengesahkan hasil.";
+    return "Hanya Sekretariat yang dapat mengesahkan hasil.";
   }
 
   if (input.verification === "Perlu perbaikan") {

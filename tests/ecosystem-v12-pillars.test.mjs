@@ -44,14 +44,16 @@ test("publikasi dan pelaporan memiliki akses yang jelas", () => {
 test("pembatasan akses per peran tetap diterapkan", () => {
   const visible = (role) => registry.getVisibleEnterpriseDashboards(role).flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
   const admin = visible("admin");
-  assert.deepEqual([...admin].sort(), [...assigned].sort());
+  assert.deepEqual([...admin].sort(), ["akun", "akun-saya", "notifikasi", "panduan", "pengaturan", "sumber"].sort());
   const member = visible("anggota");
   for (const restricted of ["akun", "pengaturan", "sumber", "pesan", "akuntansi"]) assert.ok(!member.includes(restricted));
   assert.ok(member.includes("portal"));
   assert.ok(member.includes("akun-saya"));
   assert.equal(permissions.canReadSectionForRole("admin", "akun"), true);
   assert.equal(permissions.canReadSectionForRole("anggota", "akun"), false);
-  assert.equal(permissions.canReadSectionForRole("anggota", "laporan"), true);
+  assert.equal(permissions.canReadSectionForRole("anggota", "laporan"), false);
+  assert.equal(permissions.canReadSectionForRole("sekretaris", "laporan"), true);
+  assert.equal(permissions.canReadSectionForRole("bendahara", "laporan"), true);
 });
 
 test("menu navigasi memakai label formal dan ringkas", () => {

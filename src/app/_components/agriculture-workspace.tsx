@@ -6,24 +6,24 @@ import { AlertCircle, CheckCircle2, ClipboardCheck, Leaf, LoaderCircle, Plus, Re
 type Member = { id: string; name: string; dusun: string };
 type Commodity = { id: string; name: string; default_unit: string; status: string };
 type Parcel = {
-  id: string; member_id: string; member_name: string; parcel_code: string; name: string;
+  id: string; member_id?: string; member_name?: string; parcel_code: string; name: string;
   area_m2: string | number; tenure_type: string; location_label: string; status: string;
-  verification_status: string; verification_note: string;
+  verification_status: string; verification_note?: string;
 };
 type CropCycle = {
   id: string; parcel_id: string; parcel_name: string; parcel_code: string; commodity_id: string;
   commodity_name: string; default_unit: string; season_label: string; planted_area_m2: string | number;
   planting_date: string; expected_harvest_date: string | null; status: string;
-  verification_status: string; verification_note: string;
+  verification_status: string; verification_note?: string;
 };
 type Harvest = {
   id: string; crop_cycle_id: string; harvest_date: string; quantity: string | number; unit_code: string;
-  notes: string; verification_status: string; verification_note: string; commodity_name: string;
+  notes?: string; verification_status: string; verification_note?: string; commodity_name: string;
   parcel_name: string; parcel_code: string; season_label: string;
 };
 type Audit = { actor_id: string; actor_role: string; action: string; target_type: string; target_id: string; reason: string; created_at: string };
 type Data = {
-  members: Member[]; commodities: Commodity[]; parcels: Parcel[]; cropCycles: CropCycle[];
+  members: Member[]; memberCount: number; commodities: Commodity[]; parcels: Parcel[]; cropCycles: CropCycle[];
   harvests: Harvest[]; audit: Audit[]; permissions: { canVerify: boolean };
 };
 const unitLabels: Record<string, string> = { kg: "Kilogram (kg)", kuintal: "Kuintal", ton: "Ton", liter: "Liter", buah: "Buah", ikat: "Ikat", batang: "Batang" };
@@ -37,8 +37,11 @@ const verificationStyle: Record<string, string> = {
 const numberLabel = (value: string | number) => new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(Number(value || 0));
 const dateLabel = (value: string) => value ? new Date(value.slice(0, 10) + "T12:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-export default function AgricultureWorkspace() {
-  const [data, setData] = useState<Data>({ members: [], commodities: [], parcels: [], cropCycles: [], harvests: [], audit: [], permissions: { canVerify: false } });
+export default function AgricultureWorkspace({ role, programIds = [] }: { role: string; programIds?: string[] }) {
+  const canManageTechnical = role === "koordinator" && programIds.includes("3");
+  const canManageCommodity = role === "sekretaris";
+  const canManageLand = role === "sekretaris";
+  const [data, setData] = useState<Data>({ members: [], memberCount: 0, commodities: [], parcels: [], cropCycles: [], harvests: [], audit: [], permissions: { canVerify: false } });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -52,6 +55,8 @@ export default function AgricultureWorkspace() {
   const [areaM2, setAreaM2] = useState("");
   const [tenureType, setTenureType] = useState("owned");
   const [locationLabel, setLocationLabel] = useState("");
+  const [editingParcelId, setEditingParcelId] = useState("");
+  const [parcelDraft, setParcelDraft] = useState({ memberId: "", parcelCode: "", name: "", areaM2: "", tenureType: "owned", locationLabel: "" });
   const [parcelId, setParcelId] = useState("");
   const [commodityId, setCommodityId] = useState("");
   const [seasonLabel, setSeasonLabel] = useState("");
@@ -108,6 +113,62 @@ export default function AgricultureWorkspace() {
     }
   }
 
+  function editParcel(parcel: Parcel) {
+    setEditingParcelId(parcel.id);
+    setParcelDraft({
+      memberId: parcel.member_id || "",
+      parcelCode: parcel.parcel_code,
+      name: parcel.name,
+      areaM2: String(parcel.area_m2),
+      tenureType: parcel.tenure_type,
+      locationLabel: parcel.location_label || "",
+    });
+    setError("");
+    setNotice("");
+  }
+
+  async function saveParcel(event: FormEvent<HTMLFormElement>, id: string) {
+    event.preventDefault();
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/agriculture", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_parcel", id, ...parcelDraft }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Perubahan register lahan belum tersimpan.");
+      setEditingParcelId("");
+      setNotice("Register lahan diperbarui. Status verifikasi dikembalikan ke antrean Sekretariat.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Koneksi terputus.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function archiveParcel(id: string) {
+    const reason = window.prompt("Alasan pengarsipan register lahan (minimal 10 karakter).") || "";
+    if (reason.trim().length < 10) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/agriculture", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive_parcel", id, reason }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Register lahan belum dapat diarsipkan.");
+      setNotice("Register lahan diarsipkan. Riwayat dan hubungan siklus tanam tetap dipertahankan.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Koneksi terputus.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function verify(type: "parcel" | "crop_cycle" | "harvest", id: string, accepted: boolean) {
     const reason = accepted ? "Diperiksa dan sesuai dengan bukti administrasi/lapangan." : window.prompt("Tuliskan alasan dan hal yang perlu diperbaiki (minimal 10 karakter).") || "";
     if (!accepted && reason.trim().length < 10) return;
@@ -144,7 +205,7 @@ export default function AgricultureWorkspace() {
     </div>}
 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Anggota aktif terverifikasi</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.members.length}</p><p className="text-xs text-muted-foreground">Tersedia untuk pencatatan lahan</p></div>
+      <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Anggota aktif terverifikasi</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.memberCount}</p><p className="text-xs text-muted-foreground">Angka agregat; identitas anggota dibatasi sesuai peran</p></div>
       <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Lahan terdaftar</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.parcels.length}</p><p className="text-xs text-muted-foreground">{data.parcels.filter(p => p.verification_status === "verified").length} terverifikasi</p></div>
       <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Siklus tanam</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.cropCycles.length}</p><p className="text-xs text-muted-foreground">{data.cropCycles.filter(c => c.verification_status === "verified").length} terverifikasi</p></div>
       <div className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Catatan panen</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data.harvests.length}</p><p className="text-xs text-muted-foreground">{data.harvests.filter(h => h.verification_status === "verified").length} terverifikasi</p></div>
@@ -154,17 +215,17 @@ export default function AgricultureWorkspace() {
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Leaf size={19} className="text-emerald-700"/><h2 className="font-semibold">Master komoditas</h2></div>
         <p className="mt-1 text-sm text-muted-foreground">Satuan dasar harus konsisten untuk setiap komoditas. Panen akan dicatat menggunakan satuan ini.</p>
-        <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px_auto]" onSubmit={(event) => void create(event, "create_commodity", { name: commodityName, defaultUnit: commodityUnit }, () => setCommodityName(""))}>
+        {canManageCommodity && <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px_auto]" onSubmit={(event) => void create(event, "create_commodity", { name: commodityName, defaultUnit: commodityUnit }, () => setCommodityName(""))}>
           <label className="grid gap-1 text-sm font-medium">Nama komoditas<input required minLength={2} maxLength={120} value={commodityName} onChange={e => setCommodityName(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Contoh: Cabai rawit"/></label>
           <label className="grid gap-1 text-sm font-medium">Satuan dasar<select value={commodityUnit} onChange={e => setCommodityUnit(e.target.value)} className="min-h-10 rounded-lg border bg-background px-2">{Object.entries(unitLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <div className="flex items-end"><button disabled={busy} className="inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-lg bg-emerald-800 px-3 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Tambah</button></div>
-        </form>
+        </form>}
         <div className="mt-4 flex flex-wrap gap-2">{data.commodities.map(c => <span key={c.id} className="rounded-full border bg-muted/40 px-3 py-1.5 text-xs font-medium">{c.name} · {c.default_unit}</span>)}{!data.commodities.length && <p className="text-sm text-muted-foreground">Belum ada komoditas. Tambahkan daftar komoditas yang benar-benar dikelola.</p>}</div>
       </section>
 
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Sprout size={19} className="text-emerald-700"/><h2 className="font-semibold">Catat lahan anggota</h2></div>
-        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_parcel", { memberId, parcelCode, name: parcelName, areaM2, tenureType, locationLabel }, () => { setParcelCode(""); setParcelName(""); setAreaM2(""); setLocationLabel(""); })}>
+        {canManageLand && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_parcel", { memberId, parcelCode, name: parcelName, areaM2, tenureType, locationLabel }, () => { setParcelCode(""); setParcelName(""); setAreaM2(""); setLocationLabel(""); })}>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Anggota pemilik/penanggung jawab<select required value={memberId} onChange={e => setMemberId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih anggota aktif terverifikasi</option>{data.members.map(m => <option key={m.id} value={m.id}>{m.name}{m.dusun ? " · "+m.dusun : ""}</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium">Kode lahan<input required minLength={2} maxLength={80} value={parcelCode} onChange={e => setParcelCode(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="SB-LHN-001"/></label>
           <label className="grid gap-1 text-sm font-medium">Nama/pengenal lahan<input required minLength={2} maxLength={140} value={parcelName} onChange={e => setParcelName(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Kebun utara"/></label>
@@ -173,12 +234,12 @@ export default function AgricultureWorkspace() {
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Lokasi umum (opsional)<input maxLength={200} value={locationLabel} onChange={e => setLocationLabel(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Dusun / wilayah umum; jangan masukkan koordinat atau alamat pribadi"/></label>
           <p className="sm:col-span-2 text-xs leading-5 text-muted-foreground">Data lahan selalu berstatus menunggu verifikasi setelah dicatat. Alamat rinci dan koordinat GPS tidak diminta pada formulir ini.</p>
           <button disabled={busy || !data.members.length} className="sm:col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Simpan data lahan</button>
-        </form>
+        </form>}
       </section>
 
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Sprout size={19} className="text-emerald-700"/><h2 className="font-semibold">Catat siklus tanam</h2></div>
-        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_crop_cycle", { parcelId, commodityId, seasonLabel, plantedAreaM2, plantingDate, expectedHarvestDate }, () => { setSeasonLabel(""); setPlantedAreaM2(""); setPlantingDate(""); setExpectedHarvestDate(""); })}>
+        {canManageTechnical && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_crop_cycle", { parcelId, commodityId, seasonLabel, plantedAreaM2, plantingDate, expectedHarvestDate }, () => { setSeasonLabel(""); setPlantedAreaM2(""); setPlantingDate(""); setExpectedHarvestDate(""); })}>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Lahan<select required value={parcelId} onChange={e => setParcelId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih lahan aktif</option>{activeParcels.map(p => <option key={p.id} value={p.id}>{p.parcel_code} · {p.name} ({numberLabel(p.area_m2)} m²)</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Komoditas<select required value={commodityId} onChange={e => setCommodityId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih komoditas</option>{activeCommodities.map(c => <option key={c.id} value={c.id}>{c.name} · {c.default_unit}</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium">Musim/periode tanam<input required minLength={2} maxLength={100} value={seasonLabel} onChange={e => setSeasonLabel(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3" placeholder="Musim hujan 2026"/></label>
@@ -186,27 +247,40 @@ export default function AgricultureWorkspace() {
           <label className="grid gap-1 text-sm font-medium">Tanggal tanam<input required type="date" value={plantingDate} onChange={e => setPlantingDate(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1 text-sm font-medium">Perkiraan panen<input type="date" min={plantingDate || undefined} value={expectedHarvestDate} onChange={e => setExpectedHarvestDate(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <button disabled={busy || !activeParcels.length || !activeCommodities.length} className="sm:col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Simpan siklus tanam</button>
-        </form>
+        </form>}
       </section>
 
       <section className="rounded-2xl border bg-card p-5">
         <div className="flex items-center gap-2"><Wheat size={19} className="text-emerald-700"/><h2 className="font-semibold">Catat hasil panen</h2></div>
-        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_harvest", { cropCycleId, harvestDate, quantity, notes: harvestNotes }, () => { setHarvestDate(""); setQuantity(""); setHarvestNotes(""); })}>
+        {canManageTechnical && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => void create(event, "create_harvest", { cropCycleId, harvestDate, quantity, notes: harvestNotes }, () => { setHarvestDate(""); setQuantity(""); setHarvestNotes(""); })}>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Siklus tanam<select required value={cropCycleId} onChange={e => setCropCycleId(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih siklus tanam</option>{data.cropCycles.filter(c => c.status !== "failed").map(c => <option key={c.id} value={c.id}>{c.commodity_name} · {c.parcel_code} · {c.season_label}</option>)}</select></label>
           <label className="grid gap-1 text-sm font-medium">Tanggal panen<input required type="date" value={harvestDate} onChange={e => setHarvestDate(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1 text-sm font-medium">Jumlah hasil ({selectedCycle?.default_unit || "satuan"})<input required type="number" min="0.001" step="0.001" max="100000000000" value={quantity} onChange={e => setQuantity(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">Catatan panen (opsional)<textarea maxLength={2000} rows={2} value={harvestNotes} onChange={e => setHarvestNotes(e.target.value)} className="rounded-lg border bg-background p-3" placeholder="Kualitas, kondisi, atau keterangan pencatatan"/></label>
           <p className="sm:col-span-2 text-xs text-muted-foreground">Satuan mengikuti master komoditas. Hasil panen belum masuk ringkasan eksternal sebelum catatan, siklus, dan lahannya diverifikasi.</p>
           <button disabled={busy || !data.cropCycles.length} className="sm:col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white disabled:opacity-50"><Plus size={15}/> Simpan catatan panen</button>
-        </form>
+        </form>}
       </section>
     </div>
 
     <section className="rounded-2xl border bg-card p-5">
       <div className="flex items-center gap-2"><ClipboardCheck size={19}/><h2 className="font-semibold">Register lahan dan verifikasi</h2></div>
       <div className="mt-4 grid gap-3">{data.parcels.map(parcel => <article key={parcel.id} className="rounded-xl border p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{parcel.parcel_code} · {parcel.member_name}</p><h3 className="font-semibold">{parcel.name}</h3><p className="mt-1 text-xs text-muted-foreground">{numberLabel(parcel.area_m2)} m² · {tenureLabels[parcel.tenure_type] || parcel.tenure_type}{parcel.location_label ? " · "+parcel.location_label : ""}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${verificationStyle[parcel.verification_status] || ""}`}>{verificationLabels[parcel.verification_status] || parcel.verification_status}</span></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{parcel.parcel_code} · {parcel.member_name || "Identitas anggota dibatasi"}</p><h3 className="font-semibold">{parcel.name}</h3><p className="mt-1 text-xs text-muted-foreground">{numberLabel(parcel.area_m2)} m² · {tenureLabels[parcel.tenure_type] || parcel.tenure_type}{parcel.location_label ? " · "+parcel.location_label : ""}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${verificationStyle[parcel.verification_status] || ""}`}>{verificationLabels[parcel.verification_status] || parcel.verification_status}</span></div>
+        {parcel.status === "archived" && <p className="mt-2 text-xs font-medium text-muted-foreground">Register diarsipkan · tidak tersedia untuk siklus tanam baru</p>}
         {parcel.verification_note && <p className="mt-2 text-xs text-muted-foreground">{parcel.verification_note}</p>}
+        {role === "sekretaris" && parcel.status === "active" && <div className="mt-3">
+          {editingParcelId === parcel.id ? <form className="grid gap-3 rounded-xl bg-muted/30 p-3 sm:grid-cols-2" onSubmit={(event) => void saveParcel(event, parcel.id)}>
+            <label className="grid gap-1 text-xs font-medium sm:col-span-2">Anggota penanggung jawab<select required value={parcelDraft.memberId} onChange={e => setParcelDraft(v => ({ ...v, memberId: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm">{data.members.map(m => <option key={m.id} value={m.id}>{m.name}{m.dusun ? " · "+m.dusun : ""}</option>)}</select></label>
+            <label className="grid gap-1 text-xs font-medium">Kode lahan<input required minLength={2} maxLength={80} value={parcelDraft.parcelCode} onChange={e => setParcelDraft(v => ({ ...v, parcelCode: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <label className="grid gap-1 text-xs font-medium">Nama/pengenal lahan<input required minLength={2} maxLength={140} value={parcelDraft.name} onChange={e => setParcelDraft(v => ({ ...v, name: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <label className="grid gap-1 text-xs font-medium">Luas (m²)<input required type="number" min="0.01" max="100000000" step="0.01" value={parcelDraft.areaM2} onChange={e => setParcelDraft(v => ({ ...v, areaM2: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <label className="grid gap-1 text-xs font-medium">Status penguasaan<select value={parcelDraft.tenureType} onChange={e => setParcelDraft(v => ({ ...v, tenureType: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm">{Object.entries(tenureLabels).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+            <label className="grid gap-1 text-xs font-medium sm:col-span-2">Lokasi umum<input maxLength={200} value={parcelDraft.locationLabel} onChange={e => setParcelDraft(v => ({ ...v, locationLabel: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>
+            <p className="sm:col-span-2 text-xs text-muted-foreground">Perubahan data mengembalikan status verifikasi menjadi menunggu pemeriksaan Ketua.</p>
+            <div className="sm:col-span-2 flex flex-wrap gap-2"><button disabled={busy} className="min-h-9 rounded-lg bg-emerald-800 px-3 text-xs font-semibold text-white disabled:opacity-50">Simpan perubahan</button><button type="button" disabled={busy} onClick={() => setEditingParcelId("")} className="min-h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-50">Batal</button></div>
+          </form> : <div className="flex flex-wrap gap-2"><button disabled={busy} onClick={() => editParcel(parcel)} className="min-h-9 rounded-lg border px-3 text-xs font-semibold disabled:opacity-50">Ubah register</button><button disabled={busy} onClick={() => void archiveParcel(parcel.id)} className="min-h-9 rounded-lg border border-amber-300 px-3 text-xs font-semibold text-amber-800 disabled:opacity-50">Arsipkan lahan</button></div>}
+        </div>}
         {data.permissions.canVerify && parcel.verification_status !== "verified" && <div className="mt-3 flex flex-wrap gap-2"><button disabled={busy} onClick={() => void verify("parcel", parcel.id, true)} className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-emerald-800 px-3 text-xs font-semibold text-white disabled:opacity-50"><ShieldCheck size={14}/> Verifikasi lahan</button><button disabled={busy} onClick={() => void verify("parcel", parcel.id, false)} className="min-h-9 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Kembalikan</button></div>}
       </article>)}{!data.parcels.length && <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada lahan yang dicatat.</p>}</div>
     </section>

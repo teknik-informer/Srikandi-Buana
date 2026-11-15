@@ -9,6 +9,8 @@ export {
   canReadKindForRole,
   canReadKind,
   canWriteKind,
+  canReviewFollowup,
+  canPublishRecord,
   canReadRecord,
   canWriteRecord,
   visibleRecord,

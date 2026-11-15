@@ -938,10 +938,10 @@ export default function Workspace({
             </Alert>
           </>
         )}
-        {section === "akun" && <Accounts />}
+        {section === "akun" && <Accounts userRole={principal.role} />}
         {section === "akun-saya" && <MyAccount />}
         {section === "sumber" && (
-          <SourceReview refreshKey={rows.length} onImported={load} />
+          <SourceReview role={principal.role} refreshKey={rows.length} onImported={load} />
         )}
         {section === "pesan" && <Inbox />}
         {section === "pengaturan" && (
@@ -960,7 +960,7 @@ export default function Workspace({
         {section === "panduan" && (
           <>
             <Box title="Portal & layanan operasional">
-              <p>Buka Portal Anggota untuk kebutuhan pribadi. Buat dan simpan draf pengajuan, lengkapi bukti, lalu kirim. Ketua atau administrator lain memeriksa pengajuan; petugas keuangan/aset atau sekretariat mencatat realisasinya. Pengaju tidak dapat menyetujui atau merealisasikan pengajuannya sendiri.</p>
+              <p>Buka Portal Anggota untuk kebutuhan pribadi. Buat dan simpan draf pengajuan, lengkapi bukti, lalu kirim. Ketua memeriksa pengajuan; Bendahara atau Sekretariat mencatat realisasinya sesuai domain. Pengaju tidak dapat menyetujui atau merealisasikan pengajuannya sendiri.</p>
               <p>Persetujuan biaya belum berarti pembayaran. Hubungkan realisasi dengan transaksi Pengeluaran yang nominal dan pos dananya sesuai serta memiliki bukti. Untuk pinjaman, aset dicadangkan saat disetujui dan dilepas setelah pengembalian dicatat.</p>
               <Button variant="outline" asChild><Link href="/dashboard/portal">Buka Portal Anggota</Link></Button>
             </Box>
@@ -1008,15 +1008,17 @@ export default function Workspace({
                 terdaftar.
               </p>
               <p className="section-note">
-                Ekspor JSON mencakup catatan, pesan, pengaturan, dan metadata
-                berkas. Isi lampiran diunduh terpisah dari Arsip dokumen.
-                Preferensi tema disimpan pada perangkat.
+                Ekspor JSON adalah data dasar terbatas: catatan sesuai hak
+                akses, pesan, pengaturan, metadata berkas, dan histori pengajuan
+                operasional. Isi lampiran, buku besar, katalog/pesanan, tabel
+                pertanian, serta grant eksternal tidak tercakup. Ini bukan backup
+                penuh atau dokumen laporan resmi. Preferensi tema disimpan pada perangkat.
               </p>
               <div className="flex gap-3 flex-wrap mt-4">
                 <Button asChild variant="outline">
                   <a href="/api/export" download>
                     <Download data-icon="inline-start" />
-                    Ekspor semua catatan
+                    Ekspor data dasar (JSON)
                   </a>
                 </Button>
                 <Button asChild variant="outline">
@@ -1062,7 +1064,7 @@ export default function Workspace({
               {editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
-              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Pengesahan hanya dapat dilakukan Ketua atau Administrator." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
+              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Verifikasi administratif dilakukan Sekretariat; Ketua mengesahkan paket laporan dan keputusan organisasi." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -1121,7 +1123,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["verification", "meetingReviewStatus"].includes(f.key) &&
-                            !["admin", "ketua"].includes(principal.role)
+                            principal.role !== "ketua"
                           }
                           defaultValue={String(
                             editor.row?.data[f.key] ??
@@ -1129,7 +1131,7 @@ export default function Workspace({
                               f.options[0],
                           )}
                         >
-                          {(editor.kind === "tindaklanjut" && f.key === "verification" && !["admin", "ketua"].includes(principal.role) ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
+                          {(editor.kind === "tindaklanjut" && f.key === "verification" && principal.role !== "ketua" ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
                             <NativeSelectOption key={o}>
                               {f.key === "programId"
                                 ? o
@@ -1163,7 +1165,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["reviewNote", "meetingReviewNote"].includes(f.key) &&
-                            !["admin", "ketua"].includes(principal.role)
+                            principal.role !== "ketua"
                           }
                         />
                       ) : (
@@ -1186,7 +1188,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["meetingReviewMeeting", "meetingReviewDate"].includes(f.key) &&
-                            !["admin", "ketua"].includes(principal.role)
+                            principal.role !== "ketua"
                           }
                         />
                       )}

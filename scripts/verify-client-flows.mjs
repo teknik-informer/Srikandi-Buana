@@ -196,7 +196,7 @@ const accounts=await harness('src/app/_components/access/accounts.tsx',{
  FormData:FieldsFixture,document:{querySelector:()=>accountForm.dataset.unsaved?accountForm:null},window:{confirm:()=>false},
  fetch:(_url,options)=>{if(options?.method){accountPosts++;return accountPost.promise;}return Promise.resolve(response(200,accountPayload));},
 });
-const accountsRender=()=>accounts.render(()=>accounts.exports.default());
+const accountsRender=()=>accounts.render(()=>accounts.exports.default({}));
 let accountTree=accountsRender();accounts.effects();await new Promise(r=>setImmediate(r));accountTree=accountsRender();
 const inviteSubmit=find(accountTree,n=>n.type==='form').props.onSubmit;
 const invitation=inviteSubmit({preventDefault(){},currentTarget:accountForm});await inviteSubmit({preventDefault(){},currentTarget:accountForm});assert.equal(accountPosts,1);
@@ -250,7 +250,7 @@ fileTree=managerRender();assert.equal(allNodes(fileTree).filter(n=>n.props?.clas
 find(fileTree,n=>n.props?.label==='Halaman arsip').props.onPageChange(3);fileTree=managerRender();assert.equal(allNodes(fileTree).filter(n=>n.props?.className==='document-row').length,11);
 find(fileTree,n=>n.props?.label==='Cari berkas').props.onChange('File 0.pdf');fileTree=managerRender();assert.equal(allNodes(fileTree).filter(n=>n.props?.className==='document-row').length,1);assert.equal(find(fileTree,n=>n.props?.label==='Halaman arsip').props.page,1);
 const manyAccounts=await harness('src/app/_components/access/accounts.tsx',{fetch:async()=>response(200,{...accountPayload,users:Array.from({length:61},(_,i)=>({...accountPayload.users[0],id:'u'+i,full_name:'Person '+i}))})});
-const manyRender=()=>manyAccounts.render(()=>manyAccounts.exports.default());let manyTree=manyRender();manyAccounts.effects();await new Promise(r=>setImmediate(r));manyTree=manyRender();
+const manyRender=()=>manyAccounts.render(()=>manyAccounts.exports.default({}));let manyTree=manyRender();manyAccounts.effects();await new Promise(r=>setImmediate(r));manyTree=manyRender();
 assert(!allNodes(manyTree).some(n=>n.props?.children==='Person 25'));find(manyTree,n=>n.props?.label==='Halaman akun').props.onPageChange(2);manyTree=manyRender();assert(allNodes(manyTree).some(n=>n.props?.children==='Person 25'));assert(!allNodes(manyTree).some(n=>n.props?.children==='Person 0'));
 find(manyTree,n=>n.props?.label==='Cari akun').props.onChange('Person 60');manyTree=manyRender();assert.equal(find(manyTree,n=>n.props?.label==='Halaman akun').props.page,1);
 console.log('PASS pagination: page bounds clamp after shrinking; files and accounts show 25 per page; changing search returns to page one.');
@@ -331,7 +331,7 @@ const timeoutForm={dataset:{unsaved:'true'},fields:{memberId:'member',email:'kep
 const timedAccounts=await harness('src/app/_components/access/accounts.tsx',{
  ...deadlines,FormData:FieldsFixture,fetch:(url,options)=>options.method?stall(url,options):Promise.resolve(response(200,accountPayload)),
 });
-const timedAccountRender=()=>timedAccounts.render(()=>timedAccounts.exports.default());
+const timedAccountRender=()=>timedAccounts.render(()=>timedAccounts.exports.default({}));
 let timedAccountTree=timedAccountRender();timedAccounts.effects();await new Promise(r=>setImmediate(r));timedAccountTree=timedAccountRender();
 const timedInvite=find(timedAccountTree,n=>n.type==='form').props.onSubmit({preventDefault(){},currentTarget:timeoutForm});
 await expire(25000);await timedInvite;timedAccountTree=timedAccountRender();

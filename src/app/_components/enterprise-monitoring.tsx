@@ -228,7 +228,7 @@ export default function EnterpriseMonitoring({
     operational && {
       title: "Hasil perlu perbaikan",
       value: operational.tasksNeedingCorrection,
-      note: "Baca catatan pemeriksaan Ketua",
+      note: "Baca catatan pemeriksaan Sekretariat",
       icon: AlertTriangle,
     },
     operational && {
@@ -441,7 +441,7 @@ export default function EnterpriseMonitoring({
         </div>
       </section>
 
-      {["admin", "ketua", "sekretaris"].includes(user.role) && (
+      {["ketua", "sekretaris"].includes(user.role) && (
         <section className="space-y-3" aria-labelledby="meeting-priorities-title">
           <div className="space-y-1">
             <h2 id="meeting-priorities-title" className="text-base font-semibold">Bahan rapat dan keputusan pengurus</h2>
@@ -544,7 +544,7 @@ export default function EnterpriseMonitoring({
         </Card>
       </section>
 
-      {["admin", "ketua"].includes(user.role) && audit.length > 0 && (
+      {user.role === "ketua" && audit.length > 0 && (
         <section className="space-y-3" aria-labelledby="monitoring-audit-title">
           <div>
             <h2 id="monitoring-audit-title" className="text-base font-semibold">Aktivitas tercatat</h2>

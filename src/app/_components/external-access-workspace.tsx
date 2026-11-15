@@ -88,6 +88,7 @@ export default function ExternalAccessWorkspace() {
   async function inviteAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!organizationId || !scopes.length) { setError("Pilih organisasi dan setidaknya satu ruang lingkup."); return; }
+    if (selectedOrganization?.verification_status !== "verified") { setError("Verifikasi organisasi harus selesai sebelum undangan dibuat."); return; }
     const result = await submit("/api/external-access", "POST", { action: "invite", organizationId, fullName, email, purpose, validFrom, validUntil, scopes });
     if (result?.invitationUrl) {
       setInvitationUrl(result.invitationUrl); setFullName(""); setEmail(""); setPurpose(""); setScopes([]);
@@ -130,7 +131,7 @@ export default function ExternalAccessWorkspace() {
         <div className="flex items-center gap-2"><UserRound size={19}/><h2 className="font-semibold">Undang pengguna eksternal</h2></div>
         <form onSubmit={inviteAccount} className="mt-4 grid gap-3">
           <label className="grid gap-1.5 text-sm font-medium">Organisasi<select required value={organizationId} onChange={(e) => { setOrganizationId(e.target.value); setScopes([]); }} className="min-h-10 rounded-lg border bg-background px-3"><option value="">Pilih organisasi</option>{data.organizations.map((org) => <option key={org.id} value={org.id}>{org.legal_name} · {statusLabels[org.verification_status]}</option>)}</select></label>
-          {selectedOrganization && selectedOrganization.verification_status !== "verified" && <p className="rounded-lg bg-amber-50 p-2 text-xs leading-5 text-amber-900">Organisasi belum terverifikasi. Undangan boleh disiapkan, tetapi aktivasi akun akan ditolak sampai verifikasi diselesaikan.</p>}
+          {selectedOrganization && selectedOrganization.verification_status !== "verified" && <p className="rounded-lg bg-amber-50 p-2 text-xs leading-5 text-amber-900">Organisasi belum terverifikasi. Selesaikan pemeriksaan dokumen dan status lembaga terlebih dahulu; undangan belum dapat dibuat.</p>}
           <label className="grid gap-1.5 text-sm font-medium">Nama penerima<input required minLength={2} maxLength={120} value={fullName} onChange={(e) => setFullName(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1.5 text-sm font-medium">Email penerima<input required type="email" maxLength={180} value={email} onChange={(e) => setEmail(e.target.value)} className="min-h-10 rounded-lg border bg-background px-3"/></label>
           <label className="grid gap-1.5 text-sm font-medium">Tujuan pemberian akses<textarea required minLength={12} maxLength={500} value={purpose} onChange={(e) => setPurpose(e.target.value)} className="min-h-20 rounded-lg border bg-background p-3" placeholder="Jelaskan kegiatan/proyek dan alasan data diperlukan."/></label>

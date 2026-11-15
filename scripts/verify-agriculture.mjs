@@ -153,6 +153,7 @@ const legacyOnly = { ...principal, grants: [{ ...principal.grants[0], scopes: [{
 assert.equal(activeExternalGrants(legacyOnly.grants, at).length, 0, "Unsupported legacy grants must not keep an external account active");
 
 const api = readFileSync("src/app/api/agriculture/route.ts", "utf8");
+const agricultureWorkspace = readFileSync("src/app/_components/agriculture-workspace.tsx", "utf8");
 const summary = readFileSync("src/lib/external-agriculture-summary.ts", "utf8");
 const portal = readFileSync("src/app/portal-eksternal/page.tsx", "utf8");
 const externalDashboard = readFileSync("src/app/_components/external-audience-dashboard.tsx", "utf8");
@@ -167,9 +168,17 @@ assert.equal(dateRegex.test("2026-11-10"), true, "A valid ISO date must pass val
 assert.equal(dateRegex.test("2026-11-1"), false, "A malformed ISO date must fail validation");
 assert(api.includes('.replace(/[\\u0300-\\u036f]/g, "")'), "Commodity slugs must normalize combining Unicode accents");
 assert(api.includes("memberData.status !== \"Aktif\"") && api.includes("memberData.verification !== \"Terverifikasi\""), "Lands must be linked to active, verified members");
-assert(api.includes('!["admin", "ketua"].includes(user.role)'), "Verification must require administrator or chair");
+assert(api.includes('user.role !== "sekretaris"'), "Only Secretariat may verify agriculture records");
 assert(api.includes('user.programIds.includes("3")'), "Coordinator write access must require agriculture program assignment");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
+assert(api.includes("const memberOptions = isSecretariat ?"), "Only the Secretariat may receive individual member choices");
+assert(api.includes("const memberCount = members.results.reduce"), "Other roles receive an aggregate member count rather than identities");
+assert(api.includes("member_id: _memberId") && api.includes("verification_note: _verificationNote"), "Non-Secretariat parcel responses must hide member mapping and free-text verification notes");
+assert(api.includes("audit: isSecretariat ? auditRows.results : []"), "Agriculture actor-level audit is restricted to the Secretariat");
+assert(agricultureWorkspace.includes('const canManageCommodity = role === "sekretaris";'), "The Secretariat owns commodity master maintenance");
+assert(agricultureWorkspace.includes('const canManageLand = role === "sekretaris";'), "The Secretariat owns the land register");
+assert(agricultureWorkspace.includes('const canManageTechnical = role === "koordinator" && programIds.includes("3");'), "Only the assigned agriculture coordinator records technical cycles and harvests");
+
 assert(summary.includes("data::jsonb->>'status'='Aktif'") && summary.includes("data::jsonb->>'verification'='Terverifikasi'"));
 assert(summary.includes("p.verification_status='verified'") && summary.includes("c.verification_status='verified'") && summary.includes("h.verification_status='verified'"));
 assert(summary.includes("COUNT(DISTINCT p.member_id)") && summary.includes("COUNT(*) AS verified_count"), "Aggregates must be based on unique members and verified records");
@@ -177,7 +186,15 @@ assert(summary.includes("count >= 5") && summary.includes("contributors >= 3"), 
 assert(!/NIK|phone|coordinate|latitude|longitude/i.test(summary), "External summary must not query personal contact or precise location fields");
 assert(portal.includes("getExternalAgricultureSummary(user)") && externalDashboard.includes("Monografi dan indikator pertanian") && externalDashboard.includes("summary.harvest"), "The external audience dashboard must render the server-computed agriculture summary");
 assert(nav.includes("admin('pertanian','Pengelolaan Pertanian'"));
-assert(access.includes("if(id==='pertanian')return ['admin','ketua','koordinator'].includes(role)"));
+assert(access.includes('if (id === "pertanian") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);'));
 
-console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, two-person verification, scoped external grants, and privacy thresholds.");
+assert(access.includes('user.role === "sekretaris") return secretariatWrite.includes(kind)'));
+assert(api.includes("Master komoditas merupakan register referensi yang dikelola Sekretariat."));
+assert(api.includes("Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis."));
+assert(api.includes('action === "update_parcel"') && api.includes("verification_status='pending'"), "Secretariat edits must return land records to Secretariat re-verification");
+assert(api.includes('action === "archive_parcel"') && api.includes("status='archived'"), "Land register archiving must preserve linked history rather than hard-delete");
+assert(agricultureWorkspace.includes('action: "update_parcel"') && agricultureWorkspace.includes('action: "archive_parcel"'), "Secretariat land edit/archive controls must be present");
+
+console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, Secretariat verification, scoped external grants, and privacy thresholds.");
 await pool.end();
+

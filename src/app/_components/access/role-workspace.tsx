@@ -140,6 +140,8 @@ export default function RoleWorkspace({
   );
   const totalPages = Math.max(1, Math.ceil(displayed.length / 25));
   const currentPage = Math.min(page, totalPages);
+  const taskReviewFields = ["verification", "reviewNote", "meetingReviewStatus", "meetingReviewMeeting", "meetingReviewDate", "meetingReviewNote"];
+  const secretaryTaskReview = user.role === "sekretaris" && section === "tindaklanjut" && !!editor?.row?.id;
   const formFields =
     editor?.kind === "program"
       ? [
@@ -176,12 +178,6 @@ export default function RoleWorkspace({
         ? modules[editor.kind]?.fields.map((field) => {
             if (field.key === "programId" && user.role === "koordinator")
               return { ...field, options: field.options?.filter((option) => user.programIds.includes(option)) };
-            if (user.role === "ketua" && editor.kind === "tindaklanjut") {
-              if (field.key === "pic") return { ...field, label: "Pelaksana yang ditetapkan" };
-              if (field.key === "dueDate") return { ...field, label: "Tenggat hasil keputusan" };
-              if (field.key === "evidence") return { ...field, label: "Hasil yang diharapkan / indikator selesai" };
-              if (field.key === "notes") return { ...field, label: "Keputusan Ketua / perkembangan" };
-            }
             return field;
           })
         : [];
@@ -488,6 +484,14 @@ export default function RoleWorkspace({
                       <Button variant="outline" onClick={() => setDetail(r)}>
                         Rincian
                       </Button>
+                      {section === "tindaklanjut" && user.role === "sekretaris" && (
+                        ["Menunggu verifikasi", "Perlu perbaikan"].includes(String(r.data.verification || "")) ||
+                        String(r.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi"
+                      ) && (
+                        <Button variant="outline" onClick={() => { clearError(); setEditor({ kind: section, row: r }); }}>
+                          Periksa hasil
+                        </Button>
+                      )}
                       {canWriteKind(user, section) && (
                         <>
                           <Button
@@ -621,14 +625,13 @@ export default function RoleWorkspace({
         <DialogContent className="workspace-dialog max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editor?.row?.id ? "Perbarui" : "Tambah"}{" "}
+              {secretaryTaskReview ? "Periksa hasil tugas" : editor?.row?.id ? "Perbarui" : "Tambah"}{" "}
               {editor?.kind === "program"
                 ? "program"
                 : editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
-              Isi sesuai keadaan nyata. Pilih nomor program untuk catatan yang
-              dikelola koordinator.
+              {secretaryTaskReview ? "Data pelaksanaan ditampilkan sebagai baca-saja. Sekretariat hanya mengubah status verifikasi dan catatan pemeriksaan." : "Isi sesuai keadaan nyata. Pilih nomor program untuk catatan yang dikelola koordinator."}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -650,10 +653,11 @@ export default function RoleWorkspace({
                       {f.label}
                       {f.required ? " *" : ""}
                     </FieldLabel>
-                    {f.key === "fileId" ? (<ImagePicker id={"edit-" + f.key} name={f.key} files={files} defaultValue={String(editor?.row?.data[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={busy} />) : ["attachmentId", "fileId"].includes(f.key) ? (
+                    {f.key === "fileId" ? (<ImagePicker id={"edit-" + f.key} name={f.key} files={files} defaultValue={String(editor?.row?.data[f.key] ?? "")} required={f.required} onBusyChange={imageBusy} disabled={busy || (secretaryTaskReview && !taskReviewFields.includes(f.key))} />) : ["attachmentId", "fileId"].includes(f.key) ? (
                       <NativeSelect
                         id={"edit-" + f.key}
                         name={f.key}
+                        disabled={secretaryTaskReview && !taskReviewFields.includes(f.key)}
                         required={f.required}
                         defaultValue={String(editor?.row?.data[f.key] ?? "")}
                       >
@@ -679,6 +683,7 @@ export default function RoleWorkspace({
                       <NativeSelect
                         id={"edit-" + f.key}
                         name={f.key}
+                        disabled={secretaryTaskReview && !taskReviewFields.includes(f.key)}
                         defaultValue={String(
                           editor?.row?.data[f.key] ?? f.options[0],
                         )}
@@ -700,6 +705,7 @@ export default function RoleWorkspace({
                       <Textarea
                         id={"edit-" + f.key}
                         name={f.key}
+                        disabled={secretaryTaskReview && !taskReviewFields.includes(f.key)}
                         defaultValue={editor?.row?.data[f.key] ?? ""}
                         required={f.required}
                         maxLength={5000}
@@ -708,6 +714,7 @@ export default function RoleWorkspace({
                       <Input
                         id={"edit-" + f.key}
                         name={f.key}
+                        disabled={secretaryTaskReview && !taskReviewFields.includes(f.key)}
                         type={
                           f.type === "decimal" ? "number" : f.type || "text"
                         }
@@ -718,6 +725,9 @@ export default function RoleWorkspace({
                         defaultValue={editor?.row?.data[f.key] ?? ""}
                         required={f.required}
                       />
+                    )}
+                    {secretaryTaskReview && !taskReviewFields.includes(f.key) && (
+                      <input type="hidden" name={f.key} value={String(editor?.row?.data[f.key] ?? "")} />
                     )}
                   </Field>
                 ))}

@@ -35,7 +35,7 @@ const featureIcons: Record<string, LucideIcon> = {
   tindaklanjut: ClipboardCheck, kegiatan: CalendarClock, kehadiran: Users,
   musyawarah: MessagesSquare, pengajuan: FileText, enterprise: ShieldCheck,
   anggota: Users, pengurus: BriefcaseBusiness, persetujuan: ShieldCheck,
-  surat: FileText, register: FolderCheck, sumber: BookOpen, kelembagaan: Files,
+  surat: FileText, "surat-resmi": FileText, register: FolderCheck, sumber: BookOpen, kelembagaan: Files,
   transkripsi: FileCheck2, dokumen: Files, kas: Wallet, akuntansi: Landmark,
   aset: PackageCheck, penjualan: ShoppingBag, lotkopi: Sprout, usaha: Sprout,
   kemitraan: Handshake, publikasi: Megaphone, galeri: Camera,
