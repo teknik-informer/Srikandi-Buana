@@ -147,8 +147,13 @@ assert.equal(architectSecretaryActivation.response.status,200,'Architect-created
 const architectSecretaryAuth=await load('src/lib/auth.ts',architectSecretaryActivation.j);
 const architectSecretaryPrincipal=await architectSecretaryAuth.getAuthenticatedUser();
 assert.equal(architectSecretaryPrincipal.role,'sekretaris');
-const architectRoster=await (await accountAdmin.GET()).json();
-assert(architectRoster.users.some(user=>user.id===architectSecretaryPrincipal.accountId&&user.email===architectSecretaryEmail),'Architect can view the active structural account and its configured email');
+assert.equal(architectSecretaryPrincipal.userId,owner,'Structural account remains in the Architect workspace');
+const directArchitectAccount=await prepare('SELECT id,email,workspace_owner FROM users WHERE email=?').bind(architectSecretaryEmail).first();
+assert.equal(String(directArchitectAccount?.workspace_owner||''),owner,'Activated structural account must be stored under the correct workspace owner');
+const architectRosterResponse=await accountAdmin.GET();
+assert.equal(architectRosterResponse.status,200,'Architect account roster request succeeds');
+const architectRoster=await architectRosterResponse.json();
+assert(architectRoster.users.some(user=>user.id===architectSecretaryPrincipal.accountId&&user.email===architectSecretaryEmail),'Architect can view the active structural account and its configured email: '+JSON.stringify({owner,principal:architectSecretaryPrincipal,rows:architectRoster.users?.map(user=>({id:user.id,email:user.email,workspace_owner:user.workspace_owner})),error:architectRoster.error}));
 const architectRoleChange=await accountAdmin.PATCH(req('/api/accounts','PATCH',{userId:architectSecretaryPrincipal.accountId,role:'bendahara',position:'Bendahara',programIds:[],enabled:true}));
 assert.equal(architectRoleChange.status,200,'Architect can update a non-Chair structural account role');
 assert.equal(await architectSecretaryAuth.getAuthenticatedUser(),null,'Changing a structural role revokes the old session immediately');
