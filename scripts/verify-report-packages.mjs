@@ -79,7 +79,8 @@ for(const token of [
   "Verifikasi domain",
   "Setujui paket",
   "Tolak paket",
-  "Generator PDF/Excel",
+  "Unduh Excel (CSV)",
+  "Cetak / Simpan PDF",
 ]) assert.ok(ui.includes(token),'Missing report package UI workflow: '+token);
 assert.ok(policy.includes('if (id === "laporan") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);'));
 
