@@ -116,6 +116,10 @@ export default function ReportPackageManager({user}:{user:Principal}){
       <span className="inline-flex items-center gap-1"><ShieldCheck size={14}/> SHA-256 {pkg.snapshot_hash.slice(0,12)}…</span>
      </div>
      {pkg.snapshot?.summary?.total!==undefined&&<p className="text-sm">Ringkasan: {pkg.snapshot.summary.total} catatan{pkg.snapshot.summary.verified!==undefined?" · "+pkg.snapshot.summary.verified+" terverifikasi":""}{pkg.snapshot.summary.consentRecorded!==undefined?" · "+pkg.snapshot.summary.consentRecorded+" persetujuan tercatat":""}</p>}
+     {pkg.status==="approved"&&<div className="flex flex-wrap gap-2 border-t pt-3">
+      <Button asChild size="sm" variant="outline"><a href={"/api/report-packages/export?id="+encodeURIComponent(pkg.id)+"&format=csv"}>Unduh Excel (CSV)</a></Button>
+      <Button asChild size="sm" variant="outline"><a href={"/api/report-packages/export?id="+encodeURIComponent(pkg.id)+"&format=print"} target="_blank" rel="noopener noreferrer">Cetak / Simpan PDF</a></Button>
+     </div>}
      {pkg.verification_note&&<p className="text-sm text-muted-foreground">Catatan verifikasi: {pkg.verification_note}</p>}
      {pkg.approval_note&&<p className="text-sm text-muted-foreground">Catatan Ketua: {pkg.approval_note}</p>}
      {((canVerify(user.role,pkg.group_id)&&pkg.status==="draft")||(user.role==="ketua"&&pkg.status==="verified"))&&<div className="space-y-2 border-t pt-3">
@@ -129,6 +133,6 @@ export default function ReportPackageManager({user}:{user:Principal}){
     </CardContent>
    </Card>)}
   </div>
-  <p className="text-xs leading-relaxed text-muted-foreground">Paket yang disetujui belum otomatis menjadi surat resmi atau dokumen bertanda tangan. Fitur ini tersedia untuk pengujian pada Preview/QA yang telah menerapkan migrasi 009; belum diaktifkan di Production. Generator PDF/Excel dan distribusi eksternal masih menunggu tahap lanjutan.</p>
+  <p className="text-xs leading-relaxed text-muted-foreground">Paket yang disetujui belum otomatis menjadi surat resmi atau dokumen bertanda tangan. Ekspor hanya tersedia untuk paket berstatus Disetujui Ketua. CSV dapat dibuka di Excel; tampilan cetak dapat disimpan sebagai PDF melalui dialog cetak browser. Distribusi eksternal tetap memerlukan grant terpisah.</p>
  </section>;
 }
