@@ -169,36 +169,30 @@ export async function POST(req: Request) {
       summary:data.summary,rows:data.rows,
     };
     const snapshotHash = sha256(snapshot);
-    const prior = await c.db!.prepare("SELECT COALESCE(MAX(package_version),0) AS version FROM report_packages WHERE owner=? AND group_id=? AND period_start IS NOT DISTINCT FROM ?::date AND period_end IS NOT DISTINCT FROM ?::date").bind(c.user!.userId,group,start||null,end||null).first();
-    const version = Number(prior?.version || 0)+1;
     const id = randomUUID(), now = new Date().toISOString(), eventId = randomUUID();
-    const inserted = await c.db!.prepare(`WITH candidates AS MATERIALIZED (
-      SELECT id,owner,status,snapshot_hash FROM report_packages
-      WHERE owner=? AND group_id=? AND period_start IS NOT DISTINCT FROM ?::date
-        AND period_end IS NOT DISTINCT FROM ?::date AND status<>'superseded'
-    ), superseded AS (
-      UPDATE report_packages p SET status='superseded',superseded_at=?
-      FROM candidates c WHERE p.id=c.id
-      RETURNING p.id,p.owner,c.status AS previous_status,p.snapshot_hash
-    ), old_events AS (
-      INSERT INTO report_package_events(id,owner,package_id,actor_id,action,from_status,to_status,note,snapshot_hash,created_at)
-      SELECT gen_random_uuid()::text,owner,id,?,'superseded',previous_status,'superseded','Versi baru dibuat.',snapshot_hash,?
-      FROM superseded RETURNING id
-    ), created AS (
-      INSERT INTO report_packages(id,owner,group_id,title,period_start,period_end,package_version,status,source_manifest,source_scope,snapshot,snapshot_hash,created_by,created_at)
-      SELECT ?,?,?,?,?,?,?, 'draft',?::jsonb,?::jsonb,?::jsonb,?,?,?
-      WHERE (SELECT count(*) FROM old_events)>=0
-      RETURNING id,status,snapshot_hash
-    )
-    INSERT INTO report_package_events(id,owner,package_id,actor_id,action,from_status,to_status,note,snapshot_hash,created_at)
-    SELECT ?,?,id,?,'created',NULL,'draft','Paket dibuat dari catatan sumber yang dapat diakses.',snapshot_hash,?
-    FROM created RETURNING package_id`).bind(
-      c.user!.userId,group,start||null,end||null,now,c.user!.accountId,now,
-      id,c.user!.userId,group,title,start||null,end||null,version,
-      JSON.stringify(sourceManifest),JSON.stringify(sourceScope),JSON.stringify(snapshot),snapshotHash,c.user!.accountId,now,
-      eventId,c.user!.userId,c.user!.accountId,now
-    ).all();
-    if (!inserted.results.length) return json({error:"Paket belum dapat dibuat. Periksa kembali periode dan versi."},409);
+    const periodStartKey = start || "", periodEndKey = end || "";
+    const counterSql = "INSERT INTO report_package_counters(owner,group_id,period_start_key,period_end_key,last_version) VALUES(?,?,?,?,(SELECT COALESCE(MAX(package_version),0)+1 FROM report_packages WHERE owner=? AND group_id=? AND period_start IS NOT DISTINCT FROM ?::date AND period_end IS NOT DISTINCT FROM ?::date)) ON CONFLICT(owner,group_id,period_start_key,period_end_key) DO UPDATE SET last_version=report_package_counters.last_version+1 RETURNING last_version";
+    const createSql = [
+      "WITH candidates AS MATERIALIZED (SELECT id,owner,status,snapshot_hash FROM report_packages WHERE owner=? AND group_id=? AND period_start IS NOT DISTINCT FROM ?::date AND period_end IS NOT DISTINCT FROM ?::date AND status<>'superseded')",
+      ", superseded AS (UPDATE report_packages p SET status='superseded',superseded_at=? FROM candidates c WHERE p.id=c.id RETURNING p.id,p.owner,c.status AS previous_status,p.snapshot_hash)",
+      ", old_events AS (INSERT INTO report_package_events(id,owner,package_id,actor_id,action,from_status,to_status,note,snapshot_hash,created_at) SELECT gen_random_uuid()::text,owner,id,?,'superseded',previous_status,'superseded','Versi baru dibuat.',snapshot_hash,? FROM superseded RETURNING id)",
+      ", created AS (INSERT INTO report_packages(id,owner,group_id,title,period_start,period_end,package_version,status,source_manifest,source_scope,snapshot,snapshot_hash,created_by,created_at) SELECT ?,?,?,?,?,?,(SELECT last_version FROM report_package_counters WHERE owner=? AND group_id=? AND period_start_key=? AND period_end_key=?),'draft',?::jsonb,?::jsonb,?::jsonb,?,?,? WHERE (SELECT count(*) FROM old_events)>=0 RETURNING id,status,snapshot_hash,package_version)",
+      "INSERT INTO report_package_events(id,owner,package_id,actor_id,action,from_status,to_status,note,snapshot_hash,created_at) SELECT ?,?,id,?,'created',NULL,'draft','Paket dibuat dari catatan sumber yang dapat diakses.',snapshot_hash,? FROM created RETURNING package_id"
+    ].join(" ");
+    const batchResults = await c.db!.batch([
+      c.db!.prepare(counterSql).bind(c.user!.userId,group,periodStartKey,periodEndKey,c.user!.userId,group,start||null,end||null),
+      c.db!.prepare(createSql).bind(
+        c.user!.userId,group,start||null,end||null,now,c.user!.accountId,now,
+        id,c.user!.userId,group,title,start||null,end||null,
+        c.user!.userId,group,periodStartKey,periodEndKey,
+        JSON.stringify(sourceManifest),JSON.stringify(sourceScope),JSON.stringify(snapshot),snapshotHash,c.user!.accountId,now,
+        eventId,c.user!.userId,c.user!.accountId,now
+      )
+    ]);
+    const counterRows = (batchResults[0] as {rows?:Array<{last_version:number|string}>}).rows || [];
+    const insertedRows = (batchResults[1] as {rows?:Array<{package_id:string}>}).rows || [];
+    const version = Number(counterRows[0]?.last_version || 0);
+    if (!insertedRows.length || version < 1) return json({error:"Paket belum dapat dibuat. Periksa kembali periode dan versi."},409);
     return json({ok:true,id,version,snapshotHash},201);
   } catch (error) {
     if (error instanceof RequestBodyError) return json({error:error.message},error.status);
