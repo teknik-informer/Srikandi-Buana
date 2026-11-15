@@ -60,3 +60,16 @@ Endpoint `GET /api/report-packages/export?id=...&format=csv` menghasilkan CSV UT
 6. Distribusi eksternal menggunakan grant yang dapat dicabut dan tidak membocorkan data pribadi.
 7. Migrasi telah diterapkan dan diverifikasi pada database QA yang disanitasi; belum ada izin untuk menerapkannya ke Neon produksi. Tidak ada migrasi otomatis yang dijalankan oleh endpoint API.
 
+
+
+## Audit privasi ekspor organisasi — 15 November 2026
+
+Endpoint ekspor JSON terbatas untuk Ketua (GET /api/export) diperkeras agar hanya menghasilkan ringkasan non-identifying untuk pesan masuk dan pengajuan operasional:
+
+- Pesan masuk hanya dihitung per status; kolom nama, kontak, topik, isi pesan, hash IP, dan metadata persetujuan tidak dibaca ke dalam arsip.
+- Pengajuan operasional diringkas per kategori/status; histori diringkas per jenis tindakan. Nama pengaju/pelaksana, deskripsi bebas, nama bukti, dan catatan bebas tidak diekspor.
+- Nama file lampiran pada metadata ekspor digeneralisasi menjadi "Lampiran".
+- Format ekspor dinaikkan ke versi 5. Endpoint tetap memerlukan sesi Ketua dan mencatat aktivitas ekspor sebelum mengirimkan data.
+- Regression test menjalankan endpoint dengan fixture sensitif dan memeriksa SQL yang digunakan, sehingga pengembalian query mentah akan membuat tes gagal.
+
+GitHub Actions Run #2284 pada commit 43a481db69723436a4c88fd229801449a9420952 SUCCESS: seluruh security gates, regression tests, TypeScript, dan Next.js production build lulus. Ini membuktikan pemeriksaan kode otomatis, bukan UAT terautentikasi. Tidak ada migrasi atau perubahan database Production.
