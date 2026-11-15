@@ -13,7 +13,7 @@ function canRead(user: Principal, group: ReportGroupId, createdBy: string) {
 }
 function csvCell(value: unknown) {
   const text = value == null ? "" : typeof value === "object" ? JSON.stringify(value) : String(value);
-  const safe = typeof value === "string" && /^[\\t\\n\\r ]*[=+\\-@]/.test(text) ? "'" + text : text;
+  const safe = typeof value === "string" && /^[\t\n\r ]*[=+\-@]/.test(text) ? "'" + text : text;
   return '"' + safe.replace(/"/g, '""') + '"';
 }
 function escapeHtml(value: unknown) {
