@@ -155,6 +155,10 @@ export async function POST(req: Request) {
     const allowed = candidates.filter(row => groupKinds[group].includes(row.kind) && canReadRecord(c.user!,row));
     const periodRows = allowed.filter(row => inPeriod(row as unknown as Row,start,end));
     const sourceManifest = periodRows.map(row => ({id:row.id,kind:row.kind,updated:row.updated,sourceHash:row.sourceHash}));
+    // Capture the exact visibility scope used to build this snapshot.
+    const sourceScope = c.user!.role === "koordinator"
+      ? {mode:"program_ids",programIds:[...new Set(c.user!.programIds.map(String))].sort()}
+      : {mode:"all"};
     const visibleRows = periodRows.map(row => visibleRecord(c.user!,row) as Row);
     const data = snapshotRows(group,visibleRows);
     const snapshot = {
@@ -180,8 +184,8 @@ export async function POST(req: Request) {
       SELECT gen_random_uuid()::text,owner,id,?,'superseded',previous_status,'superseded','Versi baru dibuat.',snapshot_hash,?
       FROM superseded RETURNING id
     ), created AS (
-      INSERT INTO report_packages(id,owner,group_id,title,period_start,period_end,package_version,status,source_manifest,snapshot,snapshot_hash,created_by,created_at)
-      SELECT ?,?,?,?,?,?,?, 'draft',?::jsonb,?::jsonb,?,?,?
+      INSERT INTO report_packages(id,owner,group_id,title,period_start,period_end,package_version,status,source_manifest,source_scope,snapshot,snapshot_hash,created_by,created_at)
+      SELECT ?,?,?,?,?,?,?, 'draft',?::jsonb,?::jsonb,?::jsonb,?,?,?
       WHERE (SELECT count(*) FROM old_events)>=0
       RETURNING id,status,snapshot_hash
     )
@@ -190,7 +194,7 @@ export async function POST(req: Request) {
     FROM created RETURNING package_id`).bind(
       c.user!.userId,group,start||null,end||null,now,c.user!.accountId,now,
       id,c.user!.userId,group,title,start||null,end||null,version,
-      JSON.stringify(sourceManifest),JSON.stringify(snapshot),snapshotHash,c.user!.accountId,now,
+      JSON.stringify(sourceManifest),JSON.stringify(sourceScope),JSON.stringify(snapshot),snapshotHash,c.user!.accountId,now,
       eventId,c.user!.userId,c.user!.accountId,now
     ).all();
     if (!inserted.results.length) return json({error:"Paket belum dapat dibuat. Periksa kembali periode dan versi."},409);
