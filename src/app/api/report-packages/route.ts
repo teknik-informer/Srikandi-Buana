@@ -144,6 +144,7 @@ export async function POST(req: Request) {
     const end = body.periodEnd == null || body.periodEnd === "" ? "" : String(body.periodEnd);
     const validDate = (value:string) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value+"T00:00:00Z").toISOString().slice(0,10)===value);
     if (!groups.includes(group) || !canCreate(c.user!,group)) return json({error:"Anda tidak berwenang menyusun paket untuk domain ini."},403);
+    if (c.user!.role === "koordinator" && c.user!.programIds.length === 0) return json({error:"Akun Koordinator belum memiliki penugasan program. Hubungi pengelola organisasi."},403);
     if (title.length < 3 || title.length > 200 || !validDate(start) || !validDate(end) || (start && end && start > end))
       return json({error:"Judul atau rentang periode tidak valid."},400);
     const raw = await c.db!.prepare("SELECT id,kind,data,created,updated,md5(data::jsonb::text) AS source_hash FROM records WHERE owner=? ORDER BY created,id").bind(c.user!.userId).all();
