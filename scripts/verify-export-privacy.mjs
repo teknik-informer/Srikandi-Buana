@@ -27,19 +27,19 @@ const db = {
         if (sql.includes("FROM messages")) {
           // If the endpoint regresses to selecting raw rows, return sensitive fixture data.
           // The archive assertion below must then fail instead of silently passing.
-          if (/COUNT\\s*\\(/i.test(sql) && /GROUP BY status/i.test(sql) &&
-              !/\\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\\b/i.test(sql)) {
+          if (/COUNT\s*\(/i.test(sql) && /GROUP BY status/i.test(sql) &&
+              !/\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\b/i.test(sql)) {
             return { results: [{ status: "Baru", count: 3 }, { status: "Ditindaklanjuti", count: 2 }] };
           }
           return { results: [rawSensitiveMessageFixture] };
         }
         if (sql.includes("FROM settings")) return { results: [] };
         if (sql.includes("FROM operational_requests")) {
-          if (/COUNT\\s*\\(/i.test(sql) && /GROUP BY category\\s*,\\s*status/i.test(sql)) return { results: [{ category: "purchase", status: "submitted", count: 2 }] };
+          if (/COUNT\s*\(/i.test(sql) && /GROUP BY category\s*,\s*status/i.test(sql)) return { results: [{ category: "purchase", status: "submitted", count: 2 }] };
           return { results: [{ requester_name: "Nama Pengaju Rahasia", description: "Rincian privat", proof_name: "KTP-rahasia.pdf" }] };
         }
         if (sql.includes("FROM operational_events")) {
-          if (/COUNT\\s*\\(/i.test(sql) && /GROUP BY e\\.action/i.test(sql)) return { results: [{ action: "approved", count: 1 }] };
+          if (/COUNT\s*\(/i.test(sql) && /GROUP BY e\.action/i.test(sql)) return { results: [{ action: "approved", count: 1 }] };
           return { results: [{ actor_name: "Nama Pelaksana Rahasia", note: "Catatan privat rahasia" }] };
         }
         throw new Error("Unexpected query: " + sql);
@@ -95,12 +95,12 @@ assert.deepEqual(JSON.parse(JSON.stringify(archive.operationHistorySummary)), [
 assert.equal("operations" in archive, false);
 assert.equal("operationHistory" in archive, false);
 assert.doesNotMatch(serialized, /Nama Pengaju Rahasia|Rincian privat|KTP-rahasia|Nama Pelaksana Rahasia|Catatan privat rahasia/);
-assert.ok(executedQueries.some(sql => /GROUP BY category\\s*,\\s*status/i.test(sql) && !/requester_name|description|proof_name/i.test(sql)));
-assert.ok(executedQueries.some(sql => /GROUP BY e\\.action/i.test(sql) && !/actor_name|note/i.test(sql)));
+assert.ok(executedQueries.some(sql => /GROUP BY category\s*,\s*status/i.test(sql) && !/requester_name|description|proof_name/i.test(sql)));
+assert.ok(executedQueries.some(sql => /GROUP BY e\.action/i.test(sql) && !/actor_name|note/i.test(sql)));
 const messageQuery = executedQueries.find((sql) => sql.includes("FROM messages"));
 assert.ok(messageQuery, "The export must query message oversight data.");
-assert.match(messageQuery, /SELECT\\s+status\\s*,\\s*COUNT\\(\\*\\)\\s+AS count\\s+FROM messages\\s+GROUP BY status/i);
-assert.doesNotMatch(messageQuery, /\\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\\b/i);
+assert.match(messageQuery, /SELECT\s+status\s*,\s*COUNT\(\*\)\s+AS count\s+FROM messages\s+GROUP BY status/i);
+assert.doesNotMatch(messageQuery, /\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\b/i);
 assert.equal(archive.messageSummary.reduce((sum, row) => sum + row.count, 0), 5);
 const unauthorizedGET = await handlerFor(null);
 assert.equal((await unauthorizedGET()).status, 403);
