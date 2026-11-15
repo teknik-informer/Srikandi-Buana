@@ -3,15 +3,36 @@ import { build } from "esbuild";
 import vm from "node:vm";
 import { webcrypto } from "node:crypto";
 
+const executedQueries = [];
+const rawSensitiveMessageFixture = {
+  id: "message-private-fixture",
+  name: "Nama Rahasia",
+  contact: "08123456789",
+  topic: "Informasi",
+  message: "Isi pesan rahasia",
+  status: "Baru",
+  created: "2026-11-15T10:00:00.000Z",
+  consent_version: "v1",
+  consented_at: "2026-11-15T10:00:00.000Z",
+};
 const db = {
   prepare(sql) {
+    executedQueries.push(sql);
     return {
       bind() { return this; },
       async run() { return { success: true }; },
       async all() {
         if (sql.includes("FROM records")) return { results: [] };
         if (sql.includes("FROM files")) return { results: [] };
-        if (sql.includes("FROM messages")) return { results: [{ status: "Baru", count: 3 }, { status: "Ditangani", count: 2 }] };
+        if (sql.includes("FROM messages")) {
+          // If the endpoint regresses to selecting raw rows, return sensitive fixture data.
+          // The archive assertion below must then fail instead of silently passing.
+          if (/COUNT\\s*\\(/i.test(sql) && /GROUP BY status/i.test(sql) &&
+              !/\\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\\b/i.test(sql)) {
+            return { results: [{ status: "Baru", count: 3 }, { status: "Ditindaklanjuti", count: 2 }] };
+          }
+          return { results: [rawSensitiveMessageFixture] };
+        }
         if (sql.includes("FROM settings")) return { results: [] };
         if (sql.includes("FROM operational_requests")) return { results: [] };
         if (sql.includes("FROM operational_events")) return { results: [] };
@@ -54,11 +75,16 @@ assert.equal(response.status, 200);
 const archive = await response.json();
 assert.equal(archive.formatVersion, 4);
 assert.deepEqual(JSON.parse(JSON.stringify(archive.messageSummary)), [
-  { status: "Baru", count: 3 }, { status: "Ditangani", count: 2 },
+  { status: "Baru", count: 3 }, { status: "Ditindaklanjuti", count: 2 },
 ]);
 const serialized = JSON.stringify(archive);
 assert.doesNotMatch(serialized, /contact|phone|08123456789|Nama Rahasia|Isi pesan rahasia/);
 assert.equal("messages" in archive, false);
+const messageQuery = executedQueries.find((sql) => sql.includes("FROM messages"));
+assert.ok(messageQuery, "The export must query message oversight data.");
+assert.match(messageQuery, /SELECT\\s+status\\s*,\\s*COUNT\\(\\*\\)\\s+AS count\\s+FROM messages\\s+GROUP BY status/i);
+assert.doesNotMatch(messageQuery, /\\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\\b/i);
+assert.equal(archive.messageSummary.reduce((sum, row) => sum + row.count, 0), 5);
 const unauthorizedGET = await handlerFor(null);
 assert.equal((await unauthorizedGET()).status, 403);
 console.log("PASS: Chair export contains non-identifying message counts only; raw contact/name/body fields are absent and unauthenticated access is denied.");
