@@ -1,6 +1,6 @@
 # Paket Laporan Resmi — Fondasi dan Kontrak Alur
 
-**Status per 14 November 2026:** API GET/POST/PATCH dan UI awal telah ditambahkan pada PR #17. Migrasi `009_report_packages.sql` telah diterapkan hanya pada cabang Neon QA `srikandi-v12-sanitized-qa-20261106` (`br-mute-meadow-b4rhx1mn`). Uji trigger imutabilitas database dengan fixture sementara yang di-rollback berhasil. CI 14/14 dan Preview Vercel untuk commit `cb2142c328fe418f09d705bdd8ded7620ea81b43` berhasil. UAT alur API terautentikasi, generator PDF/Excel, distribusi eksternal, dan persetujuan Production masih belum selesai. UAT lintas peran saat ini terblokir karena cabang QA hanya memiliki satu akun Administrator Sistem; belum ada akun Ketua, Sekretariat, Bendahara, atau Koordinator. Terdapat satu record anggota Aktif dan Terverifikasi yang belum terhubung ke akun; identitas/jabatannya belum diverifikasi untuk bootstrap Ketua. Tidak ada migrasi Production.
+**Status per 15 November 2026:** API GET/POST/PATCH dan UI awal telah ditambahkan pada PR #17. Migrasi `009_report_packages.sql` telah diterapkan hanya pada cabang Neon QA `srikandi-v12-sanitized-qa-20261106` (`br-mute-meadow-b4rhx1mn`). Uji trigger imutabilitas database dengan fixture sementara yang di-rollback berhasil. CI 14/14 dan Preview Vercel untuk commit `cb2142c328fe418f09d705bdd8ded7620ea81b43` berhasil. UAT alur API terautentikasi, generator PDF/Excel, distribusi eksternal, dan persetujuan Production masih belum selesai. UAT lintas peran saat ini terblokir karena cabang QA hanya memiliki satu akun Administrator Sistem; belum ada akun Ketua, Sekretariat, Bendahara, atau Koordinator. Terdapat satu record anggota Aktif dan Terverifikasi yang belum terhubung ke akun; identitas/jabatannya belum diverifikasi untuk bootstrap Ketua. Tidak ada migrasi Production.
 
 ## Tujuan
 
@@ -14,7 +14,7 @@ Memisahkan rekap operasional yang bisa berubah dari paket laporan yang telah dip
 4. **Rejected** — Ketua menolak dengan alasan; paket tetap disimpan sebagai jejak audit.
 5. **Superseded** — paket lama ditandai tidak berlaku ketika sumber berubah atau versi baru dibuat. Paket lama tidak dihapus.
 
-Perubahan isi sumber setelah paket dibuat harus membuat paket tidak layak disahkan. Sebelum persetujuan, server wajib membaca ulang setiap sumber dalam manifest dan membandingkan ID, jenis, waktu pembaruan, serta hash data dengan snapshot. Bila satu saja berbeda atau sumber tidak lagi dapat diakses, server menolak persetujuan dan meminta pembuatan versi baru. Jangan mengandalkan tombol UI atau status yang dikirim browser.
+Perubahan isi sumber setelah paket dibuat harus membuat paket tidak layak disahkan. Sebelum persetujuan, server membandingkan ID, jenis, waktu pembaruan, dan fingerprint setiap sumber dalam manifest, lalu memeriksa apakah ada sumber baru yang memenuhi jenis, periode, dan ruang lingkup paket tetapi belum tercantum dalam manifest. Paket yang dibuat Koordinator menyimpan daftar program yang menjadi ruang lingkup akses saat snapshot dibuat; pemeriksaan persetujuan tidak boleh memperluasnya menjadi seluruh program kelompok. Paket lama yang belum memiliki `source_scope` harus dibuat ulang sebelum dapat disahkan. Pemeriksaan dilakukan dalam pernyataan persetujuan yang sama dengan perubahan status dan pencatatan peristiwa. Ini merupakan pemeriksaan konsistensi pada snapshot transaksi PostgreSQL; pengujian konkurensi dan perubahan sumber bersamaan tetap wajib dilakukan di QA. Jangan mengandalkan tombol UI atau status yang dikirim browser.
 
 ## Pembagian kewenangan
 
@@ -31,10 +31,10 @@ Perubahan isi sumber setelah paket dibuat harus membuat paket tidak layak disahk
 
 Migrasi menambahkan dua tabel:
 
-- `report_packages`: metadata paket, manifest sumber, snapshot, hash, versi, status, serta identitas/waktu verifikasi dan persetujuan.
+- `report_packages`: metadata paket, manifest sumber, ruang lingkup sumber (`source_scope`), snapshot, hash, versi, status, serta identitas/waktu verifikasi dan persetujuan.
 - `report_package_events`: jejak perubahan status append-only.
 
-Database menolak perubahan atau penghapusan snapshot, manifest, hash, identitas sumber, dan versi. Untuk koreksi, buat paket versi baru. Event historis tidak dapat diubah atau dihapus.
+Database menolak perubahan atau penghapusan snapshot, manifest, ruang lingkup sumber, hash, identitas sumber, dan versi. Untuk koreksi, buat paket versi baru. Event historis tidak dapat diubah atau dihapus.
 
 ## Aturan privasi dan kualitas
 
@@ -49,7 +49,7 @@ Database menolak perubahan atau penghapusan snapshot, manifest, hash, identitas 
 
 1. API awal tersedia untuk membuat, membaca, memverifikasi, menyetujui, dan menolak paket sesuai role; UAT API terautentikasi pada Preview/QA masih diperlukan.
 2. Verifikasi domain serta persetujuan Ketua terikat pada hash yang sama dan mencegah persetujuan sendiri; perlu dibuktikan melalui akun uji tiap role.
-3. Pemeriksaan sumber saat persetujuan mendeteksi data yang berubah atau dihapus; uji perubahan sumber, pencabutan akses, dan kondisi konkurensi masih perlu dibuktikan pada QA.
+3. Pemeriksaan sumber saat persetujuan mendeteksi sumber yang berubah, dihapus, maupun baru ditambahkan dalam periode dan ruang lingkup yang sama. Ruang lingkup program Koordinator tersimpan secara immutable; uji perubahan sumber, sumber baru, pencabutan akses, dan kondisi konkurensi masih perlu dibuktikan pada QA.
 4. Regression test statis membatasi pembacaan paket per domain; UAT harus membuktikan Administrator Sistem dan akun eksternal tidak dapat membaca paket internal.
 5. Generator PDF/Excel hanya membaca paket berstatus approved dan mencantumkan versi, periode, hash, waktu, serta identitas pengesah.
 6. Distribusi eksternal menggunakan grant yang dapat dicabut dan tidak membocorkan data pribadi.
