@@ -33,6 +33,7 @@ assert.ok(migration.includes('NEW.snapshot_hash IS DISTINCT FROM OLD.snapshot_ha
 assert.match(scopeMigration,/ADD COLUMN IF NOT EXISTS source_scope JSONB/);
 assert.match(scopeMigration,/NEW.source_scope IS DISTINCT FROM OLD.source_scope/);
 assert.match(scopeMigration,/source_scope_shape/);
+assert.match(scopeMigration,/jsonb_typeof\(source_scope->'kinds'\) = 'array'/);
 assert.match(workflow,/server wajib membaca ulang setiap sumber/);
 assert.match(workflow,/Administrator Sistem tidak membaca/);
 assert.match(workflow,/belum selesai|belum dibangun|belum diterapkan/i);
@@ -79,5 +80,7 @@ assert.ok(api.includes('source_scope IS NOT NULL'),'Approval must reject legacy 
 assert.ok(api.includes('jsonb_array_elements_text(report_packages.source_scope'),'Coordinator approval must retain the captured program scope.');
 assert.ok(api.includes('items.item->>\'id\'=r.id'),'Approval must detect newly eligible source records.');
 assert.ok(api.includes('const sourceScope'),'Package creation must persist its source visibility scope.');
+assert.ok(api.includes('kinds:groupKinds[group].filter(kind=>canReadKindForRole(c.user!.role,kind))'),'Scope must contain only source kinds readable by the creator.');
+assert.ok(api.includes('programIds.length === 0'),'Coordinator without assigned programs must not create a package.');
 assert.ok(api.includes('programIds:[...new Set(c.user!.programIds.map(String))].sort()'),'Coordinator scope must be captured deterministically.');
 console.log('PASS: report-package schema invariants, null-safe version uniqueness, append-only history, snapshot immutability, and workflow guardrails (static contract check; not a PostgreSQL migration execution).');
