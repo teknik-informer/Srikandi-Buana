@@ -5,6 +5,16 @@
 ALTER TABLE report_packages
   ADD COLUMN IF NOT EXISTS source_scope JSONB;
 
+-- Serialize version allocation per owner, report domain, and period.
+CREATE TABLE IF NOT EXISTS report_package_counters (
+  owner TEXT NOT NULL REFERENCES users(id),
+  group_id TEXT NOT NULL CHECK(group_id IN ('operasional','keanggotaan','administrasi','keuangan','usaha','publikasi')),
+  period_start_key TEXT NOT NULL,
+  period_end_key TEXT NOT NULL,
+  last_version INTEGER NOT NULL CHECK(last_version > 0),
+  PRIMARY KEY(owner,group_id,period_start_key,period_end_key)
+);
+
 DO $$
 BEGIN
   IF NOT EXISTS (
