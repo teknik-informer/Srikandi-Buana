@@ -57,7 +57,8 @@ export async function POST(request:Request){
  }
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan email pribadi yang valid.'},400);
  const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(memberId,u.userId).first();if(!member)return json({error:'Pilih anggota yang terdaftar.'},400);const data=JSON.parse(String(member.data));if(data.verification!=='Terverifikasi'||data.status!=='Aktif')return json({error:'Verifikasi data anggota dan tetapkan status Aktif sebelum membuat undangan.'},400);fullName=String(data.name);
- if(purpose==='activate'){const duplicate=await env.DB.prepare('SELECT id FROM users WHERE lower(email)=lower(?) OR (workspace_owner=? AND member_id=?)').bind(email,u.userId,memberId).first();if(duplicate)return json({error:'Akun untuk email atau anggota ini sudah ada. Gunakan pemulihan akses.'},409)}\n if(purpose==='change_email'){
+ if(purpose==='activate'){const duplicate=await env.DB.prepare('SELECT id FROM users WHERE lower(email)=lower(?) OR (workspace_owner=? AND member_id=?)').bind(email,u.userId,memberId).first();if(duplicate)return json({error:'Akun untuk email atau anggota ini sudah ada. Gunakan pemulihan akses.'},409)}
+ if(purpose==='change_email'){
   const current=await env.DB.prepare('SELECT email FROM users WHERE id=? AND workspace_owner=?').bind(targetId,u.userId).first();
   if(!current||email===String(current.email).toLowerCase())return json({error:'Email baru sama dengan email yang sedang digunakan.'},400);
   const duplicate=await env.DB.prepare('SELECT id FROM users WHERE lower(email)=lower(?) AND id<>?').bind(email,targetId).first();
