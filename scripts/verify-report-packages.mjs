@@ -40,7 +40,9 @@ assert.match(scopeMigration,/source_scope \? 'mode'/);
 assert.match(scopeMigration,/source_scope \? 'programIds'/);
 assert.match(workflow,/server membandingkan ID, jenis, waktu pembaruan/);
 assert.match(workflow,/Administrator Sistem tidak membaca/);
-assert.match(workflow,/belum selesai|belum dibangun|belum diterapkan/i);
+assert.match(workflow,/Migrasi .*telah diverifikasi pada cabang Neon QA/i, 'Workflow documentation must reflect verified QA migration state.');
+assert.match(workflow,/UAT API terautentikasi .*masih diperlukan|integrasi HTTP terautentikasi .*belum dibuktikan/i, 'Documentation must not claim authenticated UAT is complete.');
+assert.match(workflow,/Tidak ada perubahan atau migrasi Production/i, 'Documentation must explicitly preserve Production safety.');
 for(const token of [
   "export async function GET()",
   "export async function POST(req: Request)",
