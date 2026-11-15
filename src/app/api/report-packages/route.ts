@@ -196,7 +196,7 @@ export async function POST(req: Request) {
     return json({ok:true,id,version,snapshotHash},201);
   } catch (error) {
     if (error instanceof RequestBodyError) return json({error:error.message},error.status);
-    return json({error:"Paket laporan belum dapat dibuat. Pastikan migrasi 009 telah diterapkan dan sumber data valid."},503);
+    return json({error:"Paket laporan belum dapat dibuat. Pastikan migrasi 009 dan 010 telah diterapkan pada lingkungan ini serta sumber data valid."},503);
   }
 }
 export async function PATCH(req: Request) {
