@@ -42,6 +42,19 @@ export async function GET(request: Request) {
       !canRead(user,String(pkg.group_id) as ReportGroupId,String(pkg.created_by)))
       return Response.json({error:"Paket tidak ditemukan, belum disetujui, atau berada di luar kewenangan akun."},{status:404,headers:{"Cache-Control":"private, no-store"}});
     const snapshot = typeof pkg.snapshot === "string" ? JSON.parse(pkg.snapshot) : pkg.snapshot;
+    if (user.role === "ketua" && snapshot && typeof snapshot === "object" && Array.isArray(snapshot.rows)) {
+      snapshot.rows = snapshot.rows.map((row: Record<string,unknown>) => {
+        const data = row.data && typeof row.data === "object" ? row.data as Record<string,unknown> : {};
+        if (["kehadiran","transkripsi","anggota","persetujuan"].includes(String(row.kind))) {
+          const safe = {...data};
+          for (const key of ["name","fullName","phone","email","address","nik","memberIds","memberNames","content","body","notes"]) delete safe[key];
+          if (row.kind === "kehadiran") safe.count = Math.max(Array.isArray(data.memberIds)?data.memberIds.length:0,Array.isArray(data.memberNames)?data.memberNames.length:0);
+          return {...row,data:safe};
+        }
+        const allowed = ["date","status","type","category","programId","period","code"];
+        return {...row,data:Object.fromEntries(allowed.filter(key=>key in data).map(key=>[key,data[key]]))};
+      });
+    }
     const rows = flatten(snapshot);
     const metadata: Array<[string,string]> = [
       ["Organisasi","KWT Srikandi Buana"],
