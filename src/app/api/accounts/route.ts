@@ -45,6 +45,7 @@ export async function POST(request:Request){
    if(existingChair||pendingChair)return json({error:'Akun Ketua sudah ditetapkan atau undangannya masih berlaku. Pergantian Ketua harus melalui prosedur serah-terima resmi.'},403);
   }
   if(u.role==='ketua'&&raw.action==='invite'&&raw.role==='ketua')return json({error:'Peran Ketua hanya ditetapkan melalui bootstrap Ketua pertama. Penyerahan kewenangan Ketua berikutnya memerlukan prosedur serah-terima resmi dan tidak melalui undangan biasa.'},403);
+  if(raw.action==='change_email'&&u.role!=='admin')return json({error:'Perubahan email struktural hanya dapat dimulai oleh Arsitek Sistem.'},403);
   const purpose=raw.action==='reset'?'reset':raw.action==='change_email'?'change_email':'activate';
   if(!['invite','reset','change_email'].includes(String(raw.action)))return json({error:'Tindakan tidak valid.'},400);
  let memberId=String(raw.memberId||''),email=String(raw.email||'').trim().toLowerCase(),fullName='',targetId:string|null=null,access=purpose==='change_email'?accessInput({role:'anggota'}):accessInput(raw);
