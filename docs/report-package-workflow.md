@@ -46,6 +46,10 @@ Database menolak perubahan atau penghapusan snapshot, manifest, ruang lingkup su
 - Hash snapshot adalah checksum integritas, bukan tanda tangan elektronik atau bukti identitas pejabat.
 - Persetujuan Ketua belum menggantikan nomor surat resmi, tanda tangan basah/elektronik, atau prosedur pengesahan yang ditetapkan organisasi.
 
+## Ekspor paket yang telah disetujui
+
+Endpoint `GET /api/report-packages/export?id=...&format=csv` menghasilkan CSV UTF-8 dengan BOM agar dapat dibuka di Excel. Format `print` menghasilkan lembar HTML siap cetak; pengguna dapat memilih **Simpan sebagai PDF** pada dialog cetak browser. Keduanya hanya melayani paket berstatus `approved`, memeriksa ulang peran/domain/pemilik paket di server, dan menggunakan `Cache-Control: private, no-store`. Ekspor Ketua menerapkan proyeksi privasi sebelum data ditampilkan. CSV bukan berkas XLSX asli dan format cetak bukan PDF yang dibuat server. Pengujian CI memeriksa kontrak keamanan dan build; UAT unduhan dengan akun organisasi yang sah tetap wajib sebelum rilis.
+
 ## Kriteria selesai sebelum produksi
 
 1. API awal tersedia untuk membuat, membaca, memverifikasi, menyetujui, dan menolak paket sesuai role; UAT API terautentikasi pada Preview/QA masih diperlukan.
