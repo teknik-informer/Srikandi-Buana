@@ -1,0 +1,42 @@
+# Arsitek Sistem — Manajemen Identitas dan Akun Struktural
+
+## Tujuan
+
+Arsitek Sistem adalah pemegang kendali konfigurasi teknis Srikandi Buana. Melalui Dashboard **Pengguna dan Hak Akses**, Arsitek dapat menyiapkan email login, mengirim undangan aktivasi, menetapkan peran aplikasi, memulihkan akses, menonaktifkan akun, dan memeriksa riwayat keamanan akun kepengurusan.
+
+Pengaturan akun ini tidak menetapkan atau mengubah keputusan organisasi. Nama jabatan tetap dicatat terpisah dari peran aplikasi dan harus mengikuti keputusan organisasi yang sah.
+
+## Kewenangan Arsitek Sistem
+
+- Melihat daftar akun dalam workspace dan daftar anggota dalam bentuk minimum: ID record, nama, status, dan status verifikasi.
+- Menyiapkan undangan untuk akun Sekretaris, Bendahara, Koordinator, dan Anggota dengan memasukkan email yang dikendalikan organisasi.
+- Mengundang Ketua pertama hanya bila belum ada akun Ketua maupun undangan Ketua yang masih berlaku.
+- Mengubah peran aplikasi, jabatan, penugasan program, dan status aktif akun non-Administrator Sistem/non-Ketua.
+- Membuat tautan pemulihan akun non-Administrator Sistem/non-Ketua dan mencabut undangan yang belum digunakan.
+- Melihat riwayat perubahan akses dan undangan.
+
+## Batas kewenangan
+
+- Arsitek Sistem tidak memperoleh akses baca/tulis ke catatan bisnis, data kas, anggota secara penuh, laporan organisasi, atau paket laporan hanya karena mengelola akun.
+- Arsitek tidak dapat mengubah, menonaktifkan, atau mengganti akun Ketua melalui pengelolaan akun biasa.
+- Hanya satu akun Ketua aktif yang diperbolehkan. Penggantian Ketua tetap memerlukan prosedur serah-terima organisasi dan proses khusus yang diaudit.
+- Arsitek tidak dapat menetapkan dirinya sebagai Ketua melalui perubahan peran.
+- Pengelolaan akun tidak memberikan hak menyetujui laporan atau bertindak sebagai pengurus organisasi.
+
+## Alur aktivasi dan keamanan
+
+1. Arsitek memilih anggota yang statusnya **Aktif** dan **Terverifikasi**.
+2. Arsitek memasukkan email struktural yang akan dipakai untuk login, lalu memilih peran aplikasi dan jabatan sesuai keputusan organisasi.
+3. Sistem membuat tautan aktivasi satu kali. Tautan ditampilkan hanya saat dibuat, berlaku 48 jam, dan harus dikirim secara pribadi kepada penerima yang benar.
+4. Penerima memverifikasi email dan menetapkan kata sandi sendiri. Kata sandi tidak dikirim atau disimpan oleh Arsitek.
+5. Pemulihan akun menghasilkan tautan satu kali yang berlaku satu jam.
+6. Perubahan peran atau penonaktifan mencabut sesi login dan undangan lama pengguna terkait.
+7. Setiap tindakan dicatat dalam riwayat keamanan.
+
+## Privasi data
+
+Roster yang diberikan kepada Arsitek hanya memuat identitas minimum yang diperlukan untuk menghubungkan akun dengan anggota. Nomor telepon, alamat, catatan pribadi, kebutuhan rumah tangga, dan rincian operasional tidak disertakan. API data bisnis tetap menolak akses untuk peran teknis.
+
+## Catatan cakupan
+
+Email baru ditetapkan saat membuat undangan akun. Penggantian alamat email pada akun yang sudah aktif memerlukan alur perubahan email terverifikasi tersendiri; fitur ini tidak boleh dilakukan dengan mengubah kolom email secara langsung tanpa verifikasi pemilik alamat baru.
