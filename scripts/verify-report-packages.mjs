@@ -100,7 +100,7 @@ for(const token of [
   'pkg.status !== "approved"',
   'user.role === "admin" || user.role === "anggota"',
   'Content-Type":"text/csv; charset=utf-8"',
-  'format === "print"',
+  'format === "csv"',
   'Disetujui oleh',
   'SHA-256',
   'window.print()',
