@@ -39,4 +39,4 @@ Roster yang diberikan kepada Arsitek hanya memuat identitas minimum yang diperlu
 
 ## Catatan cakupan
 
-Email baru ditetapkan saat membuat undangan akun. Penggantian alamat email pada akun yang sudah aktif memerlukan alur perubahan email terverifikasi tersendiri; fitur ini tidak boleh dilakukan dengan mengubah kolom email secara langsung tanpa verifikasi pemilik alamat baru.
+Email baru ditetapkan saat membuat undangan akun. Untuk akun yang sudah aktif, Arsitek dapat meminta perubahan email melalui tautan verifikasi satu kali yang dikirimkan secara pribadi kepada pemilik alamat baru. Alamat lama tetap berlaku sampai tautan diverifikasi. Token hanya terikat pada akun sasaran, workspace, dan alamat email baru; proses memeriksa konflik alamat, kedaluwarsa, pencabutan, dan penggunaan ulang secara atomik. Setelah berhasil, sesi login lama dicabut dan pengguna masuk kembali menggunakan email baru. Ketua, Administrator Sistem, dan akun Arsitek sendiri tidak dapat diubah melalui alur biasa. Password tidak diminta atau diubah dalam proses ini. Tautan perubahan email berlaku satu jam dan hanya ditampilkan saat dibuat.
