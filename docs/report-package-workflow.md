@@ -33,6 +33,7 @@ Migrasi menambahkan dua tabel:
 
 - `report_packages`: metadata paket, manifest sumber, ruang lingkup sumber (`source_scope`), snapshot, hash, versi, status, serta identitas/waktu verifikasi dan persetujuan.
 - `report_package_events`: jejak perubahan status append-only.
+- `report_package_counters`: penghitung versi per pemilik, domain, dan periode. Alokasi nomor versi, supersede paket sebelumnya, pembuatan snapshot, dan pencatatan event dijalankan dalam transaksi serializable; konflik transaksi harus digagalkan, bukan menghasilkan nomor versi ganda.
 
 Database menolak perubahan atau penghapusan snapshot, manifest, ruang lingkup sumber, hash, identitas sumber, dan versi. Untuk koreksi, buat paket versi baru. Event historis tidak dapat diubah atau dihapus.
 
