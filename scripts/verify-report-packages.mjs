@@ -5,6 +5,7 @@ const migration=readFileSync('migrations/009_report_packages.sql','utf8');
 const scopeMigration=readFileSync('migrations/010_report_package_source_scope.sql','utf8');
 const workflow=readFileSync('docs/report-package-workflow.md','utf8');
 const api=readFileSync('src/app/api/report-packages/route.ts','utf8');
+const exportApi=readFileSync('src/app/api/report-packages/export/route.ts','utf8');
 const ui=readFileSync('src/app/_components/report-package-manager.tsx','utf8');
 const policy=readFileSync('src/features/identity/access-policy.ts','utf8');
 for(const table of ['report_packages','report_package_events']){
@@ -92,3 +93,17 @@ assert.ok(api.includes('kinds:groupKinds[group].filter(kind=>canReadKindForRole(
 assert.ok(api.includes('programIds.length === 0'),'Coordinator without assigned programs must not create a package.');
 assert.ok(api.includes('programIds:[...new Set(c.user!.programIds.map(String))].sort()'),'Coordinator scope must be captured deterministically.');
 console.log('PASS: report-package schema invariants, null-safe version uniqueness, append-only history, snapshot immutability, and workflow guardrails (static contract check; not a PostgreSQL migration execution).');
+
+for(const token of [
+  'export async function GET(request: Request)',
+  'pkg.status !== "approved"',
+  'user.role === "admin" || user.role === "anggota"',
+  'Content-Type":"text/csv; charset=utf-8"',
+  'format === "print"',
+  'Disetujui oleh',
+  'SHA-256',
+  'window.print()',
+  'user.role === "ketua" && snapshot',
+  'memberIds',
+  'Content-Security-Policy',
+]) assert.ok(exportApi.includes(token),'Missing approved-package export guardrail: '+token);
