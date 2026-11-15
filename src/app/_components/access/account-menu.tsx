@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { ChevronDown, UserRound, LogOut, LoaderCircle, LifeBuoy } from "lucide-react";
+import { ChevronDown, UserRound, LogOut, LoaderCircle, LifeBuoy, Settings } from "lucide-react";
 import UserAvatar from "./user-avatar";
 import { useProfileIdentity } from "@/hooks/use-profile-identity";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { roles, type Principal } from "@/lib/permissions";
+import { getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
 import { useLogout } from "@/hooks/use-logout";
 export default function AccountMenu({ user }: { user: Principal }) {
   const { busy, error, logout } = useLogout();
   const identity = useProfileIdentity(user);
+  const canOpenSettings = getVisibleEnterpriseDashboards(user.role).some((group) => group.features.some((feature) => feature.id === "pengaturan"));
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -47,6 +49,14 @@ export default function AccountMenu({ user }: { user: Principal }) {
               Akun saya
             </Link>
           </DropdownMenuItem>
+          {canOpenSettings && (
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/pengaturan">
+                <Settings />
+                Pengaturan
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild>
             <Link href="/bantuan" target="_blank" rel="noopener noreferrer">
               <LifeBuoy />

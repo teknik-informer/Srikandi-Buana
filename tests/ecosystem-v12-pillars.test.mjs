@@ -60,7 +60,9 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
   assert.match(navigation, /MENU UTAMA/);
-  assert.match(navigation, /Cari halaman/);
+  assert.doesNotMatch(navigation, /Cari halaman/);
+  assert.match(navigation, /dashboard-app-menu-label[^>]*>Cari menu/);
+  assert.match(navigation, /aria-label="Cari fitur aplikasi"/);
   assert.match(overview, /PELAPORAN/);
   assert.doesNotMatch(overview, /LANGKAH 0/);
 });

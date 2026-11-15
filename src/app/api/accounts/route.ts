@@ -24,7 +24,7 @@ export async function GET(){
    env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 50').bind(u.userId).all(),
    env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all()
   ]);
-  return json({users:users.results,invitations:invitations.results,audit:audit.results,members:members.results.flatMap(r=>{try{const data=JSON.parse(String(r.data));return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||'')}];}catch{return []}}),firstChairAvailable:false});
+  return json({users:users.results,invitations:invitations.results,audit:audit.results,members:members.results.flatMap(r=>{try{const data=JSON.parse(String(r.data));return [{id:String(r.id),status:String(data.status||''),verification:String(data.verification||'')}];}catch{return []}}),firstChairAvailable:false});
  }catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}
 }
 export async function POST(request:Request){

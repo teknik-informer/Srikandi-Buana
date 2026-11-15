@@ -2,12 +2,11 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, CalendarCheck, CircleUserRound, Clock3, HandCoins, Megaphone, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarDays, CalendarCheck, CircleUserRound, Clock3, Megaphone, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
-import { AudienceBarChart } from "./audience-dashboard-charts";
 import type { Principal } from "@/lib/permissions";
 import type { Row } from "@/lib/srikandi";
 
@@ -41,21 +40,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
     .sort((a, b) => String(a.data.date).localeCompare(String(b.data.date)))
     .slice(0, 5), [rows, today]);
   const nextEvent = events[0] as Row | undefined;
-  const agendaMonthly = useMemo(() => {
-    const now = new Date();
-    return Array.from({ length: 6 }, (_, index) => {
-      const month = new Date(now.getFullYear(), now.getMonth() + index, 1);
-      const key = month.getFullYear() + "-" + String(month.getMonth() + 1).padStart(2, "0");
-      return {
-        label: month.toLocaleDateString("id-ID", { month: "short", timeZone: "Asia/Jakarta" }),
-        value: rows.filter((row) =>
-          row.kind === "kegiatan" &&
-          String(row.data.date || "").slice(0, 7) === key &&
-          String(row.data.date || "") >= today
-        ).length,
-      };
-    });
-  }, [rows, today]);
+
 
 
   return (
@@ -68,7 +53,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
             <h1 id="member-dashboard-title" className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Sugeng rawuh, {profile?.data.name || user.displayName || user.fullName}.</h1>
             <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">Ruang pribadi anggota Srikandi Buana. Pantau informasi kelompok, agenda pertemuan, dan data keanggotaan Anda.</p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="border-emerald-700/20 bg-white/70 text-emerald-900"><ShieldCheck className="mr-1 size-3" />Akun anggota aktif</Badge>
+              <Badge variant="outline" className="border-emerald-700/20 bg-white/70 text-emerald-900"><ShieldCheck className="mr-1 size-3" />{profile ? "Status: " + String(profile.data.status || "Belum dicatat") : "Profil belum tertaut"}</Badge>
               <Link href="/kabar" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-800 px-4 text-sm font-semibold text-white hover:bg-emerald-900">Pengumuman kelompok<ArrowRight className="size-4" /></Link>
             </div>
           </div>
@@ -93,7 +78,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
         </Card>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+      <section className="grid gap-4">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2"><CircleUserRound className="size-5 text-primary" /><CardTitle className="text-base">Profil keanggotaan saya</CardTitle></div>
@@ -115,29 +100,9 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2"><HandCoins className="size-5 text-primary" /><CardTitle className="text-base">Iuran dan tabungan pribadi</CardTitle></div>
-            <CardDescription>Ringkasan keuangan pribadi anggota.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-xl border border-dashed bg-muted/20 p-4">
-              <Badge variant="secondary">Menunggu integrasi data</Badge>
-              <p className="mt-3 text-sm font-medium">Riwayat iuran dan tabungan belum tersedia.</p>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">Modul pencatatan keuangan personal belum terhubung ke akun anggota. Saldo dan riwayat tidak ditampilkan sebelum data sumber serta rekonsiliasinya tersedia.</p>
-            </div>
-          </CardContent>
-        </Card>
       </section>
 
-      <section aria-label="Analisis agenda anggota">
-        <AudienceBarChart
-          title="Agenda enam bulan mendatang"
-          description="Jumlah kegiatan yang sudah dijadwalkan dan dapat diakses anggota, dikelompokkan menurut bulan."
-          data={agendaMonthly}
-          emptyMessage="Belum ada agenda yang tercatat untuk enam bulan mendatang."
-        />
-      </section>
+
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
         <Card>
