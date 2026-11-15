@@ -36,6 +36,8 @@ assert.match(scopeMigration,/PRIMARY KEY\(owner,group_id,period_start_key,period
 assert.match(scopeMigration,/NEW.source_scope IS DISTINCT FROM OLD.source_scope/);
 assert.match(scopeMigration,/source_scope_shape/);
 assert.match(scopeMigration,/jsonb_typeof\(source_scope->'kinds'\) = 'array'/);
+assert.match(scopeMigration,/source_scope \? 'mode'/);
+assert.match(scopeMigration,/source_scope \? 'programIds'/);
 assert.match(workflow,/server membandingkan ID, jenis, waktu pembaruan/);
 assert.match(workflow,/Administrator Sistem tidak membaca/);
 assert.match(workflow,/belum selesai|belum dibangun|belum diterapkan/i);
