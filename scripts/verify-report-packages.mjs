@@ -75,4 +75,9 @@ for(const token of [
 ]) assert.ok(ui.includes(token),'Missing report package UI workflow: '+token);
 assert.ok(policy.includes('if (id === "laporan") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);'));
 
+assert.ok(api.includes('source_scope IS NOT NULL'),'Approval must reject legacy packages without a captured scope.');
+assert.ok(api.includes('jsonb_array_elements_text(report_packages.source_scope'),'Coordinator approval must retain the captured program scope.');
+assert.ok(api.includes('items.item->>\'id\'=r.id'),'Approval must detect newly eligible source records.');
+assert.ok(api.includes('const sourceScope'),'Package creation must persist its source visibility scope.');
+assert.ok(api.includes('programIds:[...new Set(c.user!.programIds.map(String))].sort()'),'Coordinator scope must be captured deterministically.');
 console.log('PASS: report-package schema invariants, null-safe version uniqueness, append-only history, snapshot immutability, and workflow guardrails (static contract check; not a PostgreSQL migration execution).');
