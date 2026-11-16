@@ -17,7 +17,7 @@ assert.match(migration,/users_email_lower_unique ON users \(lower\(email\)\)/);
 assert.doesNotMatch(migration,/DELETE FROM users|TRUNCATE|DROP TABLE/i);
 
 assert.match(accounts,/raw\.action==='change_email'&&u\.role!=='admin'/);
-assert.match(accounts,/target\.role==='admin'\|\|target\.role==='ketua'\|\|target\.id===u\.accountId/);
+assert.match(accounts,/target\.role==='admin'\|\|\(target\.role==='ketua'&&u\.role!=='admin'\)\|\|target\.id===u\.accountId/);
 assert.match(accounts,/purpose==='change_email'&&!target\.enabled/);
 assert.match(accounts,/lower\(email\)=lower\(\?\)/);
 assert.match(accounts,/purpose==='change_email'\?baseLink\.replace\('\/aktivasi#','\/aktivasi\?mode=email#'\)/);
@@ -37,9 +37,9 @@ assert.match(mailer,/replyTo: senderEmail/);
 
 assert.match(activate,/invite\.purpose!=='change_email'&&raw\.password!==raw\.confirmation/);
 assert.match(activate,/i\.target_user_id AND u\.workspace_owner=i\.owner/);
-assert.match(activate,/u\.role NOT IN \('admin','ketua'\)/);
+assert.match(activate,/u\.role!='admin'/);
 assert.match(activate,/lower\(other\.email\)=lower\(i\.email\)/);
-assert.match(activate,/DELETE FROM sessions s USING changed u WHERE s\.user_id=u\.id/);
+assert.match(activate,/DELETE FROM sessions s USING changed u WHERE s\.user_id=u\.id/);\nassert.match(activate,/u\.role!='admin'/,'Verified email change supports organizational Chair accounts while protecting the technical owner account.');
 assert.match(activate,/INSERT INTO access_audit/);
 assert.match(activate,/redirect:'\/masuk\?emailChanged=1'/);
 
@@ -47,7 +47,7 @@ assert.match(form,/query\.get\("mode"\)==="email"/);
 assert.match(form,/emailChange\.current\?\{\}:\{password:data\.get\("password"\)/);
 assert.match(form,/Verifikasi email baru/);
 assert.match(form,/!emailChange\.current&&/);
-assert.match(page,/architectMode&&u\.role!=='ketua'/);
+assert.match(page,/architectMode&&u\.enabled/);
 assert.match(page,/action:'change_email'/);
 assert.match(page,/Email berhasil dikirim kepada penerima/);
 assert.match(page,/Kirim undangan melalui email/);
