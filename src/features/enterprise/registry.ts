@@ -27,7 +27,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/ecosystem",
     label: "Organisasi",
     description: "Profil, keanggotaan, pengurus, program, kegiatan, dan dokumen organisasi.",
-    features: features(["portal", "notifikasi", "anggota", "alsintan", "pengurus", "musyawarah", "persetujuan", "program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "presensi", "presensi-saya", "pengajuan", "enterprise"]),
+    features: features(["portal", "notifikasi", "anggota", "alsintan", "pengurus", "musyawarah", "persetujuan", "program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "presensi", "presensi-saya", "pengajuan", "enterprise"]),
   },
   {
     id: "publication",
@@ -73,10 +73,10 @@ export function getEnterpriseFeature(sectionId: string): NavItem | undefined {
     ?? enterpriseUtilities.find((feature) => feature.id === sectionId);
 }
 export function getVisibleEnterpriseDashboards(role: Role, fullAccess = false) {
-  if (fullAccess) return enterpriseDashboards;
+  if (fullAccess) return enterpriseDashboards.map((dashboard) => ({ ...dashboard, features: dashboard.features.filter((feature) => feature.id !== "kehadiran") }));
   return enterpriseDashboards.map((dashboard) => ({
     ...dashboard,
-    features: dashboard.features.filter((feature) => canReadSectionForRole(role, feature.id)),
+    features: dashboard.features.filter((feature) => feature.id !== "kehadiran" && canReadSectionForRole(role, feature.id)),
   })).filter((dashboard) => dashboard.features.length > 0);
 }
 export function getVisibleEnterpriseUtilities(role: Role, fullAccess = false) {
