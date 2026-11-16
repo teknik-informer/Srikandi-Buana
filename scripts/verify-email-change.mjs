@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {transform} from 'esbuild';
+
+const read=path=>readFileSync(path,'utf8');
+const migration=read('migrations/011_verified_email_change.sql');
+const accounts=read('src/app/api/accounts/route.ts');
+const activate=read('src/app/api/auth/activate/route.ts');
+const form=read('src/app/aktivasi/activation-form.tsx');
+const page=read('src/app/_components/access/accounts.tsx');
+const mailer=read('src/lib/account-mailer.ts');
+const pkg=JSON.parse(read('package.json'));
+const pkgLock=JSON.parse(read('package-lock.json'));
+
+assert.match(migration,/purpose IN \('activate', 'reset', 'change_email'\)/);
+assert.match(migration,/users_email_lower_unique ON users \(lower\(email\)\)/);
+assert.doesNotMatch(migration,/DELETE FROM users|TRUNCATE|DROP TABLE/i);
+
+assert.match(accounts,/raw\.action==='change_email'&&u\.role!=='admin'/);
+assert.match(accounts,/target\.role==='admin'\|\|\(target\.role==='ketua'&&u\.role!=='admin'\)\|\|target\.id===u\.accountId/);
+assert.match(accounts,/purpose==='change_email'&&!target\.enabled/);
+assert.match(accounts,/lower\(email\)=lower\(\?\)/);
+assert.match(accounts,/purpose==='change_email'\?baseLink\.replace\('\/aktivasi#','\/aktivasi\?mode=email#'\)/);
+assert.match(accounts,/Verifikasi perubahan email diminta/);
+assert.ok(accounts.includes("sendAccountEmail({to:email,name:fullName,url,expires,purpose:purpose as"));
+assert.match(accounts,/Pengiriman email gagal; tautan otomatis dicabut/);
+assert.match(accounts,/return json\(\{ok:true,sent:true,expires,email,purpose\}\)/);
+assert.doesNotMatch(accounts,/return json\\(\\{ok:true,url,expires,email,purpose\\}\\)/);
+assert.equal(pkg.dependencies.nodemailer,'^10.5.0');
+assert.equal(pkgLock.packages['node_modules/nodemailer'].version,'10.5.0');
+assert.equal(pkgLock.packages[''].dependencies.nodemailer,'^10.5.0');
+assert.match(mailer,/service: 'gmail'/);
+assert.match(mailer,/GMAIL_APP_PASSWORD/);
+assert.ok(mailer.includes("/^kwt\\.srikandibuana@gmail\\.com$/i"));
+assert.match(mailer,/sendMail/);
+assert.match(mailer,/replyTo: senderEmail/);
+
+assert.match(activate,/invite\.purpose!=='change_email'&&raw\.password!==raw\.confirmation/);
+assert.match(activate,/i\.target_user_id AND u\.workspace_owner=i\.owner/);
+assert.match(activate,/u\.role!='admin'/);
+assert.match(activate,/lower\(other\.email\)=lower\(i\.email\)/);
+assert.match(activate,/DELETE FROM sessions s USING changed u WHERE s\.user_id=u\.id/);
+assert.match(activate,/u\.role!='admin'/,'Verified email change supports organizational Chair accounts while protecting the technical owner account.');
+assert.match(activate,/INSERT INTO access_audit/);
+assert.match(activate,/redirect:'\/masuk\?emailChanged=1'/);
+
+assert.match(form,/query\.get\("mode"\)==="email"/);
+assert.match(form,/emailChange\.current\?\{\}:\{password:data\.get\("password"\)/);
+assert.match(form,/Verifikasi email baru/);
+assert.match(form,/!emailChange\.current&&/);
+assert.match(page,/architectMode&&u\.enabled/);
+assert.match(page,/action:'change_email'/);
+assert.match(page,/Email berhasil dikirim kepada penerima/);
+assert.match(page,/Kirim undangan melalui email/);
+assert.doesNotMatch(page,/Tautan pribadi siap disalin/);
+await transform(mailer,{loader:'ts'});
+
+await transform(accounts,{loader:'ts'});
+await transform(activate,{loader:'ts'});
+await transform(form,{loader:'tsx'});
+await transform(page,{loader:'tsx'});
+
+console.log('PASS verified email change regression contracts: Architect-only initiation, protected accounts, one-time token purpose, case-insensitive uniqueness, atomic target/workspace update, session revocation, audit, and email-only verification UI.');

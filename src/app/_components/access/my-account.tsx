@@ -14,7 +14,7 @@ import LogoutButton from "./logout-button";
 import { markFormSaved } from "@/lib/unsaved-changes";
 import { toast } from "sonner";
 type Account = {
-  user: { accountId: string; avatarUrl?: string; email: string; displayName: string; role: Role; position: string; programIds: string[] };
+  user: { accountId: string; avatarUrl?: string; email: string; loginPhone?: string; displayName: string; role: Role; position: string; programIds: string[] };
   profile: { name: string; dusun: string; phone: string; status: string; verification: string };
 };
 export default function MyAccount() {
@@ -103,7 +103,7 @@ export default function MyAccount() {
               {[
                 ["Nama tampilan", data.user.displayName],
                 ["Nama keanggotaan", data.profile.name],
-                ["Email masuk", data.user.email],
+                ...(data.user.email ? [["Email masuk", data.user.email]] : [["Login WhatsApp", data.user.loginPhone || data.profile.phone || "—"]]),
                 ["Hak akses", roles[data.user.role]],
                 ["Jabatan", data.user.position || "Belum dicatat"],
                 ["Program penugasan", data.user.programIds.join(", ") || "—"],

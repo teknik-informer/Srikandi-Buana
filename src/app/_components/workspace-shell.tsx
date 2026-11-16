@@ -47,7 +47,7 @@ export default function WorkspaceShell({
       <a href="#workspace-content" className="skip-link">
         Langsung ke isi dashboard
       </a>
-      <Navigation user={user} section={section} />
+      <Navigation user={user} section={section} architectFullAccess={user.architectFullAccess === true} />
       <SidebarInset className="min-w-0 overflow-x-clip">
         <ConnectionStatus />
         <header className="workspace-header">
@@ -87,7 +87,7 @@ export default function WorkspaceShell({
             className="workspace-header-actions"
             aria-label="Akun dan tindakan utama"
           >
-            <DashboardMegaMenu section={section} user={user} compact />
+            <DashboardMegaMenu section={section} user={user} architectFullAccess={user.architectFullAccess === true} compact />
             <NotificationCenter compact />
             <ThemeControl />
             <AccountMenu user={user} />

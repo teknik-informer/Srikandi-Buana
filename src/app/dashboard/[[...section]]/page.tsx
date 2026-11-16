@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { dashboardGroups } from "@/lib/navigation-config";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { canReadSection } from "@/lib/permissions";
+import { canReadSection, isArchitectFullAccess } from "@/lib/permissions";
 import RoleWorkspace from "../../_components/access/role-workspace";
 import { safeReturn } from "@/lib/auth";
 import { modules } from "@/lib/srikandi";
@@ -20,11 +20,13 @@ import Inbox from "../../_components/inbox";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 import OfficialLetterWorkspace from "../../_components/official-letter-workspace";
 import { getSiteSettings } from "@/lib/site-settings";
+import ArchitectQaTestCenter from "../../_components/architect-qa-test-center";
+import QaMemberLab from "../../_components/qa-member-lab";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
   const dashboard = getEnterpriseDashboardById(id);
-  const item = dashboard ? { label: dashboard.label } : getEnterpriseFeature(id) || dashboardGroups.flatMap((g) => g.items).find((i) => i.id === id);
+  const item = id === "qa-test-center" ? { label: "QA Test Center" } : id === "qa-members" ? { label: "Laboratorium Anggota QA" } : dashboard ? { label: dashboard.label } : getEnterpriseFeature(id) || dashboardGroups.flatMap((g) => g.items).find((i) => i.id === id);
   return {
     title: (item?.label || "Pusat Kendali") + " | Ruang kerja Srikandi Buana",
     robots: { index: false, follow: false },
@@ -34,7 +36,7 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   if ((section?.length || 0) > 1) notFound();
-  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan"]);
+  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan", "qa-test-center", "qa-members"]);
   if (section?.[0] === "profil") redirect("/profil");
   const legacyDashboardRedirects: Record<string, string> = {
     management: "/dashboard/ecosystem",
@@ -50,6 +52,14 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     );
   const defaultSidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   const active = section?.[0] || "ringkasan";
+  if (active === "qa-members") {
+    if (admin.role !== "admin" || process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== "feat/architect-identity-console-2026-11-15") return notFound();
+    return <WorkspaceShell user={admin} section={active} title="Laboratorium Anggota QA" defaultSidebarOpen={defaultSidebarOpen}><QaMemberLab /></WorkspaceShell>;
+  }
+  if (active === "qa-test-center") {
+    if (admin.role !== "admin") return notFound();
+    return <WorkspaceShell user={admin} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter /></WorkspaceShell>;
+  }
   if (active === "ringkasan") {
     const isMember = admin.role === "anggota";
     return (
@@ -67,7 +77,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   }
   const dashboardDefinition = getEnterpriseDashboardById(active);
   const visibleDashboard = dashboardDefinition
-    ? getVisibleEnterpriseDashboards(admin.role).find((dashboard) => dashboard.id === active)
+    ? getVisibleEnterpriseDashboards(admin.role, isArchitectFullAccess(admin)).find((dashboard) => dashboard.id === active)
     : undefined;
   if (dashboardDefinition ? !visibleDashboard : !canReadSection(admin, active))
     return (

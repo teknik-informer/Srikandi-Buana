@@ -22,7 +22,7 @@ export default function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: form.get("email"),
+          identity: form.get("identity"),
           password: form.get("password"),
           remember: form.has("remember"),
           returnTo: new URLSearchParams(location.search).get("return_to") || "/dashboard",
@@ -43,13 +43,13 @@ export default function LoginForm() {
           {notice}
         </p>
       )}
-      <label htmlFor="login-email">Alamat email</label>
+      <label htmlFor="login-identity">Email atau nomor WhatsApp</label>
       <input
-        id="login-email"
-        name="email"
-        type="email"
+        id="login-identity"
+        name="identity"
+        type="text"
         autoComplete="username"
-        placeholder="nama@organisasi.id"
+        placeholder="nama@email.com atau 08xxxxxxxxxx"
         maxLength={180}
         required
         disabled={busy}

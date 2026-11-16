@@ -187,7 +187,7 @@ assert(allNodes(fileTree).some(n=>typeof n.props?.children==='string'&&n.props.c
 assert.equal(find(fileTree,n=>n.props?.type==='file').props.disabled,false);
 console.log('PASS files: rename failure retains draft; duplicate request blocked; refresh failure unlocks controls; 401 stops upload batch and lists unprocessed files.');
 
-// Accounts: response link opens only after confirmation is closed; drafts survive failures.
+// Accounts: email delivery closes the confirmation flow without exposing the private URL; drafts survive failures.
 class FieldsFixture extends Map {constructor(form){super(Object.entries(form.fields));}}
 let accountPost=deferred(),accountPosts=0;
 const accountForm={dataset:{unsaved:'true'},fields:{memberId:'member',email:'isolated@example.test'},reset(){this.didReset=true;}};
@@ -201,12 +201,12 @@ let accountTree=accountsRender();accounts.effects();await new Promise(r=>setImme
 const inviteSubmit=find(accountTree,n=>n.type==='form').props.onSubmit;
 const invitation=inviteSubmit({preventDefault(){},currentTarget:accountForm});await inviteSubmit({preventDefault(){},currentTarget:accountForm});assert.equal(accountPosts,1);
 accountPost.resolve(response(409,{error:'Undangan sudah ada.'}));await invitation;assert.equal(accountForm.dataset.unsaved,'true');assert(!accountForm.didReset);
-accountTree=accountsRender();find(accountTree,n=>n.props?.children==='Pulihkan password').props.onClick();accountTree=accountsRender();
+accountTree=accountsRender();find(accountTree,n=>n.props?.children==='Pulihkan via email').props.onClick();accountTree=accountsRender();
 const opened=tree=>allNodes(tree).filter(n=>n.type?.name==='Dialog'&&n.props.open);
 assert.equal(opened(accountTree).length,1);
 accountPost=deferred();const resetting=find(accountTree,n=>n.props?.children==='Lanjutkan').props.onClick();
-accountPost.resolve(response(200,{url:'https://example.test/isolated-token',email:'isolated@example.test',expires:'2026-11-04',purpose:'reset'}));await resetting;accountTree=accountsRender();
-assert.equal(opened(accountTree).length,1);assert.equal(find(accountTree,n=>n.props?.id==='activation-link').props.value,'https://example.test/isolated-token');
+accountPost.resolve(response(200,{sent:true,email:'isolated@example.test',expires:'2026-11-04',purpose:'reset'}));await resetting;accountTree=accountsRender();
+assert.equal(opened(accountTree).length,0);assert.equal(allNodes(accountTree).some(n=>n.props?.id==='activation-link'),false,'The dashboard must not expose the private email token URL');
 const roleFields=await harness('src/app/_components/access/role-fields.tsx');
 const roleTree=prefix=>roleFields.render(()=>roleFields.exports.default({idPrefix:prefix,value:{role:'koordinator',position:'',programIds:[]},onChange(){}}));
 const idsA=allNodes(roleTree('invite')).map(n=>n.props?.id).filter(Boolean),idsB=allNodes(roleTree('edit')).map(n=>n.props?.id).filter(Boolean);

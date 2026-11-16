@@ -31,8 +31,17 @@ export type Principal = {
   memberId: string | null;
   position: string;
   programIds: string[];
+  architectFullAccess?: boolean;
 };
 export type AccessRecord = { id: string; kind: string; data: Record<string, unknown> };
+/**
+ * Arsitek Sistem receives full CRUD capability only in the isolated QA Preview.
+ * Production keeps technical administration separate from organizational records.
+ */
+export function isArchitectFullAccess(user: Pick<Principal, "role">): boolean {
+  return user.role === "admin" && "architectFullAccess" in user && user.architectFullAccess === true;
+}
+
 
 const secretariatWrite = [
   "anggota", "pengurus", "musyawarah", "persetujuan", "kegiatan",
@@ -61,10 +70,12 @@ export function canReadKindForRole(role: Role, kind: string): boolean {
 }
 
 export function canReadKind(user: Principal, kind: string): boolean {
+  if (isArchitectFullAccess(user)) return true;
   return canReadKindForRole(user.role, kind);
 }
 
 export function canWriteKind(user: Principal, kind: string): boolean {
+  if (isArchitectFullAccess(user)) return true;
   if (user.role === "sekretaris") return secretariatWrite.includes(kind);
   if (user.role === "bendahara") return financeWrite.includes(kind);
   if (user.role === "koordinator") return coordinationWrite.includes(kind);
@@ -72,6 +83,7 @@ export function canWriteKind(user: Principal, kind: string): boolean {
 }
 
 export function canReadRecord(user: Principal, record: AccessRecord): boolean {
+  if (isArchitectFullAccess(user)) return true;
   if (!canReadKind(user, record.kind)) return false;
   if (user.role === "anggota") {
     return record.kind === "anggota"
@@ -85,6 +97,7 @@ export function canReadRecord(user: Principal, record: AccessRecord): boolean {
 }
 
 export function canWriteRecord(user: Principal, record: AccessRecord): boolean {
+  if (isArchitectFullAccess(user)) return true;
   if (["publikasi", "galeri"].includes(record.kind) && record.data.status === "Terbit") {
     return false;
   }
@@ -200,5 +213,6 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
 }
 
 export function canReadSection(user: Principal, id: string): boolean {
+  if (isArchitectFullAccess(user)) return true;
   return canReadSectionForRole(user.role, id);
 }

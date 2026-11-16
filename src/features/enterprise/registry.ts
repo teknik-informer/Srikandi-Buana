@@ -72,13 +72,15 @@ export function getEnterpriseFeature(sectionId: string): NavItem | undefined {
   return getEnterpriseDashboard(sectionId)?.features.find((feature) => feature.id === sectionId)
     ?? enterpriseUtilities.find((feature) => feature.id === sectionId);
 }
-export function getVisibleEnterpriseDashboards(role: Role) {
+export function getVisibleEnterpriseDashboards(role: Role, fullAccess = false) {
+  if (fullAccess) return enterpriseDashboards;
   return enterpriseDashboards.map((dashboard) => ({
     ...dashboard,
     features: dashboard.features.filter((feature) => canReadSectionForRole(role, feature.id)),
   })).filter((dashboard) => dashboard.features.length > 0);
 }
-export function getVisibleEnterpriseUtilities(role: Role) {
+export function getVisibleEnterpriseUtilities(role: Role, fullAccess = false) {
+  if (fullAccess) return enterpriseUtilities;
   return enterpriseUtilities.filter((item) => canReadSectionForRole(role, item.id));
 }
 export type EnterprisePillarId = EnterpriseDashboardId;
