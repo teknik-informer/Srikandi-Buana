@@ -208,6 +208,8 @@ export default function Workspace({
   const { rows, files, audit, loading, error, unauthorized, load } =
     useWorkspaceData();
   const [page, setPage] = useState(1);
+  const [ledgerAccounts, setLedgerAccounts] = useState<Array<{id:string;code:string;name:string;category:string;active:boolean}>>([]);
+  const [ledgerAccountsError, setLedgerAccountsError] = useState("");
   const imageUploadPending = useRef(false);
   const [imageUploading, setImageUploading] = useState(false);
   function imageBusy(value: boolean) { imageUploadPending.current = value; setImageUploading(value); }
@@ -224,6 +226,44 @@ export default function Workspace({
     [selectedProgram, setSelectedProgram] = useState<string | null>(null),
     [programStatus, setProgramStatus] = useState("Rancangan"),
     [programNotes, setProgramNotes] = useState("");
+  useEffect(() => {
+    if (section !== "kas") {
+      setLedgerAccounts([]);
+      setLedgerAccountsError("");
+      return;
+    }
+    if (!["ketua", "sekretaris", "bendahara"].includes(principal.role)) {
+      setLedgerAccounts([]);
+      setLedgerAccountsError("Akses daftar akun dibatasi untuk pengelola keuangan.");
+      return;
+    }
+    let active = true;
+    const loadAccounts = async () => {
+      try {
+        if (principal.role === "bendahara") {
+          const initialized = await fetch("/api/ecosystem/ledger", {
+            method: "POST", credentials: "same-origin", cache: "no-store",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "initialize" }),
+          });
+          const initializedBody = await initialized.json();
+          if (!initialized.ok) throw new Error(initializedBody.error || "Daftar akun belum dapat disiapkan.");
+        }
+        const response = await fetch("/api/ecosystem/ledger", { credentials: "same-origin", cache: "no-store" });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Daftar akun belum dapat dimuat.");
+        if (active) {
+          setLedgerAccounts(Array.isArray(body.accounts) ? body.accounts.filter((account: {active?:boolean}) => account.active !== false) : []);
+          setLedgerAccountsError("");
+        }
+      } catch (cause) {
+        if (active) setLedgerAccountsError(cause instanceof Error ? cause.message : "Daftar akun belum dapat dimuat.");
+      }
+    };
+    void loadAccounts();
+    return () => { active = false; };
+  }, [section, principal.role]);
+
   useEffect(() => {
     setPage(1);
   }, [query, filter, month, fund, section]);
@@ -1116,6 +1156,23 @@ export default function Workspace({
                               </NativeSelectOption>
                             ))}
                         </NativeSelect>
+                      ) : f.type === "ledger-account" ? (
+                        <NativeSelect
+                          id={f.key}
+                          name={f.key}
+                          required={f.required}
+                          defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")}
+                          disabled={!ledgerAccounts.length || principal.role !== "bendahara"}
+                        >
+                          <NativeSelectOption value="">
+                            {ledgerAccounts.length ? "Pilih akun lawan transaksi" : "Daftar akun belum tersedia"}
+                          </NativeSelectOption>
+                          {ledgerAccounts.map((account) => (
+                            <NativeSelectOption key={account.id} value={account.id}>
+                              {account.code} · {account.name} ({({asset:"Aset",liability:"Kewajiban",equity:"Modal",revenue:"Pendapatan",expense:"Beban"} as Record<string,string>)[account.category] || account.category})
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
                       ) : f.options ? (
                         <NativeSelect
                           id={f.key}
@@ -1192,6 +1249,8 @@ export default function Workspace({
                           }
                         />
                       )}
+                      {f.type === "ledger-account" && ledgerAccountsError && <p role="alert" className="text-xs text-destructive">{ledgerAccountsError}</p>}
+                      {f.helpText && <p className="text-xs leading-5 text-muted-foreground">{f.helpText}</p>}
                     </Field>
                   ))}
                 <div className="flex justify-end gap-2">
