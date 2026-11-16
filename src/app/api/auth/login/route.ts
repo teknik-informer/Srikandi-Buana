@@ -22,9 +22,9 @@ export async function POST(request: Request) {
     const identity = String(raw.identity || raw.email || "").trim();
     const email = identity.toLowerCase();
     const digits = identity.replace(/[^0-9]/g, "");
-    const phone = /^\\+?62/.test(identity) ? "+".concat(digits.startsWith("62") ? digits : digits) : digits.startsWith("0") ? "+62" + digits.slice(1) : digits.startsWith("62") ? "+" + digits : "";
-    const isEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
-    const isPhone = /^\\+628[0-9]{7,12}$/.test(phone);
+    const phone = /^\+?62/.test(identity) ? "+".concat(digits.startsWith("62") ? digits : digits) : digits.startsWith("0") ? "+62" + digits.slice(1) : digits.startsWith("62") ? "+" + digits : "";
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const isPhone = /^\+628[0-9]{7,12}$/.test(phone);
     const password = String(raw.password || "");
     if ((!isEmail && !isPhone) || !password || identity.length > 180 || password.length > 128) {
       return json({ error: "Masukkan email atau nomor WhatsApp terdaftar dan kata sandi Anda." }, 400);
@@ -57,7 +57,9 @@ export async function POST(request: Request) {
 
     // External identities are stored separately and never receive an internal RBAC role.
     const now = new Date().toISOString();
-    if (isPhone) return json({ error: "Nomor WhatsApp atau kata sandi tidak sesuai, atau nomor belum dikonfirmasi Admin." }, 401);\n\n    const external = await env.DB.prepare(
+    if (isPhone) return json({ error: "Nomor WhatsApp atau kata sandi tidak sesuai, atau nomor belum dikonfirmasi Admin." }, 401);
+
+    const external = await env.DB.prepare(
       "SELECT a.id,a.password_hash,a.email FROM external_portal_accounts a " +
       "JOIN external_organizations org ON org.id=a.organization_id AND org.workspace_owner=a.workspace_owner " +
       "JOIN users owner ON owner.id=a.workspace_owner " +
