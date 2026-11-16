@@ -20,15 +20,15 @@ import ListPagination from '../list-pagination';
 import {listPage} from '@/lib/list-page';
 import {Empty,EmptyHeader,EmptyTitle,EmptyDescription} from '@/components/ui/empty';
 import {canDiscardChanges,markFormSaved} from '@/lib/unsaved-changes';
-type User={id:string;email:string;full_name:string;role:Role;position:string;program_ids:string;member_id:string;enabled:boolean};
+type User={id:string;email:string;login_phone?:string|null;phone_verified_at?:string|null;full_name:string;role:Role;position:string;program_ids:string;member_id:string;enabled:boolean};
 type Invite={id:string;email:string;full_name:string;role:Role;expires:string;consumed_at:string|null;revoked_at:string|null;purpose:string};
-type Member={id:string;name:string;status:string;verification:string};
+type Member={id:string;name:string;status:string;verification:string;phone?:string};
 type Audit={action:string;target:string;created:string};
 type AccountList={users:User[];invitations:Invite[];members:Member[];audit:Audit[];firstChairAvailable?:boolean;error?:string};
-type AccountAction={error?:string;sent?:boolean;email?:string;expires?:string;purpose?:string};
+type AccountAction={error?:string;sent?:boolean;manual?:boolean;url?:string;phone?:string;email?:string;expires?:string;purpose?:string};
 const defaults:AccessForm={role:'anggota',position:'',programIds:[]};
 const date=(v:string)=>new Date(v).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'});
-export default function Accounts({userRole='ketua'}:{userRole?:Role}){const bootstrapMode=false;const architectMode=userRole==='admin';const inviteDefaults=defaults;const [firstChairAvailable,setFirstChairAvailable]=useState(false);const [userPage,setUserPage]=useState(1),[invitePage,setInvitePage]=useState(1);const pending=useRef(false),current=useRef<AbortController|null>(null),editForm=useRef<HTMLFormElement>(null);const [mutationError,setMutationError]=useState('');const [users,setUsers]=useState<User[]>([]),[invitations,setInvitations]=useState<Invite[]>([]),[members,setMembers]=useState<Member[]>([]),[audit,setAudit]=useState<Audit[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[query,setQuery]=useState(''),[access,setAccess]=useState<AccessForm>(inviteDefaults),[editing,setEditing]=useState<User|null>(null),[editAccess,setEditAccess]=useState<AccessForm>(defaults),[enabled,setEnabled]=useState(true),[confirm,setConfirm]=useState<{action:string;id:string;label:string}|null>(null),[emailTarget,setEmailTarget]=useState<User|null>(null),[emailValue,setEmailValue]=useState('');
+export default function Accounts({userRole='ketua'}:{userRole?:Role}){const bootstrapMode=false;const architectMode=userRole==='admin';const inviteDefaults=defaults;const [firstChairAvailable,setFirstChairAvailable]=useState(false);const [userPage,setUserPage]=useState(1),[invitePage,setInvitePage]=useState(1);const pending=useRef(false),current=useRef<AbortController|null>(null),editForm=useRef<HTMLFormElement>(null);const [mutationError,setMutationError]=useState('');const [users,setUsers]=useState<User[]>([]),[invitations,setInvitations]=useState<Invite[]>([]),[members,setMembers]=useState<Member[]>([]),[audit,setAudit]=useState<Audit[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[query,setQuery]=useState(''),[access,setAccess]=useState<AccessForm>(inviteDefaults),[editing,setEditing]=useState<User|null>(null),[editAccess,setEditAccess]=useState<AccessForm>(defaults),[enabled,setEnabled]=useState(true),[confirm,setConfirm]=useState<{action:string;id:string;label:string}|null>(null),[emailTarget,setEmailTarget]=useState<User|null>(null),[emailValue,setEmailValue]=useState(''),[channel,setChannel]=useState<'email'|'whatsapp'>('email'),[waConfirmed,setWaConfirmed]=useState(false),[manualLink,setManualLink]=useState('');
  async function load(){
   current.current?.abort();const request=new AbortController();current.current=request;setLoading(true);setError('');
   try{const {response:r,data:d}=await requestJSON<AccountList>('/api/accounts',{cache:'no-store',signal:request.signal});if(request.signal.aborted)return;if(!r.ok)throw Error(d?.error||'Akun belum dapat dimuat.');
@@ -43,11 +43,11 @@ export default function Accounts({userRole='ketua'}:{userRole?:Role}){const boot
   pending.current=true;setBusy(true);setMutationError('');
   try{const {response:r,data:d}=await requestJSON<AccountAction>('/api/accounts',{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
    if(!r.ok){if(r.status===401)await load();throw Error(d?.error||'Perubahan akses belum tersimpan. Coba lagi.');}
-   toast.success(d?.sent?'Email berhasil dikirim kepada penerima.':'Perubahan berhasil disimpan.');await load();return d||{};
+   if(d?.manual&&d.url)setManualLink(d.url);toast.success(d?.sent?'Email berhasil dikirim kepada penerima.':d?.manual?'Nomor WhatsApp dikonfirmasi. Tautan aktivasi siap dikirim secara manual.':'Perubahan berhasil disimpan.');await load();return d||{};
   }catch(e){const message=e instanceof Error?e.message:'Permintaan gagal.';setMutationError(message);toast.error(message);return null;}
   finally{pending.current=false;setBusy(false);}
  }
- async function invite(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget,data=Object.fromEntries(new FormData(form));const result=await send('POST',{action:'invite',...data,...access});if(result){markFormSaved(form);form.reset();setAccess(inviteDefaults);}}
+ async function invite(e:FormEvent<HTMLFormElement>){e.preventDefault();const form=e.currentTarget,data=Object.fromEntries(new FormData(form));const result=await send('POST',{action:'invite',...data,channel,whatsappConfirmed:channel==='whatsapp'&&waConfirmed,...access});if(result){markFormSaved(form);form.reset();setAccess(inviteDefaults);setChannel('email');setWaConfirmed(false);}}
  const errorPanel=mutationError&&<Alert variant="destructive"><AlertTitle>Tindakan belum berhasil</AlertTitle><AlertDescription>{mutationError}</AlertDescription></Alert>;
  const visibleUsers=users.filter(u=>(u.full_name+' '+u.email+' '+u.position).toLowerCase().includes(query.toLowerCase()));
  const userRange=listPage(visibleUsers.length,userPage),inviteRange=listPage(invitations.length,invitePage);
