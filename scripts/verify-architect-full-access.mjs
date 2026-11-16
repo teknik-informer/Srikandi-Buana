@@ -16,7 +16,7 @@ assert(policy.includes('"architectFullAccess" in user && user.architectFullAcces
 assert(policy.includes("if (isArchitectFullAccess(user)) return true;"));
 assert(policy.includes('if (role === "admin") return false;'), "Production role-only policy must not grant organization access");
 for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecord", "canReadSection"]) {
-  const start = policy.indexOf("export function " + fn);
+  const start = policy.indexOf("export function " + fn + "(");
   assert.notEqual(start, -1, fn + " must exist");
   assert.ok(policy.slice(start, start + 500).includes("isArchitectFullAccess(user)"), fn + " must enforce the preview capability");
 }
