@@ -29,6 +29,9 @@ export async function sendAccountEmail(input: {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user: senderEmail, pass: appPassword },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
 
   const labels: Record<AccountMailPurpose, { subject: string; heading: string; action: string; intro: string }> = {
@@ -55,5 +58,7 @@ export async function sendAccountEmail(input: {
     subject: content.subject,
     text,
     html,
+    disableFileAccess: true,
+    disableUrlAccess: true,
   });
 }
