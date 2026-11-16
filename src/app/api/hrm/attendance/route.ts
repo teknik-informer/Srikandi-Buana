@@ -89,7 +89,7 @@ export async function GET(req: Request) {
     ]);
     if (user.role === "anggota") {
       const ownId = user.memberId;
-      const ownSessions = sessions.filter((s) => s.data.status === "active" && Array.isArray(s.data.participantIds) && (s.data.participantIds as string[]).includes(String(ownId)));
+      const ownSessions = sessions.filter((s) => ["scheduled", "active"].includes(String(s.data.status)) && Array.isArray(s.data.participantIds) && (s.data.participantIds as string[]).includes(String(ownId)));
       const ownRecords = attendance.filter((r) => r.data.participantId === ownId);
       const ownCorrections = corrections.filter((r) => r.data.requestedBy === user.accountId || r.data.participantId === ownId);
       return json({ mode: "member", sessions: ownSessions.map((s) => ({ id: s.id, data: s.data })), records: ownRecords.map((r) => ({ id: r.id, data: r.data, created: r.created })), corrections: ownCorrections.map((r) => ({ id: r.id, data: r.data, created: r.created })) });
