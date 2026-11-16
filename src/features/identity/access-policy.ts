@@ -45,7 +45,7 @@ export function isArchitectFullAccess(user: Pick<Principal, "role">): boolean {
 
 const secretariatWrite = [
   "anggota", "pengurus", "musyawarah", "persetujuan", "kegiatan",
-  "kehadiran", "kelembagaan", "register", "transkripsi", "surat", "surat_resmi",
+  "kehadiran", "presensi", "kelembagaan", "register", "transkripsi", "surat", "surat_resmi",
   "alsintan", "survei", "publikasi", "galeri",
 ];
 const secretariatReadOnly = [
@@ -60,7 +60,10 @@ const financeReadOnly = [
 ];
 const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_program", "usaha", "kemitraan"];
 
+const privateAttendanceKinds = new Set(["attendance_session", "attendance_record", "attendance_correction", "attendance_qr_token", "attendance_audit"]);
+
 export function canReadKindForRole(role: Role, kind: string): boolean {
+  if (privateAttendanceKinds.has(kind) || kind === "kehadiran") return false;
   if (role === "admin") return false;
   if (role === "ketua") return true;
   if (role === "sekretaris") return secretariatWrite.includes(kind) || secretariatReadOnly.includes(kind);
@@ -192,7 +195,9 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
 }
 
 export function canReadSectionForRole(role: Role, id: string): boolean {
-  if (id === "akun-saya" || id === "panduan" || id === "notifikasi" || id === "ringkasan") return true;
+  if (["akun-saya", "panduan", "notifikasi", "ringkasan"].includes(id)) return true;
+  if (id === "presensi-saya") return role === "anggota";
+  if (id === "presensi") return ["ketua", "sekretaris", "koordinator"].includes(role);
   if (role === "admin") return ["akun", "pengaturan", "sumber"].includes(id);
   if (id === "pengaturan") return false;
   if (id === "akun") return ["admin", "ketua"].includes(role);
