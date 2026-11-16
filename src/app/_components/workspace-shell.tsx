@@ -40,7 +40,7 @@ export default function WorkspaceShell({
       defaultOpen={defaultSidebarOpen}
       className="workspace-shell"
       style={
-        { "--sidebar-width": "calc(var(--spacing) * 68)" } as CSSProperties
+        { "--sidebar-width": "256px" } as CSSProperties
       }
     >
       <UnsavedChangesGuard />

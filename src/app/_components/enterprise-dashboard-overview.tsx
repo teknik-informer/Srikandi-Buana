@@ -137,7 +137,7 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{eyebrows[dashboard.id]}</p>
         <div className="flex flex-wrap items-center gap-3">
           <h1 id="dashboard-overview-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">{dashboard.label}</h1>
-          <Badge variant="outline"></Badge>
+          <Badge variant="outline" className="workspace-module-count">{dashboard.features.length} modul tersedia</Badge>
         </div>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{dashboard.description}</p>
       </header>
@@ -202,9 +202,9 @@ export default function EnterpriseDashboardOverview({ dashboard, user }: { dashb
             ))
           ) : (
             <div className="rounded-xl border border-dashed bg-background/70 p-4 md:col-span-2 xl:col-span-3">
-              <p className="text-sm font-medium">"Tidak ada tindak lanjut prioritas."</p>
+              <p className="text-sm font-medium">Tidak ada tindak lanjut prioritas.</p>
               <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                "Tidak ada catatan prioritas berdasarkan data yang dapat diakses."
+                Tidak ada catatan prioritas berdasarkan data yang dapat diakses.
               </p>
               {firstFeature && <Link className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-primary hover:underline" href={firstFeature.href}>{firstFeature.label}<ArrowUpRight size={15} aria-hidden="true" /></Link>}
             </div>
