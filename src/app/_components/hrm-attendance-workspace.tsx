@@ -150,7 +150,7 @@ export default function HrmAttendanceWorkspace({ user }: { user: Principal }) {
         <Card><CardContent className="flex items-center gap-3 p-5"><Clock3 className="size-5 text-muted-foreground" /><div><p className="text-sm text-muted-foreground">Terlambat</p><p className="text-2xl font-semibold">{data?.summary?.late ?? 0}</p></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-3 p-5"><ClipboardCheck className="size-5 text-muted-foreground" /><div><p className="text-sm text-muted-foreground">Koreksi menunggu</p><p className="text-2xl font-semibold">{data?.summary?.correctionsPending ?? 0}</p></div></CardContent></Card>
       </div>
-      <Card>
+      {canCreateSessions && <Card>
         <CardHeader><CardTitle>Buat sesi presensi</CardTitle><CardDescription>Gunakan untuk rapat, pelatihan, penyuluhan, gotong royong, kegiatan pertanian, dan kegiatan program.</CardDescription></CardHeader>
         <CardContent>
           <form onSubmit={createSession} className="space-y-4">
@@ -166,7 +166,7 @@ export default function HrmAttendanceWorkspace({ user }: { user: Principal }) {
             <Button type="submit" disabled={saving || !members.length}><Plus className="mr-2 size-4" />{saving ? "Menyimpan…" : "Buat sesi presensi"}</Button>
           </form>
         </CardContent>
-      </Card>
+      </Card>}
     </>}
 
     {!loading && <div className="grid gap-4 xl:grid-cols-2">
