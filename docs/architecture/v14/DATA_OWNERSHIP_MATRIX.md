@@ -10,22 +10,22 @@
 | Accounts, sessions, invitations | Core Identity | All apps | Existing users/sessions/invitations and identity workflows |
 | Workspace/org configuration | Core | All apps | Existing workspace owner model; organization registry requires consolidation review |
 | Positions and assignments | HRM / Organization | Core RBAC, Projects | Multiple officer positions supported by migration 013; access profile remains separate |
-| Members, employees, volunteers | HRM | Projects, CRM (limited), POS (customer identity where appropriate) | Member records currently include generic `records` storage; workforce directory is not complete |
+| Members, employees, volunteers | HRM | Projects, CRM (limited), POS (customer identity where appropriate) | QA `workspace_v14.member_profiles`, `organization_memberships`, `programme_enrolments` exist; current PR #24 attendance still uses generic `records`; verify code/schema parity |
 | Attendance sessions/records | HRM | Projects, reports | Current attendance implementation uses owner-scoped `records` compatibility kinds |
-| Training and competencies | HRM | Projects, reports | Target capability; completion not verified |
-| Contacts, customers, suppliers, buyers, donors | CRM | POS, Projects | Target CRM master; avoid duplicating person/account identity |
-| Partnerships and agreements | CRM | Projects, Accounting (funding references) | External organization/access tables exist; full CRM pipeline remains incomplete |
-| Programs and projects | Projects | HRM, CRM, Accounting, POS | Existing operational program records and external grants; normalize by vertical slice |
-| Tasks, milestones, evidence, indicators | Projects | Reports, Accounting | Target project work model; not yet complete |
+| Training and competencies | HRM | Projects, reports | Not confirmed in inspected QA table inventory; treat as pending until schema/API evidence is mapped |
+| Contacts, customers, suppliers, buyers, donors | CRM | POS, Projects | QA has `workspace_v14.partner_organizations`, `partner_interactions`, `market_quotes`, and public `commerce_suppliers`; unified CRM identity/pipeline and code integration remain to verify |
+| Partnerships and agreements | CRM | Projects, Accounting (funding references) | QA has partner organization/interaction tables, public external access tables and programme agreement references; lifecycle/API parity remains to verify |
+| Programs and projects | Projects | HRM, CRM, Accounting, POS | QA `workspace_v14.programmes`, `activities`, `tasks`, `programme_enrolments` exist; current code integration and full project lifecycle require verification |
+| Tasks, milestones, evidence, indicators | Projects | Reports, Accounting | QA has `tasks`, `evidence_links`, `impact_indicators`, `indicator_observations`, `quality_observations`; milestones/risk workflow and code integration need verification |
 | Chart of accounts and journals | Accounting | POS, Projects, reporting | Existing ledger tables and journal validation/reversal foundation |
-| Cashbook and bank reconciliation | Accounting | Reporting | Reconciliation with ledger not verified complete |
-| Budget and restricted fund | Accounting (budget ownership) + Projects (project allocation reference) | Projects, CRM | Define one authoritative approved budget and immutable version history |
-| Products, price, stock, stock movements | POS (initial owner) | Accounting, CRM | Existing commerce product/order/stock tables; not full retail/POS workflow |
-| Sales, refunds and payment state | POS | Accounting, CRM | Orders exist; payment gateway, refund and shift workflows remain gaps |
+| Cashbook and bank reconciliation | Accounting | Reporting | QA public schema has `finance_bank_reconciliations` and `finance_bank_statement_lines`; reconciliation with legacy cashbook and reporting still needs end-to-end proof |
+| Budget and restricted fund | Accounting (budget ownership) + Projects (project allocation reference) | Projects, CRM | QA `workspace_v14.funds` and `budget_allocations` exist; confirm authority, approval semantics, ledger posting and version history |
+| Products, price, stock, stock movements | POS (initial owner) | Accounting, CRM | QA public `commerce_products`, `commerce_orders`, `commerce_stock_history` and `workspace_v14.inventory_items`, `stock_movements`, `inventory_locations` exist; avoid parallel competing stock masters |
+| Sales, refunds and payment state | POS | Accounting, CRM | QA public sales invoice/receipt tables and commerce orders exist; provider settlement, safe refunds and cashier shifts still require verification |
 | Documents and file metadata | Shared Document Service | All apps | Existing files/file_objects and file APIs; private authorization rechecked on download |
 | Audit/security events | Shared Audit | All apps | Existing audit facilities and append-only controls for selected domains |
 | Notifications | Shared Notification Service | All apps | Existing ecosystem notification table |
-| Traceability batches and chain of custody | Agriculture domain initially; integrate with POS/Projects | CRM, POS, public site | Agriculture tables exist; full batch-to-sale traceability is future work |
+| Traceability batches and chain of custody | Agriculture domain initially; integrate with POS/Projects | CRM, POS, public site | QA `workspace_v14.farm_plots`, `supply_lots`, `supply_lot_events`, `supply_lot_transformations` exist; end-to-end linkage to actual POS sale and public disclosure remains to verify |
 
 ## 2. Data ownership rules
 
@@ -64,3 +64,11 @@ Do not permit direct writes to the source domain through a consumer's UI/API.
 9. Build reporting projections and traceability joins using stable references.
 
 No data backfill or destructive migration is authorized by this document.
+
+
+## 5. QA schema observation
+
+Read-only inspection of Neon QA branch `br-mute-meadow-b4rhx1mn` found a normalized `workspace_v14` schema with organization, membership, programme, task, partner, fund/budget, inventory, impact-indicator, document and supply-lot tables. The QA schema also contains public commerce, ledger, bank-reconciliation, purchasing and sales-invoice tables.
+
+These structures are evidence of database design, not evidence that the active application branch has complete repositories, API handlers, UI workflows, authorization coverage, populated data or passing UAT. Reconcile the QA migration lineage with the current repository before treating these tables as the authoritative target schema or creating additional parallel tables.
+
