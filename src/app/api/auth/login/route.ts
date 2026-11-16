@@ -4,6 +4,7 @@ import { createSession, digest, safeReturn } from "@/lib/auth";
 import { createExternalSession } from "@/lib/external-auth";
 import { verifyPassword } from "@/lib/password.mjs";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
+import { normalizeIndonesianMobilePhone } from "@/lib/phone";
 
 const json = (data: unknown, status = 200) => Response.json(data, {
   status,
@@ -21,8 +22,7 @@ export async function POST(request: Request) {
     const raw = await readJsonObject(request, 4000);
     const identity = String(raw.identity || raw.email || "").trim();
     const email = identity.toLowerCase();
-    const digits = identity.replace(/[^0-9]/g, "");
-    const phone = /^\+?62/.test(identity) ? "+".concat(digits.startsWith("62") ? digits : digits) : digits.startsWith("0") ? "+62" + digits.slice(1) : digits.startsWith("62") ? "+" + digits : "";
+    const phone = normalizeIndonesianMobilePhone(identity);
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const isPhone = /^\+628[0-9]{7,12}$/.test(phone);
     const password = String(raw.password || "");
