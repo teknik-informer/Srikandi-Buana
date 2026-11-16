@@ -175,6 +175,9 @@ export default function ArchitectQaTestCenter() {
           <CardDescription>Gunakan pengelolaan akun QA dan lakukan pemeriksaan menggunakan akun uji yang berbeda.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
+          <Link href="/dashboard/qa-members" className="inline-flex min-h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted">
+            Laboratorium Anggota QA <ArrowUpRight className="size-4" />
+          </Link>
           <Link href="/dashboard/akun" className="inline-flex min-h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted">
             Buka pengelolaan akun <ArrowUpRight className="size-4" />
           </Link>
