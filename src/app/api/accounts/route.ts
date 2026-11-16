@@ -47,7 +47,7 @@ export async function POST(request:Request){
    if(raw.whatsappConfirmed!==true)return json({error:'Admin harus menghubungi anggota dan mengonfirmasi kepemilikan nomor WhatsApp secara manual.'},400);
    const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(String(target.member_id||''),u.userId).first();
    if(!member)return json({error:'Data anggota tidak ditemukan.'},404);
-   const data=JSON.parse(String(member.data)),phone=normalizePhone(String(data.phone||''));
+   const data=JSON.parse(String(member.data)),digits=String(data.phone||'').replace(/\D/g,''),normalized=digits.startsWith('0')?'62'+digits.slice(1):digits.startsWith('62')?digits:'',phone=normalized&&/^628[0-9]{7,12}$/.test(normalized)?'+'+normalized:'';
    if(data.status!=='Aktif'||data.verification!=='Terverifikasi'||!phone)return json({error:'Data anggota harus aktif, terverifikasi, dan memiliki nomor WhatsApp yang valid.'},409);
    const duplicate=await env.DB.prepare('SELECT id FROM users WHERE login_phone=? AND id<>?').bind(phone,target.id).first();
    if(duplicate)return json({error:'Nomor WhatsApp sudah digunakan akun lain.'},409);
