@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         let currentPhone = "";
         try {
           const data = JSON.parse(String(member?.data || "{}"));
-          const memberDigits = String(data.phone || "").replace(/\\D/g, "");
+          const memberDigits = String(data.phone || "").replace(/\D/g, "");
           currentPhone = memberDigits.startsWith("0") ? "+62" + memberDigits.slice(1) : memberDigits.startsWith("62") ? "+" + memberDigits : "";
         } catch { currentPhone = ""; }
         if (!internal.phone_verified_at || currentPhone !== phone) {
