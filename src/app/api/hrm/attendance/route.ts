@@ -249,8 +249,10 @@ export async function POST(req: Request) {
       if (duplicate) return json({ error: "Masih ada pengajuan koreksi yang menunggu pemeriksaan." }, 409);
       const id = randomUUID(), now = new Date().toISOString();
       const correction = { attendanceRecordId: recordId, sessionId: previous.sessionId, participantId: user.memberId, requestedBy: user.accountId, previousStatus: String(previous.status), requestedStatus, reason, approvalStatus: "pending", reviewedBy: null, reviewedAt: null };
-      await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_correction',?,?,?)").bind(id, owner, JSON.stringify(correction), now, now).run();
-      await appendAudit(owner, user, "correction.requested", "Pengajuan koreksi presensi", { correctionId: id, attendanceRecordId: recordId });
+      await db.batch([
+        db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_correction',?,?,?)").bind(id, owner, JSON.stringify(correction), now, now),
+        auditStatement(owner, user, "correction.requested", "Pengajuan koreksi presensi", { correctionId: id, attendanceRecordId: recordId }),
+      ]);
       return json({ ok: true, id, approvalStatus: "pending" }, 201);
     }
     if (action === "create_qr") {
@@ -263,8 +265,10 @@ export async function POST(req: Request) {
       const now = new Date(), token = randomBytes(32).toString("base64url"), expiresAt = new Date(Math.min(now.getTime() + 30 * 60 * 1000, new Date(session.eventDate + "T" + session.endTime + ":00+07:00").getTime())).toISOString();
       if (Date.parse(expiresAt) <= now.getTime()) return json({ error: "Waktu sesi sudah berakhir." }, 409);
       const id = randomUUID(), created = now.toISOString();
-      await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_qr_token',?,?,?)").bind(id, owner, JSON.stringify({ sessionId, tokenHash: digest(token), expiresAt, status: "active", createdBy: user.accountId }), created, created).run();
-      await appendAudit(owner, user, "qr.created", "Token QR presensi dibuat", { sessionId, expiresAt });
+      await db.batch([
+        db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_qr_token',?,?,?)").bind(id, owner, JSON.stringify({ sessionId, tokenHash: digest(token), expiresAt, status: "active", createdBy: user.accountId }), created, created),
+        auditStatement(owner, user, "qr.created", "Token QR presensi dibuat", { sessionId, expiresAt }),
+      ]);
       const base = process.env.APP_URL?.trim() || new URL(req.url).origin;
       return json({ ok: true, token, expiresAt, checkInUrl: (base.endsWith("/") ? base.slice(0, -1) : base) + "/dashboard/presensi-saya?sessionId=" + encodeURIComponent(sessionId) + "&token=" + encodeURIComponent(token) }, 201);
     }
