@@ -85,7 +85,7 @@ export async function GET(req: Request) {
     if (!canReadManagement(user) && user.role !== "anggota") return json({ error: "Anda tidak memiliki akses ke data presensi." }, 403);
     const [sessions, attendance, corrections, members] = await Promise.all([
       rows(owner, "attendance_session"), rows(owner, "attendance_record"), rows(owner, "attendance_correction"),
-      (full(user) || user.role === "sekretaris") ? env.DB!.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(owner).all() : Promise.resolve({ results: [] as Record<string, unknown>[] }),
+      (full(user) || user.role === "sekretaris" || user.role === "koordinator") ? env.DB!.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(owner).all() : Promise.resolve({ results: [] as Record<string, unknown>[] }),
     ]);
     if (user.role === "anggota") {
       const ownId = user.memberId;
@@ -132,8 +132,9 @@ export async function GET(req: Request) {
       const csv = "\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\r\n");
       return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"', "Cache-Control": "no-store" } });
     }
+    const scopedParticipantIds = new Set(visibleSessions.flatMap((session) => Array.isArray(session.data.participantIds) ? session.data.participantIds.map(String) : []));
     const eligibleMembers = members.results.map((r) => ({ id: String(r.id), data: JSON.parse(String(r.data)) as Record<string, unknown> }))
-      .filter((r) => r.data.status === "Aktif" && r.data.verification === "Terverifikasi")
+      .filter((r) => r.data.status === "Aktif" && r.data.verification === "Terverifikasi" && (user.role !== "koordinator" || scopedParticipantIds.has(r.id)))
       .map((r) => ({ id: r.id, name: String(r.data.name || ""), dusun: String(r.data.dusun || ""), role: String(r.data.role || "Anggota") }));
     const today = localNow().date;
     const todaySessions = visibleSessions.filter((s) => s.data.eventDate === today);
