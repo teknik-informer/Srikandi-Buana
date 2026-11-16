@@ -97,6 +97,25 @@ export async function GET(req: Request) {
     const sessionIds = new Set(visibleSessions.map((s) => s.id));
     const visibleRecords = attendance.filter((r) => sessionIds.has(String(r.data.sessionId)));
     const visibleCorrections = corrections.filter((r) => sessionIds.has(String(r.data.sessionId)));
+    if (new URL(req.url).searchParams.get("format") === "csv") {
+      const quote = (value: unknown) => {
+        const text = String(value ?? "").replace(/^[=+@-]/, "'    const visibleCorrections = corrections.filter((r) => sessionIds.has(String(r.data.sessionId)));
+    const eligibleMembers").replaceAll('"', '""');
+        return '"' + text + '"';
+      };
+      const sessionIndex = new Map(visibleSessions.map((session) => [session.id, session.data]));
+      const csvRows = [["Tanggal", "Kegiatan", "Jenis", "Nama Peserta", "Dusun", "Status", "Waktu Hadir", "Metode", "Verifikasi"]];
+      for (const record of visibleRecords) {
+        const session = sessionIndex.get(String(record.data.sessionId));
+        csvRows.push([
+          session?.eventDate, session?.sessionName, session?.sessionType, record.data.participantName,
+          record.data.participantDusun, record.data.status, record.data.checkInAt, record.data.method,
+          record.data.verificationStatus,
+        ]);
+      }
+      const csv = "\\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\\r\\n");
+      return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"', "Cache-Control": "no-store" } });
+    }
     const eligibleMembers = members.results.map((r) => ({ id: String(r.id), data: JSON.parse(String(r.data)) as Record<string, unknown> }))
       .filter((r) => r.data.status === "Aktif" && r.data.verification === "Terverifikasi")
       .map((r) => ({ id: r.id, name: String(r.data.name || ""), dusun: String(r.data.dusun || ""), role: String(r.data.role || "Anggota") }));
@@ -143,11 +162,13 @@ export async function POST(req: Request) {
         if (!event) return json({ error: "Agenda kegiatan tidak ditemukan." }, 404);
       }
       const participantIds = await validateParticipants(owner, Array.isArray(body.participantIds) ? body.participantIds.map(String) : []);
+      const lateAfterMinutes = Number(body.lateAfterMinutes ?? 15);
+      if (!Number.isInteger(lateAfterMinutes) || lateAfterMinutes < 0 || lateAfterMinutes > 60) return json({ error: "Batas keterlambatan harus 0 sampai 60 menit." }, 400);
       const geofenceEnabled = body.geofenceEnabled === true;
       const latitude = Number(body.latitude), longitude = Number(body.longitude), allowedRadius = Number(body.allowedRadius || 100);
       if (geofenceEnabled && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180 || !Number.isFinite(allowedRadius) || allowedRadius < 25 || allowedRadius > 2000)) return json({ error: "Pengaturan lokasi presensi tidak valid." }, 400);
       const id = randomUUID(), now = new Date().toISOString();
-      const data: SessionData = { sessionName, sessionType, eventDate, startTime, endTime, location, eventId, programId, participantIds, status: "scheduled", lateAfterMinutes: Math.min(60, Math.max(0, Number(body.lateAfterMinutes ?? 15))), geofenceEnabled, ...(geofenceEnabled ? { latitude, longitude, allowedRadius } : {}), createdBy: user.accountId, createdByName: user.displayName };
+      const data: SessionData = { sessionName, sessionType, eventDate, startTime, endTime, location, eventId, programId, participantIds, status: "scheduled", lateAfterMinutes, geofenceEnabled, ...(geofenceEnabled ? { latitude, longitude, allowedRadius } : {}), createdBy: user.accountId, createdByName: user.displayName };
       await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_session',?,?,?)").bind(id, owner, JSON.stringify(data), now, now).run();
       await appendAudit(owner, user, "session.created", "Sesi presensi dibuat: " + sessionName, { sessionId: id });
       return json({ ok: true, id, data }, 201);
@@ -178,6 +199,7 @@ export async function POST(req: Request) {
         if (!qr) return json({ error: "QR tidak berlaku, kedaluwarsa, atau berasal dari sesi lain." }, 403);
       }
       let locationVerification: Record<string, unknown> | null = null;
+      if (method === "location" && !session.geofenceEnabled) return json({ error: "Validasi GPS belum diaktifkan untuk sesi ini." }, 400);
       if (method === "location" || session.geofenceEnabled) {
         if (session.geofenceEnabled) {
           if (body.locationConsent !== true) return json({ error: "Izinkan penggunaan lokasi hanya untuk memvalidasi presensi ini." }, 400);
@@ -225,7 +247,7 @@ export async function POST(req: Request) {
       await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_qr_token',?,?,?)").bind(id, owner, JSON.stringify({ sessionId, tokenHash: digest(token), expiresAt, status: "active", createdBy: user.accountId }), created, created).run();
       await appendAudit(owner, user, "qr.created", "Token QR presensi dibuat", { sessionId, expiresAt });
       const base = process.env.APP_URL?.trim() || new URL(req.url).origin;
-      return json({ ok: true, token, expiresAt, checkInUrl: base + "/dashboard/presensi-saya?token=" + encodeURIComponent(token) }, 201);
+      return json({ ok: true, token, expiresAt, checkInUrl: base.replace(/\\/$/, "") + "/dashboard/presensi-saya?sessionId=" + encodeURIComponent(sessionId) + "&token=" + encodeURIComponent(token) }, 201);
     }
     return json({ error: "Tindakan presensi tidak dikenal." }, 400);
   } catch (error) {
@@ -250,6 +272,7 @@ export async function PATCH(req: Request) {
       if (body.expectedUpdated && String(row.updated) !== String(body.expectedUpdated)) return json({ error: "Sesi telah berubah. Muat ulang sebelum melanjutkan." }, 409);
       if (previous.status === "closed" || previous.status === "cancelled") return json({ error: "Sesi yang telah ditutup atau dibatalkan tidak dapat dibuka kembali." }, 409);
       if (nextStatus === "active" && previous.status !== "scheduled") return json({ error: "Hanya sesi terjadwal yang dapat dibuka." }, 409);
+      if (nextStatus === "closed" && previous.status !== "active") return json({ error: "Hanya sesi aktif yang dapat ditutup dan direkap." }, 409);
       const now = new Date().toISOString(), next = { ...previous, status: nextStatus };
       await db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_session'").bind(JSON.stringify(next), now, sessionId, owner).run();
       if (nextStatus === "closed") {
