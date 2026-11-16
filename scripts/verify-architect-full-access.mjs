@@ -7,6 +7,8 @@ const route = read("src/app/dashboard/[[...section]]/page.tsx");
 const shell = read("src/app/_components/workspace-shell.tsx");
 const navigation = read("src/app/_components/dashboard-navigation.tsx");
 const center = read("src/app/_components/architect-qa-test-center.tsx");
+const files = read("src/lib/file-access.ts");
+const fileApi = read("src/app/api/files/route.ts");
 assert(policy.includes('process.env.VERCEL_ENV === "preview"'));
 assert(policy.includes('process.env.VERCEL_GIT_COMMIT_REF === "feat/architect-identity-console-2026-11-15"'));
 assert(policy.includes("if (isArchitectFullAccess(user)) return true;"));
@@ -24,4 +26,6 @@ assert(navigation.includes("getVisibleEnterpriseDashboards(user.role, architectF
 assert(navigation.includes("getVisibleEnterpriseUtilities(user.role, architectFullAccess)"));
 assert(center.includes("canReadSection(principal, section)"));
 assert(center.includes("Full Access QA"));
+assert(files.includes("if(isArchitectFullAccess(user))"));
+assert(fileApi.includes("!isArchitectFullAccess(user)"), "Architect may manage files uploaded by other QA accounts only in the isolated Preview");
 console.log("PASS Architect Full Access: Preview-branch-only CRUD policy, all dashboard navigation, QA inspector, and Production role isolation.");
