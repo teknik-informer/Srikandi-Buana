@@ -28,7 +28,7 @@ export async function GET(){
    env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' LIMIT 1").bind(u.userId).first(),
    env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,now).first()
   ]);
-  return json({users:users.results,invitations:invitations.results,audit:audit.results,members:members.results.flatMap(r=>{try{const data=JSON.parse(String(r.data));return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),phone:String(data.phone||'')}];}catch{return []}}),firstChairAvailable:!activeChair&&!pendingChair});
+  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,...row})=>({...row,login_phone:null,phone_verified_at:null})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,login_phone:null})),audit:audit.results,members:members.results.flatMap(r=>{try{const data=JSON.parse(String(r.data));return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:!activeChair&&!pendingChair});
  }catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}
 }
 export async function POST(request:Request){
