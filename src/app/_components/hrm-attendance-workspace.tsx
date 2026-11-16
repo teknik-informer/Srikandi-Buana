@@ -23,7 +23,9 @@ const label = (value: unknown) => statusLabels[String(value)] || String(value ||
 const dateLabel = (value: unknown) => { const s = String(value || ""); if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s || "—"; const [y,m,d] = s.split("-"); return d + "/" + m + "/" + y; };
 
 export default function HrmAttendanceWorkspace({ user }: { user: Principal }) {
-  const memberMode = user.role === "anggota";\n  const canManageSessions = user.role === "sekretaris" || user.role === "koordinator" || user.architectFullAccess === true;\n  const canCreateSessions = user.role === "sekretaris" || user.architectFullAccess === true;
+  const memberMode = user.role === "anggota";
+  const canManageSessions = user.role === "sekretaris" || user.role === "koordinator" || user.architectFullAccess === true;
+  const canCreateSessions = user.role === "sekretaris" || user.architectFullAccess === true;
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
