@@ -22,7 +22,7 @@ assert.match(accounts,/purpose==='change_email'&&!target\.enabled/);
 assert.match(accounts,/lower\(email\)=lower\(\?\)/);
 assert.match(accounts,/purpose==='change_email'\?baseLink\.replace\('\/aktivasi#','\/aktivasi\?mode=email#'\)/);
 assert.match(accounts,/Verifikasi perubahan email diminta/);
-assert.match(accounts,/sendAccountEmail\(\{to:email,name:fullName,url,expires,purpose\}\)/);
+assert.match(accounts,/sendAccountEmail\\(\\{to:email,name:fullName,url,expires,purpose:purpose as/);
 assert.match(accounts,/Pengiriman email gagal; tautan otomatis dicabut/);
 assert.match(accounts,/return json\(\{ok:true,sent:true,expires,email,purpose\}\)/);
 assert.doesNotMatch(accounts,/return json\\(\\{ok:true,url,expires,email,purpose\\}\\)/);
