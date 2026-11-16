@@ -37,14 +37,15 @@ export async function POST(request: Request) {
     }
 
     const internal = await env.DB.prepare(
-      "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role " +
-      "FROM users u JOIN users o ON o.id=u.workspace_owner WHERE " + (isPhone ? "u.login_phone=? AND u.phone_verified_at IS NOT NULL" : "lower(u.email)=?")
+      "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,u.workspace_owner " +
+      "FROM users u WHERE " + (isPhone ? "u.login_phone=? AND u.phone_verified_at IS NOT NULL" : "lower(u.email)=?")
     ).bind(isPhone ? phone : email).first();
+    const owner = internal ? await env.DB.prepare("SELECT email,enabled,role FROM users WHERE id=?").bind(internal.workspace_owner).first() : null;
     const internalPasswordValid = await verifyPassword(password, internal?.password_hash);
     if (internal) {
-      if (!internal.enabled || !internalPasswordValid || !internal.owner_enabled ||
-        internal.owner_role !== "admin" ||
-        String(internal.owner_email).toLowerCase() !== process.env.ADMIN_EMAIL.trim().toLowerCase()) {
+      if (!internal.enabled || !internalPasswordValid || !owner?.enabled ||
+        owner.role !== "admin" ||
+        String(owner.email).toLowerCase() !== process.env.ADMIN_EMAIL.trim().toLowerCase()) {
         return json({ error: "Email atau password tidak sesuai." }, 401);
       }
       if (isPhone) {
