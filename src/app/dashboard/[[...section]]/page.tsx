@@ -38,7 +38,8 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   if ((section?.length || 0) > 1) notFound();
   const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan", "qa-test-center", "qa-members"]);
   if (section?.[0] === "profil") redirect("/profil");
-  const legacyDashboardRedirects: Record<string, string> = {\n    kehadiran: "/dashboard/presensi",
+  const legacyDashboardRedirects: Record<string, string> = {
+    kehadiran: "/dashboard/presensi",
     management: "/dashboard/ecosystem",
     administration: "/dashboard/system",
     commerce: "/dashboard/finance",
