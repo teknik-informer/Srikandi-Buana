@@ -83,6 +83,26 @@ Therefore, the numeric prefix is not a compatibility key. A migration named 008_
 
 The runner also creates schema_migrations if missing. Do not use it as a schema discovery or repair tool on a database with uncertain lineage.
 
+
+
+### 2.4 Actual QA object parity — read-only metadata
+
+A targeted read-only metadata query confirmed that the QA schema already contains several objects matching the expected effects of PR #24 migrations 009–012:
+
+- Public tables: report_packages and report_package_counters.
+- report_packages.source_scope and the report_packages_source_scope_shape CHECK constraint.
+- account_invitations.purpose CHECK currently permits activate, reset, change_email, activate_wa and reset_wa.
+- users.login_phone, users.phone_verified_at and users.phone_verified_by columns.
+- account_invitations.login_phone, account_invitations.phone_verified_at and account_invitations.phone_verified_by columns.
+- Unique indexes users_email_lower_unique and users_login_phone_unique.
+- Partial index invitations_phone_pending for pending activate_wa invitations.
+
+The two chair-guard indexes created by 008_single_chair_guard.sql were not present in the inspected index metadata. This is consistent with the effect of 013_multi_officer_positions.sql, which drops those two indexes, but it does not prove the exact migration execution history.
+
+**Important concrete collision:** migrations/011_verified_email_change.sql issues CREATE UNIQUE INDEX users_email_lower_unique without IF NOT EXISTS. That exact index already exists in QA. If the PR #24 runner reaches migration 011, PostgreSQL is expected to reject the duplicate index name and the migration transaction will fail. Migration 012 similarly creates users_login_phone_unique without IF NOT EXISTS, and that index also already exists. This is stronger evidence of a practical runner failure, not just a filename mismatch.
+
+Interpretation: QA contains schema effects matching parts of both migration families, but the ledger does not record the PR #24 filenames. The physical schema and migration ledger are therefore out of sync. Do not try to repair this by inserting filenames into schema_migrations: first establish provenance and verify every statement and precondition.
+
 ## 3. Operational risk
 
 Running the PR #24 migration runner on the shared QA branch without a migration-by-migration review can:
