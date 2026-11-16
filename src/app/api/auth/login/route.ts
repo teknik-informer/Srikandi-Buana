@@ -19,22 +19,27 @@ export async function POST(request: Request) {
   }
   try {
     const raw = await readJsonObject(request, 4000);
-    const email = String(raw.email || "").trim().toLowerCase();
+    const identity = String(raw.identity || raw.email || "").trim();
+    const email = identity.toLowerCase();
+    const digits = identity.replace(/[^0-9]/g, "");
+    const phone = /^\\+?62/.test(identity) ? "+".concat(digits.startsWith("62") ? digits : digits) : digits.startsWith("0") ? "+62" + digits.slice(1) : digits.startsWith("62") ? "+" + digits : "";
+    const isEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
+    const isPhone = /^\\+628[0-9]{7,12}$/.test(phone);
     const password = String(raw.password || "");
-    if (!email || !password || email.length > 180 || password.length > 128) {
-      return json({ error: "Periksa email dan password Anda." }, 400);
+    if ((!isEmail && !isPhone) || !password || identity.length > 180 || password.length > 128) {
+      return json({ error: "Masukkan email atau nomor WhatsApp terdaftar dan kata sandi Anda." }, 400);
     }
     const ip = request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim()
       || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-    const fingerprint = "login:" + digest(ip + "|" + email);
+    const fingerprint = "login:" + digest(ip + "|" + (isPhone ? phone : email));
     if (!await consumeRateLimit(env.DB, fingerprint, 5, 900000)) {
       return json({ error: "Terlalu banyak percobaan. Coba lagi setelah 15 menit." }, 429);
     }
 
     const internal = await env.DB.prepare(
-      "SELECT u.id,u.email,u.password_hash,u.enabled,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role " +
-      "FROM users u JOIN users o ON o.id=u.workspace_owner WHERE lower(u.email)=?"
-    ).bind(email).first();
+      "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role " +
+      "FROM users u JOIN users o ON o.id=u.workspace_owner WHERE " + (isPhone ? "u.login_phone=?" : "lower(u.email)=?")
+    ).bind(isPhone ? phone : email).first();
     const internalPasswordValid = await verifyPassword(password, internal?.password_hash);
     if (internal) {
       if (!internal.enabled || !internalPasswordValid || !internal.owner_enabled ||
@@ -52,7 +57,7 @@ export async function POST(request: Request) {
 
     // External identities are stored separately and never receive an internal RBAC role.
     const now = new Date().toISOString();
-    const external = await env.DB.prepare(
+    if (isPhone) return json({ error: "Nomor WhatsApp atau kata sandi tidak sesuai, atau nomor belum dikonfirmasi Admin." }, 401);\n\n    const external = await env.DB.prepare(
       "SELECT a.id,a.password_hash,a.email FROM external_portal_accounts a " +
       "JOIN external_organizations org ON org.id=a.organization_id AND org.workspace_owner=a.workspace_owner " +
       "JOIN users owner ON owner.id=a.workspace_owner " +
