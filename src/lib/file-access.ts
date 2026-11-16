@@ -1,9 +1,13 @@
 import {env} from './runtime';
-import {canReadRecord,visibleRecord,type Principal} from './permissions';
+import {canReadRecord,visibleRecord,isArchitectFullAccess,type Principal} from './permissions';
 
 /** Files are visible only when attached to a readable record or uploaded by this account. */
 export async function allowedFileIds(user:Principal) {
   if(!env.DB)return new Set<string>();
+  if(isArchitectFullAccess(user)){
+    const all=await env.DB.prepare("SELECT id FROM files WHERE owner=? AND deleted_at IS NULL").bind(user.userId).all();
+    return new Set(all.results.map(file=>String(file.id)));
+  }
   const rows=await env.DB.prepare('SELECT id,kind,data FROM records WHERE owner=?').bind(user.userId).all();
   const ids=new Set<string>();
   for(const row of rows.results){
