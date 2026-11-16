@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { roles, canReadKindForRole, canReadSectionForRole, canWriteKind, type Principal, type Role } from "@/lib/permissions";
+import { roles, canReadKind, canReadSection, canWriteKind, type Principal, type Role } from "@/lib/permissions";
 import { ArrowUpRight, CheckCircle2, ClipboardCheck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
@@ -35,8 +35,9 @@ function principalFor(role: Role): Principal {
 }
 
 function permission(role: Role, kind: string, section: string) {
-  const read = canReadSectionForRole(role, section) || canReadKindForRole(role, kind);
-  const write = canWriteKind(principalFor(role), kind);
+  const principal = principalFor(role);
+  const read = canReadSection(principal, section) || canReadKind(principal, kind);
+  const write = canWriteKind(principal, kind);
   return { read, write };
 }
 
@@ -48,7 +49,7 @@ export default function ArchitectQaTestCenter() {
           <p className="text-xs font-semibold tracking-[.16em] text-muted-foreground">ARSITEK SISTEM · QUALITY ASSURANCE</p>
           <h1 id="qa-center-title" className="mt-2 text-2xl font-semibold tracking-tight">QA Test Center</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Pusat pemeriksaan akun, profil akses, dan batas kewenangan Srikandi Buana. Halaman ini hanya membaca kebijakan akses aplikasi; tidak mengubah sesi atau memberikan hak organisasi kepada Administrator Sistem.
+            Pusat pemeriksaan akun, profil akses, dan batas kewenangan Srikandi Buana. Pada Preview QA, Arsitek Sistem memperoleh Full Access untuk menguji seluruh modul. Pada Production, hak teknis tetap dipisahkan dari data operasional organisasi.
           </p>
         </div>
         <Badge variant="outline" className="w-fit">Preview / QA</Badge>
@@ -90,8 +91,8 @@ export default function ArchitectQaTestCenter() {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border p-4">
-            <p className="font-medium">Administrator Sistem</p>
-            <p className="mt-1 text-sm text-muted-foreground">Mengelola konfigurasi dan identitas teknis. Tidak memperoleh akses data kas, anggota, keputusan, atau operasi organisasi hanya karena berstatus admin.</p>
+            <p className="font-medium">Arsitek Sistem · Full Access QA</p>
+            <p className="mt-1 text-sm text-muted-foreground">Pada Preview QA dapat membuka, membaca, membuat, mengubah, dan menghapus data uji seluruh modul. Hak ini hanya aktif pada cabang QA yang ditetapkan; tidak berlaku pada Production.</p>
           </div>
           <div className="rounded-lg border p-4">
             <p className="font-medium">Pengurus dan anggota</p>
@@ -134,7 +135,7 @@ export default function ArchitectQaTestCenter() {
               </TableBody>
             </Table>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Matriks ini merupakan inspeksi kebijakan, bukan mekanisme impersonasi. Pemeriksaan akses nyata tetap dilakukan melalui akun uji terpisah di lingkungan QA.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Matriks menggunakan kebijakan server aktif. Kolom Administrator Sistem akan menampilkan Full Access hanya ketika halaman dibuka pada Preview QA yang diizinkan; di Production akses operasional tetap ditolak.</p>
         </CardContent>
       </Card>
 
@@ -155,7 +156,8 @@ export default function ArchitectQaTestCenter() {
             ["Aktivasi email", "Pastikan undangan menghasilkan email aktivasi yang dikirim ke alamat penerima, bukan sekadar menampilkan tautan."],
             ["Verifikasi WhatsApp", "Pastikan konfirmasi dilakukan manual oleh Administrator Sistem dan nomor cocok dengan data anggota."],
             ["Pemulihan akun", "Pastikan tautan satu kali, kedaluwarsa, audit, dan pencabutan sesi lama berjalan."],
-            ["Isolasi Administrator Sistem", "Pastikan akun teknis tidak dapat membaca atau mengubah data operasional organisasi."],
+            ["Full Access Arsitek Sistem di QA", "Pastikan seluruh modul dapat dibuka dan operasi CRUD berjalan pada Preview QA, tanpa membuka akses operasional pada Production."],
+            ["Isolasi Administrator Sistem di Production", "Pastikan akun teknis tetap tidak dapat membaca atau mengubah data operasional organisasi pada Production."],
           ].map(([title, description]) => (
             <div key={title} className="flex gap-3 rounded-lg border p-3">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
