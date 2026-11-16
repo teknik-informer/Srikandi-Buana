@@ -3,6 +3,7 @@ import {getAuthenticatedUser} from '@/lib/auth';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
 import {sendAccountEmail} from '@/lib/account-mailer';
+import {normalizeIndonesianMobilePhone} from '@/lib/phone';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export async function GET(){
@@ -54,7 +55,7 @@ export async function POST(request:Request){
   if(raw.action==='change_email'&&u.role!=='admin')return json({error:'Perubahan email struktural hanya dapat dimulai oleh Arsitek Sistem.'},403);
   const purpose=raw.action==='reset_wa'?'reset_wa':raw.action==='reset'?'reset':raw.action==='change_email'?'change_email':raw.channel==='whatsapp'?'activate_wa':'activate';
   if(!['invite','reset','reset_wa','change_email'].includes(String(raw.action)))return json({error:'Tindakan tidak valid.'},400);
- const normalizePhone=(value:string)=>{const d=value.replace(/\D/g,'');const n=d.startsWith('0')?'62'+d.slice(1):d.startsWith('62')?d:'';return n&&/^628[0-9]{7,12}$/.test(n)?'+'+n:''};
+ const normalizePhone=(value:string)=>normalizeIndonesianMobilePhone(value);
  let memberId=String(raw.memberId||''),phone=normalizePhone(String(raw.phone||'')),email=String(raw.email||'').trim().toLowerCase(),fullName='',targetId:string|null=null,access=purpose==='change_email'?accessInput({role:'anggota'}):accessInput(raw);
  if(purpose==='reset'||purpose==='reset_wa'||purpose==='change_email'){
   const target=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,member_id,role,position,program_ids,enabled FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();
