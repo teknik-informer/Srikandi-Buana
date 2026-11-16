@@ -328,9 +328,13 @@ export async function PATCH(req: Request) {
       if (old && String(old.updated) !== String(body.expectedUpdated)) return json({ error: "Catatan berubah. Muat ulang sebelum menyimpan." }, 409);
       const previous = old ? JSON.parse(String(old.data)) as Record<string, unknown> : null;
       const data = { sessionId, participantId, participantType: "member", participantName: String(m.name || ""), participantDusun: String(m.dusun || ""), status, checkInAt: status === "present" || status === "late" ? now : null, checkOutAt: null, method: "manual", verificationStatus: "recorded_by_officer", recordedBy: user.accountId, locationVerification: null, ...(previous ? { previousStatus: previous.status } : {}) };
-      if (old) await db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_record'").bind(JSON.stringify(data), now, id, owner).run();
-      else await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_record',?,?,?)").bind(id, owner, JSON.stringify(data), now, now).run();
-      await appendAudit(owner, user, old ? "attendance.corrected_by_officer" : "attendance.manual_recorded", "Pencatatan manual presensi", { attendanceId: id, participantId, previousStatus: previous?.status ?? null, nextStatus: status, reason });
+      const write = old
+        ? db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_record'").bind(JSON.stringify(data), now, id, owner)
+        : db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_record',?,?,?)").bind(id, owner, JSON.stringify(data), now, now);
+      await db.batch([
+        write,
+        auditStatement(owner, user, old ? "attendance.corrected_by_officer" : "attendance.manual_recorded", "Pencatatan manual presensi", { attendanceId: id, participantId, previousStatus: previous?.status ?? null, nextStatus: status, reason }),
+      ]);
       return json({ ok: true, id, status });
     }
     if (action === "review_correction") {
@@ -346,16 +350,16 @@ export async function PATCH(req: Request) {
       const attendance = JSON.parse(String(attendanceRow.data)) as Record<string, unknown>;
       const now = new Date().toISOString();
       const nextCorrection = { ...correction, approvalStatus: decision, reviewedBy: user.accountId, reviewedAt: now, reviewNote };
+      const statements = [];
       if (decision === "approved") {
         const nextAttendance = { ...attendance, previousStatus: attendance.status, status: correction.requestedStatus, verificationStatus: "corrected", correctionId, correctedAt: now };
-        await db.batch([
-          db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_record'").bind(JSON.stringify(nextAttendance), now, String(correction.attendanceRecordId), owner),
-          db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_correction'").bind(JSON.stringify(nextCorrection), now, correctionId, owner),
-        ]);
-      } else {
-        await db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_correction'").bind(JSON.stringify(nextCorrection), now, correctionId, owner).run();
+        statements.push(db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_record'").bind(JSON.stringify(nextAttendance), now, String(correction.attendanceRecordId), owner));
       }
-      await appendAudit(owner, user, "correction." + decision, "Pengajuan koreksi presensi diputuskan", { correctionId, attendanceRecordId: correction.attendanceRecordId, decision, reviewNote });
+      statements.push(
+        db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_correction'").bind(JSON.stringify(nextCorrection), now, correctionId, owner),
+        auditStatement(owner, user, "correction." + decision, "Pengajuan koreksi presensi diputuskan", { correctionId, attendanceRecordId: correction.attendanceRecordId, decision, reviewNote }),
+      );
+      await db.batch(statements);
       return json({ ok: true, approvalStatus: decision });
     }
     return json({ error: "Tindakan presensi tidak dikenal." }, 400);
