@@ -35,11 +35,11 @@ Pengaturan akun ini tidak menetapkan atau mengubah keputusan organisasi. Nama ja
 
 ## Privasi data
 
-Roster yang diberikan kepada Arsitek hanya memuat identitas minimum yang diperlukan untuk menghubungkan akun dengan anggota. Nomor telepon, alamat, catatan pribadi, kebutuhan rumah tangga, dan rincian operasional tidak disertakan. API data bisnis tetap menolak akses untuk peran teknis.
+Roster Arsitek memuat identitas anggota yang diperlukan untuk menghubungkan akun dan, khusus untuk konfirmasi login WhatsApp, nomor telepon yang terdaftar. Alamat, catatan pribadi, kebutuhan rumah tangga, dan rincian operasional tidak disertakan. Tampilan Ketua menyamarkan email dan identitas login WhatsApp. API data bisnis tetap menolak akses untuk peran teknis.
 
 ## Catatan cakupan
 
-Email baru ditetapkan saat membuat undangan akun. Untuk akun yang sudah aktif, Arsitek dapat meminta perubahan email melalui tautan verifikasi satu kali yang dikirimkan secara pribadi kepada pemilik alamat baru. Alamat lama tetap berlaku sampai tautan diverifikasi. Token hanya terikat pada akun sasaran, workspace, dan alamat email baru; proses memeriksa konflik alamat, kedaluwarsa, pencabutan, dan penggunaan ulang secara atomik. Setelah berhasil, sesi login lama dicabut dan pengguna masuk kembali menggunakan email baru. Ketua, Administrator Sistem, dan akun Arsitek sendiri tidak dapat diubah melalui alur biasa. Password tidak diminta atau diubah dalam proses ini. Tautan perubahan email berlaku satu jam dan hanya ditampilkan saat dibuat.
+Email baru ditetapkan saat membuat undangan akun. Untuk akun yang sudah aktif, Arsitek dapat meminta perubahan email melalui tautan verifikasi satu kali yang dikirimkan secara pribadi kepada pemilik alamat baru. Alamat lama tetap berlaku sampai tautan diverifikasi. Token hanya terikat pada akun sasaran, workspace, dan alamat email baru; proses memeriksa konflik alamat, kedaluwarsa, pencabutan, dan penggunaan ulang secara atomik. Setelah berhasil, sesi login lama dicabut dan pengguna masuk kembali menggunakan email baru. Akun Administrator Sistem/pemilik dan akun Arsitek sendiri tetap dilindungi. Akun Ketua dapat dikelola oleh Arsitek Sistem untuk kebutuhan email, pemulihan, dan penugasan profil akses; penetapan kewenangan Ketua tetap harus mengikuti keputusan organisasi. Password tidak diminta atau diubah dalam proses ini. Tautan perubahan email berlaku satu jam dan hanya ditampilkan saat dibuat.
 
  
 ## Pengiriman email transaksional
@@ -59,3 +59,12 @@ Nomor login disimpan dalam format E.164 Indonesia (+62), unik secara global, dis
 Skema saat ini mewajibkan kolom email pada tabel akun. Untuk akun yang diaktifkan hanya melalui WhatsApp, sistem menyimpan alias teknis pada domain reserved `.invalid`; alias ini bukan alamat email anggota, tidak ditampilkan sebagai identitas kontak, dan tidak pernah menjadi tujuan pengiriman email. Nomor WhatsApp adalah identitas login yang ditampilkan kepada pengelola akun. Perubahan skema agar email benar-benar nullable memerlukan migrasi terpisah karena beberapa alur lama masih mengandalkan email wajib.
 
 Tidak ada OTP otomatis, gateway WhatsApp, atau biaya API pihak ketiga. Konfirmasi manual adalah pernyataan tanggung jawab Arsitek dan harus tercatat pada audit.
+
+
+## Jabatan berulang dan profil akses per akun
+
+Jabatan struktural bukan identitas login dan bukan kursi akun tunggal. Beberapa anggota dapat menggunakan profil hak akses yang sama, termasuk profil Ketua, Sekretaris, Bendahara, atau Koordinator. Setiap orang tetap mempunyai akun, email/nomor WhatsApp, kata sandi, sesi, status aktif, dan jejak audit sendiri.
+
+Kolom **jabatan struktural** menyimpan nama posisi sesuai keputusan organisasi, misalnya Ketua, Wakil Ketua, Sekretaris, Wakil Sekretaris, Bendahara, Wakil Bendahara, atau Koordinator Bidang. Kolom **profil hak akses** menentukan kewenangan aplikasi. Keduanya ditetapkan per akun dan tidak saling mengunci: beberapa akun boleh memiliki profil akses yang sama, sedangkan posisi strukturalnya dapat berbeda. Satu anggota tetap hanya boleh terhubung ke satu akun internal.
+
+Arsitek Sistem dapat menetapkan profil akses Ketua pada beberapa akun setelah ada keputusan organisasi yang sah. Profil Ketua saat ini membawa kewenangan Ketua penuh; jika seorang wakil hanya diberi sebagian kewenangan, jangan menetapkan profil Ketua penuh. Gunakan profil akses yang lebih terbatas sampai matriks kewenangan wakil disepakati dan diterapkan sebagai profil tersendiri. Administrator Sistem tidak memperoleh kewenangan organisasi hanya karena mengelola akun.
