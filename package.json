@@ -37,7 +37,8 @@
     "test:ecosystem": "node --test tests/ecosystem-*.test.mjs",
     "test:external-access": "node scripts/verify-external-access.mjs",
     "test:agriculture": "node scripts/verify-agriculture.mjs",
-    "test:qa-center": "node scripts/verify-qa-test-center.mjs"
+    "test:qa-center": "node scripts/verify-qa-test-center.mjs",
+    "test:qa-members": "node scripts/verify-qa-member-lab.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
