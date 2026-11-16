@@ -112,7 +112,7 @@ export async function GET(req: Request) {
           record.data.verificationStatus,
         ]);
       }
-      const csv = "\\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\\r\\n");
+      const csv = "\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\r\n");
       return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"', "Cache-Control": "no-store" } });
     }
     const eligibleMembers").replaceAll('"', '""');
@@ -128,7 +128,7 @@ export async function GET(req: Request) {
           record.data.verificationStatus,
         ]);
       }
-      const csv = "\\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\\r\\n");
+      const csv = "\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\r\n");
       return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"', "Cache-Control": "no-store" } });
     }
     const eligibleMembers = members.results.map((r) => ({ id: String(r.id), data: JSON.parse(String(r.data)) as Record<string, unknown> }))
@@ -262,7 +262,7 @@ export async function POST(req: Request) {
       await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_qr_token',?,?,?)").bind(id, owner, JSON.stringify({ sessionId, tokenHash: digest(token), expiresAt, status: "active", createdBy: user.accountId }), created, created).run();
       await appendAudit(owner, user, "qr.created", "Token QR presensi dibuat", { sessionId, expiresAt });
       const base = process.env.APP_URL?.trim() || new URL(req.url).origin;
-      return json({ ok: true, token, expiresAt, checkInUrl: base.replace(/\\/$/, "") + "/dashboard/presensi-saya?sessionId=" + encodeURIComponent(sessionId) + "&token=" + encodeURIComponent(token) }, 201);
+      return json({ ok: true, token, expiresAt, checkInUrl: (base.endsWith("/") ? base.slice(0, -1) : base) + "/dashboard/presensi-saya?sessionId=" + encodeURIComponent(sessionId) + "&token=" + encodeURIComponent(token) }, 201);
     }
     return json({ error: "Tindakan presensi tidak dikenal." }, 400);
   } catch (error) {
