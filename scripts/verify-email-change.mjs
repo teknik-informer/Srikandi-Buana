@@ -39,7 +39,8 @@ assert.match(activate,/invite\.purpose!=='change_email'&&raw\.password!==raw\.co
 assert.match(activate,/i\.target_user_id AND u\.workspace_owner=i\.owner/);
 assert.match(activate,/u\.role!='admin'/);
 assert.match(activate,/lower\(other\.email\)=lower\(i\.email\)/);
-assert.match(activate,/DELETE FROM sessions s USING changed u WHERE s\.user_id=u\.id/);\nassert.match(activate,/u\.role!='admin'/,'Verified email change supports organizational Chair accounts while protecting the technical owner account.');
+assert.match(activate,/DELETE FROM sessions s USING changed u WHERE s\.user_id=u\.id/);
+assert.match(activate,/u\.role!='admin'/,'Verified email change supports organizational Chair accounts while protecting the technical owner account.');
 assert.match(activate,/INSERT INTO access_audit/);
 assert.match(activate,/redirect:'\/masuk\?emailChanged=1'/);
 
