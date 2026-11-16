@@ -84,20 +84,34 @@ export async function GET(req: Request) {
     const owner = user.userId;
     if (!canReadManagement(user) && user.role !== "anggota") return json({ error: "Anda tidak memiliki akses ke data presensi." }, 403);
     const [sessions, attendance, corrections, members] = await Promise.all([
-      rows(owner, "attendance_session"), rows(owner, "attendance_record"), rows(owner, "attendance_correction"),
-      (full(user) || user.role === "sekretaris" || user.role === "koordinator") ? env.DB!.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(owner).all() : Promise.resolve({ results: [] as Record<string, unknown>[] }),
+      rows(owner, "attendance_session"),
+      rows(owner, "attendance_record"),
+      rows(owner, "attendance_correction"),
+      (full(user) || user.role === "sekretaris" || user.role === "koordinator")
+        ? env.DB!.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(owner).all()
+        : Promise.resolve({ results: [] as Record<string, unknown>[] }),
     ]);
     if (user.role === "anggota") {
       const ownId = user.memberId;
-      const ownSessions = sessions.filter((s) => ["scheduled", "active"].includes(String(s.data.status)) && Array.isArray(s.data.participantIds) && (s.data.participantIds as string[]).includes(String(ownId)));
-      const ownRecords = attendance.filter((r) => r.data.participantId === ownId);
-      const ownCorrections = corrections.filter((r) => r.data.requestedBy === user.accountId || r.data.participantId === ownId);
-      return json({ mode: "member", sessions: ownSessions.map((s) => ({ id: s.id, data: s.data })), records: ownRecords.map((r) => ({ id: r.id, data: r.data, created: r.created })), corrections: ownCorrections.map((r) => ({ id: r.id, data: r.data, created: r.created })) });
+      const ownSessions = sessions.filter((session) =>
+        ["scheduled", "active"].includes(String(session.data.status))
+        && Array.isArray(session.data.participantIds)
+        && (session.data.participantIds as string[]).includes(String(ownId)));
+      const ownRecords = attendance.filter((record) => record.data.participantId === ownId);
+      const ownCorrections = corrections.filter((record) =>
+        record.data.requestedBy === user.accountId || record.data.participantId === ownId);
+      return json({
+        mode: "member",
+        sessions: ownSessions.map((session) => ({ id: session.id, data: session.data })),
+        records: ownRecords.map((record) => ({ id: record.id, data: record.data, created: record.created })),
+        corrections: ownCorrections.map((record) => ({ id: record.id, data: record.data, created: record.created })),
+      });
     }
-    const visibleSessions = sessions.filter((s) => canManageSession(user, s.data) || user.role === "ketua");
-    const sessionIds = new Set(visibleSessions.map((s) => s.id));
-    const visibleRecords = attendance.filter((r) => sessionIds.has(String(r.data.sessionId)));
-    const visibleCorrections = corrections.filter((r) => sessionIds.has(String(r.data.sessionId)));
+    const visibleSessions = sessions.filter((session) =>
+      canManageSession(user, session.data) || user.role === "ketua");
+    const sessionIds = new Set(visibleSessions.map((session) => session.id));
+    const visibleRecords = attendance.filter((record) => sessionIds.has(String(record.data.sessionId)));
+    const visibleCorrections = corrections.filter((record) => sessionIds.has(String(record.data.sessionId)));
     if (new URL(req.url).searchParams.get("format") === "csv") {
       const quote = (value: unknown) => {
         const text = String(value ?? "").replace(/^[=+@-]/, "'$&").replaceAll('"', '""');
@@ -114,41 +128,46 @@ export async function GET(req: Request) {
         ]);
       }
       const csv = "\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\r\n");
-      return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"', "Cache-Control": "no-store" } });
+      return new Response(csv, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"',
+          "Cache-Control": "no-store",
+        },
+      });
     }
-    const eligibleMembers").replaceAll('"', '""');
-        return '"' + text + '"';
-      };
-      const sessionIndex = new Map(visibleSessions.map((session) => [session.id, session.data]));
-      const csvRows = [["Tanggal", "Kegiatan", "Jenis", "Nama Peserta", "Dusun", "Status", "Waktu Hadir", "Metode", "Verifikasi"]];
-      for (const record of visibleRecords) {
-        const session = sessionIndex.get(String(record.data.sessionId));
-        csvRows.push([
-          session?.eventDate, session?.sessionName, session?.sessionType, record.data.participantName,
-          record.data.participantDusun, record.data.status, record.data.checkInAt, record.data.method,
-          record.data.verificationStatus,
-        ]);
-      }
-      const csv = "\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\r\n");
-      return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"', "Cache-Control": "no-store" } });
-    }
-    const scopedParticipantIds = new Set(visibleSessions.flatMap((session) => Array.isArray(session.data.participantIds) ? session.data.participantIds.map(String) : []));
-    const eligibleMembers = members.results.map((r) => ({ id: String(r.id), data: JSON.parse(String(r.data)) as Record<string, unknown> }))
-      .filter((r) => r.data.status === "Aktif" && r.data.verification === "Terverifikasi" && (user.role !== "koordinator" || scopedParticipantIds.has(r.id)))
-      .map((r) => ({ id: r.id, name: String(r.data.name || ""), dusun: String(r.data.dusun || ""), role: String(r.data.role || "Anggota") }));
+    const scopedParticipantIds = new Set(visibleSessions.flatMap((session) =>
+      Array.isArray(session.data.participantIds) ? session.data.participantIds.map(String) : []));
+    const eligibleMembers = members.results
+      .map((row) => ({ id: String(row.id), data: JSON.parse(String(row.data)) as Record<string, unknown> }))
+      .filter((member) =>
+        member.data.status === "Aktif"
+        && member.data.verification === "Terverifikasi"
+        && (user.role !== "koordinator" || scopedParticipantIds.has(member.id)))
+      .map((member) => ({
+        id: member.id,
+        name: String(member.data.name || ""),
+        dusun: String(member.data.dusun || ""),
+        role: String(member.data.role || "Anggota"),
+      }));
     const today = localNow().date;
-    const todaySessions = visibleSessions.filter((s) => s.data.eventDate === today);
-    const recordsToday = visibleRecords.filter((r) => {
-      const session = visibleSessions.find((s) => s.id === r.data.sessionId);
+    const todaySessions = visibleSessions.filter((session) => session.data.eventDate === today);
+    const recordsToday = visibleRecords.filter((record) => {
+      const session = visibleSessions.find((item) => item.id === record.data.sessionId);
       return session?.data.eventDate === today;
     });
-    const present = recordsToday.filter((r) => ["present", "late"].includes(String(r.data.status))).length;
+    const present = recordsToday.filter((record) => ["present", "late"].includes(String(record.data.status))).length;
     return json({
       mode: "management",
-      summary: { sessionsToday: todaySessions.length, present, late: recordsToday.filter((r) => r.data.status === "late").length, correctionsPending: visibleCorrections.filter((r) => r.data.approvalStatus === "pending").length },
-      sessions: visibleSessions.map((s) => ({ id: s.id, data: s.data, created: s.created, updated: s.updated })),
-      records: visibleRecords.map((r) => ({ id: r.id, data: r.data, created: r.created, updated: r.updated })),
-      corrections: visibleCorrections.map((r) => ({ id: r.id, data: r.data, created: r.created })),
+      summary: {
+        sessionsToday: todaySessions.length,
+        present,
+        late: recordsToday.filter((record) => record.data.status === "late").length,
+        correctionsPending: visibleCorrections.filter((record) => record.data.approvalStatus === "pending").length,
+      },
+      sessions: visibleSessions.map((session) => ({ id: session.id, data: session.data, created: session.created, updated: session.updated })),
+      records: visibleRecords.map((record) => ({ id: record.id, data: record.data, created: record.created, updated: record.updated })),
+      corrections: visibleCorrections.map((record) => ({ id: record.id, data: record.data, created: record.created })),
       members: eligibleMembers,
     });
   } catch {
