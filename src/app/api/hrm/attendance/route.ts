@@ -50,10 +50,11 @@ async function rows(owner: string, kind: string) {
   const result = await env.DB.prepare("SELECT id,data,created,updated FROM records WHERE owner=? AND kind=? ORDER BY created DESC").bind(owner, kind).all();
   return result.results.map(parse);
 }
-async function appendAudit(owner: string, actor: Principal, action: string, title: string, details: Record<string, unknown>) {
+function auditStatement(owner: string, actor: Principal, action: string, title: string, details: Record<string, unknown>) {
   if (!env.DB) throw new Error("Database belum tersedia.");
   const id = randomUUID(), now = new Date().toISOString();
-  await env.DB.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_audit',?,?,?)").bind(id, owner, JSON.stringify({ action, title, actorId: actor.accountId, actorName: actor.displayName, details, occurredAt: now }), now, now).run();
+  return env.DB.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_audit',?,?,?)")
+    .bind(id, owner, JSON.stringify({ action, title, actorId: actor.accountId, actorName: actor.displayName, details, occurredAt: now }), now, now);
 }
 async function getContext(req: Request, write = false) {
   const user = await getAuthenticatedUser();
@@ -184,8 +185,10 @@ export async function POST(req: Request) {
       if (geofenceEnabled && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180 || !Number.isFinite(allowedRadius) || allowedRadius < 25 || allowedRadius > 2000)) return json({ error: "Pengaturan lokasi presensi tidak valid." }, 400);
       const id = randomUUID(), now = new Date().toISOString();
       const data: SessionData = { sessionName, sessionType, eventDate, startTime, endTime, location, eventId, programId, participantIds, status: "scheduled", lateAfterMinutes, geofenceEnabled, ...(geofenceEnabled ? { latitude, longitude, allowedRadius } : {}), createdBy: user.accountId, createdByName: user.displayName };
-      await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_session',?,?,?)").bind(id, owner, JSON.stringify(data), now, now).run();
-      await appendAudit(owner, user, "session.created", "Sesi presensi dibuat: " + sessionName, { sessionId: id });
+      await db.batch([
+        db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_session',?,?,?)").bind(id, owner, JSON.stringify(data), now, now),
+        auditStatement(owner, user, "session.created", "Sesi presensi dibuat: " + sessionName, { sessionId: id }),
+      ]);
       return json({ ok: true, id, data }, 201);
     }
     if (action === "check_in") {
@@ -228,9 +231,10 @@ export async function POST(req: Request) {
       const status = minutes(now.time) > minutes(session.startTime) + Number(session.lateAfterMinutes) ? "late" : "present";
       const id = "attendance-" + digest(owner + ":" + sessionId + ":" + participantId).slice(0, 48);
       const data = { sessionId, participantId, participantType: "member", participantName: String(memberData.name || ""), participantDusun: String(memberData.dusun || ""), status, checkInAt: now.iso, checkOutAt: null, method, verificationStatus: locationVerification ? "verified" : method === "manual" ? "recorded_by_officer" : "self_reported", recordedBy: user.accountId, locationVerification };
-      const inserted = await db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_record',?,?,?) ON CONFLICT(id) DO NOTHING").bind(id, owner, JSON.stringify(data), now.iso, now.iso).run();
-      if (!inserted.meta.changes) return json({ error: "Presensi untuk peserta ini sudah tercatat." }, 409);
-      await appendAudit(owner, user, "attendance.checked_in", "Presensi dicatat: " + String(memberData.name || "Peserta"), { sessionId, attendanceId: id, method, status });
+      const auditId = randomUUID();
+      const inserted = await db.prepare("WITH inserted AS (INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_record',?,?,?) ON CONFLICT(id) DO NOTHING RETURNING id), logged AS (INSERT INTO records(id,owner,kind,data,created,updated) SELECT ?,?,'attendance_audit',?,?,? FROM inserted) SELECT id FROM inserted")
+        .bind(id, owner, JSON.stringify(data), now.iso, now.iso, auditId, owner, JSON.stringify({ action: "attendance.checked_in", title: "Presensi dicatat: " + String(memberData.name || "Peserta"), actorId: user.accountId, actorName: user.displayName, details: { sessionId, attendanceId: id, method, status }, occurredAt: now.iso }), now.iso, now.iso).first();
+      if (!inserted) return json({ error: "Presensi untuk peserta ini sudah tercatat." }, 409);
       return json({ ok: true, id, status, checkInAt: now.iso }, 201);
     }
     if (action === "request_correction") {
