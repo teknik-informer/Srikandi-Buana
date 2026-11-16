@@ -9,7 +9,7 @@ const activate=read('src/app/api/auth/activate/route.ts');
 const login=read('src/app/api/auth/login/route.ts');
 const loginForm=read('src/app/masuk/login-form.tsx');
 const activationForm=read('src/app/aktivasi/activation-form.tsx');
-const accountUi=read('src/app/_components/access/accounts.tsx');
+const accountUi=read('src/app/_components/access/accounts.tsx');\nconst accountAccess=read('src/lib/account-access.ts');
 
 assert.match(migration,/ADD COLUMN IF NOT EXISTS login_phone TEXT/);
 assert.match(migration,/phone_verified_at TEXT/);
@@ -46,7 +46,7 @@ assert.match(activate,/login_phone,phone_verified_at,phone_verified_by/);
 assert.match(activate,/\['reset','reset_wa'\]/);
 assert.match(activationForm,/query\.get\("mode"\)==="whatsapp"/);
 assert.match(activationForm,/name="phone"/);
-assert.match(activationForm,/channel:whatsapp\.current\?"whatsapp"/);
+assert.match(activationForm,/channel:whatsapp\.current\?"whatsapp"/);\nassert.match(accountAccess,/VERCEL_ENV==='preview'\?requestOrigin/);
 assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone"\)\}:\{email:data\.get\("email"\)\},\s*email:/);
 
 assert.match(accountUi,/Konfirmasi WhatsApp & buat aktivasi/);
@@ -63,6 +63,6 @@ await transform(activate,{loader:'ts'});
 await transform(login,{loader:'ts'});
 await transform(loginForm,{loader:'tsx'});
 await transform(activationForm,{loader:'tsx'});
-await transform(accountUi,{loader:'tsx'});
+await transform(accountUi,{loader:'tsx'});\nawait transform(accountAccess,{loader:'ts'});
 
 console.log('PASS WhatsApp identity regression: email-or-phone login, Admin-only manual confirmation, member phone match, one-time activation/recovery links, verified phone binding, and no email dependency in WhatsApp activation UI.');
