@@ -45,7 +45,7 @@ export function isArchitectFullAccess(user: Pick<Principal, "role">): boolean {
 
 const secretariatWrite = [
   "anggota", "pengurus", "musyawarah", "persetujuan", "kegiatan",
-  "kehadiran", "kelembagaan", "register", "transkripsi", "surat", "surat_resmi",
+  "kehadiran", "presensi", "kelembagaan", "register", "transkripsi", "surat", "surat_resmi",
   "alsintan", "survei", "publikasi", "galeri",
 ];
 const secretariatReadOnly = [
@@ -192,7 +192,7 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
 }
 
 export function canReadSectionForRole(role: Role, id: string): boolean {
-  if (id === "akun-saya" || id === "panduan" || id === "notifikasi" || id === "ringkasan") return true;
+  if (id === "akun-saya" || id === "panduan" || id === "notifikasi" || id === "ringkasan" || id === "presensi-saya") return role === "anggota";\n  if (id === "presensi") return ["ketua", "sekretaris", "koordinator"].includes(role);
   if (role === "admin") return ["akun", "pengaturan", "sumber"].includes(id);
   if (id === "pengaturan") return false;
   if (id === "akun") return ["admin", "ketua"].includes(role);
