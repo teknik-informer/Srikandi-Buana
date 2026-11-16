@@ -2,6 +2,7 @@ import {required,json,errorReply} from '@/lib/ecosystem/guard';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {consumeRateLimit} from '@/lib/rate-limit';
 import {balancedLines} from '@/features/finance/validation.mjs';
+import {ensureDefaultLedgerAccounts} from '@/features/finance/record-posting';
 import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
 export const dynamic='force-dynamic';
@@ -18,6 +19,7 @@ export async function GET(request:Request){const c=await required(request);if(c.
 export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!canWrite(c.user.role))return json({error:'Pencatatan jurnal dan koreksi merupakan kewenangan Bendahara.'},403);
  try{const b=await readJsonObject(request,9000),now=new Date().toISOString();
  if(!await consumeRateLimit(c.db,'ledger:write:'+c.user.accountId,120,3600000))return json({error:'Batas pencatatan per jam telah tercapai.'},429);
+ if(b.action==='initialize'){await ensureDefaultLedgerAccounts(c.db,c.user.userId,now);return json({ok:true});}
  if(b.action==='reverse'){
   if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id))return json({error:'Nomor jurnal tidak valid.'},400);
   const old=await c.db.prepare('SELECT e.id,e.memo FROM ledger_entries e WHERE e.id=? AND e.owner=? AND NOT EXISTS(SELECT 1 FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id)').bind(b.id,c.user.userId).first();
