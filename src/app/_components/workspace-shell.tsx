@@ -15,7 +15,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import type { Principal } from "@/lib/permissions";
+import { isArchitectFullAccess, type Principal } from "@/lib/permissions";
 import Navigation, { DashboardMegaMenu } from "./dashboard-navigation";
 import ConnectionStatus from "./connection-status";
 import UnsavedChangesGuard from "./access/unsaved-changes-guard";
@@ -47,7 +47,7 @@ export default function WorkspaceShell({
       <a href="#workspace-content" className="skip-link">
         Langsung ke isi dashboard
       </a>
-      <Navigation user={user} section={section} />
+      <Navigation user={user} section={section} architectFullAccess={isArchitectFullAccess(user)} />
       <SidebarInset className="min-w-0 overflow-x-clip">
         <ConnectionStatus />
         <header className="workspace-header">
@@ -87,7 +87,7 @@ export default function WorkspaceShell({
             className="workspace-header-actions"
             aria-label="Akun dan tindakan utama"
           >
-            <DashboardMegaMenu section={section} user={user} compact />
+            <DashboardMegaMenu section={section} user={user} architectFullAccess={isArchitectFullAccess(user)} compact />
             <NotificationCenter compact />
             <ThemeControl />
             <AccountMenu user={user} />
