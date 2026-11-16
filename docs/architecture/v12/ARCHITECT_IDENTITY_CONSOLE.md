@@ -40,3 +40,8 @@ Roster yang diberikan kepada Arsitek hanya memuat identitas minimum yang diperlu
 ## Catatan cakupan
 
 Email baru ditetapkan saat membuat undangan akun. Untuk akun yang sudah aktif, Arsitek dapat meminta perubahan email melalui tautan verifikasi satu kali yang dikirimkan secara pribadi kepada pemilik alamat baru. Alamat lama tetap berlaku sampai tautan diverifikasi. Token hanya terikat pada akun sasaran, workspace, dan alamat email baru; proses memeriksa konflik alamat, kedaluwarsa, pencabutan, dan penggunaan ulang secara atomik. Setelah berhasil, sesi login lama dicabut dan pengguna masuk kembali menggunakan email baru. Ketua, Administrator Sistem, dan akun Arsitek sendiri tidak dapat diubah melalui alur biasa. Password tidak diminta atau diubah dalam proses ini. Tautan perubahan email berlaku satu jam dan hanya ditampilkan saat dibuat.
+
+ 
+## Pengiriman email transaksional
+
+Undangan aktivasi, pemulihan akses, dan verifikasi perubahan email dikirim otomatis menggunakan Nodemailer melalui akun Gmail resmi `kwt.srikandibuana@gmail.com`. Kredensial menggunakan Google App Password yang disimpan sebagai variabel rahasia lingkungan server, bukan di repositori atau browser. Variabel yang diperlukan: `GMAIL_USER` dan `GMAIL_APP_PASSWORD`. Pengiriman email gagal menyebabkan undangan yang baru dibuat langsung dicabut dan dicatat dalam audit, sehingga tautan yang tidak terkirim tidak dibiarkan aktif. API tidak mengembalikan token atau tautan privat ke dashboard.
