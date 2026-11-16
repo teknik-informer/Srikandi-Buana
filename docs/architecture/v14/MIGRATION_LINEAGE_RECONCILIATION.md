@@ -103,7 +103,28 @@ The two chair-guard indexes created by 008_single_chair_guard.sql were not prese
 
 Interpretation: QA contains schema effects matching parts of both migration families, but the ledger does not record the PR #24 filenames. The physical schema and migration ledger are therefore out of sync. Do not try to repair this by inserting filenames into schema_migrations: first establish provenance and verify every statement and precondition.
 
-## 3. Operational risk
+
+
+## 3. Source-branch integration gap
+
+Repository inspection found a second important distinction: the branch that contains the v14 migration family also contains a legacy-to-normalized write adapter, but the audited PR #24 branch does not.
+
+| Capability | v14 architecture branch | PR #24 branch |
+|---|---|---|
+| v14 legacy mapping module | src/features/workspace-v14/legacy-mapping.mjs | Not present |
+| Normalized write adapter | src/lib/workspace-v14-sync.ts | Not present |
+| Records API invokes normalized adapter | Yes; imports buildV14RecordSyncStatements and includes returned statements in the same batch as the legacy record and audit write | No; writes the legacy records row and audit row only |
+| HRM attendance API | Not present in inspected API tree | Present at src/app/api/hrm/attendance/route.ts |
+| Agriculture API route | Not present in inspected API tree | Present |
+| Finance record-posting service | Present | Present in feature tree, but the inspected records handler does not invoke it |
+
+The v14 records API calls buildV14RecordSyncStatements for supported legacy record kinds and includes the resulting normalized statements in the same database batch. The adapter checks for the normalized schema and organization mapping, then maps legacy members, partners, programmes, activities and other supported records to workspace_v14 tables. The v14 records route also invokes the cash-ledger posting service for cash records.
+
+The PR #24 records API inspected on the current feature branch does not import or invoke this adapter; its write path stores the record in public.records and writes an audit row. PR #24 does add the HRM attendance API, but that API itself stores attendance sessions and attendance audit items in owner-scoped records rather than normalized HRM tables.
+
+**Integration consequence:** the QA normalized schema and the PR #24 feature branch are not yet a single integrated application baseline. The v14 branch supplies a normalized sync path but lacks the newer HRM and agriculture API routes observed in PR #24. The PR #24 branch supplies those newer routes but lacks the normalized sync path. This calls for a controlled branch integration and end-to-end regression plan; do not simply reset the migration ledger or cherry-pick migrations without merging and testing the corresponding code.
+
+## 4. Operational risk
 
 Running the PR #24 migration runner on the shared QA branch without a migration-by-migration review can:
 - Apply a second set of schema changes over an already-evolved v14 schema.
@@ -113,7 +134,7 @@ Running the PR #24 migration runner on the shared QA branch without a migration-
 
 A migration being additive or using IF NOT EXISTS does not by itself prove it is safe. Constraint replacement, index semantics, trigger/function replacement, backfills, and assumptions about existing rows still require review.
 
-## 4. Required reconciliation procedure
+## 5. Required reconciliation procedure
 
 ### Gate A — Freeze and preserve
 - Do not run npm run db:migrate, node scripts/migrate.mjs, or any migration runner on shared QA or Production.
@@ -147,7 +168,7 @@ For every active branch and migration file, record:
 - Require explicit approval before changing shared QA.
 - Production remains a separate approval gate and is not authorized by this document.
 
-## 5. Canonicalization decision still required
+## 6. Canonicalization decision still required
 
 The repository must choose and document one canonical migration history before more schema work is merged. The choice must be based on:
 1. The exact QA schema and ledger.
@@ -157,7 +178,7 @@ The repository must choose and document one canonical migration history before m
 
 Do not declare either the PR #24 branch or the v14 branches canonical solely because their filenames look newer or because their tables exist in QA.
 
-## 6. Safety record
+## 7. Safety record
 
 - Only repository files and branch metadata were read.
 - Neon QA inspection used read-only SELECT/schema metadata queries.
