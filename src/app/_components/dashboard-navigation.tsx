@@ -212,9 +212,14 @@ export default function DashboardNavigation({ section, user }: { section: string
             Lihat situs publik <ArrowUpRight size={14} />
           </Link>
           {user.role === "admin" && (
-            <Link href="/dashboard/sumber" onClick={() => setOpenMobile(false)}>
-              Dokumen sumber <Files size={14} />
-            </Link>
+            <>
+              <Link href="/dashboard/qa-test-center" onClick={() => setOpenMobile(false)} aria-current={section === "qa-test-center" ? "page" : undefined}>
+                QA Test Center <ShieldCheck size={14} />
+              </Link>
+              <Link href="/dashboard/sumber" onClick={() => setOpenMobile(false)}>
+                Dokumen sumber <Files size={14} />
+              </Link>
+            </>
           )}
         </div>
       </SidebarContent>
