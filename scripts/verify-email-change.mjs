@@ -8,6 +8,8 @@ const accounts=read('src/app/api/accounts/route.ts');
 const activate=read('src/app/api/auth/activate/route.ts');
 const form=read('src/app/aktivasi/activation-form.tsx');
 const page=read('src/app/_components/access/accounts.tsx');
+const mailer=read('src/lib/account-mailer.ts');
+const pkg=JSON.parse(read('package.json'));
 
 assert.match(migration,/purpose IN \('activate', 'reset', 'change_email'\)/);
 assert.match(migration,/users_email_lower_unique ON users \(lower\(email\)\)/);
@@ -19,6 +21,17 @@ assert.match(accounts,/purpose==='change_email'&&!target\.enabled/);
 assert.match(accounts,/lower\(email\)=lower\(\?\)/);
 assert.match(accounts,/purpose==='change_email'\?baseLink\.replace\('\/aktivasi#','\/aktivasi\?mode=email#'\)/);
 assert.match(accounts,/Verifikasi perubahan email diminta/);
+assert.match(accounts,/sendAccountEmail\\(\\{to:email,name:fullName,url,expires,purpose\\}\\)/);
+assert.match(accounts,/Pengiriman email gagal; tautan otomatis dicabut/);
+assert.match(accounts,/return json\\(\\{ok:true,sent:true,expires,email,purpose\\}\\)/);
+assert.doesNotMatch(accounts,/return json\\(\\{ok:true,url,expires,email,purpose\\}\\)/);
+assert.equal(pkg.dependencies.nodemailer,'^7.0.10');
+assert.equal(pkg.devDependencies['@types/nodemailer'],'^7.0.4');
+assert.match(mailer,/service: 'gmail'/);
+assert.match(mailer,/GMAIL_APP_PASSWORD/);
+assert.match(mailer,/kwt\\\\\\.srikandibuana\\\\\\.com/);
+assert.match(mailer,/sendMail/);
+assert.match(mailer,/replyTo: senderEmail/);
 
 assert.match(activate,/invite\.purpose!=='change_email'&&raw\.password!==raw\.confirmation/);
 assert.match(activate,/i\.target_user_id AND u\.workspace_owner=i\.owner/);
@@ -34,6 +47,10 @@ assert.match(form,/Verifikasi email baru/);
 assert.match(form,/!emailChange\.current&&/);
 assert.match(page,/architectMode&&u\.role!=='ketua'/);
 assert.match(page,/action:'change_email'/);
+assert.match(page,/Email berhasil dikirim kepada penerima/);
+assert.match(page,/Kirim undangan melalui email/);
+assert.doesNotMatch(page,/Tautan pribadi siap disalin/);
+await transform(mailer,{loader:'ts'});
 
 await transform(accounts,{loader:'ts'});
 await transform(activate,{loader:'ts'});
