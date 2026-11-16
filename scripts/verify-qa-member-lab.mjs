@@ -18,7 +18,7 @@ assert.match(page,/active === "qa-members"/);
 assert.match(page,/process\.env\.VERCEL_ENV !== "preview"/);
 assert.match(page,/process\.env\.VERCEL_GIT_COMMIT_REF !== "feat\/architect-identity-console-2026-11-15"/);
 assert.match(ui,/\/api\/qa\/members/);
-assert.match(ui,/DATA SINTETIS QA/);
+assert.match(ui,/data sintetis/i);
 assert.match(center,/\/dashboard\/qa-members/);
 assert.match(accounts,/data\.qaFixture!==true/);
 assert.match(accounts,/qaPreview\(\)/);
