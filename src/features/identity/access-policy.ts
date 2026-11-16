@@ -60,7 +60,10 @@ const financeReadOnly = [
 ];
 const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_program", "usaha", "kemitraan"];
 
+const privateAttendanceKinds = new Set(["attendance_session", "attendance_record", "attendance_correction", "attendance_qr_token", "attendance_audit"]);
+
 export function canReadKindForRole(role: Role, kind: string): boolean {
+  if (privateAttendanceKinds.has(kind)) return false;
   if (role === "admin") return false;
   if (role === "ketua") return true;
   if (role === "sekretaris") return secretariatWrite.includes(kind) || secretariatReadOnly.includes(kind);
