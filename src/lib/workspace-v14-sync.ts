@@ -437,7 +437,7 @@ export async function buildV14AttendanceSyncStatements(
 
     // External participants are a roster attached to this legacy attendance record.
     // Replacing only the external rows for this activity keeps one canonical list.
-    statements.push(db.prepare(
+    if (input.externalParticipants.length > 0) statements.push(db.prepare(
       "DELETE FROM workspace_v14.activity_attendance WHERE organization_id=? AND activity_id=? AND participant_type='external'",
     ).bind(organizationId, activityId));
 
