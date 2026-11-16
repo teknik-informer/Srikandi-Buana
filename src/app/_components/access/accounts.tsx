@@ -43,7 +43,7 @@ export default function Accounts({userRole='ketua'}:{userRole?:Role}){const boot
   pending.current=true;setBusy(true);setMutationError('');
   try{const {response:r,data:d}=await requestJSON<AccountAction>('/api/accounts',{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
    if(!r.ok){if(r.status===401)await load();throw Error(d?.error||'Perubahan akses belum tersimpan. Coba lagi.');}
-   if(d?.manual&&d.url){setManualLink(d.url);setManualPurpose(d.purpose||'activate_wa');}toast.success(d?.sent?'Email berhasil dikirim kepada penerima.':d?.manual?(d.purpose==='reset_wa'?'Tautan pemulihan siap dikirim melalui WhatsApp.':'Nomor WhatsApp dikonfirmasi. Tautan aktivasi siap dikirim secara manual.'):'Perubahan berhasil disimpan.');await load();return d||{};
+   if(d?.manual&&d.url){setManualLink(d.url);setManualPurpose(d.purpose||'activate_wa');}toast.success(d?.sent?'Email berhasil dikirim kepada penerima.':d?.manual?(d.purpose==='reset_wa'?'Tautan pemulihan siap dikirim melalui WhatsApp.':'Nomor WhatsApp dikonfirmasi. Tautan aktivasi siap dikirim secara manual.'):d?.verified?'Nomor WhatsApp berhasil dikonfirmasi untuk login.':'Perubahan berhasil disimpan.');await load();return d||{};
   }catch(e){const message=e instanceof Error?e.message:'Permintaan gagal.';setMutationError(message);toast.error(message);return null;}
   finally{pending.current=false;setBusy(false);}
  }
