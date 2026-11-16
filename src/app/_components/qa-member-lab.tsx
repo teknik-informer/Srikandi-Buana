@@ -27,7 +27,7 @@ export default function QaMemberLab(){
   try{
    const {response,data}=await requestJSON<{members?:Member[];error?:string}>("/api/qa/members",{cache:"no-store"});
    if(!response.ok)throw Error(data?.error||"Daftar anggota uji tidak dapat dimuat.");
-   setMembers(Array.isArray(data.members)?data.members:[]);
+   setMembers(Array.isArray(data?.members)?data.members:[]);
   }catch(e){setError(e instanceof Error?e.message:"Koneksi QA gagal.");}
   finally{setLoading(false);}
  },[]);
