@@ -297,18 +297,18 @@ export async function PATCH(req: Request) {
       if (nextStatus === "active" && previous.status !== "scheduled") return json({ error: "Hanya sesi terjadwal yang dapat dibuka." }, 409);
       if (nextStatus === "closed" && previous.status !== "active") return json({ error: "Hanya sesi aktif yang dapat ditutup dan direkap." }, 409);
       const now = new Date().toISOString(), next = { ...previous, status: nextStatus };
-      await db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_session'").bind(JSON.stringify(next), now, sessionId, owner).run();
+      const statements = [db.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='attendance_session'").bind(JSON.stringify(next), now, sessionId, owner)];
       if (nextStatus === "closed") {
         const current = await rows(owner, "attendance_record"), presentIds = new Set(current.filter((r) => r.data.sessionId === sessionId).map((r) => String(r.data.participantId)));
         const memberRows = await db.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota'").bind(owner).all();
-        const statements = memberRows.results.filter((m) => previous.participantIds.includes(String(m.id)) && !presentIds.has(String(m.id))).map((m) => {
+        statements.push(...memberRows.results.filter((m) => previous.participantIds.includes(String(m.id)) && !presentIds.has(String(m.id))).map((m) => {
           const member = JSON.parse(String(m.data)) as Record<string, unknown>, id = "attendance-" + digest(owner + ":" + sessionId + ":" + String(m.id)).slice(0, 48);
           const data = { sessionId, participantId: String(m.id), participantType: "member", participantName: String(member.name || ""), participantDusun: String(member.dusun || ""), status: "absent", checkInAt: null, checkOutAt: null, method: "manual", verificationStatus: "system_closed", recordedBy: user.accountId, locationVerification: null };
           return db.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,'attendance_record',?,?,?) ON CONFLICT(id) DO NOTHING").bind(id, owner, JSON.stringify(data), now, now);
-        });
-        if (statements.length) await db.batch(statements);
+        }));
       }
-      await appendAudit(owner, user, "session." + nextStatus, "Status sesi presensi diperbarui", { sessionId, previousStatus: previous.status, nextStatus });
+      statements.push(auditStatement(owner, user, "session." + nextStatus, "Status sesi presensi diperbarui", { sessionId, previousStatus: previous.status, nextStatus }));
+      await db.batch(statements);
       return json({ ok: true, status: nextStatus });
     }
     if (action === "manual_record") {
