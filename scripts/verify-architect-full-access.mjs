@@ -23,7 +23,7 @@ for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecor
 assert(registry.includes("getVisibleEnterpriseDashboards(role: Role, fullAccess = false)"));
 assert(registry.includes("getVisibleEnterpriseUtilities(role: Role, fullAccess = false)"));
 assert(route.includes("isArchitectFullAccess(admin)"));
-assert(shell.includes("architectFullAccess={isArchitectFullAccess(user)}"));
+assert(shell.includes("architectFullAccess={user.architectFullAccess === true}"));
 assert(navigation.includes("getVisibleEnterpriseDashboards(user.role, architectFullAccess)"));
 assert(navigation.includes("getVisibleEnterpriseUtilities(user.role, architectFullAccess)"));
 assert(center.includes("canReadSection(principal, section)"));
