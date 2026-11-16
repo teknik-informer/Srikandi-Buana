@@ -87,7 +87,7 @@ export default function WorkspaceShell({
             className="workspace-header-actions"
             aria-label="Akun dan tindakan utama"
           >
-            <DashboardMegaMenu section={section} user={user} architectFullAccess={isArchitectFullAccess(user)} compact />
+            <DashboardMegaMenu section={section} user={user} architectFullAccess={user.architectFullAccess === true} compact />
             <NotificationCenter compact />
             <ThemeControl />
             <AccountMenu user={user} />
