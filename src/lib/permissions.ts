@@ -6,6 +6,7 @@
  */
 export {
   roles,
+  isArchitectFullAccess,
   canReadKindForRole,
   canReadKind,
   canWriteKind,
