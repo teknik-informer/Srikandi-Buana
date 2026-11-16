@@ -99,7 +99,22 @@ export async function GET(req: Request) {
     const visibleCorrections = corrections.filter((r) => sessionIds.has(String(r.data.sessionId)));
     if (new URL(req.url).searchParams.get("format") === "csv") {
       const quote = (value: unknown) => {
-        const text = String(value ?? "").replace(/^[=+@-]/, "'    const visibleCorrections = corrections.filter((r) => sessionIds.has(String(r.data.sessionId)));
+        const text = String(value ?? "").replace(/^[=+@-]/, "'$&").replaceAll('"', '""');
+        return '"' + text + '"';
+      };
+      const sessionIndex = new Map(visibleSessions.map((session) => [session.id, session.data]));
+      const csvRows: unknown[][] = [["Tanggal", "Kegiatan", "Jenis", "Nama Peserta", "Dusun", "Status", "Waktu Hadir", "Metode", "Verifikasi"]];
+      for (const record of visibleRecords) {
+        const session = sessionIndex.get(String(record.data.sessionId));
+        csvRows.push([
+          session?.eventDate, session?.sessionName, session?.sessionType, record.data.participantName,
+          record.data.participantDusun, record.data.status, record.data.checkInAt, record.data.method,
+          record.data.verificationStatus,
+        ]);
+      }
+      const csv = "\\uFEFF" + csvRows.map((row) => row.map(quote).join(",")).join("\\r\\n");
+      return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rekap-presensi-srikandi-buana.csv"', "Cache-Control": "no-store" } });
+    }
     const eligibleMembers").replaceAll('"', '""');
         return '"' + text + '"';
       };
