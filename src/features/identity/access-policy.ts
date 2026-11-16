@@ -40,6 +40,7 @@ export type AccessRecord = { id: string; kind: string; data: Record<string, unkn
  */
 export function isArchitectFullAccess(user: Pick<Principal, "role">): boolean {
   return user.role === "admin" &&
+    typeof process !== "undefined" &&
     process.env.VERCEL_ENV === "preview" &&
     process.env.VERCEL_GIT_COMMIT_REF === "feat/architect-identity-console-2026-11-15";
 }
