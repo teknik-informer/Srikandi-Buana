@@ -38,7 +38,7 @@ export async function POST(request:Request){
   if(u.role==='admin'&&!['invite','reset','reset_wa','change_email','verify_phone'].includes(String(raw.action)))return json({error:'Arsitek Sistem hanya dapat mengundang akun struktural, memulihkan akses, dan mengelola hak akses teknis.'},403);
   if(raw.action==='verify_phone'){
    const target=await env.DB.prepare('SELECT id,member_id,role,enabled FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();
-   if(!target||target.role==='admin'||target.role==='ketua'||target.id===u.accountId||!target.enabled)return json({error:'Akun ini tidak dapat diubah melalui verifikasi WhatsApp biasa.'},403);
+   if(!target||target.role==='admin'||(target.role==='ketua'&&u.role!=='admin')||target.id===u.accountId||!target.enabled)return json({error:'Akun ini tidak dapat diubah melalui verifikasi WhatsApp biasa.'},403);
    if(raw.whatsappConfirmed!==true)return json({error:'Admin harus menghubungi anggota dan mengonfirmasi kepemilikan nomor WhatsApp secara manual.'},400);
    const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(String(target.member_id||''),u.userId).first();
    if(!member)return json({error:'Data anggota tidak ditemukan.'},404);
