@@ -84,7 +84,7 @@ FROM schema_migrations
 ORDER BY name;
 ```
 
-The QA ledger returned these 20 entries:
+The QA ledger returned these 21 entries:
 
 | QA ledger filename | Present in audited PR #24 repository migration directory? |
 |---|---|
@@ -110,7 +110,7 @@ The QA ledger returned these 20 entries:
 | `018_inventory_transfers_stocktakes.sql` | No |
 | `019_inventory_document_lifecycle.sql` | No |
 
-**Critical interpretation:** the database's migration ledger is not aligned with the migration directory of the audited feature branch. This is a real QA lineage conflict, not merely duplicate numbering. The repository migration runner checks the complete filename, not just a numeric prefix. Consequently, it may attempt to execute branch migrations that are not recorded in the QA ledger even when similarly numbered but semantically different migrations have already run.
+**Critical interpretation:** the database's migration ledger is not aligned with the migration directory of the audited feature branch. This is a confirmed QA migration-lineage divergence, not merely duplicate numbering. Repository inspection found that the exact QA 008_workspace_v14_core.sql through 019_inventory_document_lifecycle.sql family exists on feat/workspace-v14-nextadmin-architecture and feat/v14-engaging-productivity, while PR #24 carries a different 008–013 sequence. QA therefore has a composite migration history; no single inspected branch directory matches the entire 21-file ledger. This confirms divergence, but does not prove every unrecorded migration would fail; DDL effects and preconditions still require review. The repository migration runner checks the complete filename, not just a numeric prefix. Consequently, it may attempt to execute branch migrations that are not recorded in the QA ledger even when similarly numbered but semantically different migrations have already run.
 
 Required next actions:
 1. Freeze migration execution on this branch until reconciliation is complete.
