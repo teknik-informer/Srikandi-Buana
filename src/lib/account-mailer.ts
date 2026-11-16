@@ -1,4 +1,3 @@
-import 'server-only';
 import nodemailer from 'nodemailer';
 
 const senderEmail = process.env.GMAIL_USER?.trim().toLowerCase();
