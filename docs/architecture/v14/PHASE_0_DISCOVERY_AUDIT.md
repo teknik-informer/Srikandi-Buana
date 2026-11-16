@@ -121,7 +121,30 @@ Required next actions:
 6. Keep Production untouched; no Production ledger or data has been inspected or changed in this audit.
 
 
-## 6. Phase 0 exit criteria
+
+## 6. QA schema inventory evidence (read-only)
+
+A second read-only query inspected table names in the Neon QA branch's non-system schemas. It revealed that the shared QA database contains a substantial normalized `workspace_v14` schema in addition to the legacy `public` schema.
+
+Observed `workspace_v14` table families include:
+- Organization and identity scope: `organizations`, `organization_memberships`, `organization_units`, `role_grants`, `sites`.
+- People and participation: `member_profiles`, `programme_enrolments`, `member_service_engagements`, `safeguarding_cases`.
+- Programs and delivery: `programmes`, `activities`, `tasks`, `activity_attendance`.
+- Finance and funding: `funds`, `budget_allocations`, `member_contributions`, `member_payments`, `member_savings_accounts`, `member_savings_transactions`, `member_loans`, `member_loan_installments`, `member_loan_payments`, `member_financial_policies`, `member_compensation_items`.
+- Inventory and procurement: `inventory_items`, `inventory_locations`, `stock_movements`, `procurement_requests`, `inventory_transfers`, `inventory_stocktakes` and their line tables.
+- CRM/partnership: `partner_organizations`, `partner_interactions`, `market_quotes`.
+- Monitoring and evidence: `impact_indicators`, `indicator_observations`, `quality_observations`, `evidence_links`, `documents`.
+- Traceability: `farm_plots`, `supply_lots`, `supply_lot_events`, `supply_lot_transformations`, `supply_lot_transformation_lines`.
+- Audit and migration: `audit_events`, `legacy_record_map`.
+
+The QA database also contains public-schema commerce/finance structures such as `commerce_products`, `commerce_orders`, `commerce_stock_history`, `ledger_accounts`, `ledger_entries`, `ledger_lines`, `finance_bank_reconciliations`, `commerce_purchase_orders` and `commerce_sales_invoices`.
+
+**Interpretation:** these table names and metadata prove that schema structures exist in this QA branch. They do not prove that the current PR #24 code branch uses these tables, that APIs and UI are connected, that data is populated correctly, or that the workflows pass UAT. The table inventory query did not read personal or transaction row data.
+
+This finding changes the discovery conclusion: CRM, Projects, Accounting, Inventory/POS and Traceability have more normalized schema foundations in QA than the current PR #24 repository branch alone suggests. The primary gap is now **lineage reconciliation and code/schema compatibility verification**, not simply creating those domains from scratch.
+
+
+## 7. Phase 0 exit criteria
 
 - [x] Repository, stack and active PR dependency chain inspected.
 - [x] Existing domain and route inventory inspected.
@@ -133,6 +156,6 @@ Required next actions:
 - [ ] Runtime deployment/environment audit revalidated against current Vercel settings.
 - [ ] Business owners approve domain workflows and financial accounting policies.
 
-## 7. Safety boundary
+## 8. Safety boundary
 
 This document is based on source inspection, repository metadata and one read-only query to the named Neon QA branch. No database schema or data was modified. No Production database was queried; no Production environment variable, deployment, migration, user record or operational data was changed.
