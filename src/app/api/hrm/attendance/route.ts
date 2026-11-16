@@ -38,8 +38,8 @@ function localNow() {
   return { date: get("year") + "-" + get("month") + "-" + get("day"), time: get("hour") + ":" + get("minute"), iso: new Date().toISOString() };
 }
 function minutes(value: string) { const [h, m] = value.split(":").map(Number); return h * 60 + m; }
-function validDate(value: string) { return /^\\d{4}-\\d{2}-\\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value; }
-function validTime(value: string) { return /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value); }
+function validDate(value: string) { return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value; }
+function validTime(value: string) { return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value); }
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const rad = (n: number) => n * Math.PI / 180, dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
