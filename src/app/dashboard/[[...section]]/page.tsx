@@ -21,7 +21,7 @@ import MemberAudienceDashboard from "../../_components/member-audience-dashboard
 import OfficialLetterWorkspace from "../../_components/official-letter-workspace";
 import { getSiteSettings } from "@/lib/site-settings";
 import ArchitectQaTestCenter from "../../_components/architect-qa-test-center";
-import QaMemberLab from "../../_components/qa-member-lab";
+import QaMemberLab from "../../_components/qa-member-lab";\nimport HrmAttendanceWorkspace from "../../_components/hrm-attendance-workspace";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
@@ -60,7 +60,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     if (admin.role !== "admin") return notFound();
     return <WorkspaceShell user={admin} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter /></WorkspaceShell>;
   }
-  if (active === "ringkasan") {
+  if (active === "presensi" || active === "presensi-saya") {\n    return <WorkspaceShell user={admin} section={active} title={active === "presensi-saya" ? "Presensi Saya" : "Smart Attendance Management"} defaultSidebarOpen={defaultSidebarOpen}>\n      <HrmAttendanceWorkspace user={admin} />\n    </WorkspaceShell>;\n  }\n  if (active === "ringkasan") {
     const isMember = admin.role === "anggota";
     return (
       <WorkspaceShell
