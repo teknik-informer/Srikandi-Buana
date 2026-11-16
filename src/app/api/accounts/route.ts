@@ -13,11 +13,11 @@ export async function GET(){
   const members=await env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all();
   const memberIds=members.results.map(row=>String(row.id));
   const linkedAccounts=memberIds.length
-   ? await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
+   ? await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
    : {results:[]};
   const accountRows=[...new Map(linkedAccounts.results.filter(row=>String(row.workspace_owner)===u.userId).map(({workspace_owner,...row})=>[String(row.id),row])).values()];
   if(u.role==='admin'){
-   const self=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
+   const self=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
    if(self)accountRows.unshift(self);
   }
   const users={results:accountRows};
@@ -38,7 +38,7 @@ export async function POST(request:Request){
  if(!env.DB)return json({error:'Database belum tersedia.'},503);
  try{
   const raw=await readJsonObject(request,8000);
-  if(u.role==='admin'&&!['invite','reset','change_email'].includes(String(raw.action)))return json({error:'Arsitek Sistem hanya dapat mengundang akun struktural, memulihkan akses, dan mengelola hak akses teknis.'},403);
+  if(u.role==='admin'&&!['invite','reset','reset_wa','change_email'].includes(String(raw.action)))return json({error:'Arsitek Sistem hanya dapat mengundang akun struktural, memulihkan akses, dan mengelola hak akses teknis.'},403);
   if(u.role==='admin'&&raw.action==='invite'&&raw.role==='ketua'){
    const nowCheck=new Date().toISOString();
    await env.DB.prepare("UPDATE account_invitations SET revoked_at=? WHERE owner=? AND role='ketua' AND purpose='activate' AND consumed_at IS NULL AND revoked_at IS NULL AND expires<=?").bind(nowCheck,u.userId,nowCheck).run();
@@ -50,16 +50,16 @@ export async function POST(request:Request){
   if(raw.action==='change_email'&&u.role!=='admin')return json({error:'Perubahan email struktural hanya dapat dimulai oleh Arsitek Sistem.'},403);
   const purpose=raw.action==='reset'?'reset':raw.action==='change_email'?'change_email':'activate';
   if(!['invite','reset','change_email'].includes(String(raw.action)))return json({error:'Tindakan tidak valid.'},400);
- let memberId=String(raw.memberId||''),email=String(raw.email||'').trim().toLowerCase(),fullName='',targetId:string|null=null,access=purpose==='change_email'?accessInput({role:'anggota'}):accessInput(raw);
+ const normalizePhone=(value:string)=>{const d=value.replace(/\\D/g,'');const n=d.startsWith('0')?'62'+d.slice(1):d.startsWith('62')?d:'';return n&&/^628[0-9]{7,12}$/.test(n)?'+'+n:''};\n let memberId=String(raw.memberId||''),phone=normalizePhone(String(raw.phone||'')),email=String(raw.email||'').trim().toLowerCase(),fullName='',targetId:string|null=null,access=purpose==='change_email'?accessInput({role:'anggota'}):accessInput(raw);
  if(purpose==='reset'||purpose==='change_email'){
   const target=await env.DB.prepare('SELECT id,email,full_name,member_id,role,position,program_ids,enabled FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();
   if(!target||target.role==='admin'||target.role==='ketua'||target.id===u.accountId||(purpose==='change_email'&&!target.enabled))return json({error:purpose==='change_email'?'Email akun Ketua, Administrator Sistem, akun Arsitek, atau akun nonaktif tidak dapat diubah melalui alur biasa.':'Pemulihan akun Ketua tidak tersedia melalui pengelolaan akun biasa. Gunakan prosedur pemulihan khusus yang diaudit.'},403);
-  targetId=String(target.id);memberId=String(target.member_id);if(purpose==='reset')email=String(target.email);fullName=String(target.full_name);
+  targetId=String(target.id);memberId=String(target.member_id);if(purpose==='reset')email=String(target.email);if(purpose==='reset_wa'){if(!target.login_phone||!target.phone_verified_at)return json({error:'Nomor WhatsApp akun ini belum dikonfirmasi Admin.'},409);phone=String(target.login_phone);email='wa-'+phone.replace(/\\D/g,'')+'@login.srikandibuana.invalid';}fullName=String(target.full_name);
   access=accessInput({role:target.role,position:target.position,programIds:JSON.parse(String(target.program_ids))});
  }
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan email pribadi yang valid.'},400);
- const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(memberId,u.userId).first();if(!member)return json({error:'Pilih anggota yang terdaftar.'},400);const data=JSON.parse(String(member.data));if(data.verification!=='Terverifikasi'||data.status!=='Aktif')return json({error:'Verifikasi data anggota dan tetapkan status Aktif sebelum membuat undangan.'},400);fullName=String(data.name);
- if(purpose==='activate'){const duplicate=await env.DB.prepare('SELECT id FROM users WHERE lower(email)=lower(?) OR (workspace_owner=? AND member_id=?)').bind(email,u.userId,memberId).first();if(duplicate)return json({error:'Akun untuk email atau anggota ini sudah ada. Gunakan pemulihan akses.'},409)}
+ const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(memberId,u.userId).first();if(!member)return json({error:'Pilih anggota yang terdaftar.'},400);const data=JSON.parse(String(member.data));if(data.verification!=='Terverifikasi'||data.status!=='Aktif')return json({error:'Verifikasi data anggota dan tetapkan status Aktif sebelum membuat undangan.'},400);fullName=String(data.name);if(purpose==='activate_wa'&&normalizePhone(String(data.phone||''))!==phone)return json({error:'Nomor WhatsApp tidak cocok dengan nomor pada data anggota. Perbarui data anggota terlebih dahulu.'},409);
+ if(purpose==='activate'||purpose==='activate_wa'){const duplicate=await env.DB.prepare('SELECT id FROM users WHERE lower(email)=lower(?) OR (workspace_owner=? AND member_id=?)').bind(email,u.userId,memberId).first();if(duplicate)return json({error:'Akun untuk anggota ini sudah ada. Gunakan pemulihan akses.'},409)}
  if(purpose==='change_email'){
   const current=await env.DB.prepare('SELECT email FROM users WHERE id=? AND workspace_owner=?').bind(targetId,u.userId).first();
   if(!current||email===String(current.email).toLowerCase())return json({error:'Email baru sama dengan email yang sedang digunakan.'},400);
