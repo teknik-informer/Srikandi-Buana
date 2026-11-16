@@ -2,6 +2,7 @@ import {env} from '@/lib/runtime';
 import {getAuthenticatedUser} from '@/lib/auth';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
+import {sendAccountEmail} from '@/lib/account-mailer';
 export const dynamic='force-dynamic';
 export async function GET(){
  const u=await getAuthenticatedUser();
@@ -66,7 +67,17 @@ export async function POST(request:Request){
  }
  const {token,hash}=inviteToken(),id=crypto.randomUUID(),now=new Date().toISOString(),expires=new Date(Date.now()+(purpose==='activate'?48*3600000:3600000)).toISOString();const baseLink=activationLink(request,token);const url=purpose==='change_email'?baseLink.replace('/aktivasi#','/aktivasi?mode=email#'):baseLink;
  await env.DB.batch([env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL').bind(now,u.userId,memberId),env.DB.prepare('INSERT INTO account_invitations(id,token_hash,owner,member_id,email,full_name,role,position,program_ids,purpose,target_user_id,expires,created_by,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,hash,u.userId,memberId,email,fullName,access.role,access.position,JSON.stringify(access.programIds),purpose,targetId,expires,u.accountId,now),await accessAudit(u.userId,u.accountId,purpose==='reset'?'Tautan pemulihan dibuat':purpose==='change_email'?'Verifikasi perubahan email diminta':'Undangan dibuat',email)]);
- return json({ok:true,url,expires,email,purpose});
+ try {
+  await sendAccountEmail({to:email,name:fullName,url,expires,purpose});
+ } catch {
+  const failedAt=new Date().toISOString();
+  await env.DB.batch([
+   env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE id=? AND owner=? AND consumed_at IS NULL').bind(failedAt,id,u.userId),
+   await accessAudit(u.userId,u.accountId,'Pengiriman email gagal; tautan otomatis dicabut',email),
+  ]);
+  return json({error:'Email belum dapat dikirim. Periksa konfigurasi Gmail App Password pada lingkungan Preview, lalu coba kembali.'},503);
+ }
+ return json({ok:true,sent:true,expires,email,purpose});
  }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);if(e instanceof Error&&/users_one_active_chair_per_workspace|account_invitations_one_pending_chair_per_workspace|duplicate key|unique constraint/i.test(e.message))return json({error:'Kewenangan Ketua atau undangannya sudah ditetapkan. Periksa akun dan undangan sebelum mencoba kembali.'},409);return json({error:e instanceof Error&&/Pilih|Jabatan|Program|Alamat/.test(e.message)?e.message:'Undangan belum tersimpan. Muat ulang dan coba kembali.'},400)}}
 export async function PATCH(request:Request){const u=await getAuthenticatedUser();if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus pengelola akun.'},403);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(!env.DB)return json({error:'Database belum tersedia.'},503);try{const raw=await readJsonObject(request,8000);if(raw.action==='revoke'){const now=new Date().toISOString();await env.DB.batch([env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE id=? AND owner=? AND consumed_at IS NULL AND revoked_at IS NULL').bind(now,String(raw.id||''),u.userId),await accessAudit(u.userId,u.accountId,'Undangan dicabut',String(raw.id||''))]);return json({ok:true})}
  const target=await env.DB.prepare('SELECT id,role,member_id,email FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();if(!target)return json({error:'Akun tidak ditemukan.'},404);if(target.role==='admin'||target.role==='ketua'||target.id===u.accountId)return json({error:'Akun Administrator Sistem dan Ketua tidak dapat diubah melalui pengelolaan akun biasa.'},403);if(typeof raw.enabled!=='boolean')return json({error:'Status akun tidak valid.'},400);const access=accessInput(raw);if(access.role==='ketua'&&target.role!=='ketua')return json({error:'Penetapan Ketua pengganti memerlukan prosedur serah-terima resmi; perubahan role biasa tidak dapat memberi kewenangan Ketua.'},403);const now=new Date().toISOString();await env.DB.batch([env.DB.prepare('UPDATE users SET role=?,position=?,program_ids=?,enabled=? WHERE id=? AND workspace_owner=?').bind(access.role,access.position,JSON.stringify(access.programIds),raw.enabled,target.id,u.userId),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(target.id),env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL').bind(now,u.userId,target.member_id),await accessAudit(u.userId,u.accountId,raw.enabled?'Hak akses diperbarui; sesi dicabut':'Akun dinonaktifkan; sesi dicabut',String(target.email))]);return json({ok:true});
