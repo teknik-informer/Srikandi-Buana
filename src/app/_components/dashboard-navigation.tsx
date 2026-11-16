@@ -228,7 +228,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
           <UserAvatar user={identity} className="size-9" />
           <div className="min-w-0 flex-1">
             <strong className="block truncate">{identity.displayName || user.email}</strong>
-            <small>{roles[user.role]}</small>
+            <small>{user.architectFullAccess ? "Arsitek Sistem · Full Access QA" : roles[user.role]}</small>
           </div>
           <ShieldCheck size={17} />
         </div>
