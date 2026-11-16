@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {transform} from 'esbuild';
 
 const read=path=>readFileSync(path,'utf8');
-const migration=read('migrations/012_whatsapp_login_identity.sql');
+const migration=read('migrations/012_whatsapp_login_identity.sql');\nconst multiOfficerMigration=read('migrations/013_multi_officer_positions.sql');\nconst roleFields=read('src/app/_components/access/role-fields.tsx');
 const accounts=read('src/app/api/accounts/route.ts');
 const activate=read('src/app/api/auth/activate/route.ts');
 const login=read('src/app/api/auth/login/route.ts');
@@ -18,7 +18,7 @@ assert.match(migration,/phone_verified_by TEXT/);
 assert.match(migration,/activate_wa', 'reset_wa'/);
 assert.match(migration,/users_login_phone_unique/);
 assert.match(migration,/WHERE login_phone IS NOT NULL/);
-assert.doesNotMatch(migration,/DROP TABLE|DELETE FROM users|TRUNCATE/i);
+assert.doesNotMatch(migration,/DROP TABLE|DELETE FROM users|TRUNCATE/i);\nassert.match(multiOfficerMigration,/DROP INDEX IF EXISTS users_one_active_chair_per_workspace/);\nassert.match(multiOfficerMigration,/DROP INDEX IF EXISTS account_invitations_one_pending_chair_per_workspace/);\nassert.doesNotMatch(multiOfficerMigration,/DROP TABLE|DELETE FROM users|TRUNCATE/i);\nassert.doesNotMatch(accounts,/existingChair|pendingChair|users_one_active_chair_per_workspace/);\nassert.match(accounts,/access\.role==='ketua'&&u\.role!=='admin'/);\nassert.match(accountUi,/allowChair=\{architectMode\}/);\nassert.match(accountUi,/Beberapa akun dapat menggunakan profil hak akses yang sama/);\nassert.match(roleFields,/Profil hak akses akun/);\nassert.match(roleFields,/satu profil hak akses dapat digunakan oleh beberapa orang/i);
 
 assert.match(login,/raw\.identity \|\| raw\.email/);
 assert.match(login,/u\.login_phone=\?/);
@@ -65,7 +65,7 @@ await transform(activate,{loader:'ts'});
 await transform(login,{loader:'ts'});
 await transform(loginForm,{loader:'tsx'});
 await transform(activationForm,{loader:'tsx'});
-await transform(accountUi,{loader:'tsx'});
+await transform(accountUi,{loader:'tsx'});\nawait transform(roleFields,{loader:'tsx'});
 await transform(accountAccess,{loader:'ts'});
 
-console.log('PASS WhatsApp identity regression: email-or-phone login, Admin-only manual confirmation, member phone match, one-time activation/recovery links, verified phone binding, and no email dependency in WhatsApp activation UI.');
+console.log('PASS WhatsApp identity regression: email-or-phone login, Admin-only manual confirmation, member phone match, one-time activation/recovery links, verified phone binding, multi-user structural roles, and no email dependency in WhatsApp activation UI.');
