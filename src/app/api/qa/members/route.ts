@@ -30,7 +30,7 @@ function valid(raw:Record<string,unknown>){
 }
 export async function GET(){
   try{
-    const c=await principal();if(c.error)return c.error;
+    const c=await principal();if("error" in c)return c.error;
     const rows=await c.db!.prepare("SELECT id,data,created,updated FROM records WHERE owner=? AND kind='anggota' ORDER BY created DESC").bind(c.user!.userId).all();
     const members=(rows.results||[]).flatMap(row=>{try{const d=JSON.parse(String(row.data));return d.qaFixture===true?[{id:String(row.id),name:String(d.name||""),dusun:String(d.dusun||""),phone:String(d.phone||""),status:String(d.status||""),verification:String(d.verification||""),created:String(row.created||"")}]:[]}catch{return []}});
     return json({members});
@@ -41,7 +41,7 @@ export async function POST(request:Request){
     const c=await principal();if(c.error)return c.error;
     if(!sameOrigin(request))return json({error:"Permintaan lintas situs ditolak."},403);
     const raw=await readJsonObject(request,6000),checked=valid(raw);
-    if(checked.error)return json({error:checked.error},400);
+    if("error" in checked)return json({error:checked.error},400);
     const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='anggota' AND data LIKE ? LIMIT 1").bind(c.user!.userId,"%"+String(checked.data!.phone)+"%").first();
     if(duplicate)return json({error:"Nomor WhatsApp tersebut sudah dipakai data uji lain. Gunakan nomor uji berbeda."},409);
     const id=crypto.randomUUID(),now=new Date().toISOString();
