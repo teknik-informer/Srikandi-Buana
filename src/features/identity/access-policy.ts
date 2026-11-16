@@ -39,10 +39,7 @@ export type AccessRecord = { id: string; kind: string; data: Record<string, unkn
  * Production keeps technical administration separate from organizational records.
  */
 export function isArchitectFullAccess(user: Pick<Principal, "role">): boolean {
-  return user.role === "admin" &&
-    typeof process !== "undefined" &&
-    process.env.VERCEL_ENV === "preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF === "feat/architect-identity-console-2026-11-15";
+  return user.role === "admin" && "architectFullAccess" in user && user.architectFullAccess === true;
 }
 
 
