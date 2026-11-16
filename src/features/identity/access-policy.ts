@@ -31,6 +31,7 @@ export type Principal = {
   memberId: string | null;
   position: string;
   programIds: string[];
+  architectFullAccess?: boolean;
 };
 export type AccessRecord = { id: string; kind: string; data: Record<string, unknown> };
 /**
