@@ -54,8 +54,7 @@ export async function POST(request: Request) {
         let currentPhone = "";
         try {
           const data = JSON.parse(String(member?.data || "{}"));
-          const memberDigits = String(data.phone || "").replace(/\D/g, "");
-          currentPhone = memberDigits.startsWith("0") ? "+62" + memberDigits.slice(1) : memberDigits.startsWith("62") ? "+" + memberDigits : "";
+          currentPhone = normalizeIndonesianMobilePhone(data.phone);
         } catch { currentPhone = ""; }
         if (!internal.phone_verified_at || currentPhone !== phone) {
           return json({ error: "Nomor WhatsApp belum dikonfirmasi Admin atau sudah berubah pada data anggota." }, 401);
