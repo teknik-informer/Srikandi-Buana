@@ -21,7 +21,7 @@ assert(api.includes("Date.parse(String(r.data.expiresAt)) > Date.now()"), "Expir
 assert(api.includes("locationConsent !== true") && api.includes("haversine("), "Geofence validation must require explicit one-time location consent");
 assert(!/latitude: lat|longitude: lon|coords:/.test(api), "Device coordinates must not be persisted in attendance records");
 assert(api.includes("action === \"request_correction\"") && api.includes("action === \"review_correction\""), "Correction request and review workflows must exist");
-assert(api.includes("previousStatus") && api.includes("appendAudit"), "Attendance corrections must preserve prior state and append audit events");
+assert(api.includes("previousStatus") && api.includes("auditStatement") && api.includes("db.batch"), "Attendance corrections and audit events must commit atomically");
 assert(api.includes("format") && api.includes("text/csv"), "Attendance export must be available as CSV");
 assert(ui.includes("Ajukan koreksi") && ui.includes("Buat tautan QR") && ui.includes("Ekspor CSV"), "UI must expose corrections, QR token link and export");
 assert(ui.includes("user.role === \"anggota\"") && ui.includes("user.role === \"sekretaris\""), "UI must distinguish member and management experiences");
