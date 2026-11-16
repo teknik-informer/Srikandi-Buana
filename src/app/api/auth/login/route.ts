@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     }
 
     const internal = await env.DB.prepare(
-      "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role " +
-      "FROM users u JOIN users o ON o.id=u.workspace_owner WHERE " + (isPhone ? "u.login_phone=?" : "lower(u.email)=?")
+      "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role " +
+      "FROM users u JOIN users o ON o.id=u.workspace_owner WHERE " + (isPhone ? "u.login_phone=? AND u.phone_verified_at IS NOT NULL" : "lower(u.email)=?")
     ).bind(isPhone ? phone : email).first();
     const internalPasswordValid = await verifyPassword(password, internal?.password_hash);
     if (internal) {
@@ -46,6 +46,19 @@ export async function POST(request: Request) {
         internal.owner_role !== "admin" ||
         String(internal.owner_email).toLowerCase() !== process.env.ADMIN_EMAIL.trim().toLowerCase()) {
         return json({ error: "Email atau password tidak sesuai." }, 401);
+      }
+      if (isPhone) {
+        const member = await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=(SELECT workspace_owner FROM users WHERE id=?) AND kind='anggota'")
+          .bind(internal.member_id, internal.id).first();
+        let currentPhone = "";
+        try {
+          const data = JSON.parse(String(member?.data || "{}"));
+          const memberDigits = String(data.phone || "").replace(/\\D/g, "");
+          currentPhone = memberDigits.startsWith("0") ? "+62" + memberDigits.slice(1) : memberDigits.startsWith("62") ? "+" + memberDigits : "";
+        } catch { currentPhone = ""; }
+        if (!internal.phone_verified_at || currentPhone !== phone) {
+          return json({ error: "Nomor WhatsApp belum dikonfirmasi Admin atau sudah berubah pada data anggota." }, 401);
+        }
       }
       await createSession(String(internal.id), raw.remember === true);
       const now = new Date().toISOString();
