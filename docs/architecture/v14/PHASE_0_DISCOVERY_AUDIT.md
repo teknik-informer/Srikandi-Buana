@@ -55,7 +55,7 @@ Existing public route families include profile, programs, impact-related content
 ## 4. Material gaps and risks
 
 1. **Migration filename collisions:** there are two `005_*.sql` files and two `006_*.sql` files. The migration runner sorts filenames lexicographically and records the complete filename in `schema_migrations`. This is not an immediate proof of failed migrations, but it is an auditability and sequencing hazard. Do not rename or reorder historical migrations in place.
-2. **Migration history divergence:** the Smart Attendance design note explicitly says the repository migration history and live Neon migration ledger have divergent histories/names. Do not run the feature branch migration runner against QA or Production until reconciled.
+2. **Migration history divergence — confirmed by read-only QA inspection:** the repository branch contains migration files `008_single_chair_guard.sql` through `013_multi_officer_positions.sql`, while the Neon QA branch `srikandi-v12-sanitized-qa` (`br-mute-meadow-b4rhx1mn`) records a different lineage from `008_workspace_v14_core.sql` through `019_inventory_document_lifecycle.sql`. The QA ledger also records the two 005 and two 006 files by full filename. The migration runner sorts repository filenames lexicographically and applies every filename not present in `schema_migrations`; therefore running it against this QA branch could attempt to apply a second, incompatible lineage. **Do not run the current branch migration runner against QA or Production.** First produce a mapping of each migration's schema effects, verify actual QA schema objects and determine a safe forward-only reconciliation strategy.
 3. **HRM persistence is transitional:** attendance kinds currently live in the generic `records` table behind a dedicated API boundary. This is not a normalized HRM domain schema.
 4. **Accounting is partial:** ledger tables and balanced journal logic exist, but earlier ecosystem documentation states cashbook reconciliation, full financial statements and tax invoice workflows are incomplete. Do not claim complete statutory accounting.
 5. **Commerce is not full POS:** catalog/order/stock foundations exist; payment gateway, settlement/refund and cashier-shift workflows are not evidenced as complete.
@@ -73,6 +73,54 @@ Existing public route families include profile, programs, impact-related content
 - Direct in-process application services initially; transactional outbox only when reliable asynchronous delivery is required.
 - Preview must use the dedicated QA database variable and must never fall back to Production database credentials.
 
+
+## 5. QA migration-ledger evidence (read-only)
+
+The following query was executed only against the Neon QA branch `br-mute-meadow-b4rhx1mn`, database `neondb`, using a read-only SELECT. No Production branch was queried.
+
+```sql
+SELECT name, applied_at
+FROM schema_migrations
+ORDER BY name;
+```
+
+The QA ledger returned these 20 entries:
+
+| QA ledger filename | Present in audited PR #24 repository migration directory? |
+|---|---|
+| `001_initial.sql` | Yes |
+| `002_roles.sql` | Yes |
+| `003_message_consent.sql` | Yes |
+| `004_enterprise_operations.sql` | Yes |
+| `005_ecosystem_foundation.sql` | Yes |
+| `005_external_access.sql` | Yes |
+| `006_agriculture_domain.sql` | Yes |
+| `006_order_receipts_and_journal_corrections.sql` | Yes |
+| `007_database_integrity_and_audit.sql` | Yes |
+| `008_workspace_v14_core.sql` | No — repository branch instead has `008_single_chair_guard.sql` |
+| `009_document_record_lineage.sql` | No — repository branch instead has `009_report_packages.sql` |
+| `010_member_impact_finance.sql` | No — repository branch instead has `010_report_package_source_scope.sql` |
+| `011_member_asset_movement_history.sql` | No — repository branch instead has `011_verified_email_change.sql` |
+| `012_sales_invoices_and_receipts.sql` | No — repository branch instead has `012_whatsapp_login_identity.sql` |
+| `013_bank_reconciliation.sql` | No — repository branch instead has `013_multi_officer_positions.sql` |
+| `014_supplier_bills.sql` | No |
+| `015_procurement_workflow.sql` | No |
+| `016_purchase_three_way_match.sql` | No |
+| `017_inventory_stock_ledger.sql` | No |
+| `018_inventory_transfers_stocktakes.sql` | No |
+| `019_inventory_document_lifecycle.sql` | No |
+
+**Critical interpretation:** the database's migration ledger is not aligned with the migration directory of the audited feature branch. This is a real QA lineage conflict, not merely duplicate numbering. The repository migration runner checks the complete filename, not just a numeric prefix. Consequently, it may attempt to execute branch migrations that are not recorded in the QA ledger even when similarly numbered but semantically different migrations have already run.
+
+Required next actions:
+1. Freeze migration execution on this branch until reconciliation is complete.
+2. Export a migration manifest from every active branch and compare each SQL file's effects against actual QA schema objects.
+3. Identify which code branch is compatible with the current QA schema.
+4. Prepare a forward-only compatibility migration only after schema diff, data checks and rollback/recovery review.
+5. Test on a disposable Neon child branch before applying any change to the shared QA branch.
+6. Keep Production untouched; no Production ledger or data has been inspected or changed in this audit.
+
+
 ## 6. Phase 0 exit criteria
 
 - [x] Repository, stack and active PR dependency chain inspected.
@@ -87,4 +135,4 @@ Existing public route families include profile, programs, impact-related content
 
 ## 7. Safety boundary
 
-This document is based on source inspection and repository metadata. No database was queried or modified as part of this commit. No Production environment variable, deployment, migration, user record or operational data was changed.
+This document is based on source inspection, repository metadata and one read-only query to the named Neon QA branch. No database schema or data was modified. No Production database was queried; no Production environment variable, deployment, migration, user record or operational data was changed.
