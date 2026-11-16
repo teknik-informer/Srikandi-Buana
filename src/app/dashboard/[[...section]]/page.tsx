@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { dashboardGroups } from "@/lib/navigation-config";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { canReadSection } from "@/lib/permissions";
+import { canReadSection, isArchitectFullAccess } from "@/lib/permissions";
 import RoleWorkspace from "../../_components/access/role-workspace";
 import { safeReturn } from "@/lib/auth";
 import { modules } from "@/lib/srikandi";
@@ -77,7 +77,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   }
   const dashboardDefinition = getEnterpriseDashboardById(active);
   const visibleDashboard = dashboardDefinition
-    ? getVisibleEnterpriseDashboards(admin.role).find((dashboard) => dashboard.id === active)
+    ? getVisibleEnterpriseDashboards(admin.role, isArchitectFullAccess(admin)).find((dashboard) => dashboard.id === active)
     : undefined;
   if (dashboardDefinition ? !visibleDashboard : !canReadSection(admin, active))
     return (
