@@ -38,6 +38,7 @@ export async function POST(request:Request){
  if(!env.DB)return json({error:'Database belum tersedia.'},503);
  try{
   const raw=await readJsonObject(request,8000);
+  if((raw.channel==='whatsapp'||raw.action==='reset_wa')&&u.role!=='admin')return json({error:'Konfirmasi dan pemulihan WhatsApp manual hanya dapat dilakukan oleh Arsitek Sistem.'},403);
   if(u.role==='admin'&&!['invite','reset','reset_wa','change_email'].includes(String(raw.action)))return json({error:'Arsitek Sistem hanya dapat mengundang akun struktural, memulihkan akses, dan mengelola hak akses teknis.'},403);
   if(u.role==='admin'&&raw.action==='invite'&&raw.role==='ketua'){
    const nowCheck=new Date().toISOString();
