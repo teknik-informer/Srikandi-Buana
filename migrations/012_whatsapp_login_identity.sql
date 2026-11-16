@@ -12,7 +12,7 @@ ALTER TABLE account_invitations
   DROP CONSTRAINT IF EXISTS account_invitations_purpose_check;
 ALTER TABLE account_invitations
   ADD CONSTRAINT account_invitations_purpose_check
-  CHECK (purpose IN ('activate', 'reset', 'change_email', 'activate_wa'));
+  CHECK (purpose IN ('activate', 'reset', 'change_email', 'activate_wa', 'reset_wa'));
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_login_phone_unique
   ON users(login_phone) WHERE login_phone IS NOT NULL;
