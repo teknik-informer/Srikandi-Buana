@@ -32,7 +32,10 @@ assert.match(accounts,/raw\.whatsappConfirmed!==true/);
 assert.match(accounts,/normalizePhone\(String\(data\.phone\|\|''\)\)!==phone/);
 assert.match(accounts,/login_phone,phone_verified_at,phone_verified_by/);
 assert.match(accounts,/purpose==='activate_wa'/);
-assert.match(accounts,/purpose==='reset_wa'/);\nassert.match(accounts,/raw\.action==='verify_phone'/);\nassert.match(accounts,/Nomor WhatsApp akun dikonfirmasi ulang/);\nassert.match(accounts,/member_phone/);
+assert.match(accounts,/purpose==='reset_wa'/);
+assert.match(accounts,/raw\.action==='verify_phone'/);
+assert.match(accounts,/Nomor WhatsApp akun dikonfirmasi ulang/);
+assert.match(accounts,/member_phone/);
 assert.match(accounts,/return json\(\{ok:true,manual:true,url,expires,phone,purpose\}\)/);
 assert.match(accounts,/sendAccountEmail/);
 
@@ -51,7 +54,9 @@ assert.match(accountUi,/whatsappConfirmed/);
 assert.match(accountUi,/Salin tautan untuk WhatsApp/);
 assert.match(accountUi,/Pulihkan via WhatsApp/);
 assert.match(accountUi,/Terverifikasi Admin/);
-assert.match(accountUi,/reset_wa/);\nassert.match(accountUi,/Verifikasi WhatsApp/);\nassert.match(accountUi,/whatsappConfirmed:confirm\.action==='verify_phone'/);
+assert.match(accountUi,/reset_wa/);
+assert.match(accountUi,/Verifikasi WhatsApp/);
+assert.match(accountUi,/whatsappConfirmed:confirm\.action==='verify_phone'/);
 
 await transform(accounts,{loader:'ts'});
 await transform(activate,{loader:'ts'});
