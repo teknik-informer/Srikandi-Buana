@@ -10,6 +10,7 @@ const form=read('src/app/aktivasi/activation-form.tsx');
 const page=read('src/app/_components/access/accounts.tsx');
 const mailer=read('src/lib/account-mailer.ts');
 const pkg=JSON.parse(read('package.json'));
+const pkgLock=JSON.parse(read('package-lock.json'));
 
 assert.match(migration,/purpose IN \('activate', 'reset', 'change_email'\)/);
 assert.match(migration,/users_email_lower_unique ON users \(lower\(email\)\)/);
@@ -25,11 +26,12 @@ assert.match(accounts,/sendAccountEmail\\(\\{to:email,name:fullName,url,expires,
 assert.match(accounts,/Pengiriman email gagal; tautan otomatis dicabut/);
 assert.match(accounts,/return json\\(\\{ok:true,sent:true,expires,email,purpose\\}\\)/);
 assert.doesNotMatch(accounts,/return json\\(\\{ok:true,url,expires,email,purpose\\}\\)/);
-assert.equal(pkg.dependencies.nodemailer,'^7.0.10');
-assert.equal(pkg.devDependencies['@types/nodemailer'],'^7.0.4');
+assert.equal(pkg.dependencies.nodemailer,'^10.5.0');
+assert.equal(pkgLock.packages['node_modules/nodemailer'].version,'10.5.0');
+assert.equal(pkgLock.packages[''].dependencies.nodemailer,'^10.5.0');
 assert.match(mailer,/service: 'gmail'/);
 assert.match(mailer,/GMAIL_APP_PASSWORD/);
-assert.match(mailer,/kwt\\\\\\.srikandibuana\\\\\\.com/);
+assert.ok(mailer.includes("/^kwt\\\\.srikandibuana@gmail\\\\.com$/i"));
 assert.match(mailer,/sendMail/);
 assert.match(mailer,/replyTo: senderEmail/);
 
