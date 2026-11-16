@@ -22,7 +22,7 @@ export default function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: form.get("email"),
+          identity: form.get("identity"),
           password: form.get("password"),
           remember: form.has("remember"),
           returnTo: new URLSearchParams(location.search).get("return_to") || "/dashboard",
