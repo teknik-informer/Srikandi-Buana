@@ -13,6 +13,7 @@ const loginForm=read('src/app/masuk/login-form.tsx');
 const activationForm=read('src/app/aktivasi/activation-form.tsx');
 const accountUi=read('src/app/_components/access/accounts.tsx');
 const accountAccess=read('src/lib/account-access.ts');
+const phone=read('src/lib/phone.ts');
 
 assert.match(migration,/ADD COLUMN IF NOT EXISTS login_phone TEXT/);
 assert.match(migration,/phone_verified_at TEXT/);
@@ -32,6 +33,10 @@ assert.match(roleFields,/Profil hak akses akun/);
 assert.match(roleFields,/satu profil hak akses dapat digunakan oleh beberapa orang/i);
 
 assert.match(login,/raw\.identity \|\| raw\.email/);
+assert.match(login,/normalizeIndonesianMobilePhone\(identity\)/);
+assert.match(login,/normalizeIndonesianMobilePhone\(data\.phone\)/);
+assert.match(phone,/digits\.startsWith\("62"\)/);
+assert.match(phone,/return \/\^8\[0-9\]\{7,12\}\$\/\.test\(national\) \? "\+62" \+ national : ""/);
 assert.match(login,/u\.login_phone=\?/);
 assert.match(login,/isPhone/);
 assert.match(login,/consumeRateLimit/);
@@ -39,6 +44,7 @@ assert.match(login,/if \(isPhone\) return json/);
 assert.match(loginForm,/name="identity"/);
 assert.match(loginForm,/Email atau nomor WhatsApp/);
 
+assert.match(accounts,/normalizeIndonesianMobilePhone\(value\)/);
 assert.match(accounts,/raw\.channel==='whatsapp'\|\|raw\.action==='reset_wa'/);
 assert.match(accounts,/raw\.whatsappConfirmed!==true/);
 assert.match(accounts,/normalizePhone\(String\(data\.phone\|\|''\)\)!==phone/);
@@ -52,6 +58,8 @@ assert.match(accounts,/member_phone/);
 assert.match(accounts,/return json\(\{ok:true,manual:true,url,expires,phone,purpose\}\)/);
 assert.match(accounts,/sendAccountEmail/);
 
+assert.match(activate,/normalizeIndonesianMobilePhone\(raw\.phone\)/);
+assert.match(activate,/normalizeIndonesianMobilePhone\(data\.phone\)!==phone/);
 assert.match(activate,/invite\.login_phone\)!==phone/);
 assert.match(activate,/invite\.phone_verified_at/);
 assert.match(activate,/invite\.phone_verified_by/);
