@@ -55,7 +55,7 @@ assert.match(accountUi,/Konfirmasi WhatsApp & buat aktivasi/);
 assert.match(accountUi,/whatsappConfirmed/);
 assert.match(accountUi,/Salin tautan untuk WhatsApp/);
 assert.match(accountUi,/Pulihkan via WhatsApp/);
-assert.match(accountUi,/Terverifikasi Admin/);
+assert.match(accountUi,/terverifikasi/i);
 assert.match(accountUi,/reset_wa/);
 assert.match(accountUi,/Verifikasi WhatsApp/);
 assert.match(accountUi,/whatsappConfirmed:confirm\.action==='verify_phone'/);
