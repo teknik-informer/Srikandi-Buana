@@ -205,7 +205,7 @@ export async function POST(req: Request) {
       const memberData = JSON.parse(String(member.data)) as Record<string, unknown>;
       if (memberData.status !== "Aktif" || memberData.verification !== "Terverifikasi") return json({ error: "Peserta tidak memenuhi syarat presensi." }, 403);
       if (user.role === "anggota" && !["self", "qr", "location"].includes(method)) return json({ error: "Anggota hanya dapat melakukan presensi mandiri." }, 403);
-      if (user.role !== "anggota" && method === "manual" && !canManage(user)) return json({ error: "Petugas tidak memiliki izin mencatat kehadiran." }, 403);
+      if (user.role !== "anggota" && (!canManage(user) || method !== "manual")) return json({ error: "Petugas hanya dapat mencatat kehadiran melalui metode manual." }, 403);
       if (method === "qr") {
         const token = String(body.token || "");
         if (token.length < 32 || token.length > 128) return json({ error: "Token QR tidak valid." }, 400);
