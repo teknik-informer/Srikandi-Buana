@@ -28,5 +28,6 @@ assert(ui.includes("user.role === \"anggota\"") && ui.includes("user.role === \"
 assert(page.includes("HrmAttendanceWorkspace") && page.includes('active === "presensi"'), "Dashboard must mount the HRM attendance workspace");
 assert(nav.includes("admin('presensi','Presensi Kegiatan'") && nav.includes("admin('presensi-saya','Presensi Saya'"), "Navigation must expose manager and member routes");
 assert(policy.includes('if (id === "presensi") return ["ketua", "sekretaris", "koordinator"].includes(role)') && policy.includes('id === "presensi-saya"'), "Route policy must distinguish manager and personal attendance");
+assert(policy.includes("privateAttendanceKinds") && policy.includes('"attendance_qr_token"'), "Generic records API must not expose private attendance records");
 
 console.log("PASS smart attendance: authentication, role/program scope, verified participants, duplicate prevention, QR token hashing/expiry, one-time location consent, correction audit, CSV export, and dashboard navigation.");
