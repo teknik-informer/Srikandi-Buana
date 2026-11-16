@@ -20,7 +20,7 @@ type Payload = { mode: "member" | "management"; sessions: Session[]; records: At
 const statusLabels: Record<string, string> = { scheduled: "Terjadwal", active: "Sedang berlangsung", closed: "Ditutup", cancelled: "Dibatalkan", present: "Hadir", late: "Terlambat", excused: "Izin", sick: "Sakit", absent: "Tidak hadir", pending: "Menunggu pemeriksaan", approved: "Disetujui", rejected: "Ditolak" };
 const todayJakarta = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const label = (value: unknown) => statusLabels[String(value)] || String(value || "—");
-const dateLabel = (value: unknown) => { const s = String(value || ""); if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s || "—"; const [y,m,d] = s.split("-"); return d + "/" + m + "/" + y; };
+const dateLabel = (value: unknown) => { const s = String(value || ""); if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s || "—"; const [y,m,d] = s.split("-"); return d + "/" + m + "/" + y; };
 
 export default function HrmAttendanceWorkspace({ user }: { user: Principal }) {
   const memberMode = user.role === "anggota";
