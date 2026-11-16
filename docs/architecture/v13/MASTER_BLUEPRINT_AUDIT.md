@@ -447,3 +447,122 @@ Urutan kerja berikutnya yang paling aman:
 6. Setelah Phase 0 selesai, implementasikan perubahan pertama dalam PR terpisah dan tetap di Preview.
 
 **Status akhir audit:** fondasi modular sudah ada, tetapi target multi-database, Supabase Auth, MUI, generic integration layer, dan dashboard per sistem belum sepenuhnya diimplementasikan. Prioritas pertama bukan membangun semua database sekaligus, melainkan menyelesaikan migration reconciliation dan memperjelas kepemilikan data.
+
+
+---
+
+## 14. Architecture Diagrams
+
+### 14.1 Existing system — observed structure
+
+```mermaid
+flowchart TB
+  U[Pengguna] --> V[Vercel Deployment]
+  V --> N[Next.js App Router]
+  N --> A[Custom Session Authentication]
+  N --> R[Dashboard and API Routes]
+  R --> P[Feature Policies and Application Services]
+  P --> DB[(Neon PostgreSQL)]
+  DB --> PUB[(public schema)]
+  DB --> W14[(workspace_v14 schema)]
+  DB --> AUTH[(neon_auth schema)]
+  P --> F[(file_objects in database)]
+  P --> MAIL[Nodemailer / Gmail]
+  PRE[Preview Deployment] --> QA[(Neon QA Branch)]
+  PROD[Production Deployment] --> PR[(Neon Production Branch)]
+```
+
+Diagram ini menggambarkan kode yang diperiksa, bukan klaim bahwa semua route sudah memakai application service yang seragam.
+
+### 14.2 Target platform — modular business operating system
+
+```mermaid
+flowchart TB
+  USER[Users] --> SHELL[Unified Platform Shell]
+  SHELL --> CORE[Platform Core]
+  CORE --> ID[Central Identity and SSO]
+  CORE --> IAM[Roles, Permissions and Scopes]
+  CORE --> REG[Module Registry and Navigation]
+  CORE --> NOTIF[Notification and Audit Center]
+  SHELL --> MOD[Independent Business Modules]
+  MOD --> HRM[HRM]
+  MOD --> ACC[Accounting]
+  MOD --> CRM[CRM]
+  MOD --> PM[Project Management]
+  MOD --> POS[POS]
+  MOD --> INV[Inventory and Procurement]
+  MOD --> AGR[Agriculture]
+  MOD --> DOC[Document and Content]
+  MOD --> COL[Collaboration]
+  MOD --> MEL[MEL and Analytics]
+  HRM --> INT[Integration Layer]
+  ACC --> INT
+  CRM --> INT
+  PM --> INT
+  POS --> INT
+  INV --> INT
+  AGR --> INT
+  DOC --> INT
+  COL --> INT
+  INT --> API[Internal APIs and Webhooks]
+  INT --> EVT[Outbox, Inbox and Event Registry]
+  INT --> BI[Reporting Projections]
+  BI --> DASH[Management Analytics]
+```
+
+### 14.3 Target database isolation
+
+```mermaid
+flowchart TB
+  CORE[Platform Core Database]
+  HRM[HRM Database]
+  ACC[Accounting Database]
+  CRM[CRM Database]
+  PM[Project Database]
+  POS[POS Database]
+  INV[Inventory Database]
+  AGR[Agriculture Database]
+  CONTENT[Content and Document Database]
+  ANALYTICS[Analytics Database]
+  CORE --> GATE[Authenticated API and Event Integration]
+  HRM --> GATE
+  ACC --> GATE
+  CRM --> GATE
+  PM --> GATE
+  POS --> GATE
+  INV --> GATE
+  AGR --> GATE
+  CONTENT --> GATE
+  GATE --> ANALYTICS
+```
+
+Tidak ada foreign key atau query JOIN langsung lintas database. Setiap database hanya dimutasi oleh domain pemiliknya.
+
+### 14.4 Module dependency map
+
+```mermaid
+flowchart LR
+  HRM[HRM] --> PM[Project Management]
+  CRM[CRM] --> PM
+  PM --> ACC[Accounting]
+  POS[POS] --> INV[Inventory]
+  POS --> ACC
+  AGR[Agriculture] --> INV
+  AGR --> PM
+  PM --> MEL[MEL and Analytics]
+  HRM --> MEL
+  ACC --> MEL
+  CRM --> MEL
+  POS --> MEL
+  INV --> MEL
+  DOC[Documents and Content] -. shared evidence .-> HRM
+  DOC -. shared evidence .-> PM
+  DOC -. shared evidence .-> ACC
+  CORE[Platform Core] -. identity and permissions .-> HRM
+  CORE -. identity and permissions .-> ACC
+  CORE -. identity and permissions .-> CRM
+  CORE -. identity and permissions .-> PM
+  CORE -. identity and permissions .-> POS
+```
+
+Dependency menunjukkan arah kontrak/integrasi, bukan kepemilikan data bersama.
