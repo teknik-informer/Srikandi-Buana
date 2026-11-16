@@ -1,6 +1,6 @@
 export type Data = Record<string,string|number>;
 export type Row = {id:string;kind:string;data:Data;created:string;updated:string};
-export type Field = {key:string;label:string;type?:string;options?:string[];required?:boolean};
+export type Field = {key:string;label:string;type?:string;options?:string[];required?:boolean;helpText?:string};
 export const modules:Record<string,{title:string;singular:string;description:string;fields:Field[]}> = {
  pengurus:{title:"Struktur Organisasi",singular:"kelompok jabatan",description:"Catat struktur jabatan dan lakukan verifikasi identitas serta masa kepengurusan.",fields:[{key:"name",label:"Jabatan / kelompok jabatan",required:true},{key:"candidates",label:"Nama sesuai sumber",type:"textarea",required:true},{key:"term",label:"Masa tugas / nomor keputusan"},{key:"status",label:"Status",options:["Perlu verifikasi","Dikonfirmasi internal","Perlu perbaikan"]},{key:"notes",label:"Catatan perbedaan dan dasar keputusan",type:"textarea"}]},
  transkripsi:{title:"Verifikasi Informasi",singular:"catatan sumber",description:"Catat hasil pemeriksaan dokumen dan informasi sebelum digunakan sebagai data resmi.",fields:[{key:"name",label:"Nama catatan",required:true},{key:"date",label:"Tanggal sumber",type:"date"},{key:"status",label:"Status",options:["Perlu verifikasi","Dikonfirmasi internal","Perlu perbaikan"]},{key:"notes",label:"Transkripsi dan catatan verifikasi",type:"textarea",required:true}]},
