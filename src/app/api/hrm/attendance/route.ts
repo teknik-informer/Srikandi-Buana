@@ -22,7 +22,7 @@ function parse(row: Record<string, unknown>): Stored {
 }
 function sameOrigin(req: Request) {
   const origin = req.headers.get("origin");
-  return (!origin || origin === new URL(req.url).origin) && (!req.headers.get("sec-fetch-site") || req.headers.get("sec-fetch-site") === "same-origin");
+  return origin === new URL(req.url).origin || req.headers.get("sec-fetch-site") === "same-origin";
 }
 function full(user: Principal) { return isArchitectFullAccess(user); }
 function canManage(user: Principal) { return full(user) || user.role === "sekretaris" || user.role === "koordinator"; }
@@ -84,7 +84,7 @@ export async function GET(req: Request) {
     if (!canReadManagement(user) && user.role !== "anggota") return json({ error: "Anda tidak memiliki akses ke data presensi." }, 403);
     const [sessions, attendance, corrections, members] = await Promise.all([
       rows(owner, "attendance_session"), rows(owner, "attendance_record"), rows(owner, "attendance_correction"),
-      canManage(user) ? env.DB!.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(owner).all() : Promise.resolve({ results: [] as Record<string, unknown>[] }),
+      (full(user) || user.role === "sekretaris") ? env.DB!.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(owner).all() : Promise.resolve({ results: [] as Record<string, unknown>[] }),
     ]);
     if (user.role === "anggota") {
       const ownId = user.memberId;
