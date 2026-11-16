@@ -38,7 +38,7 @@ export async function GET(){
 }
 export async function POST(request:Request){
   try{
-    const c=await principal();if(c.error)return c.error;
+    const c=await principal();if("error" in c)return c.error;
     if(!sameOrigin(request))return json({error:"Permintaan lintas situs ditolak."},403);
     const raw=await readJsonObject(request,6000),checked=valid(raw);
     if("error" in checked)return json({error:checked.error},400);
