@@ -4,6 +4,7 @@ import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
 import {sendAccountEmail} from '@/lib/account-mailer';
 export const dynamic='force-dynamic';
+export const runtime='nodejs';
 export async function GET(){
  const u=await getAuthenticatedUser();
  if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus pengelola akun.'},403);
