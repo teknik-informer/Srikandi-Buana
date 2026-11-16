@@ -24,12 +24,7 @@ export async function GET(){
   const users={results:accountRows};
   const invitations=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,purpose,login_phone,expires,consumed_at,revoked_at,created FROM account_invitations WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
   const audit=await env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 50').bind(u.userId).all();
-  const now=new Date().toISOString();
-  const [activeChair,pendingChair]=await Promise.all([
-   env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' LIMIT 1").bind(u.userId).first(),
-   env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,now).first()
-  ]);
-  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:members.results.flatMap(r=>{try{const data=JSON.parse(String(r.data));return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:!activeChair&&!pendingChair});
+  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:members.results.flatMap(r=>{try{const data=JSON.parse(String(r.data));return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
  }catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}
 }
 export async function POST(request:Request){
@@ -54,13 +49,6 @@ export async function POST(request:Request){
    const now=new Date().toISOString();
    await env.DB.batch([env.DB.prepare('UPDATE users SET login_phone=?,phone_verified_at=?,phone_verified_by=? WHERE id=? AND workspace_owner=?').bind(phone,now,u.accountId,target.id,u.userId),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(target.id),await accessAudit(u.userId,u.accountId,'Nomor WhatsApp akun dikonfirmasi ulang; sesi dicabut',String(target.id))]);
    return json({ok:true,verified:true,phone});
-  }
-  if(u.role==='admin'&&raw.action==='invite'&&raw.role==='ketua'){
-   const nowCheck=new Date().toISOString();
-   await env.DB.prepare("UPDATE account_invitations SET revoked_at=? WHERE owner=? AND role='ketua' AND purpose='activate' AND consumed_at IS NULL AND revoked_at IS NULL AND expires<=?").bind(nowCheck,u.userId,nowCheck).run();
-   const existingChair=await env.DB.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' LIMIT 1").bind(u.userId).first();
-   const pendingChair=await env.DB.prepare("SELECT id FROM account_invitations WHERE owner=? AND role='ketua' AND consumed_at IS NULL AND revoked_at IS NULL AND expires>? LIMIT 1").bind(u.userId,nowCheck).first();
-   if(existingChair||pendingChair)return json({error:'Akun Ketua sudah ditetapkan atau undangannya masih berlaku. Pergantian Ketua harus melalui prosedur serah-terima resmi.'},403);
   }
   if(u.role==='ketua'&&raw.action==='invite'&&raw.role==='ketua')return json({error:'Peran Ketua hanya ditetapkan melalui bootstrap Ketua pertama. Penyerahan kewenangan Ketua berikutnya memerlukan prosedur serah-terima resmi dan tidak melalui undangan biasa.'},403);
   if(raw.action==='change_email'&&u.role!=='admin')return json({error:'Perubahan email struktural hanya dapat dimulai oleh Arsitek Sistem.'},403);
