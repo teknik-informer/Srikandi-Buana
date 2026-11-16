@@ -55,7 +55,7 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   publication: Megaphone,
   system: Settings2,
 };
-export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
+export default function DashboardNavigation({ section, user, architectFullAccess = false }: { section: string; user: Principal; architectFullAccess?: boolean }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
@@ -65,10 +65,10 @@ export default function DashboardNavigation({ section, user }: { section: string
     setExpanded(active?.id || "");
     setQuery("");
   }, [section, active?.id]);
-  const groups = getVisibleEnterpriseDashboards(user.role)
+  const groups = getVisibleEnterpriseDashboards(user.role, architectFullAccess)
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
-  const utilities = getVisibleEnterpriseUtilities(user.role)
+  const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess)
     .filter((item) => navigationMatches(item, query));
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
@@ -248,10 +248,12 @@ export function DashboardMegaMenu({
   section,
   user,
   compact = false,
+  architectFullAccess = false,
 }: {
   section: string;
   user: Principal;
   compact?: boolean;
+  architectFullAccess?: boolean;
 }) {
   const searchInput = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false),
