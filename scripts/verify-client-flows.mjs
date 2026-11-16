@@ -201,7 +201,7 @@ let accountTree=accountsRender();accounts.effects();await new Promise(r=>setImme
 const inviteSubmit=find(accountTree,n=>n.type==='form').props.onSubmit;
 const invitation=inviteSubmit({preventDefault(){},currentTarget:accountForm});await inviteSubmit({preventDefault(){},currentTarget:accountForm});assert.equal(accountPosts,1);
 accountPost.resolve(response(409,{error:'Undangan sudah ada.'}));await invitation;assert.equal(accountForm.dataset.unsaved,'true');assert(!accountForm.didReset);
-accountTree=accountsRender();find(accountTree,n=>n.props?.children==='Pulihkan password').props.onClick();accountTree=accountsRender();
+accountTree=accountsRender();find(accountTree,n=>n.props?.children==='Pulihkan via email').props.onClick();accountTree=accountsRender();
 const opened=tree=>allNodes(tree).filter(n=>n.type?.name==='Dialog'&&n.props.open);
 assert.equal(opened(accountTree).length,1);
 accountPost=deferred();const resetting=find(accountTree,n=>n.props?.children==='Lanjutkan').props.onClick();
