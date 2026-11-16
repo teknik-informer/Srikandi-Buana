@@ -45,3 +45,17 @@ Email baru ditetapkan saat membuat undangan akun. Untuk akun yang sudah aktif, A
 ## Pengiriman email transaksional
 
 Undangan aktivasi, pemulihan akses, dan verifikasi perubahan email dikirim otomatis menggunakan Nodemailer melalui akun Gmail resmi `kwt.srikandibuana@gmail.com`. Kredensial menggunakan Google App Password yang disimpan sebagai variabel rahasia lingkungan server, bukan di repositori atau browser. Variabel yang diperlukan: `GMAIL_USER` dan `GMAIL_APP_PASSWORD`. Pengiriman email gagal menyebabkan undangan yang baru dibuat langsung dicabut dan dicatat dalam audit, sehingga tautan yang tidak terkirim tidak dibiarkan aktif. API tidak mengembalikan token atau tautan privat ke dashboard. Pengiriman dilakukan secara awaited di runtime Node.js agar proses SMTP selesai sebelum fungsi mengembalikan respons. Gmail cocok untuk tahap awal dan volume rendah; stabilitas akun tetap perlu dipantau karena Google dapat menolak autentikasi server yang dianggap tidak biasa.
+
+## Login email dan WhatsApp tanpa biaya API
+
+Satu akun internal dapat menggunakan salah satu identitas login:
+- Email: aktivasi, perubahan email, dan pemulihan dikirim otomatis melalui Nodemailer/Gmail.
+- WhatsApp: Arsitek Sistem memeriksa nomor pada data anggota, menghubungi anggota secara manual, lalu menyatakan konfirmasi melalui kontrol Admin. Tidak ada OTP atau WhatsApp Business API berbayar.
+
+Pada aktivasi WhatsApp, sistem membuat tautan satu kali yang hanya ditampilkan kepada Arsitek setelah nomor dicocokkan dengan data anggota. Arsitek mengirim tautan tersebut secara pribadi melalui WhatsApp. Penerima memasukkan nomor yang sama dan menetapkan kata sandi sendiri. Tautan aktivasi berlaku 48 jam; tautan pemulihan WhatsApp berlaku satu jam. Kedua alur mengonsumsi token sekali pakai dan mencabut sesi lama saat password dipulihkan.
+
+Nomor login disimpan dalam format E.164 Indonesia (+62), unik secara global, disertai waktu konfirmasi dan ID Arsitek yang melakukan konfirmasi. Login WhatsApp memerlukan kata sandi, akun aktif, status nomor terkonfirmasi, dan kecocokan ulang dengan nomor pada profil anggota. Jika nomor pada profil berubah, login WhatsApp ditolak sampai Arsitek melakukan verifikasi ulang. Login email dan akun portal eksternal tetap mengikuti alur email masing-masing.
+
+Skema saat ini mewajibkan kolom email pada tabel akun. Untuk akun yang diaktifkan hanya melalui WhatsApp, sistem menyimpan alias teknis pada domain reserved `.invalid`; alias ini bukan alamat email anggota, tidak ditampilkan sebagai identitas kontak, dan tidak pernah menjadi tujuan pengiriman email. Nomor WhatsApp adalah identitas login yang ditampilkan kepada pengelola akun. Perubahan skema agar email benar-benar nullable memerlukan migrasi terpisah karena beberapa alur lama masih mengandalkan email wajib.
+
+Tidak ada OTP otomatis, gateway WhatsApp, atau biaya API pihak ketiga. Konfirmasi manual adalah pernyataan tanggung jawab Arsitek dan harus tercatat pada audit.
