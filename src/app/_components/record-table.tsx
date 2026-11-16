@@ -20,6 +20,8 @@ export function recordFieldText(
   files: WorkspaceFile[] = [],
 ) {
   const value = row.data[field.key];
+  if (field.key === "counterAccountId")
+    return String(row.data.counterAccountName || "Akun lawan belum tercatat");
   if (value === undefined || value === null || value === "") return "—";
   if (field.key === "fileId")
     return (
