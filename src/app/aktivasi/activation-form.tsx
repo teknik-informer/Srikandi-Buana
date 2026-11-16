@@ -2,11 +2,11 @@
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {Eye,EyeOff,ArrowRight} from "lucide-react";
 export default function ActivationForm(){
-  const token=useRef(""),external=useRef(false),emailChange=useRef(false);
+  const token=useRef(""),external=useRef(false),emailChange=useRef(false),whatsapp=useRef(false);
   const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[visible,setVisible]=useState(false),[error,setError]=useState("");
   useEffect(()=>{
     const query=new URLSearchParams(location.search);
-    external.current=query.get("audience")==="external";emailChange.current=query.get("mode")==="email";
+    external.current=query.get("audience")==="external";emailChange.current=query.get("mode")==="email";whatsapp.current=query.get("mode")==="whatsapp";
     const found=new URLSearchParams(location.hash.slice(1)).get("token");
     if(found)token.current=found;
     setReady(!!token.current);
@@ -17,7 +17,7 @@ export default function ActivationForm(){
     const data=new FormData(event.currentTarget);
     try{
       const endpoint=external.current?"/api/auth/activate-external":"/api/auth/activate";
-      const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:token.current,email:data.get("email"),...(emailChange.current?{}:{password:data.get("password"),confirmation:data.get("confirmation")})})});
+      const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:token.current,channel:whatsapp.current?"whatsapp":undefined,...(whatsapp.current?{phone:data.get("phone")}:{email:data.get("email")}),...(emailChange.current?{}:{password:data.get("password"),confirmation:data.get("confirmation")})})});
       const result=await response.json();if(!response.ok)throw Error(result.error||"Aktivasi gagal.");
       location.assign(result.redirect);
     }catch(e){setError(e instanceof Error?e.message:"Koneksi terputus. Coba lagi.");setBusy(false);}
@@ -32,6 +32,6 @@ export default function ActivationForm(){
     <input id="setup-confirm" name="confirmation" type={visible?"text":"password"} autoComplete="new-password" minLength={12} maxLength={128} required disabled={busy}/></>}
     {error&&<p role="alert" className="login-error">{error}</p>}
     <button type="submit" className="login-submit" disabled={busy}>{busy?(emailChange.current?"Memverifikasi…":"Mengaktifkan…"):(emailChange.current?"Verifikasi email baru":"Simpan password & masuk")}<ArrowRight size={18}/></button>
-    <p className="login-session-note">{emailChange.current?"Email lama tetap berlaku sampai verifikasi berhasil. Setelah perubahan, semua sesi lama dicabut dan Anda perlu masuk kembali.":"Password disimpan sebagai hash. Jangan bagikan password Anda melalui chat."}</p>
+    <p className="login-session-note">{emailChange.current?"Email lama tetap berlaku sampai verifikasi berhasil. Setelah perubahan, semua sesi lama dicabut dan Anda perlu masuk kembali.":whatsapp.current?"Nomor WhatsApp ini telah diperiksa dan dikonfirmasi secara manual oleh Admin. Buat kata sandi pribadi untuk login.":"Password disimpan sebagai hash. Jangan bagikan password Anda melalui chat."}</p>
   </form>;
 }
