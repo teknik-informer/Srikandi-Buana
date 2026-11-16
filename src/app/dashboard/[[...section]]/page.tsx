@@ -60,7 +60,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     if (admin.role !== "admin") return notFound();
     return <WorkspaceShell user={admin} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter /></WorkspaceShell>;
   }
-  if (active === "presensi" || active === "presensi-saya") {\n    return <WorkspaceShell user={admin} section={active} title={active === "presensi-saya" ? "Presensi Saya" : "Smart Attendance Management"} defaultSidebarOpen={defaultSidebarOpen}>\n      <HrmAttendanceWorkspace user={admin} />\n    </WorkspaceShell>;\n  }\n  if (active === "ringkasan") {
+  if (active === "presensi" || active === "presensi-saya") {\n    if (!canReadSection(admin, active)) return <main className="max-w-xl mx-auto p-8"><h1 className="text-2xl font-semibold">Akses dibatasi</h1><p className="my-4">Halaman presensi berada di luar kewenangan akun ini.</p><a href="/dashboard" className="underline">Kembali ke ruang kerja</a></main>;\n    return <WorkspaceShell user={admin} section={active} title={active === "presensi-saya" ? "Presensi Saya" : "Smart Attendance Management"} defaultSidebarOpen={defaultSidebarOpen}>\n      <HrmAttendanceWorkspace user={admin} />\n    </WorkspaceShell>;\n  }\n  if (active === "ringkasan") {
     const isMember = admin.role === "anggota";
     return (
       <WorkspaceShell
