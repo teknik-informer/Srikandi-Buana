@@ -12,7 +12,7 @@ const appMeta = {
 } as const;
 
 export default function ApplicationHub({ dashboards, displayName }: { dashboards: readonly EnterpriseDashboard[]; displayName: string }) {
-  const operationalCount = dashboards.filter((dashboard) => !dashboard.catalogOnly).length;
+  const operationalCount = dashboards.filter((dashboard) => !dashboard.catalogOnly && !dashboard.accessOnly).length;
 
   return (
     <main className="workspace-page space-y-7" aria-labelledby="application-hub-title">
@@ -51,7 +51,7 @@ export default function ApplicationHub({ dashboards, displayName }: { dashboards
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{dashboard.description}</p>
                 <div className="mt-auto flex items-end justify-between gap-3 pt-5">
                   <span className="text-xs text-muted-foreground">
-                    {dashboard.catalogOnly ? "Akses operasional belum ditugaskan" : meta.modules}
+                    {dashboard.catalogOnly ? "Akses operasional belum ditugaskan" : dashboard.accessOnly ? "Akses aplikasi saja · data mengikuti role organisasi" : meta.modules}
                   </span>
                   <Link href={dashboard.href} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
                     {dashboard.catalogOnly ? "Lihat informasi" : "Buka aplikasi"} <ArrowUpRight className="size-4" />
