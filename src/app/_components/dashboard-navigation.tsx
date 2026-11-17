@@ -53,7 +53,7 @@ import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
 type ApplicationLaunch = { id: string; label: string; href: string; description: string; Icon: typeof Grid2X2 };
 
-function getApplicationLaunches(user: Principal, architectFullAccess: boolean): ApplicationLaunch[] {
+function getApplicationLaunches(user: Principal): ApplicationLaunch[] {
   // The verified root Administrator Sistem always sees the complete canonical app catalog,
   // even when a module is disabled for ordinary workspace roles or has no legacy feature list.
   if (user.role === "admin") {
@@ -73,9 +73,9 @@ function getApplicationLaunches(user: Principal, architectFullAccess: boolean): 
       Icon: icons[application.id] ?? Grid2X2,
     }));
   }
-  const dashboards = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin");
+  const dashboards = getVisibleEnterpriseDashboardsForUser(user, false, false);
   const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
-  const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess);
+  const utilities = getVisibleEnterpriseUtilities(user.role, false);
   const launches: ApplicationLaunch[] = [];
   const core = platformApplications.find((application) => application.id === "platform-core");
   if (core && utilities.some((item) => item.id === "module-center")) {
@@ -125,7 +125,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
     setExpanded(active?.id || "");
     setQuery("");
   }, [section, active?.id]);
-  const applicationLaunches = getApplicationLaunches(user, architectFullAccess);
+  const applicationLaunches = getApplicationLaunches(user);
   const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
     .map((pillar) => ({
       ...pillar,
