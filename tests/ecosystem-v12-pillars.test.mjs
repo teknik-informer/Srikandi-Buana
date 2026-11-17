@@ -15,7 +15,7 @@ const permissions = permissionCommonjs.exports;
 const navigationSource = readFileSync("src/lib/navigation-config.ts", "utf8");
 const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((match) => match[1]);
 const assigned = registry.enterpriseDashboards.flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
-const expected = [...legacyRouteIds.filter((id) => id !== "laporan"), "laporan", "monitoring", "analytics"];
+const expected = [...legacyRouteIds.filter((id) => id !== "laporan" && id !== "pengaturan"), "laporan", "monitoring", "analytics"];
 
 test("dashboard utama menyediakan enam aplikasi operasional terintegrasi", () => {
   assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos", "analytics"]);
@@ -26,7 +26,9 @@ test("dashboard utama menyediakan enam aplikasi operasional terintegrasi", () =>
   }
 });
 
-test("seluruh rute fitur lama dan BI tetap tersedia tepat satu kali", () => {
+test("seluruh rute fitur lama dan BI tetap tersedia tepat satu kali, sementara pengaturan situs tidak menjadi modul sidebar", () => {
+  assert.ok(legacyRouteIds.includes("pengaturan"), "the legacy site settings route identifier remains registered");
+  assert.ok(!assigned.includes("pengaturan"), "site settings is excluded from visible operational navigation");
   assert.equal(new Set(assigned).size, assigned.length);
   assert.equal(new Set(registry.dashboardSectionIds).size, registry.dashboardSectionIds.length);
   assert.deepEqual([...assigned].sort(), [...expected].filter((id) => id !== "monitoring").sort());
