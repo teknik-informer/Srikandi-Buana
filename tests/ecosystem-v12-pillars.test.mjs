@@ -88,7 +88,7 @@ test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", 
   const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
   assert.match(hub, /dashboard\.catalogOnly/);
   assert.match(hub, /6 aplikasi terdaftar/);
-  assert.match(route, /getVisibleEnterpriseDashboards\(admin\.role, isArchitectFullAccess\(admin\), admin\.role === "admin"\)/);
+  assert.match(route, /getVisibleEnterpriseDashboardsForUser\(admin, isArchitectFullAccess\(admin\), admin\.role === "admin"\)/);
   assert.match(route, /visibleDashboard\?\.catalogOnly/);
   assert.match(route, /BusinessIntelligenceWorkspace/);
   assert.match(route, /tidak otomatis memberikan kewenangan/);
@@ -99,7 +99,7 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
   assert.match(navigation, /MENU UTAMA/);
   assert.match(navigation, /Cari halaman/);
-  assert.match(navigation, /getVisibleEnterpriseDashboards\(user\.role, architectFullAccess\)/);
+  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, architectFullAccess, user\.role === "admin"\)/);
   assert.match(overview, /ACCOUNTING & FINANCE/);
   assert.match(overview, /HUMAN RESOURCE MANAGEMENT/);
   assert.match(overview, /CUSTOMER RELATIONSHIP MANAGEMENT/);
