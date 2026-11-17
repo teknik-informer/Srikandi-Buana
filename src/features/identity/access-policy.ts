@@ -34,6 +34,69 @@ export type Principal = {
   architectFullAccess?: boolean;
 };
 export type AccessRecord = { id: string; kind: string; data: Record<string, unknown> };
+export type ModuleAccessState = {
+  /** Modules disabled for the current organization, including global planned/suspended states. */
+  disabledModules: string[];
+  /** Explicit application-entry grants. These do not grant access to business records or actions. */
+  allowedModules: string[];
+  /** Explicit application and data-scope denials. */
+  deniedModules: string[];
+};
+
+const moduleBaselineSections: Record<string, readonly string[]> = {
+  hrm: ["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya", "akun"],
+  accounting: ["kas", "laporan", "akuntansi", "aset"],
+  crm: ["kemitraan", "pesan", "akses-eksternal", "publikasi", "galeri"],
+  projects: ["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "surat", "surat-resmi", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "pengajuan", "enterprise", "panduan"],
+  pos: ["penjualan", "lotkopi"],
+  analytics: ["analytics"],
+};
+
+const sectionModuleMap: Record<string, string> = {
+  hrm: "hrm", anggota: "hrm", pengurus: "hrm", musyawarah: "hrm", persetujuan: "hrm",
+  presensi: "hrm", "presensi-saya": "hrm", portal: "hrm", "akun-saya": "hrm",
+  accounting: "accounting", kas: "accounting", laporan: "accounting", akuntansi: "accounting", aset: "accounting",
+  crm: "crm", kemitraan: "crm", pesan: "crm", "akses-eksternal": "crm", publikasi: "crm", galeri: "crm",
+  projects: "projects", program: "projects", pertanian: "agriculture", laporan_program: "projects",
+  tindaklanjut: "projects", kegiatan: "projects", kehadiran: "hrm", surat: "projects", "surat-resmi": "projects",
+  sumber: "projects", kelembagaan: "projects", register: "projects", transkripsi: "projects", survei: "projects",
+  dokumen: "documents", pengajuan: "projects", enterprise: "projects", panduan: "projects", usaha: "projects", alsintan: "projects",
+  pos: "pos", penjualan: "pos", lotkopi: "pos", analytics: "analytics",
+};
+
+const recordKindModuleMap: Record<string, string> = {
+  anggota: "hrm", pengurus: "hrm", musyawarah: "hrm", persetujuan: "hrm",
+  presensi: "hrm", kehadiran: "hrm", attendance_session: "hrm", attendance_record: "hrm",
+  attendance_correction: "hrm", attendance_qr_token: "hrm", attendance_audit: "hrm",
+  kas: "accounting", akuntansi: "accounting", aset: "accounting",
+  kemitraan: "crm", pesan: "crm", publikasi: "crm", galeri: "crm",
+  program: "projects", pertanian: "agriculture", laporan_program: "projects",
+  tindaklanjut: "projects", kegiatan: "projects", usaha: "projects", alsintan: "projects",
+  survei: "projects", surat: "projects", surat_resmi: "projects", register: "projects",
+  kelembagaan: "projects", transkripsi: "projects", dokumen: "documents", pengajuan: "projects",
+  enterprise: "projects", lotkopi: "pos", penjualan: "pos",
+};
+
+export function isModuleAvailableForUser(user: Pick<Principal, "moduleAccess">, moduleId: string): boolean {
+  const state = user.moduleAccess;
+  return !state?.disabledModules.includes(moduleId) && !state?.deniedModules.includes(moduleId);
+}
+
+/**
+ * A launch grant can expose an application shell. It never bypasses the
+ * organizational record/action policy below.
+ */
+export function canOpenModule(user: Principal, moduleId: string): boolean {
+  if (!isModuleAvailableForUser(user, moduleId)) return false;
+  if (user.moduleAccess?.allowedModules.includes(moduleId)) return true;
+  if (isArchitectFullAccess(user)) return true;
+  return (moduleBaselineSections[moduleId] || []).some((section) => canReadSectionForRole(user.role, section));
+}
+
+function recordModule(kind: string): string | undefined {
+  return recordKindModuleMap[kind];
+}
+
 /**
  * Arsitek Sistem receives full CRUD capability only in the isolated QA Preview.
  * Production keeps technical administration separate from organizational records.
@@ -73,11 +136,15 @@ export function canReadKindForRole(role: Role, kind: string): boolean {
 }
 
 export function canReadKind(user: Principal, kind: string): boolean {
+  const moduleId = recordModule(kind);
+  if (moduleId && !isModuleAvailableForUser(user, moduleId)) return false;
   if (isArchitectFullAccess(user)) return true;
   return canReadKindForRole(user.role, kind);
 }
 
 export function canWriteKind(user: Principal, kind: string): boolean {
+  const moduleId = recordModule(kind);
+  if (moduleId && !isModuleAvailableForUser(user, moduleId)) return false;
   if (isArchitectFullAccess(user)) return true;
   if (user.role === "sekretaris") return secretariatWrite.includes(kind);
   if (user.role === "bendahara") return financeWrite.includes(kind);
@@ -86,8 +153,8 @@ export function canWriteKind(user: Principal, kind: string): boolean {
 }
 
 export function canReadRecord(user: Principal, record: AccessRecord): boolean {
-  if (isArchitectFullAccess(user)) return true;
   if (!canReadKind(user, record.kind)) return false;
+  if (isArchitectFullAccess(user)) return true;
   if (user.role === "anggota") {
     return record.kind === "anggota"
       ? record.id === user.memberId
@@ -100,6 +167,7 @@ export function canReadRecord(user: Principal, record: AccessRecord): boolean {
 }
 
 export function canWriteRecord(user: Principal, record: AccessRecord): boolean {
+  if (!canWriteKind(user, record.kind)) return false;
   if (isArchitectFullAccess(user)) return true;
   if (["publikasi", "galeri"].includes(record.kind) && record.data.status === "Terbit") {
     return false;
@@ -136,6 +204,7 @@ function stableValue(value: unknown): string {
 
 /** The Secretary may verify task outcomes, but cannot rewrite the task itself. */
 export function canReviewFollowup(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
+  if (!isModuleAvailableForUser(user, "projects")) return false;
   if (user.role !== "sekretaris" || previous.kind !== "tindaklanjut" || next.kind !== "tindaklanjut" || previous.id !== next.id) return false;
   const stripReview = (data: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(data).filter(([key]) => !taskReviewFields.has(key)));
@@ -144,6 +213,7 @@ export function canReviewFollowup(user: Principal, previous: AccessRecord, next:
 
 /** The Chair can publish an existing, unchanged draft; the Chair does not author its content. */
 export function canPublishRecord(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
+  if (!isModuleAvailableForUser(user, "crm")) return false;
   if (user.role !== "ketua" || previous.id !== next.id || previous.kind !== next.kind) return false;
   if (!["publikasi", "galeri"].includes(next.kind)) return false;
   if (previous.data.status === "Terbit" || next.data.status !== "Terbit") return false;
@@ -220,6 +290,10 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
 }
 
 export function canReadSection(user: Principal, id: string): boolean {
+  if (id === "module-center") return canReadSectionForRole(user.role, id);
+  if (["hrm", "accounting", "crm", "projects", "pos", "analytics"].includes(id)) return canOpenModule(user, id);
+  const moduleId = sectionModuleMap[id];
+  if (moduleId && !isModuleAvailableForUser(user, moduleId)) return false;
   if (isArchitectFullAccess(user)) return true;
   return canReadSectionForRole(user.role, id);
 }
