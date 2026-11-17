@@ -62,7 +62,8 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(hub, /kebijakan server/);
   assert.match(navigation, /APLIKASI TERPADU/);
   assert.match(readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8"), /canOpenPlatformCore=\{admin\.role === "admin"/);
-  assert.match(navigation, /RUANG KERJA OPERASIONAL/);
+  assert.doesNotMatch(navigation, /RUANG KERJA OPERASIONAL/);
+  assert.match(navigation, /modulesByApplication/);
   assert.match(navigation, /getApplicationLaunches/);
   assert.match(navigation, /features\.some\(\(feature\) => feature\.id === "pertanian"\)/);
   assert.match(navigation, /RUANG KERJA OPERASIONAL/);
@@ -70,20 +71,17 @@ test("application hub renders the canonical suite and keeps access derived from 
 });
 
 
-test("system administrator receives all six launchers in the sidebar and mega menu", () => {
+test("system administrator receives the six canonical application groups in the sidebar", () => {
   const policy = readFileSync("src/features/identity/access-policy.ts", "utf8");
   const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
   assert.match(policy, /export function isArchitectFullAccess\(user: Pick<Principal, "role">\): boolean \{\s*return user\.role === "admin";/);
   assert.match(policy, /export function canWriteKind\(user: Principal, kind: string\): boolean \{[\s\S]*?if \(isArchitectFullAccess\(user\)\) return true;/);
   assert.match(policy, /export function canReadSectionForRole\(role: Role, id: string\): boolean \{\s*if \(role === "admin"\) return true;/);
   assert.match(shell, /architectFullAccess=\{isArchitectFullAccess\(user\)\}/);
-  const launchMappings = [
-    'const core = platformApplications.find((application) => application.id === "platform-core")',
-    'const organization = platformApplications.find((application) => application.id === "organization")',
-    'const agriculture = platformApplications.find((application) => application.id === "agriculture")',
-    'const business = platformApplications.find((application) => application.id === "business")',
-    'const analytics = platformApplications.find((application) => application.id === "bi-analytics")',
-    'const publicPartnership = platformApplications.find((application) => application.id === "public-partnership")',
-  ];
-  for (const mapping of launchMappings) assert.ok(navigation.includes(mapping), `sidebar launch mapping missing: ${mapping}`);
+  assert.match(navigation, /"platform-core": utilities/);
+  assert.match(navigation, /organization: features\("hrm"\)/);
+  assert.match(navigation, /agriculture: \[\.\.\.features\("projects"\)/);
+  assert.match(navigation, /business: \[\.\.\.features\("accounting"\)/);
+  assert.match(navigation, /"bi-analytics": features\("analytics"\)/);
+  assert.match(navigation, /"public-partnership": features\("crm"\)/);
 });
