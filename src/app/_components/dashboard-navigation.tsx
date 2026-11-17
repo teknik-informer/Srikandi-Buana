@@ -34,6 +34,7 @@ import {
   FileText,
   Grid2X2,
   LayoutDashboard,
+  Layers3,
   MessagesSquare,
   ShoppingBag,
   Search,
@@ -103,7 +104,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
               </SidebarMenuButton>
             </SidebarMenuItem>
             {utilities.map((item) => {
-              const Icon = item.id === "monitoring" ? Activity : FileText;
+              const Icon = item.id === "monitoring" ? Activity : item.id === "module-center" ? Layers3 : FileText;
               return (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton asChild isActive={section === item.id} tooltip={item.label}>
