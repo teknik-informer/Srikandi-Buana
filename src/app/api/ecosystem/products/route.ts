@@ -25,7 +25,7 @@ export async function POST(request:Request){const c=await required(request,true)
  ]);
  return json({ok:true,id},201);
  }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}}
-export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(c.user.role!=='bendahara')return json({error:'Akses katalog usaha hanya untuk Bendahara.'},403);
+export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(c.user.role!=='bendahara'&&c.user.role!=='admin')return json({error:'Akses katalog usaha hanya untuk Bendahara atau Administrator Sistem.'},403);
  try{const b=await readJsonObject(request,4500);if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id)||typeof b.expectedUpdated!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(b.expectedUpdated)||!textField(b.name,160)||!textField(b.unit,30)||!moneyInteger(b.price)||!moneyInteger(b.stock,1000000)||typeof b.published!=='boolean'||typeof b.description!=='string'||b.description.length>2000)return json({error:'Data produk tidak valid.'},400);
  const now=new Date().toISOString();
  const sql=`WITH before AS MATERIALIZED (
