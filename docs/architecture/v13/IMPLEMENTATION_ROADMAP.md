@@ -35,6 +35,7 @@ Deliver working, testable capabilities in the existing application. Do not repla
 - Module visibility and module-level access.
 - Central navigation, notifications and platform audit.
 - System Administrator catalog-only visibility for registered modules.
+- BI & Analitik as a role-scoped read-only workspace.
 
 **Rules**
 - A catalog entry is not an access grant.
@@ -42,7 +43,7 @@ Deliver working, testable capabilities in the existing application. Do not repla
 - Architect Full Access stays in isolated QA Preview.
 
 **Exit criteria**
-- All five application modules appear in the System Administrator's module catalog.
+- All six application modules appear in the System Administrator's module catalog.
 - Modules without operational grants open an informational, non-data landing page.
 - Unauthorized API and record access remains denied.
 - Existing member, secretary, treasurer, coordinator and chair access remains unchanged.
@@ -120,19 +121,21 @@ Deliver working, testable capabilities in the existing application. Do not repla
 - One sale cannot post duplicate inventory movement or journal.
 - Refund/reversal has an auditable source reference.
 
-## Phase 7 — Documents, MEL, BI and public CMS
+## Phase 7 — BI & Analitik, Documents, MEL and public CMS
 
 **Scope**
 - Document versioning and approval.
 - Controlled public publishing.
 - Indicators, evidence, outcomes and reporting.
 - Read-only analytical projections and data freshness.
+- Role-scoped KPI summaries, six-month record trends, domain distribution and quality indicators.
 
 **Exit criteria**
 - Private documents remain private.
 - Public content requires approval and recorded publication permission.
 - Every indicator has a definition, unit, period, target, source and verification status.
-- Every BI metric shows source and freshness.
+- BI reports do not expose member-level identity or financial records outside the current role policy.
+- Every BI metric shows its permitted source scope and freshness; coordinator metrics are restricted to assigned programmes.
 
 ## Phase 8 — Physical database isolation
 
