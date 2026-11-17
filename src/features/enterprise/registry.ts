@@ -30,7 +30,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/hrm",
     label: "HRM · SDM & Keanggotaan",
     description: "Keanggotaan, struktur, presensi, profil, dan administrasi sumber daya manusia.",
-    features: features(["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya"]),
+    features: features(["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya", "akun"]),
   },
   {
     id: "accounting",
@@ -44,14 +44,14 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/crm",
     label: "CRM · Relasi & Kemitraan",
     description: "Hubungan anggota, mitra, komunikasi, publikasi, dan layanan eksternal.",
-    features: features(["kemitraan", "pesan", "akses-eksternal", "publikasi", "galeri"]),
+    features: features(["kemitraan", "pesan", "akses-eksternal", "publikasi", "galeri", "notifikasi"]),
   },
   {
     id: "projects",
     href: "/dashboard/projects",
     label: "Project Management · Program",
     description: "Program kerja, kegiatan, penugasan, tindak lanjut, pertanian, dan dokumen proyek.",
-    features: features(["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "usaha", "alsintan", "kehadiran", "surat-resmi", "surat", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "pengajuan", "enterprise"]),
+    features: features(["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "usaha", "alsintan", "kehadiran", "surat-resmi", "surat", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "pengajuan", "enterprise", "panduan", "pengaturan"]),
   },
   {
     id: "pos",
