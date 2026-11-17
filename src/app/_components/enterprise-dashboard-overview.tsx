@@ -24,10 +24,11 @@ import { WorkspaceMetric } from "./workspace-ui";
 import { modules } from "@/lib/srikandi";
 
 const eyebrows: Record<EnterpriseDashboardId, string> = {
-  ecosystem: "ORGANISASI",
-  finance: "PELAPORAN",
-  publication: "PUBLIKASI",
-  system: "ADMINISTRASI",
+  hrm: "HUMAN RESOURCE MANAGEMENT",
+  accounting: "ACCOUNTING & FINANCE",
+  crm: "CUSTOMER RELATIONSHIP MANAGEMENT",
+  projects: "PROJECT MANAGEMENT",
+  pos: "POINT OF SALE",
 };
 
 const featureIcons: Record<string, LucideIcon> = {
@@ -79,26 +80,32 @@ function rupiah(value: number | null) {
 
 function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildEnterpriseMonitoring>) {
   switch (id) {
-    case "ecosystem": return [
+    case "hrm": return [
       { title: "Anggota terdata", value: s.membership?.total ?? "—", note: s.membership ? s.membership.active + " berstatus aktif" : "Di luar kewenangan akun", icon: Users },
       { title: "Perlu verifikasi", value: s.membership?.needsVerification ?? "—", note: "Data anggota yang belum terverifikasi", icon: ShieldCheck },
       { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: s.visibleRecords + " catatan dalam ruang lingkup akses", icon: CalendarClock },
     ];
-    case "finance": return [
+    case "accounting": return [
       { title: "Transaksi tercatat", value: s.finance?.transactions ?? "—", note: (s.finance?.missingEvidence ?? 0) + " tanpa bukti lampiran", icon: Wallet },
       { title: "Saldo buku kas", value: !s.finance ? "—" : s.finance.balanceSafe ? rupiah(s.finance.balance) : "Perlu rekonsiliasi", note: !s.finance ? "Data keuangan tidak termasuk kewenangan akun ini" : s.finance.balanceSafe ? "Dari transaksi terbaca dan tervalidasi" : "Saldo disembunyikan bila data belum lengkap/tidak valid", icon: CheckCircle2 },
       { title: "Transaksi perlu pemeriksaan", value: s.finance?.invalidTransactions ?? "—", note: "Nilai transaksi yang tidak lolos validasi", icon: AlertTriangle },
     ];
-    case "publication": return [
+    case "crm": return [
       { title: "Konten terbit", value: s.publication?.published ?? "—", note: (s.publication?.drafts ?? 0) + " konten masih draf", icon: Megaphone },
       { title: "Dokumentasi galeri", value: s.publication?.galleryItems ?? "—", note: "Item galeri yang tercatat", icon: Camera },
       { title: "Izin perlu diperiksa", value: s.publication?.permissionNeedsReview ?? "—", note: "Media dengan status izin belum jelas", icon: ShieldCheck },
     ];
-    case "system": return [
+    case "projects": return [
       { title: "Temuan kualitas data", value: s.qualityFindings, note: s.warningFindings + " peringatan · " + s.infoFindings + " pengingat", icon: AlertTriangle },
       { title: "Catatan dalam akses", value: s.visibleRecords, note: "Data yang terlihat sesuai kewenangan akun", icon: Files },
       { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Perubahan data terbaru yang dapat diakses", icon: CalendarClock },
     ];
+    case "pos": return [
+      { title: "Catatan dalam ruang lingkup", value: s.visibleRecords, note: "Catatan yang dapat diakses akun ini", icon: ShoppingBag },
+      { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Waktu pembaruan data yang terbaca", icon: CalendarClock },
+      { title: "Temuan pemeriksaan", value: s.issues.length, note: "Catatan yang perlu ditinjau", icon: AlertTriangle },
+    ];
+    default: return [];
   }
 }
 
