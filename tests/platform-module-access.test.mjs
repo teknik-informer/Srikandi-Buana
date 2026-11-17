@@ -12,6 +12,7 @@ async function loadModule(entryPoint) {
 }
 
 const policy = await loadModule("src/features/identity/access-policy.ts");
+const qaPreview = await loadModule("src/features/shared/qa-preview.mjs");
 const registry = await loadModule("src/features/enterprise/registry.ts");
 const api = readFileSync("src/app/api/platform/modules/route.ts", "utf8");
 const migration = readFileSync("migrations/020_platform_module_access.sql", "utf8");
@@ -35,6 +36,20 @@ const principal = (role, moduleAccess = undefined) => ({
   position: "",
   programIds: role === "koordinator" ? ["1"] : [],
   moduleAccess,
+});
+
+test("Architect Full Access is limited to allowlisted Vercel Preview branches", () => {
+  const branches = [
+    "feat/architect-identity-console-2026-11-15",
+    "implementation/five-app-platform-hub-2026-11-17",
+    "architecture/v13-modular-platform-foundation-2026-11-17",
+  ];
+  for (const branch of branches) {
+    assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: branch }), true);
+    assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "production", VERCEL_GIT_COMMIT_REF: branch }), false);
+  }
+  assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "main" }), false);
+  assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "development", VERCEL_GIT_COMMIT_REF: "architecture/v13-modular-platform-foundation-2026-11-17" }), false);
 });
 
 test("supporting module disable hides only its assigned feature from parent workspace navigation", () => {
