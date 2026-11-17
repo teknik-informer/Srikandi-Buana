@@ -60,12 +60,12 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(hub, /Enam aplikasi Srikandi Buana/);
   assert.match(hub, /Belum ditugaskan/);
   assert.match(hub, /kebijakan server/);
-  assert.match(navigation, /APLIKASI UTAMA/);
+  assert.match(navigation, /APLIKASI TERPADU/);
   assert.match(readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8"), /canOpenPlatformCore=\{admin\.role === "admin"/);
-  assert.match(navigation, /MODUL DALAM APLIKASI/);
+  assert.match(navigation, /RUANG KERJA OPERASIONAL/);
   assert.match(navigation, /getApplicationLaunches/);
   assert.match(navigation, /features\.some\(\(feature\) => feature\.id === "pertanian"\)/);
-  assert.match(navigation, /MODUL DALAM APLIKASI/);
+  assert.match(navigation, /RUANG KERJA OPERASIONAL/);
   assert.match(navigation, /enam aplikasi utama/);
 });
 
