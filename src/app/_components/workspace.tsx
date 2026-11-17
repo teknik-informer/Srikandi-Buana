@@ -232,7 +232,7 @@ export default function Workspace({
       setLedgerAccountsError("");
       return;
     }
-    if (!["ketua", "sekretaris", "bendahara"].includes(principal.role)) {
+    if (!["admin", "ketua", "sekretaris", "bendahara"].includes(principal.role)) {
       setLedgerAccounts([]);
       setLedgerAccountsError("Akses daftar akun dibatasi untuk pengelola keuangan.");
       return;
@@ -240,7 +240,7 @@ export default function Workspace({
     let active = true;
     const loadAccounts = async () => {
       try {
-        if (principal.role === "bendahara") {
+        if (principal.role === "bendahara" || principal.role === "admin") {
           const initialized = await fetch("/api/ecosystem/ledger", {
             method: "POST", credentials: "same-origin", cache: "no-store",
             headers: { "Content-Type": "application/json" },
@@ -1162,7 +1162,7 @@ export default function Workspace({
                           name={f.key}
                           required={f.required}
                           defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")}
-                          disabled={!ledgerAccounts.length || principal.role !== "bendahara"}
+                          disabled={!ledgerAccounts.length || principal.role !== "bendahara" && principal.role !== "admin"}
                         >
                           <NativeSelectOption value="">
                             {ledgerAccounts.length ? "Pilih akun lawan transaksi" : "Daftar akun belum tersedia"}
@@ -1180,7 +1180,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["verification", "meetingReviewStatus"].includes(f.key) &&
-                            principal.role !== "ketua"
+                            !["admin", "ketua", "sekretaris"].includes(principal.role)
                           }
                           defaultValue={String(
                             editor.row?.data[f.key] ??
@@ -1188,7 +1188,7 @@ export default function Workspace({
                               f.options[0],
                           )}
                         >
-                          {(editor.kind === "tindaklanjut" && f.key === "verification" && principal.role !== "ketua" ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
+                          {(editor.kind === "tindaklanjut" && f.key === "verification" && !["admin", "sekretaris"].includes(principal.role) ? [...new Set(["Belum diajukan", "Menunggu verifikasi", String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "Belum diajukan")])] : f.options).map((o) => (
                             <NativeSelectOption key={o}>
                               {f.key === "programId"
                                 ? o
