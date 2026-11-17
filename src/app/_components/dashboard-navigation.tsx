@@ -359,7 +359,7 @@ export function DashboardMegaMenu({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
-  const applicationLaunches = getApplicationLaunches(user, architectFullAccess).filter((application) =>
+  const applicationLaunches = getApplicationLaunches(user).filter((application) =>
     !query.trim() || (application.label + " " + application.description).toLocaleLowerCase("id-ID").includes(query.trim().toLocaleLowerCase("id-ID")),
   );
   const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
