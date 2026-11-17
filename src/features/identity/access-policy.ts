@@ -214,7 +214,7 @@ function stableValue(value: unknown): string {
 /** The Secretary may verify task outcomes, but cannot rewrite the task itself. */
 export function canReviewFollowup(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
   if (!isModuleAvailableForUser(user, "projects")) return false;
-  if (user.role !== "sekretaris" || previous.kind !== "tindaklanjut" || next.kind !== "tindaklanjut" || previous.id !== next.id) return false;
+  if (!["admin", "sekretaris"].includes(user.role) || previous.kind !== "tindaklanjut" || next.kind !== "tindaklanjut" || previous.id !== next.id) return false;
   const stripReview = (data: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(data).filter(([key]) => !taskReviewFields.has(key)));
   return stableValue(stripReview(previous.data)) === stableValue(stripReview(next.data));
@@ -223,7 +223,7 @@ export function canReviewFollowup(user: Principal, previous: AccessRecord, next:
 /** The Chair can publish an existing, unchanged draft; the Chair does not author its content. */
 export function canPublishRecord(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
   if (!isModuleAvailableForUser(user, "crm")) return false;
-  if (user.role !== "ketua" || previous.id !== next.id || previous.kind !== next.kind) return false;
+  if (!["admin", "ketua"].includes(user.role) || previous.id !== next.id || previous.kind !== next.kind) return false;
   if (!["publikasi", "galeri"].includes(next.kind)) return false;
   if (previous.data.status === "Terbit" || next.data.status !== "Terbit") return false;
   const stripStatus = (data: Record<string, unknown>) =>
