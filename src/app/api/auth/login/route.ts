@@ -37,12 +37,9 @@ export async function POST(request: Request) {
     }
 
     if (isPhone) {
-      const phoneSchema = await env.DB.prepare(
-        "SELECT count(*) AS total FROM information_schema.columns " +
-        "WHERE table_schema='public' AND table_name='users' " +
-        "AND column_name IN ('login_phone','phone_verified_at')"
-      ).first();
-      if (Number(phoneSchema?.total || 0) < 2) {
+      try {
+        await env.DB.prepare("SELECT login_phone,phone_verified_at FROM users LIMIT 0").all();
+      } catch {
         return json({ error: "Login WhatsApp belum diaktifkan pada server. Silakan masuk menggunakan email akun." }, 503);
       }
     }
