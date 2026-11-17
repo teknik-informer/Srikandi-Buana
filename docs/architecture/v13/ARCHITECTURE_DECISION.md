@@ -18,6 +18,7 @@ The target application workspaces are:
 3. Customer Relationship Management (CRM)
 4. Project Management
 5. Point of Sale (POS)
+6. Business Intelligence & Analytics (BI & Analitik)
 
 Supporting domains and platform services include Inventory & Procurement, Agriculture, Document Management, Collaboration, Monitoring & Evaluation (MEL), Business Intelligence (BI), Public Website CMS and System Administration.
 
@@ -32,7 +33,7 @@ The audit of the connected Production application found:
 - Next.js 16.4.5 and React 19.2.6.
 - Neon PostgreSQL as the application data platform.
 - An application-managed session flow in the current server code.
-- A five-workspace registry in `src/features/enterprise/registry.ts`.
+- A six-workspace registry in `src/features/enterprise/registry.ts`.
 - Domain-oriented code areas including `identity`, `enterprise`, `finance`, `commerce` and `workspace-v14`.
 - One application database, `neondb`, containing the active `neon_auth`, `public` and `workspace_v14` schemas.
 - 9 tables in `neon_auth`, 52 in `public`, and 50 in `workspace_v14` at audit time.
@@ -49,7 +50,7 @@ The current application login implementation reads `public.users` and `public.se
 - Retain one canonical application origin and one authenticated workspace.
 - Preserve the existing route family during migration; do not redirect all users to a new route scheme until equivalent routes and regression tests exist.
 - Keep one module registry as the source for workspace labels, descriptions, feature ownership and route metadata.
-- A workspace card is a launcher and a user-experience grouping. It is not, by itself, a database, service, authorization or deployment boundary.
+- A workspace card is a launcher and a user-experience grouping; BI is a read-only analytical workspace, not a new transaction owner. It is not, by itself, a database, service, authorization or deployment boundary.
 - The global shell owns identity context, notification entry points, search entry points, profile, support and module navigation.
 
 ### 3.2 Identity and access
@@ -59,7 +60,7 @@ The current application login implementation reads `public.users` and `public.se
 - Do not migrate to Supabase Auth or another identity provider as part of the database-boundary work. A provider migration requires a separate proof of concept, account mapping, token verification, session revocation, recovery and rollback plan.
 - Keep system role, organizational position, module role, granular permission and record scope separate.
 - Every read and write remains authorized on the server. Hiding a menu is not authorization.
-- The System Administrator sees all five business workspaces as catalog entries and can manage technical configuration. This does not automatically grant operational access to member records, finance operations, partnership records, project execution, sales, publication approval or organizational decisions. Technical settings, source documents and global notifications remain separately permissioned platform utilities.
+- The System Administrator sees all six business workspaces as catalog entries and can manage technical configuration. This does not automatically grant operational access to member records, finance operations, partnership records, project execution, sales, BI aggregates or organizational decisions. Technical settings, source documents and global notifications remain separately permissioned platform utilities.
 - Architect Full Access remains confined to the isolated QA Preview path and must not become a Production role shortcut.
 
 ### 3.3 Domain modularity
