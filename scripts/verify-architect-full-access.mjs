@@ -10,6 +10,8 @@ const hub = read("src/app/_components/application-hub.tsx");
 const registry = read("src/features/platform/application-registry.ts");
 const fileAccess = read("src/lib/file-access.ts");
 const fileApi = read("src/app/api/files/route.ts");
+const operations = read("src/lib/enterprise/operations.ts");
+const operationsApi = read("src/app/api/operations/route.ts");
 
 assert.match(auth, /process\.env\.ADMIN_EMAIL/);
 assert.match(auth, /user\.owner_role!=='admin'/);
@@ -45,6 +47,12 @@ for (const id of ["platform-core", "organization", "agriculture", "business", "b
     "Sidebar must explicitly map application " + id);
 }
 
+assert.match(operations, /canReview = \(user: Principal\) => user\.role === "admin" \|\| user\.role === "ketua"/);
+assert.match(operations, /canInspectOperations = \(user: Principal\) => user\.role === "admin" \|\| user\.role === "ketua"/);
+assert.match(operations, /return user\.role === "admin" \|\|/);
+assert.doesNotMatch(operations, /if \(user\.role === "admin"\) return false;/);
+assert.doesNotMatch(operationsApi, /user\.role===\x27admin\x27\)return json\(\{error:\x27Administrator Sistem tidak/);
+assert.match(operationsApi, /!\[\x27admin\x27,\x27ketua\x27\]\.includes\(user\.role\)/);
 assert.match(fileAccess, /if\(isArchitectFullAccess\(user\)\)/);
 assert.match(fileApi, /file\.uploader_id!==user\.accountId&&!isArchitectFullAccess\(user\)/,
   "Only the authenticated root administrator may manage another uploader's file.");
