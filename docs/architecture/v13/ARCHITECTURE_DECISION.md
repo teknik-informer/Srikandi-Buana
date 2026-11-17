@@ -192,3 +192,20 @@ This ADR is a target design and implementation record. It does not authorize:
 - A Production deployment of this PR.
 
 Those actions require isolated QA verification, a reviewed migration plan, explicit approval and a rollback path.
+
+
+## 10. Persistent application access — Preview QA implementation
+
+The first persisted application-access layer is implemented by migration `020_platform_module_access.sql` and is currently applied only to the sanitized Neon Preview QA database.
+
+- `platform_modules` is the application/support/platform module registry and lifecycle source.
+- `workspace_module_settings` stores per-workspace enablement with reason, actor and timestamp.
+- `platform_module_access_grants` stores user-level `allow` / `deny` launch overrides with validity and revocation.
+- `platform_module_access_audit` is append-only and records actor, target, reason and before/after state.
+- `workspace_v14.role_grants` remains a separate organization/programme/site/resource assignment model and is not repurposed for application access.
+- A launch-level `allow` opens only the application shell. Feature visibility, record reads, writes, exports and approvals still require the existing server-side role and record-scope policy.
+- Workspace module disablement and user-level denial take precedence over launch grants.
+- Authenticated principals load active module settings and grants on each request; changes therefore take effect on the next request without treating a session cookie as an authorization cache.
+- Specialized API routes for Accounting, POS, Agriculture, HRM attendance, CRM and operational work are guarded against a disabled or denied module in addition to their existing role checks.
+
+This migration is not applied to Production. Production remains on its current schema until a separate migration review, QA UAT, backup/restore rehearsal and explicit approval.
