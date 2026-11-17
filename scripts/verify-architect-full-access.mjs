@@ -14,9 +14,9 @@ const qaPreview = read("src/features/shared/qa-preview.mjs");
 assert(auth.includes("isArchitectQaPreview(process.env)"));
 assert(qaPreview.includes('env.VERCEL_ENV === "preview"'));
 assert(qaPreview.includes('"architecture/v13-modular-platform-foundation-2026-11-17"'));
-assert(policy.includes('"architectFullAccess" in user && user.architectFullAccess === true'));
+assert(policy.includes("return user.role === \"admin\";"), "Administrator Sistem must have full access in all environments");
 assert(policy.includes("if (isArchitectFullAccess(user)) return true;"));
-assert(policy.includes('if (role === "admin") return false;'), "Production role-only policy must not grant organization access");
+assert(policy.includes('if (role === "admin") return true;'), "Administrator Sistem must have full record-kind access");
 for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecord", "canReadSection"]) {
   const start = policy.indexOf("export function " + fn + "(");
   assert.notEqual(start, -1, fn + " must exist");
@@ -25,7 +25,7 @@ for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecor
 assert(registry.includes("getVisibleEnterpriseDashboards(role: Role, fullAccess = false, includeCatalog = false)"));
 assert(registry.includes("getVisibleEnterpriseUtilities(role: Role, fullAccess = false)"));
 assert(route.includes("isArchitectFullAccess(admin)"));
-assert(shell.includes("architectFullAccess={user.architectFullAccess === true}"));
+assert(shell.includes("architectFullAccess={isArchitectFullAccess(user)}"));
 assert(navigation.includes("getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === \"admin\")"));
 assert(registry.includes("isModuleAvailableForUser(user, dashboard.id)"));
 assert(registry.includes("isSectionModuleAvailableForUser(user, feature.id)"));
@@ -36,4 +36,5 @@ assert(route.includes("<ArchitectQaTestCenter user={admin} />"));
 assert(center.includes("Full Access QA"));
 assert(files.includes("if(isArchitectFullAccess(user))"));
 assert(fileApi.includes("!isArchitectFullAccess(user)"), "Architect may manage files uploaded by other QA accounts only in the isolated Preview");
-console.log("PASS Architect Full Access: Preview-branch-only CRUD policy, all dashboard navigation, QA inspector, and Production role isolation.");
+assert(navigation.includes('id: agriculture.id') && navigation.includes('id: business.id') && navigation.includes('id: analytics.id') && navigation.includes('id: publicPartnership.id'), "All six application launchers must be wired into the sidebar");
+console.log("PASS System Administrator Full Access: production-wide role policy, CRUD gates, six-app navigation, QA inspector, and file ownership safeguards.");
