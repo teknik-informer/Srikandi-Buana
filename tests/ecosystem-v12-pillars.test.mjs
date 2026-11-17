@@ -57,6 +57,33 @@ test("pembatasan akses per peran tetap diterapkan", () => {
   assert.equal(permissions.canReadSectionForRole("bendahara", "laporan"), true);
 });
 
+test("katalog System Administrator menampilkan lima modul tanpa memberi izin operasional baru", () => {
+  const catalog = registry.getVisibleEnterpriseDashboards("admin", false, true);
+  assert.deepEqual(Array.from(catalog, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos"]);
+  assert.deepEqual(
+    Array.from(catalog.filter((dashboard) => dashboard.catalogOnly), (dashboard) => dashboard.id),
+    ["accounting", "pos"],
+  );
+  assert.ok(catalog.filter((dashboard) => !dashboard.catalogOnly).every((dashboard) => dashboard.features.length > 0));
+  assert.deepEqual(
+    Array.from(registry.getVisibleEnterpriseDashboards("admin"), (dashboard) => dashboard.id),
+    ["hrm", "crm", "projects"],
+    "Default navigation remains restricted to assigned features",
+  );
+  assert.equal(permissions.canReadSectionForRole("admin", "kas"), false);
+  assert.equal(permissions.canReadSectionForRole("admin", "penjualan"), false);
+});
+
+test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", () => {
+  const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
+  const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
+  assert.match(hub, /dashboard\.catalogOnly/);
+  assert.match(hub, /5 modul terdaftar/);
+  assert.match(route, /getVisibleEnterpriseDashboards\(admin\.role, isArchitectFullAccess\(admin\), admin\.role === "admin"\)/);
+  assert.match(route, /visibleDashboard\?\.catalogOnly/);
+  assert.match(route, /tidak otomatis memberikan kewenangan/);
+});
+
 test("menu navigasi memakai label formal dan ringkas", () => {
   const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
