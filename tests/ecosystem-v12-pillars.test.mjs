@@ -56,7 +56,12 @@ test("pembatasan akses per peran tetap diterapkan", () => {
   assert.equal(permissions.canReadSectionForRole("anggota", "laporan"), false);
   assert.equal(permissions.canReadSectionForRole("sekretaris", "laporan"), true);
   assert.equal(permissions.canReadSectionForRole("bendahara", "laporan"), true);
-  for (const role of ["ketua", "sekretaris", "bendahara", "koordinator"]) assert.equal(permissions.canReadSectionForRole(role, "analytics"), true);
+  for (const role of ["ketua", "sekretaris", "bendahara", "koordinator"]) {
+    assert.equal(permissions.canReadSectionForRole(role, "analytics"), true);
+    assert.ok(registry.getVisibleEnterpriseDashboards(role).some((dashboard) => dashboard.id === "analytics"));
+  }
+  assert.ok(!registry.getVisibleEnterpriseDashboards("admin").some((dashboard) => dashboard.id === "analytics"));
+  assert.ok(!registry.getVisibleEnterpriseDashboards("anggota").some((dashboard) => dashboard.id === "analytics"));
   assert.equal(permissions.canReadSectionForRole("admin", "analytics"), false);
   assert.equal(permissions.canReadSectionForRole("anggota", "analytics"), false);
 });
