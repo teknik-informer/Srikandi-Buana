@@ -46,6 +46,7 @@ import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
 const dashboardIcons: Record<string, typeof Grid2X2> = {
   hrm: BriefcaseBusiness,
+  analytics: Activity,
   accounting: Wallet,
   crm: MessagesSquare,
   projects: Grid2X2,
@@ -159,6 +160,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
                   </SidebarMenuButton>
                   {shown && (state !== "collapsed" || isMobile) && (
                     <SidebarMenuSub id={"dashboard-category-" + group.id}>
+                      {!group.items.some((item) => item.href === group.href) && (
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={section === group.id}>
                           <Link
@@ -171,6 +173,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                      )}
                       {group.items.map((item) => (
                         <SidebarMenuSubItem key={item.id}>
                           <SidebarMenuSubButton asChild isActive={section === item.id}>
@@ -296,7 +299,7 @@ export function DashboardMegaMenu({
           </DialogClose>
           <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih aplikasi operasional sesuai kewenangan akun Anda: HRM, Accounting, CRM, Project Management, dan POS.
+            Pilih aplikasi operasional sesuai kewenangan akun Anda: HRM, Accounting, CRM, Project Management, POS, dan BI & Analitik.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -335,7 +338,7 @@ export function DashboardMegaMenu({
                   <Link href={g.href} onClick={() => setOpen(false)}>{g.label}</Link>
                 </h3>
                 <p>{g.description}</p>
-                {g.items.map((item) => (
+                {g.items.filter((item) => item.href !== g.href).map((item) => (
                   <Link
                     href={item.href}
                     key={item.id}
