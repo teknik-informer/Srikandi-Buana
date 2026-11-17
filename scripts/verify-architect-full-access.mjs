@@ -20,7 +20,7 @@ for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecor
   assert.notEqual(start, -1, fn + " must exist");
   assert.ok(policy.slice(start, start + 500).includes("isArchitectFullAccess(user)"), fn + " must enforce the preview capability");
 }
-assert(registry.includes("getVisibleEnterpriseDashboards(role: Role, fullAccess = false)"));
+assert(registry.includes("getVisibleEnterpriseDashboards(role: Role, fullAccess = false, includeCatalog = false)"));
 assert(registry.includes("getVisibleEnterpriseUtilities(role: Role, fullAccess = false)"));
 assert(route.includes("isArchitectFullAccess(admin)"));
 assert(shell.includes("architectFullAccess={user.architectFullAccess === true}"));
