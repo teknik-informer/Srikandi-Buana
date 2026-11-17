@@ -29,7 +29,6 @@ import {
   ArrowUpRight,
   ChevronDown,
   BookOpen,
-  Files,
   FileText,
   Grid2X2,
   LayoutDashboard,
@@ -60,6 +59,9 @@ function getApplicationNavigation(user: Principal, fullAccess: boolean, includeC
   const workspaces = getVisibleEnterpriseDashboardsForUser(user, fullAccess, includeCatalog);
   const features = (id: string) => workspaces.find((workspace) => workspace.id === id)?.features ?? [];
   const utilities = getVisibleEnterpriseUtilities(user.role, fullAccess);
+  const projectFeatures = features("projects");
+  const pointOfSaleFeatures = features("pos");
+  const select = (items: ApplicationNavigation["items"], ids: string[]) => items.filter((item) => ids.includes(item.id));
   const icons: Record<string, typeof Grid2X2> = {
     "platform-core": LockKeyhole,
     organization: Network,
@@ -70,9 +72,9 @@ function getApplicationNavigation(user: Principal, fullAccess: boolean, includeC
   };
   const modulesByApplication: Record<string, ApplicationNavigation["items"]> = {
     "platform-core": utilities,
-    organization: features("hrm"),
-    agriculture: [...features("projects"), ...features("pos").filter((item) => item.id === "lotkopi")],
-    business: [...features("accounting"), ...features("pos").filter((item) => item.id === "penjualan")],
+    organization: [...features("hrm"), ...select(projectFeatures, ["surat-resmi", "surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen"])],
+    agriculture: [...select(projectFeatures, ["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "alsintan", "survei"]), ...select(pointOfSaleFeatures, ["lotkopi"])],
+    business: [...features("accounting"), ...select(projectFeatures, ["usaha", "pengajuan", "enterprise"]), ...select(pointOfSaleFeatures, ["penjualan"])],
     "bi-analytics": features("analytics"),
     "public-partnership": features("crm"),
   };
@@ -212,11 +214,6 @@ export default function DashboardNavigation({ section, user, architectFullAccess
           {user.role === "admin" && qaPreviewEnabled && (
             <Link href="/dashboard/qa-test-center" onClick={() => setOpenMobile(false)} aria-current={section === "qa-test-center" ? "page" : undefined}>
               QA Test Center <ShieldCheck size={14} />
-            </Link>
-          )}
-          {["admin", "ketua", "sekretaris"].includes(user.role) && (
-            <Link href="/dashboard/sumber" onClick={() => setOpenMobile(false)} aria-current={section === "sumber" ? "page" : undefined}>
-              Dokumen sumber <Files size={14} />
             </Link>
           )}
         </div>
