@@ -56,6 +56,7 @@ test("pembatasan akses per peran tetap diterapkan", () => {
   assert.ok(member.includes("portal"));
   assert.ok(member.includes("akun-saya"));
   assert.equal(permissions.canReadSectionForRole("admin", "akun"), true);
+  assert.equal(permissions.canReadSectionForRole("admin", "pengaturan"), true, "Hiding the site settings menu does not revoke the administrator route permission");
   assert.equal(permissions.canReadSectionForRole("anggota", "akun"), false);
   assert.equal(permissions.canReadSectionForRole("anggota", "laporan"), false);
   assert.equal(permissions.canReadSectionForRole("sekretaris", "laporan"), true);
