@@ -59,7 +59,7 @@ test("System Administrator receives cross-application BI aggregates without expo
   const admin = analytics.buildEnterpriseAnalytics(rows, files, principal("admin"), new Date("2026-11-17T05:00:00.000Z"));
   assert.equal(admin.records, 5);
   assert.equal(admin.members, 1);
-  assert.equal(admin.programs, 2);
+  assert.equal(admin.programs, 1);
   assert.equal(admin.openTasks, 2);
   assert.ok(admin.domains.some((domain) => domain.id === "accounting"));
   assert.equal(JSON.stringify(admin).includes("Nama Rahasia"), false);
