@@ -77,7 +77,7 @@ test("system administrator receives the six canonical application groups in the 
   assert.match(policy, /export function canReadSectionForRole\(role: Role, id: string\): boolean \{\s*if \(role === "admin"\) return true;/);
   assert.match(shell, /architectFullAccess=\{isArchitectFullAccess\(user\)\}/);
   assert.match(navigation, /"platform-core": utilities/);
-  assert.match(navigation, /organization: features\("hrm"\)/);
+  assert.match(navigation, /organization: \[\.\.\.features\("hrm"\)/);
   assert.match(navigation, /agriculture: \[\.\.\.select\(projectFeatures/);
   assert.match(navigation, /business: \[\.\.\.features\("accounting"\)/);
   assert.match(navigation, /select\(projectFeatures, \["usaha", "pengajuan", "enterprise"\]\)/);
