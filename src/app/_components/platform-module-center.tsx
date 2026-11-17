@@ -216,7 +216,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
           <CardContent className="space-y-3 text-sm">
             <p>Seluruh domain masih berada di satu database PostgreSQL Neon bernama <strong>neondb</strong>. Skema berbeda adalah pemisahan logis, belum database fisik independen.</p>
             <p>Keberadaan tabel domain pada <strong>workspace_v14</strong> belum membuktikan bahwa seluruh workflow memakai tabel tersebut sebagai sumber kebenaran tunggal.</p>
-            <p>Tabel <strong>role_grants</strong> dan <strong>module_registry</strong> tidak ditemukan pada schema Production yang diperiksa. Kolom akun yang tersedia menyimpan <strong>role</strong>, <strong>position</strong> dan <strong>program_ids</strong>; akses aplikasi masih diturunkan dari policy server.</p>
+            <p>Production memiliki <strong>workspace_v14.role_grants</strong> untuk peran dan scope organisasi/program. Tabel tersebut bukan grant peluncuran aplikasi. Tabel <strong>platform_modules</strong>, <strong>workspace_module_settings</strong>, <strong>platform_module_access_grants</strong> dan <strong>platform_module_access_audit</strong> baru diterapkan pada database Preview QA melalui migrasi 020; belum ada di Production.</p>
           </CardContent>
         </Card>
         <Card>
@@ -227,7 +227,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
           <CardContent className="space-y-3 text-sm">
             <p><strong>Administrator Sistem</strong> dapat memeriksa registri, status implementasi dan kebijakan akses. Katalog aplikasi tidak memberikan hak membaca atau mengubah data organisasi.</p>
             <p><strong>Hak operasional</strong> tetap berasal dari policy role, permission fitur dan scope record yang diterapkan di server.</p>
-            <p><strong>Perubahan role/grant persisten</strong> memerlukan desain tabel, migration, audit event, mekanisme pencabutan sesi dan pengujian API sebelum editor akses diaktifkan.</p>
+            <p><strong>Kontrol akses persisten</strong> kini dapat diuji pada Preview QA. Perubahan Production tetap memerlukan persetujuan migrasi terpisah, pengujian pemulihan, dan rencana rollback.</p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Badge variant="outline"><Activity className="mr-1 size-3" /> Policy server</Badge>
               <Badge variant="outline"><FileCheck2 className="mr-1 size-3" /> Audit perubahan</Badge>
