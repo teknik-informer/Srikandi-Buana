@@ -211,7 +211,7 @@ function stableValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
-/** The Secretary may verify task outcomes, but cannot rewrite the task itself. */
+/** The Secretary or System Administrator may verify task outcomes, but cannot rewrite the task itself. */
 export function canReviewFollowup(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
   if (!isModuleAvailableForUser(user, "projects")) return false;
   if (!["admin", "sekretaris"].includes(user.role) || previous.kind !== "tindaklanjut" || next.kind !== "tindaklanjut" || previous.id !== next.id) return false;
@@ -220,7 +220,7 @@ export function canReviewFollowup(user: Principal, previous: AccessRecord, next:
   return stableValue(stripReview(previous.data)) === stableValue(stripReview(next.data));
 }
 
-/** The Chair can publish an existing, unchanged draft; the Chair does not author its content. */
+/** The Chair or System Administrator can publish an existing, unchanged draft; neither may alter its content during publication. */
 export function canPublishRecord(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
   if (!isModuleAvailableForUser(user, "crm")) return false;
   if (!["admin", "ketua"].includes(user.role) || previous.id !== next.id || previous.kind !== next.kind) return false;
