@@ -1,13 +1,14 @@
 import {required,json,errorReply} from '@/lib/ecosystem/guard';
+import { isModuleAvailableForUser } from '@/features/identity/access-policy';
 import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {moneyInteger} from '@/features/shared/validation.mjs';
 import {notifyOwner} from '@/lib/ecosystem/notifications';
 import {consumeRateLimit} from '@/lib/rate-limit';
 export const dynamic='force-dynamic';
-export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;try{
+export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);try{
  const canReadAll=['ketua','bendahara'].includes(c.user.role);const where=canReadAll?'owner=?':'owner=? AND buyer_id=?',args=canReadAll?[c.user.userId]:[c.user.userId,c.user.accountId];const rows=await c.db.prepare('SELECT o.id,o.product_name,o.quantity,o.unit_price,o.total,o.status,o.created,b.full_name AS buyer_name FROM commerce_orders o JOIN users b ON b.id=o.buyer_id AND b.workspace_owner=o.owner WHERE '+where.replaceAll('owner=','o.owner=').replaceAll('buyer_id=','o.buyer_id=')+' ORDER BY o.created DESC LIMIT 100').bind(...args).all();return json({items:rows.results});
  }catch(e){return errorReply(e)}}
-export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;try{const b=await readJsonObject(request,1500);
+export async function POST(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);try{const b=await readJsonObject(request,1500);
  if(typeof b.productId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.productId)||typeof b.clientRequestId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.clientRequestId)||!moneyInteger(b.quantity,10000)||Number(b.quantity)===0)return json({error:'Pilih produk dan jumlah yang valid.'},400);
  if(!await consumeRateLimit(c.db,'commerce:order:'+c.user.accountId,30,3600000))return json({error:'Batas pengajuan pesanan tercapai. Coba lagi nanti.'},429);
  const existing=await c.db.prepare('SELECT id,status FROM commerce_orders WHERE owner=? AND buyer_id=? AND client_request_id=?').bind(c.user.userId,c.user.accountId,b.clientRequestId).first();if(existing)return json({ok:true,id:existing.id,status:existing.status,reused:true});
@@ -34,7 +35,7 @@ export async function POST(request:Request){const c=await required(request,true)
   for(const treasurer of treasurers.results)await notifyOwner(c.user.userId,String(treasurer.id),'order:'+id,'Pesanan baru','Pesanan baru menunggu pemeriksaan Bendahara.','/dashboard/penjualan','pesanan');return json({ok:true,id,total:row.total,status:'submitted'},201);
  }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);return errorReply(e)}}
 /** Treasurer fulfils or cancels an order; cancellation restores reserved stock exactly once. */
-export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(c.user.role!=='bendahara')return json({error:'Hanya Bendahara yang dapat mengubah status pesanan.'},403);
+export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(c.user.role!=='bendahara')return json({error:'Hanya Bendahara yang dapat mengubah status pesanan.'},403);
  try{const b=await readJsonObject(request,1000);if(!await consumeRateLimit(c.db,'commerce:order-status:'+c.user.accountId,90,3600000))return json({error:'Batas perubahan status pesanan tercapai.'},429);if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id)||!['confirmed','cancelled','completed'].includes(String(b.action)))return json({error:'Pesanan atau tindakan tidak valid.'},400);
  const now=new Date().toISOString();
  if(b.action==='cancelled'){
