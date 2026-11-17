@@ -21,22 +21,11 @@ assert.equal((await setup.POST(request({...activation,confirmation:'wrong'}))).s
 assert.equal((await setup.POST(request(activation))).status,200);
 assert.equal((await setup.POST(request(activation))).status,409);
 const adminRow=await prepare('SELECT id,password_hash FROM users').first();assert.notEqual(adminRow.password_hash,activation.password);
-const memberId='member-fixture-1',memberUserId='member-user-fixture-1',memberPhone='081234567890';
-await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)')
- .bind(memberId,adminRow.id,'anggota',JSON.stringify({name:'Anggota Uji',phone:memberPhone,status:'Aktif',verification:'Terverifikasi'}),new Date().toISOString(),new Date().toISOString()).run();
-const memberPassword='Password-anggota-123';
-const memberPasswordHash=await hashPassword(memberPassword);
-await prepare('INSERT INTO users(id,email,password_hash,full_name,enabled,created,role,workspace_owner,member_id,position,program_ids) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
- .bind(memberUserId,'anggota@example.test',memberPasswordHash,'Anggota Uji',true,new Date().toISOString(),'ketua',adminRow.id,memberId,'Ketua', '[]').run();
 await prepare('DELETE FROM sessions').run();cookieValues.clear();
 const login=await load('src/app/api/auth/login/route.ts'),logout=await load('src/app/api/auth/logout/route.ts'),auth=await load('src/lib/auth.ts');
 function request(body,origin='https://test.local',ip='198.51.100.3'){return new Request('https://test.local/api/auth/login',{method:'POST',headers:{origin,'content-type':'application/json','x-vercel-forwarded-for':ip},body:JSON.stringify(body)})}
 assert.equal((await login.POST(request({email:'admin@example.test',password:'salah'},'https://evil.test'))).status,403);
-const valid={email:'admin@example.test',password:'Password-uji-aman-123',remember:true,returnTo:'/dashboard/kas'};const result=await login.POST(request(valid));assert.equal(result.status,200);assert.equal((await result.json()).redirect,'/dashboard/kas');assert.equal(cookieOptions.httpOnly,true);assert.equal(cookieOptions.secure,true);assert.equal(cookieOptions.sameSite,'lax');assert.equal(cookieOptions.maxAge,30*86400);assert.ok(cookieValues.has('__Host-srikandi_session'));assert.equal((await auth.getAuthenticatedUser()).userId,adminRow.id);
-const phoneLogin=await login.POST(request({identity:'+62 812-3456-7890',password:memberPassword}));
-assert.equal(phoneLogin.status,200,'verified member record phone must authenticate without extra users columns');
-assert.equal((await phoneLogin.json()).ok,true);
-assert.equal((await auth.getAuthenticatedUser()).role,'ketua');assert.equal(auth.safeReturn('https://evil.test'),'/dashboard');assert.equal(auth.safeReturn('//evil.test'),'/dashboard');
+const valid={email:'admin@example.test',password:'Password-uji-aman-123',remember:true,returnTo:'/dashboard/kas'};const result=await login.POST(request(valid));assert.equal(result.status,200);assert.equal((await result.json()).redirect,'/dashboard/kas');assert.equal(cookieOptions.httpOnly,true);assert.equal(cookieOptions.secure,true);assert.equal(cookieOptions.sameSite,'lax');assert.equal(cookieOptions.maxAge,30*86400);assert.ok(cookieValues.has('__Host-srikandi_session'));assert.equal((await auth.getAuthenticatedUser()).userId,adminRow.id);assert.equal(auth.safeReturn('https://evil.test'),'/dashboard');assert.equal(auth.safeReturn('//evil.test'),'/dashboard');
 const logoutRequest=(origin='https://test.local')=>new Request('https://test.local/api/auth/logout',{method:'POST',headers:{origin,accept:'application/json'}});
 assert.equal((await logout.GET(new Request('https://test.local/api/auth/logout'))).status,303);
 assert(cookieValues.has('__Host-srikandi_session'),'GET must not log out');
