@@ -35,11 +35,16 @@ Deliver working, testable capabilities in the existing application. Do not repla
 - Module visibility and module-level access.
 - Central navigation, notifications and platform audit.
 - System Administrator catalog-only visibility for registered modules.
+- Persistent module registry, workspace enablement and user-level launch overrides on Preview QA.
+- Append-only access audit and per-request enforcement of module availability.
 - Read-only Platform Module Center showing code-defined registry, delivery readiness, data ownership and policy-derived role visibility.
 - BI & Analitik as a role-scoped read-only workspace.
 
 **Rules**
 - A catalog entry is not an access grant.
+- A module launch grant does not grant record access, CRUD, export or approval authority.
+- Workspace disablement and explicit user deny override a launch allow.
+- Organization-level `workspace_v14.role_grants` is separate from application-level launch grants.
 - System Administrator technical configuration is distinct from organizational record access and approval authority.
 - Architect Full Access stays in isolated QA Preview.
 - Until dedicated registry/grant persistence and comprehensive route/API enforcement are implemented, module activation and module-specific grant editing remain disabled; do not display pretend toggles.
@@ -50,7 +55,7 @@ Deliver working, testable capabilities in the existing application. Do not repla
 - Unauthorized API and record access remains denied.
 - Existing member, secretary, treasurer, coordinator and chair access remains unchanged.
 
-**Current platform limitation:** Production has no dedicated `module_registry` or `role_grants` table. The current Platform Module Center is diagnostic/read-only. Persistent module lifecycle and per-module access administration require a separately reviewed schema and API migration.
+**Current release boundary:** migration 020 and the four `platform_*` access tables have been applied only on sanitized Preview QA. Production has not received this migration. Its `workspace_v14.role_grants` table is an organization/scope grant model, not an application-launch grant. Keep Production access controls on the existing server policy until migration 020 receives separate approval.
 
 ## Phase 2 — HRM
 
