@@ -18,11 +18,11 @@ assert.equal(policy.canReadKindForRole('bendahara','surat_resmi'),true,'Treasure
 assert.equal(policy.canWriteKind({role:'bendahara'},'surat_resmi'),false,'Treasurer cannot create or change official-letter drafts');
 assert.equal(policy.canReadSectionForRole('bendahara','surat-resmi'),true,'Treasurer can open the letter workspace in read-only mode');
 assert.equal(policy.canWriteKind({role:'koordinator'},'surat_resmi'),false,'Coordinators cannot create official correspondence');
-assert.equal(policy.canReadKindForRole('admin','kas'),false,'Technical administrator cannot read business records');
-assert.equal(policy.canWriteKind({role:'admin'},'kas'),false,'Technical administrator cannot write business records');
+assert.equal(policy.canReadKindForRole('admin','kas'),true,'System administrator can read business records across applications');
+assert.equal(policy.canWriteKind({role:'admin'},'kas'),true,'System administrator can write business records across applications');
 assert.equal(policy.canReadSectionForRole('admin','pengaturan'),true,'Technical administrator can configure the platform');
 assert.equal(policy.canReadSectionForRole('admin','akun'),true,'Architect can manage structural account identities without business-data access');
-assert.equal(policy.canReadSectionForRole('admin','akuntansi'),false,'Technical administrator cannot browse finance');
+assert.equal(policy.canReadSectionForRole('admin','akuntansi'),true,'System administrator can browse finance');
 const chair={role:'ketua'};
 const secretary={role:'sekretaris'};
 const taskBefore={id:'task-1',kind:'tindaklanjut',data:{name:'Task',status:'Selesai',verification:'Menunggu verifikasi',completionEvidence:'Bukti',reviewNote:'',meetingReviewStatus:'Belum dievaluasi'}};
