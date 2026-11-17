@@ -73,6 +73,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
 
 export const enterpriseUtilities: readonly NavItem[] = [
   { id: "monitoring", label: "Status Sistem", description: "Status layanan dan kelengkapan data.", href: "/dashboard/monitoring" },
+  { id: "module-center", label: "Pusat Modul", description: "Registri aplikasi, kesiapan domain, kepemilikan data dan matriks akses.", href: "/dashboard/module-center" },
 ];
 
 export const dashboardRouteIds = enterpriseDashboards.map((dashboard) => dashboard.id);
