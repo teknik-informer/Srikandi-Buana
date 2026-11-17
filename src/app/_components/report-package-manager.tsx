@@ -19,13 +19,15 @@ type PackageItem={
  approved_at:string|null;approval_note:string;snapshot:{sourceCount?:number;summary?:{total?:number;verified?:number;consentRecorded?:number}};
 };
 const labels:Record<ReportGroupId,string>={operasional:"Program & kegiatan",keanggotaan:"Keanggotaan",administrasi:"Administrasi & dokumen",keuangan:"Keuangan",usaha:"Usaha & aset",publikasi:"Publikasi"};
-const statusLabels:Record<string,string>={draft:"Draf",verified:"Terverifikasi",approved:"Disetujui Ketua",rejected:"Ditolak",superseded:"Digantikan versi baru"};
+const statusLabels:Record<string,string>={draft:"Draf",verified:"Terverifikasi",approved:"Disetujui",rejected:"Ditolak",superseded:"Digantikan versi baru"};
 function canCreate(role:Principal["role"],group:ReportGroupId){
+ if(role==="admin")return true;
  if(role==="sekretaris")return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
  if(role==="bendahara")return ["keuangan","usaha"].includes(group);
  return role==="koordinator"&&group==="operasional";
 }
 function canVerify(role:Principal["role"],group:ReportGroupId){
+ if(role==="admin")return true;
  if(role==="sekretaris")return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
  return role==="bendahara"&&["keuangan","usaha"].includes(group);
 }
@@ -122,12 +124,12 @@ export default function ReportPackageManager({user}:{user:Principal}){
      </div>}
      {pkg.verification_note&&<p className="text-sm text-muted-foreground">Catatan verifikasi: {pkg.verification_note}</p>}
      {pkg.approval_note&&<p className="text-sm text-muted-foreground">Catatan Ketua: {pkg.approval_note}</p>}
-     {((canVerify(user.role,pkg.group_id)&&pkg.status==="draft")||(user.role==="ketua"&&pkg.status==="verified"))&&<div className="space-y-2 border-t pt-3">
-      <Label htmlFor={"package-note-"+pkg.id}>{user.role==="ketua"?"Catatan keputusan Ketua":"Catatan verifikasi domain"}</Label>
+     {((canVerify(user.role,pkg.group_id)&&pkg.status==="draft"&&pkg.created_by!==user.accountId)||((user.role==="ketua"||user.role==="admin")&&pkg.status==="verified"&&pkg.created_by!==user.accountId))&&<div className="space-y-2 border-t pt-3">
+      <Label htmlFor={"package-note-"+pkg.id}>{user.role==="admin"?"Catatan keputusan Administrator Sistem":user.role==="ketua"?"Catatan keputusan Ketua":"Catatan verifikasi domain"}</Label>
       <Input id={"package-note-"+pkg.id} value={notes[pkg.id]||""} onChange={e=>setNotes(current=>({...current,[pkg.id]:e.target.value}))} maxLength={2000} placeholder="Tuliskan hasil pemeriksaan atau alasan keputusan"/>
       <div className="flex flex-wrap gap-2">
        {canVerify(user.role,pkg.group_id)&&pkg.status==="draft"&&<Button size="sm" onClick={()=>void transition(pkg,"verify")} disabled={busy}>Verifikasi domain</Button>}
-       {user.role==="ketua"&&pkg.status==="verified"&&<><Button size="sm" onClick={()=>void transition(pkg,"approve")} disabled={busy}>Setujui paket</Button><Button size="sm" variant="outline" onClick={()=>void transition(pkg,"reject")} disabled={busy}>Tolak paket</Button></>}
+       {(user.role==="ketua"||user.role==="admin")&&pkg.status==="verified"&&pkg.created_by!==user.accountId&&<><Button size="sm" onClick={()=>void transition(pkg,"approve")} disabled={busy}>Setujui paket</Button><Button size="sm" variant="outline" onClick={()=>void transition(pkg,"reject")} disabled={busy}>Tolak paket</Button></>}
       </div>
      </div>}
     </CardContent>
