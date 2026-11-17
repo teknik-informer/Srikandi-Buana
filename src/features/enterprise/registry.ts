@@ -104,7 +104,7 @@ export function getVisibleEnterpriseDashboards(role: Role, fullAccess = false, i
       return {
         ...dashboard,
         features: visibleFeatures,
-        catalogOnly: visibleFeatures.length === 0,
+        catalogOnly: includeCatalog && role === "admin",
       };
     })
     .filter((dashboard) => dashboard.features.length > 0 || (includeCatalog && role === "admin"));
