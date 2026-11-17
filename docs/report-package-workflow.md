@@ -24,7 +24,7 @@ Perubahan isi sumber setelah paket dibuat harus membuat paket tidak layak disahk
 - Tampilan paket lintas domain untuk Ketua menerapkan proyeksi privasi: jenis sumber yang berpotensi memuat identitas atau dokumen privat hanya menampilkan metadata terbatas; snapshot tersimpan tetap utuh untuk integritas dan verifikasi internal.
 - Koordinator hanya dapat menyusun paket operasional dari program yang ditugaskan; Sekretariat memeriksa kelengkapan administrasi sebelum diajukan kepada Ketua.
 - Ketua hanya menyetujui paket yang sudah diverifikasi, bukan mengedit baris sumber atau mengesahkan paket buatannya sendiri.
-- Administrator Sistem memiliki akses lintas domain untuk membaca, menyusun, memverifikasi, menyetujui, menolak, dan mengekspor paket. Administrator Sistem tetap tidak dapat memverifikasi atau menyetujui paket yang dibuat oleh akunnya sendiri. Keputusan sistem dicatat sebagai tindakan Administrator Sistem; Ketua tetap menjadi pengesah normal dalam tata kelola organisasi.
+- Administrator Sistem memiliki akses lintas domain untuk membaca, menyusun, memverifikasi, menyetujui, menolak, dan mengekspor paket. Administrator Sistem tidak dapat memverifikasi paket yang dibuat akunnya sendiri, tidak dapat mengesahkan paket yang dibuatnya sendiri, dan pemeriksa tidak dapat menjadi pengesah akhir atas paket yang sama. Keputusan sistem dicatat sebagai tindakan Administrator Sistem; Ketua tetap menjadi pengesah normal dalam tata kelola organisasi.
 - Pihak eksternal tidak mendapat akses ke paket internal secara otomatis. Distribusi memerlukan grant terpisah yang menyebut penerima, tujuan, ruang lingkup, masa berlaku, dan pencabutan.
 
 ## Kontrak penyimpanan
@@ -55,7 +55,7 @@ Endpoint `GET /api/report-packages/export?id=...&format=csv` menghasilkan CSV UT
 1. API awal tersedia untuk membuat, membaca, memverifikasi, menyetujui, dan menolak paket sesuai role; UAT API terautentikasi pada Preview/QA masih diperlukan.
 2. Verifikasi domain serta persetujuan Ketua terikat pada hash yang sama dan mencegah persetujuan sendiri; perlu dibuktikan melalui akun uji tiap role.
 3. Pemeriksaan sumber saat persetujuan mendeteksi sumber yang berubah, dihapus, maupun baru ditambahkan dalam periode dan ruang lingkup yang sama. Ruang lingkup program Koordinator tersimpan secara immutable; uji perubahan sumber, sumber baru, pencabutan akses, dan kondisi konkurensi masih perlu dibuktikan pada QA.
-4. Regression test statis membatasi pembacaan paket per domain; UAT harus membuktikan Administrator Sistem dapat mengelola paket lintas domain dalam workspace sendiri, tidak dapat mengesahkan paket buatannya sendiri, dan akun eksternal tidak dapat membaca paket internal.
+4. Regression test statis membatasi pembacaan paket per domain; UAT harus membuktikan Administrator Sistem dapat mengelola paket lintas domain dalam workspace sendiri, tidak dapat mengesahkan paket buatannya sendiri atau paket yang diverifikasinya sendiri, dan akun eksternal tidak dapat membaca paket internal.
 5. Generator PDF/Excel hanya membaca paket berstatus approved dan mencantumkan versi, periode, hash, waktu, serta identitas pengesah.
 6. Distribusi eksternal menggunakan grant yang dapat dicabut dan tidak membocorkan data pribadi.
 7. Migrasi telah diterapkan dan diverifikasi pada database QA yang disanitasi; belum ada izin untuk menerapkannya ke Neon produksi. Tidak ada migrasi otomatis yang dijalankan oleh endpoint API.
