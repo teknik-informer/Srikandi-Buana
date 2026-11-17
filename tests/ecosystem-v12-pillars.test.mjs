@@ -62,6 +62,7 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
   assert.match(navigation, /MENU UTAMA/);
   assert.match(navigation, /Cari halaman/);
+  assert.match(navigation, /getVisibleEnterpriseDashboards\(user\.role, architectFullAccess\)/);
   assert.match(overview, /PELAPORAN/);
   assert.doesNotMatch(overview, /LANGKAH 0/);
 });
