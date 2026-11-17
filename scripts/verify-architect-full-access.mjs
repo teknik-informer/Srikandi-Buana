@@ -77,6 +77,9 @@ assert.match(productsApi, /c\.user\.role!=='bendahara'&&c\.user\.role!=='admin'/
 assert.match(stockApi, /\['admin','ketua','bendahara'\]\.includes\(c\.user\.role\)/);
 assert.match(adminAuth, /return u&&\['admin','ketua','sekretaris'\]\.includes\(u\.role\)\?u:null/);
 assert.match(messagesApi, /getMessageManagerUser/);
+assert.match(messagesApi, /accessAudit\(manager\.userId,manager\.accountId/);
+assert.match(messagesApi, /env\.DB\.batch\(\[update,audit\]\)/);
+assert.match(messagesApi, /env\.DB\.batch\(\[remove,audit\]\)/);
 assert.match(sourceDocumentApi, /user\.role===\x27admin\x27&&\(reason\.length<10\|\|reason\.length>500\)/, "Private source documents require a reason for administrator access.");
 assert.match(sourceDocumentApi, /accessAudit\(user\.userId,user\.accountId,action,target\)/, "Private source document access must be audited.");
 assert.match(sourceDocumentApi, /await auditStatement\.run\(\)/, "Source-document audit must commit before the download is returned.");
