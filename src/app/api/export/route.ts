@@ -9,7 +9,7 @@ export const dynamic='force-dynamic';
 
 export async function GET(){
  const user=await getGovernanceAdminUser();
- if(!user)return new Response('Akses khusus Ketua.',{status:403,headers:{'Cache-Control':'no-store'}});
+ if(!user)return new Response('Akses khusus Administrator Sistem atau Ketua.',{status:403,headers:{'Cache-Control':'no-store'}});
  if(!env.DB)return new Response('Database belum tersedia.',{status:503,headers:{'Cache-Control':'no-store'}});
  try{
   const exportedAt=new Date().toISOString();
