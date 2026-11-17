@@ -83,7 +83,7 @@ function getApplicationLaunches(user: Principal, architectFullAccess: boolean): 
   const publicPartnership = platformApplications.find((application) => application.id === "public-partnership");
   const publicWorkspace = byId.get("crm");
   if (publicPartnership && publicWorkspace?.features.some((feature) => ["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"].includes(feature.id))) {
-    launches.push({ id: publicPartnership.id, label: publicPartnership.name, href: "/dashboard/publikasi", description: publicPartnership.description, Icon: Globe2 });
+    launches.push({ id: publicPartnership.id, label: publicPartnership.name, href: publicPartnership.route, description: publicPartnership.description, Icon: Globe2 });
   }
   return launches;
 }
