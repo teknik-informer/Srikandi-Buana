@@ -29,6 +29,7 @@ const eyebrows: Record<EnterpriseDashboardId, string> = {
   crm: "CUSTOMER RELATIONSHIP MANAGEMENT",
   projects: "PROJECT MANAGEMENT",
   pos: "POINT OF SALE",
+  analytics: "BUSINESS INTELLIGENCE & ANALYTICS",
 };
 
 const featureIcons: Record<string, LucideIcon> = {
@@ -104,6 +105,11 @@ function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildE
       { title: "Catatan dalam ruang lingkup", value: s.visibleRecords, note: "Catatan yang dapat diakses akun ini", icon: ShoppingBag },
       { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Waktu pembaruan data yang terbaca", icon: CalendarClock },
       { title: "Temuan pemeriksaan", value: s.issues.length, note: "Catatan yang perlu ditinjau", icon: AlertTriangle },
+    ];
+    case "analytics": return [
+      { title: "Catatan dianalisis", value: s.visibleRecords, note: "Data yang terbaca sesuai kewenangan akun", icon: Files },
+      { title: "Temuan kualitas data", value: s.qualityFindings, note: s.warningFindings + " peringatan · " + s.infoFindings + " pengingat", icon: AlertTriangle },
+      { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Waktu pembaruan sumber data", icon: CalendarClock },
     ];
     default: return [];
   }
