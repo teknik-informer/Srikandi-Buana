@@ -36,10 +36,28 @@ export async function POST(request: Request) {
       return json({ error: "Terlalu banyak percobaan. Coba lagi setelah 15 menit." }, 429);
     }
 
-    const internal = await env.DB.prepare(
-      "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,u.workspace_owner " +
-      "FROM users u WHERE " + (isPhone ? "u.login_phone=? AND u.phone_verified_at IS NOT NULL" : "lower(u.email)=?")
-    ).bind(isPhone ? phone : email).first();
+    let internal: Record<string, unknown> | null = null;
+    if (isPhone) {
+      // Phone identity is resolved from the verified member record. This keeps
+      // login compatible with existing Production schemas without requiring
+      // a new users.login_phone column or a Production migration.
+      const candidates = await env.DB.prepare(
+        "SELECT u.id,u.email,u.password_hash,u.enabled,u.member_id,u.workspace_owner,r.data AS member_data " +
+        "FROM users u JOIN records r ON r.id=u.member_id AND r.owner=u.workspace_owner AND r.kind='anggota' " +
+        "WHERE u.enabled=TRUE AND r.data::jsonb ->> 'status'='Aktif' " +
+        "AND r.data::jsonb ->> 'verification'='Terverifikasi'"
+      ).all();
+      internal = candidates.results.find((row: Record<string, unknown>) => {
+        try {
+          const member = JSON.parse(String(row.member_data || "{}"));
+          return normalizeIndonesianMobilePhone(member.phone) === phone;
+        } catch { return false; }
+      }) || null;
+    } else {
+      internal = await env.DB.prepare(
+        "SELECT u.id,u.email,u.password_hash,u.enabled,u.member_id,u.workspace_owner FROM users u WHERE lower(u.email)=?"
+      ).bind(email).first();
+    }
     const owner = internal ? await env.DB.prepare("SELECT email,enabled,role FROM users WHERE id=?").bind(internal.workspace_owner).first() : null;
     const internalPasswordValid = await verifyPassword(password, internal?.password_hash);
     if (internal) {
@@ -49,15 +67,14 @@ export async function POST(request: Request) {
         return json({ error: "Email atau password tidak sesuai." }, 401);
       }
       if (isPhone) {
-        const member = await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=(SELECT workspace_owner FROM users WHERE id=?) AND kind='anggota'")
-          .bind(internal.member_id, internal.id).first();
         let currentPhone = "";
         try {
-          const data = JSON.parse(String(member?.data || "{}"));
+          const data = JSON.parse(String(internal.member_data || "{}"));
           currentPhone = normalizeIndonesianMobilePhone(data.phone);
+          if (data.status !== "Aktif" || data.verification !== "Terverifikasi") currentPhone = "";
         } catch { currentPhone = ""; }
-        if (!internal.phone_verified_at || currentPhone !== phone) {
-          return json({ error: "Nomor WhatsApp belum dikonfirmasi Admin atau sudah berubah pada data anggota." }, 401);
+        if (!internal.member_id || currentPhone !== phone) {
+          return json({ error: "Nomor WhatsApp tidak cocok dengan data anggota aktif yang telah terverifikasi." }, 401);
         }
       }
       await createSession(String(internal.id), raw.remember === true);
