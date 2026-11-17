@@ -17,6 +17,7 @@ const enterprise = await loadModule("src/features/enterprise/registry.ts");
 const routes = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
 const nav = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
 const center = readFileSync("src/app/_components/platform-module-center.tsx", "utf8");
+const accessManager = readFileSync("src/app/_components/platform-module-access-manager.tsx", "utf8");
 
 test("Platform Core registers all six application modules and explicit delivery readiness", () => {
   assert.deepEqual(
@@ -60,11 +61,13 @@ test("System Administrator alone can view the Platform Module Center", () => {
   assert.ok(!enterprise.getVisibleEnterpriseUtilities("anggota").some((item) => item.id === "module-center"));
 });
 
-test("Platform Module Center is routed through authenticated dashboard and has no pretend activation controls", () => {
+test("Platform Module Center exposes persistent access controls through the guarded administrator API", () => {
   assert.match(routes, /PlatformModuleCenter/);
   assert.match(routes, /active === "module-center"/);
   assert.match(nav, /Layers3/);
-  assert.match(center, /belum menjadi editor izin/i);
-  assert.match(center, /belum memiliki tabel khusus module_registry atau role_grants/);
-  assert.doesNotMatch(center, /onClick=\{.*?(Aktifkan|Nonaktifkan|Beri hak)/s);
+  assert.match(center, /PlatformModuleAccessManager/);
+  assert.match(accessManager, /set_module_enabled/);
+  assert.match(accessManager, /set_user_module_access/);
+  assert.match(accessManager, /Ikuti role organisasi/);
+  assert.match(accessManager, /Riwayat perubahan akses/);
 });
