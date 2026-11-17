@@ -20,6 +20,7 @@ const productApi = readFileSync("src/app/api/ecosystem/products/route.ts", "utf8
 const settingsApi = readFileSync("src/app/api/settings/route.ts", "utf8");
 const reportApi = readFileSync("src/app/api/report-packages/route.ts", "utf8");
 const reportExportApi = readFileSync("src/app/api/report-packages/export/route.ts", "utf8");
+const exportApi = readFileSync("src/app/api/export/route.ts", "utf8");
 const agricultureApi = readFileSync("src/app/api/agriculture/route.ts", "utf8");
 const attendanceApi = readFileSync("src/app/api/hrm/attendance/route.ts", "utf8");
 
@@ -112,6 +113,9 @@ test("module availability is enforced by sensitive domain APIs as well as naviga
   assert.match(reportExportApi, /groupModulesEnabled/);
   assert.match(agricultureApi, /isModuleAvailableForUser\(user, "agriculture"\)/);
   assert.match(attendanceApi, /isModuleAvailableForUser\(user, "hrm"\)/);
+  assert.match(exportApi, /canReadRecord\(user,record\)/);
+  assert.match(exportApi, /isModuleAvailableForUser\(user,\x27crm\x27\)/);
+  assert.match(exportApi, /isModuleAvailableForUser\(user,\x27projects\x27\)/);
 });
 
 test("platform access schema has a separate workspace setting, user override and append-only audit", () => {
