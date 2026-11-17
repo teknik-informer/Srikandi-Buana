@@ -22,6 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { navigationMatches } from "@/lib/navigation-config";
+import { platformApplications } from "@/features/platform/application-registry";
 import { roles, type Principal } from "@/lib/permissions";
 import { enterpriseDashboards, getVisibleEnterpriseDashboardsForUser, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
@@ -35,6 +36,11 @@ import {
   Grid2X2,
   LayoutDashboard,
   Layers3,
+  ChartNoAxesCombined,
+  Globe2,
+  Leaf,
+  LockKeyhole,
+  Network,
   MessagesSquare,
   ShoppingBag,
   Search,
@@ -45,6 +51,43 @@ import {
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
+type ApplicationLaunch = { id: string; label: string; href: string; description: string; Icon: typeof Grid2X2 };
+
+function getApplicationLaunches(user: Principal, architectFullAccess: boolean): ApplicationLaunch[] {
+  const dashboards = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin");
+  const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
+  const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess);
+  const launches: ApplicationLaunch[] = [];
+  const core = platformApplications.find((application) => application.id === "platform-core");
+  if (core && utilities.some((item) => item.id === "module-center")) {
+    launches.push({ id: core.id, label: core.name, href: core.route, description: core.description, Icon: LockKeyhole });
+  }
+  const organization = platformApplications.find((application) => application.id === "organization");
+  if (organization && byId.get("hrm")?.features.length) {
+    launches.push({ id: organization.id, label: organization.name, href: organization.route, description: organization.description, Icon: Network });
+  }
+  const agriculture = platformApplications.find((application) => application.id === "agriculture");
+  const agricultureWorkspace = byId.get("projects");
+  if (agriculture && agricultureWorkspace?.features.some((feature) => feature.id === "pertanian")) {
+    launches.push({ id: agriculture.id, label: agriculture.name, href: agriculture.route, description: agriculture.description, Icon: Leaf });
+  }
+  const business = platformApplications.find((application) => application.id === "business");
+  const businessWorkspace = byId.get("accounting")?.features.length ? byId.get("accounting") : byId.get("pos");
+  if (business && businessWorkspace?.features.length) {
+    launches.push({ id: business.id, label: business.name, href: businessWorkspace.href, description: business.description, Icon: Wallet });
+  }
+  const analytics = platformApplications.find((application) => application.id === "bi-analytics");
+  if (analytics && byId.get("analytics")?.features.length) {
+    launches.push({ id: analytics.id, label: analytics.name, href: analytics.route, description: analytics.description, Icon: ChartNoAxesCombined });
+  }
+  const publicPartnership = platformApplications.find((application) => application.id === "public-partnership");
+  const publicWorkspace = byId.get("crm");
+  if (publicPartnership && publicWorkspace?.features.some((feature) => ["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"].includes(feature.id))) {
+    launches.push({ id: publicPartnership.id, label: publicPartnership.name, href: "/dashboard/publikasi", description: publicPartnership.description, Icon: Globe2 });
+  }
+  return launches;
+}
+
 const dashboardIcons: Record<string, typeof Grid2X2> = {
   hrm: BriefcaseBusiness,
   analytics: Activity,
@@ -63,6 +106,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
     setExpanded(active?.id || "");
     setQuery("");
   }, [section, active?.id]);
+  const applicationLaunches = getApplicationLaunches(user, architectFullAccess);
   const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
     .map((pillar) => ({
       ...pillar,
@@ -121,6 +165,27 @@ export default function DashboardNavigation({ section, user, architectFullAccess
             })}
           </SidebarMenu>
         </SidebarGroup>
+        {applicationLaunches.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>APLIKASI UTAMA</SidebarGroupLabel>
+            <SidebarMenu>
+              {applicationLaunches.map((application) => {
+                const Icon = application.Icon;
+                const active = section === application.href.split("/").pop();
+                return (
+                  <SidebarMenuItem key={application.id}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={application.label}>
+                      <Link href={application.href} onClick={() => setOpenMobile(false)} aria-current={active ? "page" : undefined}>
+                        <Icon />
+                        <span>{application.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
         <SidebarGroup className="dashboard-menu-search">
           <label htmlFor="dashboard-menu-query" className="sr-only">
             Cari menu dashboard
@@ -141,7 +206,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>WORKSPACE OPERASIONAL</SidebarGroupLabel>
+          <SidebarGroupLabel>MODUL DALAM APLIKASI</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -275,6 +340,9 @@ export function DashboardMegaMenu({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
+  const applicationLaunches = getApplicationLaunches(user, architectFullAccess).filter((application) =>
+    !query.trim() || (application.label + " " + application.description).toLocaleLowerCase("id-ID").includes(query.trim().toLocaleLowerCase("id-ID")),
+  );
   const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
@@ -315,6 +383,27 @@ export function DashboardMegaMenu({
               placeholder="Cari publikasi, laporan, anggota…"
             />
           </div>
+          {applicationLaunches.length > 0 && (
+            <section className="dashboard-mega-shortcuts" aria-label="Aplikasi utama">
+              <p>APLIKASI UTAMA</p>
+              <div>
+                {applicationLaunches.map((application) => {
+                  const Icon = application.Icon;
+                  const active = section === application.href.split("/").pop();
+                  return (
+                    <Link href={application.href} key={application.id} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}>
+                      <Icon size={17} aria-hidden="true" />
+                      <span>
+                        <strong>{application.label}</strong>
+                        <small>{application.description}</small>
+                      </span>
+                      <ArrowUpRight size={14} />
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
           {utilities.length > 0 && (
             <section className="dashboard-mega-shortcuts" aria-label="Akses cepat">
               <p>AKSES CEPAT</p>
