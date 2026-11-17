@@ -277,7 +277,7 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
   if (role === "admin") return true;
   if (["akun-saya", "panduan", "notifikasi", "ringkasan"].includes(id)) return true;
   if (id === "presensi-saya") return role === "anggota";
-  if (id === "presensi") return ["ketua", "sekretaris", "koordinator"].includes(role);
+  if (id === "presensi") return ["admin", "ketua", "sekretaris", "koordinator"].includes(role);
   if (id === "analytics") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
   if (id === "pengaturan") return false;
   if (id === "akun") return ["admin", "ketua"].includes(role);
@@ -285,7 +285,7 @@ export function canReadSectionForRole(role: Role, id: string): boolean {
   if (id === "sumber") return ["ketua", "sekretaris"].includes(role);
   if (id === "penjualan") return true;
   if (id === "akuntansi") return ["ketua", "sekretaris", "bendahara"].includes(role);
-  if (id === "pertanian") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
+  if (id === "pertanian") return ["admin", "ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
   if (["portal", "pengajuan"].includes(id)) return true;
   if (id === "enterprise") return ["ketua", "sekretaris", "bendahara"].includes(role);
   if (id === "dokumen") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
