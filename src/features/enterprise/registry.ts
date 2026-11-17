@@ -8,6 +8,8 @@ export type EnterpriseDashboard = {
   label: string;
   description: string;
   features: readonly NavItem[];
+  /** True only when a System Administrator is viewing the registered module catalog without operational data access. */
+  catalogOnly?: boolean;
 };
 
 const legacyFeatures = new Map(dashboardGroups.flatMap((group) => group.items).map((item) => [item.id, item]));
@@ -82,12 +84,30 @@ export function getEnterpriseFeature(sectionId: string): NavItem | undefined {
   return getEnterpriseDashboard(sectionId)?.features.find((feature) => feature.id === sectionId)
     ?? enterpriseUtilities.find((feature) => feature.id === sectionId);
 }
-export function getVisibleEnterpriseDashboards(role: Role, fullAccess = false) {
-  if (fullAccess) return enterpriseDashboards.map((dashboard) => ({ ...dashboard, features: dashboard.features.filter((feature) => feature.id !== "kehadiran") }));
-  return enterpriseDashboards.map((dashboard) => ({
-    ...dashboard,
-    features: dashboard.features.filter((feature) => feature.id !== "kehadiran" && canReadSectionForRole(role, feature.id)),
-  })).filter((dashboard) => dashboard.features.length > 0);
+
+/**
+ * Normal navigation stays permission-filtered. When includeCatalog is explicitly
+ * enabled for a System Administrator, registered modules with no operational
+ * permissions are returned as catalogOnly metadata; this never grants record access.
+ */
+export function getVisibleEnterpriseDashboards(role: Role, fullAccess = false, includeCatalog = false) {
+  if (fullAccess) {
+    return enterpriseDashboards.map((dashboard) => ({
+      ...dashboard,
+      features: dashboard.features.filter((feature) => feature.id !== "kehadiran"),
+      catalogOnly: false,
+    }));
+  }
+  return enterpriseDashboards
+    .map((dashboard) => {
+      const visibleFeatures = dashboard.features.filter((feature) => feature.id !== "kehadiran" && canReadSectionForRole(role, feature.id));
+      return {
+        ...dashboard,
+        features: visibleFeatures,
+        catalogOnly: visibleFeatures.length === 0,
+      };
+    })
+    .filter((dashboard) => dashboard.features.length > 0 || (includeCatalog && role === "admin"));
 }
 export function getVisibleEnterpriseUtilities(role: Role, fullAccess = false) {
   if (fullAccess) return enterpriseUtilities;
