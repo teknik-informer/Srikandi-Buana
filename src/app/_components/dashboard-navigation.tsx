@@ -53,7 +53,7 @@ type ApplicationNavigation = {
   href: string;
   description: string;
   Icon: typeof Grid2X2;
-  items: { id: string; label: string; description: string; href: string }[];
+  items: readonly { id: string; label: string; description: string; href: string }[];
 };
 
 function getApplicationNavigation(user: Principal, fullAccess: boolean, includeCatalog: boolean): ApplicationNavigation[] {
