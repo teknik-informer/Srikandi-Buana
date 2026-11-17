@@ -31,6 +31,8 @@ assert(registry.includes("isModuleAvailableForUser(user, dashboard.id)"));
 assert(registry.includes("isSectionModuleAvailableForUser(user, feature.id)"));
 assert(navigation.includes("getVisibleEnterpriseUtilities(user.role, architectFullAccess)"));
 assert(center.includes("canReadSection(principal, section)"));
+assert(center.includes("architectFullAccess = user.architectFullAccess === true"));
+assert(route.includes("<ArchitectQaTestCenter user={admin} />"));
 assert(center.includes("Full Access QA"));
 assert(files.includes("if(isArchitectFullAccess(user))"));
 assert(fileApi.includes("!isArchitectFullAccess(user)"), "Architect may manage files uploaded by other QA accounts only in the isolated Preview");
