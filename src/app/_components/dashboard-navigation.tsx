@@ -115,7 +115,7 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   projects: Grid2X2,
   pos: ShoppingBag,
 };
-export default function DashboardNavigation({ section, user, architectFullAccess = false }: { section: string; user: Principal; architectFullAccess?: boolean }) {
+export default function DashboardNavigation({ section, user, architectFullAccess = false, qaPreviewEnabled = false }: { section: string; user: Principal; architectFullAccess?: boolean; qaPreviewEnabled?: boolean }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
@@ -298,7 +298,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
           <Link href="/" target="_blank" rel="noopener noreferrer">
             Lihat situs publik <ArrowUpRight size={14} />
           </Link>
-          {user.role === "admin" && (
+          {user.role === "admin" && qaPreviewEnabled && (
             <Link href="/dashboard/qa-test-center" onClick={() => setOpenMobile(false)} aria-current={section === "qa-test-center" ? "page" : undefined}>
               QA Test Center <ShieldCheck size={14} />
             </Link>
