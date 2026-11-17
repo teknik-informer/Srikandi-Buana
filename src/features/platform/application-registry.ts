@@ -80,7 +80,7 @@ export const platformApplications: readonly PlatformApplication[] = [
     name: "Public & Partnership",
     eyebrow: "PUBLIC WEBSITE · TRANSPARENCY · PARTNERS",
     description: "Website publik, informasi organisasi, publikasi, galeri, transparansi program, dan akses pemerintah serta mitra.",
-    route: "/dashboard/publikasi",
+    route: "/dashboard/crm",
     status: "partial",
     legacyWorkspaces: ["crm"],
     supportingDomains: ["Public Website CMS", "External access", "Publication workflow"],
