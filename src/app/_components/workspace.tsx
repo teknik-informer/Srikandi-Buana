@@ -1104,7 +1104,7 @@ export default function Workspace({
               {editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
-              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Verifikasi administratif dilakukan Sekretariat; Ketua mengesahkan paket laporan dan keputusan organisasi." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
+              {editor?.kind === "tindaklanjut" ? "Catat pelaksanaan yang benar-benar terjadi. Tugas yang selesai harus mengisi hasil aktual atau bukti dan diajukan untuk verifikasi. Verifikasi administratif dapat dilakukan Sekretariat atau Administrator Sistem; pengesahan akhir paket dan keputusan organisasi dicatat terpisah dan tetap diaudit." : "Isi sesuai keadaan nyata kelompok. Tanda * wajib diisi. Publikasi dan galeri berstatus Terbit dapat dilihat siapa pun."}
             </DialogDescription>
           </DialogHeader>
           <form
