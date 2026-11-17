@@ -23,7 +23,7 @@ import {
 import { navigationMatches } from "@/lib/navigation-config";
 import { platformApplications } from "@/features/platform/application-registry";
 import { roles, type Principal } from "@/lib/permissions";
-import { enterpriseDashboards, getVisibleEnterpriseDashboardsForUser, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
+import { getVisibleEnterpriseDashboardsForUser, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
   Activity,
   ArrowUpRight,
@@ -50,88 +50,68 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
-type ApplicationLaunch = { id: string; label: string; href: string; description: string; Icon: typeof Grid2X2 };
+type ApplicationNavigation = {
+  id: string;
+  label: string;
+  href: string;
+  description: string;
+  Icon: typeof Grid2X2;
+  items: { id: string; label: string; description: string; href: string }[];
+};
 
-function getApplicationLaunches(user: Principal): ApplicationLaunch[] {
-  // The verified root Administrator Sistem always sees the complete canonical app catalog,
-  // even when a module is disabled for ordinary workspace roles or has no legacy feature list.
-  if (user.role === "admin") {
-    const icons: Record<string, typeof Grid2X2> = {
-      "platform-core": LockKeyhole,
-      organization: Network,
-      agriculture: Leaf,
-      business: Wallet,
-      "bi-analytics": ChartNoAxesCombined,
-      "public-partnership": Globe2,
-    };
-    return platformApplications.map((application) => ({
+function getApplicationNavigation(user: Principal, fullAccess: boolean, includeCatalog: boolean): ApplicationNavigation[] {
+  const workspaces = getVisibleEnterpriseDashboardsForUser(user, fullAccess, includeCatalog);
+  const features = (id: string) => workspaces.find((workspace) => workspace.id === id)?.features ?? [];
+  const utilities = getVisibleEnterpriseUtilities(user.role, fullAccess);
+  const icons: Record<string, typeof Grid2X2> = {
+    "platform-core": LockKeyhole,
+    organization: Network,
+    agriculture: Leaf,
+    business: Wallet,
+    "bi-analytics": ChartNoAxesCombined,
+    "public-partnership": Globe2,
+  };
+  const modulesByApplication: Record<string, ApplicationNavigation["items"]> = {
+    "platform-core": utilities,
+    organization: features("hrm"),
+    agriculture: [...features("projects"), ...features("pos").filter((item) => item.id === "lotkopi")],
+    business: [...features("accounting"), ...features("pos").filter((item) => item.id === "penjualan")],
+    "bi-analytics": features("analytics"),
+    "public-partnership": features("crm"),
+  };
+  return platformApplications
+    .map((application) => ({
       id: application.id,
       label: application.name,
       href: application.route,
       description: application.description,
       Icon: icons[application.id] ?? Grid2X2,
-    }));
-  }
-  const dashboards = getVisibleEnterpriseDashboardsForUser(user, false, false);
-  const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
-  const utilities = getVisibleEnterpriseUtilities(user.role, false);
-  const launches: ApplicationLaunch[] = [];
-  const core = platformApplications.find((application) => application.id === "platform-core");
-  if (core && utilities.some((item) => item.id === "module-center")) {
-    launches.push({ id: core.id, label: core.name, href: core.route, description: core.description, Icon: LockKeyhole });
-  }
-  const organization = platformApplications.find((application) => application.id === "organization");
-  if (organization && byId.get("hrm")?.features.length) {
-    launches.push({ id: organization.id, label: organization.name, href: organization.route, description: organization.description, Icon: Network });
-  }
-  const agriculture = platformApplications.find((application) => application.id === "agriculture");
-  const agricultureWorkspace = byId.get("projects");
-  if (agriculture && agricultureWorkspace?.features.some((feature) => feature.id === "pertanian")) {
-    launches.push({ id: agriculture.id, label: agriculture.name, href: agriculture.route, description: agriculture.description, Icon: Leaf });
-  }
-  const business = platformApplications.find((application) => application.id === "business");
-  const businessWorkspace = byId.get("accounting")?.features.length ? byId.get("accounting") : byId.get("pos");
-  if (business && businessWorkspace?.features.length) {
-    launches.push({ id: business.id, label: business.name, href: businessWorkspace.href, description: business.description, Icon: Wallet });
-  }
-  const analytics = platformApplications.find((application) => application.id === "bi-analytics");
-  if (analytics && byId.get("analytics")?.features.length) {
-    launches.push({ id: analytics.id, label: analytics.name, href: analytics.route, description: analytics.description, Icon: ChartNoAxesCombined });
-  }
-  const publicPartnership = platformApplications.find((application) => application.id === "public-partnership");
-  const publicWorkspace = byId.get("crm");
-  if (publicPartnership && publicWorkspace?.features.some((feature) => ["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"].includes(feature.id))) {
-    launches.push({ id: publicPartnership.id, label: publicPartnership.name, href: publicPartnership.route, description: publicPartnership.description, Icon: Globe2 });
-  }
-  return launches;
+      items: modulesByApplication[application.id] ?? [],
+    }))
+    .filter((application) => application.items.length > 0);
 }
 
-const dashboardIcons: Record<string, typeof Grid2X2> = {
-  hrm: BriefcaseBusiness,
-  analytics: Activity,
-  accounting: Wallet,
-  crm: MessagesSquare,
-  projects: Grid2X2,
-  pos: ShoppingBag,
-};
 export default function DashboardNavigation({ section, user, architectFullAccess = false, qaPreviewEnabled = false, searchQuery = "" }: { section: string; user: Principal; architectFullAccess?: boolean; qaPreviewEnabled?: boolean; searchQuery?: string }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
-  const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
-  const [expanded, setExpanded] = useState(active?.id || "");
+  const allApplications = getApplicationNavigation(user, architectFullAccess, user.role === "admin");
+  const activeApplication = allApplications.find((application) =>
+    application.href.split("/").pop() === section || application.items.some((item) => item.id === section),
+  );
+  const [expanded, setExpanded] = useState(activeApplication?.id || "");
   const query = searchQuery.trim();
   useEffect(() => {
-    setExpanded(active?.id || "");
-  }, [section, active?.id]);
-  const applicationLaunches = getApplicationLaunches(user).filter((application) => !query || (application.label + " " + application.description).toLocaleLowerCase("id-ID").includes(query.toLocaleLowerCase("id-ID")));
-  const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
-    .map((pillar) => ({
-      ...pillar,
-      items: pillar.features.filter((feature) => navigationMatches(feature, query)),
+    setExpanded(activeApplication?.id || "");
+  }, [section, activeApplication?.id]);
+  const applications = allApplications
+    .map((application) => ({
+      ...application,
+      items: application.items.filter((item) => navigationMatches(item, query)),
     }))
-    .filter((pillar) => pillar.items.length || pillar.accessOnly);
-  const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess)
-    .filter((item) => navigationMatches(item, query));
+    .filter((application) =>
+      !query || application.items.length > 0
+      || (application.label + " " + application.description).toLocaleLowerCase("id-ID").includes(query.toLocaleLowerCase("id-ID")),
+    );
   function toggle(id: string) {
     if (state === "collapsed" && !isMobile) {
       setOpen(true);
@@ -167,88 +147,44 @@ export default function DashboardNavigation({ section, user, architectFullAccess
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {utilities.map((item) => {
-              const Icon = item.id === "monitoring" ? Activity : item.id === "module-center" ? Layers3 : FileText;
-              return (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton asChild isActive={section === item.id} tooltip={item.label}>
-                    <Link href={item.href} onClick={() => setOpenMobile(false)} aria-current={section === item.id ? "page" : undefined}>
-                      <Icon />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
           </SidebarMenu>
         </SidebarGroup>
-        {applicationLaunches.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>APLIKASI TERPADU</SidebarGroupLabel>
-            <SidebarMenu>
-              {applicationLaunches.map((application) => {
-                const Icon = application.Icon;
-                const active = section === application.href.split("/").pop();
-                return (
-                  <SidebarMenuItem key={application.id}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={application.label}>
-                      <Link href={application.href} onClick={() => setOpenMobile(false)} aria-current={active ? "page" : undefined}>
-                        <Icon />
-                        <span>{application.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
         <SidebarGroup>
-          <SidebarGroupLabel>RUANG KERJA OPERASIONAL</SidebarGroupLabel>
+          <SidebarGroupLabel>APLIKASI TERPADU</SidebarGroupLabel>
           <SidebarMenu>
-            {groups.map((group) => {
-              const Icon = dashboardIcons[group.id] ?? Grid2X2;
-              const shown = !!query || expanded === group.id;
+            {applications.map((application) => {
+              const Icon = application.Icon;
+              const shown = !!query || expanded === application.id;
+              const active = application.href.split("/").pop() === section
+                || application.items.some((item) => item.id === section);
               return (
-                <SidebarMenuItem key={group.id} className="dashboard-category">
+                <SidebarMenuItem key={application.id} className="dashboard-category">
                   <SidebarMenuButton
-                    tooltip={group.label}
+                    tooltip={application.label}
                     aria-expanded={shown && (state !== "collapsed" || isMobile)}
-                    aria-controls={"dashboard-category-" + group.id}
-                    isActive={active?.id === group.id}
-                    onClick={() => toggle(group.id)}
+                    aria-controls={"application-navigation-" + application.id}
+                    isActive={active}
+                    onClick={() => toggle(application.id)}
                   >
                     <Icon />
-                    <span className="dashboard-category-label">{group.label}</span>
-                    <span className="dashboard-category-count">{group.items.length}</span>
-                    <ChevronDown
-                      className={shown ? "dashboard-category-chevron expanded" : "dashboard-category-chevron"}
-                    />
+                    <span className="dashboard-category-label">{application.label}</span>
+                    <span className="dashboard-category-count">{application.items.length}</span>
+                    <ChevronDown className={shown ? "dashboard-category-chevron expanded" : "dashboard-category-chevron"} />
                   </SidebarMenuButton>
                   {shown && (state !== "collapsed" || isMobile) && (
-                    <SidebarMenuSub id={"dashboard-category-" + group.id}>
-                      {!group.items.some((item) => item.href === group.href) && (
+                    <SidebarMenuSub id={"application-navigation-" + application.id}>
                       <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={section === group.id}>
-                          <Link
-                            href={group.href}
-                            onClick={() => setOpenMobile(false)}
-                            aria-current={section === group.id ? "page" : undefined}
-                          >
+                        <SidebarMenuSubButton asChild isActive={application.href.split("/").pop() === section}>
+                          <Link href={application.href} onClick={() => setOpenMobile(false)} aria-current={application.href.split("/").pop() === section ? "page" : undefined}>
                             <span className="dashboard-sub-dot" />
-                            <span>Ringkasan {group.label}</span>
+                            <span>Ringkasan aplikasi</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-                      )}
-                      {group.items.map((item) => (
+                      {application.items.map((item) => (
                         <SidebarMenuSubItem key={item.id}>
                           <SidebarMenuSubButton asChild isActive={section === item.id}>
-                            <Link
-                              href={item.href}
-                              onClick={() => setOpenMobile(false)}
-                              aria-current={section === item.id ? "page" : undefined}
-                            >
+                            <Link href={item.href} onClick={() => setOpenMobile(false)} aria-current={section === item.id ? "page" : undefined}>
                               <span className="dashboard-sub-dot" />
                               <span>{user.role === "anggota" && item.id === "anggota" ? "Data saya" : item.label}</span>
                             </Link>
@@ -261,10 +197,10 @@ export default function DashboardNavigation({ section, user, architectFullAccess
               );
             })}
           </SidebarMenu>
-          {!groups.length && (
+          {!applications.length && (
             <div className="dashboard-nav-empty">
               <Search size={20} />
-              <p>Menu belum ditemukan.</p>
+              <p>{query ? "Menu belum ditemukan." : "Belum ada aplikasi yang ditugaskan."}</p>
             </div>
           )}
         </SidebarGroup>
