@@ -61,13 +61,13 @@ test("pembatasan akses per peran tetap diterapkan", () => {
   assert.equal(permissions.canReadSectionForRole("anggota", "analytics"), false);
 });
 
-test("katalog System Administrator menampilkan lima modul tanpa memberi izin operasional baru", () => {
+test("katalog System Administrator menampilkan enam modul tanpa memberi izin operasional baru", () => {
   const catalog = registry.getVisibleEnterpriseDashboards("admin", false, true);
   assert.deepEqual(Array.from(catalog, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos", "analytics"]);
   assert.deepEqual(
     Array.from(catalog.filter((dashboard) => dashboard.catalogOnly), (dashboard) => dashboard.id),
     ["hrm", "accounting", "crm", "projects", "pos", "analytics"],
-    "All five business workspaces remain catalog entries for the technical administrator",
+    "All six business workspaces remain catalog entries for the technical administrator",
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseDashboards("admin"), (dashboard) => dashboard.id),
