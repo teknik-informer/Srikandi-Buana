@@ -208,14 +208,14 @@ export default function DashboardNavigation({ section, user, architectFullAccess
             Lihat situs publik <ArrowUpRight size={14} />
           </Link>
           {user.role === "admin" && (
-            <>
-              <Link href="/dashboard/qa-test-center" onClick={() => setOpenMobile(false)} aria-current={section === "qa-test-center" ? "page" : undefined}>
-                QA Test Center <ShieldCheck size={14} />
-              </Link>
-              <Link href="/dashboard/sumber" onClick={() => setOpenMobile(false)}>
-                Dokumen sumber <Files size={14} />
-              </Link>
-            </>
+            <Link href="/dashboard/qa-test-center" onClick={() => setOpenMobile(false)} aria-current={section === "qa-test-center" ? "page" : undefined}>
+              QA Test Center <ShieldCheck size={14} />
+            </Link>
+          )}
+          {["admin", "ketua", "sekretaris"].includes(user.role) && (
+            <Link href="/dashboard/sumber" onClick={() => setOpenMobile(false)} aria-current={section === "sumber" ? "page" : undefined}>
+              Dokumen sumber <Files size={14} />
+            </Link>
           )}
         </div>
       </SidebarContent>
