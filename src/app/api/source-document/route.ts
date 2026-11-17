@@ -12,7 +12,8 @@ export async function GET(request:Request){
  try{
   const action=user.role==='admin'?'Akses istimewa dokumen sumber privat oleh Administrator Sistem':'Unduh dokumen sumber privat oleh Sekretariat';
   const target=user.role==='admin'?'Paket_Kelembagaan_Srikandi_Buana_v1.1.docx | Alasan: '+reason:'Paket_Kelembagaan_Srikandi_Buana_v1.1.docx';
-  await accessAudit(user.userId,user.accountId,action,target);
+  const auditStatement=await accessAudit(user.userId,user.accountId,action,target);
+  await auditStatement.run();
   const source=await readSourcePackage();
   const bytes=Uint8Array.from(atob(source.document),c=>c.charCodeAt(0));
   return new Response(bytes,{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','Content-Disposition':'attachment; filename=Paket_Kelembagaan_Srikandi_Buana_v1.1.docx','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
