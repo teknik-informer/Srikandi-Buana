@@ -8,6 +8,7 @@ const appMeta = {
   crm: { eyebrow: "CUSTOMER & RELATIONSHIP MANAGEMENT", icon: Handshake, accent: "from-violet-500/15 to-fuchsia-500/5", modules: "Mitra · Komunikasi · Publikasi" },
   projects: { eyebrow: "PROJECT MANAGEMENT", icon: BriefcaseBusiness, accent: "from-amber-500/15 to-orange-500/5", modules: "Program · Kegiatan · Tugas" },
   pos: { eyebrow: "POINT OF SALE", icon: ShoppingCart, accent: "from-rose-500/15 to-pink-500/5", modules: "Produk · Pesanan · Komoditas" },
+  analytics: { eyebrow: "BUSINESS INTELLIGENCE & ANALYTICS", icon: ChartNoAxesCombined, accent: "from-cyan-500/15 to-emerald-500/5", modules: "KPI · Tren · Kualitas Data" },
 } as const;
 
 export default function ApplicationHub({ dashboards, displayName }: { dashboards: readonly EnterpriseDashboard[]; displayName: string }) {
@@ -19,9 +20,9 @@ export default function ApplicationHub({ dashboards, displayName }: { dashboards
         <div className="pointer-events-none absolute -right-16 -top-24 -z-10 size-80 rounded-full border-[42px] border-emerald-700/5" />
         <p className="text-xs font-semibold tracking-[0.16em] text-emerald-900/70">SRIKANDI BUANA · INTEGRATED PLATFORM</p>
         <h1 id="application-hub-title" className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">Selamat datang, {displayName}.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Satu pintu untuk mengelola sumber daya manusia, keuangan, relasi, program, dan transaksi dalam ekosistem kerja yang saling terhubung.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Satu pintu untuk mengelola sumber daya manusia, keuangan, relasi, program, transaksi, dan analitik dalam ekosistem kerja yang saling terhubung.</p>
         <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-medium text-emerald-950">
-          <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">5 modul terdaftar</span>
+          <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">6 aplikasi terdaftar</span>
           <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">Satu identitas pengguna</span>
           <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">Akses sesuai kewenangan</span>
         </div>
