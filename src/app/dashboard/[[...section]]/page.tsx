@@ -62,7 +62,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   }
   if (active === "qa-test-center") {
     if (admin.role !== "admin") return notFound();
-    return <WorkspaceShell user={admin} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter /></WorkspaceShell>;
+    return <WorkspaceShell user={admin} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter user={admin} /></WorkspaceShell>;
   }
   if (active === "presensi" || active === "presensi-saya") {
     if (!canReadSection(admin, active)) return <main className="max-w-xl mx-auto p-8"><h1 className="text-2xl font-semibold">Akses dibatasi</h1><p className="my-4">Halaman presensi berada di luar kewenangan akun ini.</p><a href="/dashboard" className="underline">Kembali ke ruang kerja</a></main>;
