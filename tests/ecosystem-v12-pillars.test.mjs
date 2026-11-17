@@ -100,7 +100,9 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
   assert.match(navigation, /APLIKASI TERPADU/);
-  assert.match(navigation, /RUANG KERJA OPERASIONAL/);
+  assert.doesNotMatch(navigation, /RUANG KERJA OPERASIONAL/);
+  assert.match(navigation, /modulesByApplication/);
+  assert.match(navigation, /APLIKASI TERPADU/);
   assert.doesNotMatch(navigation, /MODUL DALAM APLIKASI/);
   assert.doesNotMatch(navigation, /dashboard-menu-query/);
   const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
@@ -109,7 +111,7 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   assert.match(navigation, /<span>Pengaturan<\/span>/);
   assert.doesNotMatch(navigation, /LogoutButton/);
   assert.doesNotMatch(navigation, /Pengaturan Website/);
-  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, architectFullAccess, user\.role === "admin"\)/);
+  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, fullAccess, includeCatalog\)/);
   assert.match(overview, /ACCOUNTING & FINANCE/);
   assert.match(overview, /HUMAN RESOURCE MANAGEMENT/);
   assert.match(overview, /CUSTOMER RELATIONSHIP MANAGEMENT/);
