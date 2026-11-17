@@ -114,6 +114,10 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
     const auditId = crypto.randomUUID();
 
+    if (moduleId === "system-admin" && (action === "set_module_enabled" && raw.enabled === false || action === "set_user_module_access")) {
+      return json({ error: "Modul kendali sistem tidak dapat dinonaktifkan atau dialihkan melalui pengaturan akses biasa." }, 409);
+    }
+
     if (action === "set_module_enabled") {
       if (typeof raw.enabled !== "boolean") return json({ error: "Status modul tidak valid." }, 400);
       if (raw.enabled && (!module.route || !["active", "available"].includes(String(module.lifecycle_status)))) {
