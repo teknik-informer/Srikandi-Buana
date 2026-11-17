@@ -1,7 +1,7 @@
 # Phase 1 — UAT Acceptance Checklist
 
 **Target branch:** `integration/phase1-preview-2026-11-16`  
-**Preview commit baseline:** `a6f1ff5a7a51192ed795d59371f618e1b3c674fc`  
+**Preview commit baseline:** `a5ecb669bf661e9263b0f6177c1d59f8f25e2659`  
 **Environment:** Vercel Preview + isolated Neon QA/child branch  
 **Status:** Automated CI passed; authenticated manual UAT remains pending.
 
@@ -18,14 +18,22 @@
 
 | Gate | Acceptance criterion | Evidence | Status |
 |---|---|---|---|
-| GitHub quality workflow | Dependency gates, terminology, architecture, access, agriculture, integration security, typecheck, regression, and build all pass | Workflow run 43916705591 | PASS |
-| Vercel Preview | Deployment for the integration commit is READY | Deployment metadata | PASS |
-| Preview access | Authorized tester can open the deployment and reach the sign-in page | Browser evidence | PENDING |
-| Database isolation | Test writes are confined to the approved QA/child branch | Neon branch and audit evidence | PENDING |
+| GitHub quality workflow | Dependency gates, terminology, architecture, access, agriculture, integration security, typecheck, regression, and build all pass | Workflow run 44144837438, commit `a5ecb669bf661e9263b0f6177c1d59f8f25e2659` | PASS |
+| Vercel Preview | Deployment for the integration commit is READY | `dpl_T68oPjWDnqURgzku1N3dEo6YGvCY`; https://admin-dashboard-3de74a1mo-teknik-informer.vercel.app | PASS |
+| Preview access | Public page and sign-in page respond; unauthenticated protected dashboard routes resolve to sign-in | HTTP 200 public page and sign-in; dashboard, module center, HRM, Agriculture, Accounting, BI, CRM all resolve to sign-in when unauthenticated | PASS (unauthenticated only) |
+| Database isolation | Preview is configured for the sanitized QA database, separate from the default Production branch | Preview-only PREVIEW_DATABASE_URL configuration; Neon QA branch br-mute-meadow-b4rhx1mn is non-default and ready. No runtime write test performed. | CONFIGURED; write verification pending |
 | Authenticated UAT | All role and workflow cases below pass | Completed test record | PENDING |
 | Production readiness | No open critical/high defects; migration, backup, secrets, and release approvals complete | Release review | NOT APPROVED |
 
 ## 3. Public website and authentication
+
+### Current Preview evidence — 18 November 2026
+
+- Public home page: HTTP 200; public organization content rendered; no server-error marker in the returned HTML.
+- Sign-in page: HTTP 200; sign-in form rendered.
+- Protected dashboard routes checked while signed out: `/dashboard`, `/dashboard/module-center`, `/dashboard/hrm`, `/dashboard/pertanian`, `/dashboard/accounting`, `/dashboard/analytics`, and `/dashboard/crm`. Each resolved to the sign-in page, consistent with the authentication guard.
+- Deployment runtime error/fatal log query for the new Preview deployment returned no matching entries.
+- These checks do not prove a successful sign-in, role-specific rendering, CRUD persistence, or API authorization. Those remain authenticated UAT items.
 
 | ID | Test | Expected result |
 |---|---|---|
