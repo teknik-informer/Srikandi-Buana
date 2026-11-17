@@ -36,10 +36,22 @@ export async function POST(request: Request) {
       return json({ error: "Terlalu banyak percobaan. Coba lagi setelah 15 menit." }, 429);
     }
 
-    const internal = await env.DB.prepare(
-      "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,u.workspace_owner " +
-      "FROM users u WHERE " + (isPhone ? "u.login_phone=? AND u.phone_verified_at IS NOT NULL" : "lower(u.email)=?")
-    ).bind(isPhone ? phone : email).first();
+    if (isPhone) {
+      try {
+        await env.DB.prepare("SELECT login_phone,phone_verified_at FROM users LIMIT 0").all();
+      } catch {
+        return json({ error: "Login WhatsApp belum diaktifkan pada server. Silakan masuk menggunakan email akun." }, 503);
+      }
+    }
+
+    const internal = isPhone
+      ? await env.DB.prepare(
+          "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,u.workspace_owner " +
+          "FROM users u WHERE u.login_phone=? AND u.phone_verified_at IS NOT NULL"
+        ).bind(phone).first()
+      : await env.DB.prepare(
+          "SELECT u.id,u.email,u.password_hash,u.enabled,u.member_id,u.workspace_owner FROM users u WHERE lower(u.email)=?"
+        ).bind(email).first();
     const owner = internal ? await env.DB.prepare("SELECT email,enabled,role FROM users WHERE id=?").bind(internal.workspace_owner).first() : null;
     const internalPasswordValid = await verifyPassword(password, internal?.password_hash);
     if (internal) {
