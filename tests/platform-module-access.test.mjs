@@ -36,6 +36,16 @@ const principal = (role, moduleAccess = undefined) => ({
   moduleAccess,
 });
 
+test("supporting module disable hides only its assigned feature from parent workspace navigation", () => {
+  const user = principal("ketua", { disabledModules: ["documents"], allowedModules: [], deniedModules: [] });
+  const projects = registry.getVisibleEnterpriseDashboardsForUser(user).find((item) => item.id === "projects");
+  assert.ok(projects);
+  assert.ok(!projects.features.some((feature) => feature.id === "dokumen"));
+  assert.ok(projects.features.some((feature) => feature.id === "program"));
+  assert.equal(policy.canReadSection(user, "dokumen"), false);
+  assert.equal(policy.canReadSection(user, "program"), true);
+});
+
 test("a persistent allow opens an application shell but never expands business data permissions", () => {
   const user = principal("anggota", { disabledModules: [], allowedModules: ["accounting"], deniedModules: [] });
   assert.equal(policy.canOpenModule(user, "accounting"), true);
