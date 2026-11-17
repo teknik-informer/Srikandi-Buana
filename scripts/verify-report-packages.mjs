@@ -40,7 +40,7 @@ assert.match(scopeMigration,/jsonb_typeof\(source_scope->'kinds'\) = 'array'/);
 assert.match(scopeMigration,/source_scope \? 'mode'/);
 assert.match(scopeMigration,/source_scope \? 'programIds'/);
 assert.match(workflow,/server membandingkan ID, jenis, waktu pembaruan/);
-assert.match(workflow,/Administrator Sistem tidak membaca/);
+assert.match(workflow,/Administrator Sistem memiliki akses lintas domain/);
 assert.match(workflow,/Migrasi .*telah diverifikasi pada cabang Neon QA/i, 'Workflow documentation must reflect verified QA migration state.');
 assert.match(workflow,/UAT API terautentikasi .*masih diperlukan|integrasi HTTP terautentikasi .*belum dibuktikan/i, 'Documentation must not claim authenticated UAT is complete.');
 assert.match(workflow,/Tidak ada perubahan atau migrasi Production/i, 'Documentation must explicitly preserve Production safety.');
@@ -63,8 +63,10 @@ assert.match(api,/if \(user\.role === "sekretaris"\) return \["operasional","kea
   "Secretariat package reads must stay within its own domains");
 assert.match(api,/if \(user\.role === "bendahara"\) return \["keuangan","usaha"\]\.includes\(group\)/,
   "Treasury package reads must stay within finance and business domains");
-assert.match(api,/if \(user\.role === "ketua"\) return true/,
-  "Chair must retain cross-domain package review authority");
+assert.match(api,/if \(user\.role === "admin"\) return true/,
+  "System administrator must retain cross-domain package read, create and verification authority");
+assert.match(api,/\["admin","ketua"\]\.includes\(c\.user!\.role\)/,
+  "System administrator may approve or reject another user's package with an audit event");
 assert.match(api,/function chairSafeSnapshot\(value: unknown\)/,
   "Chair report views must use a dedicated privacy projection");
 assert.match(api,/metadataKeys = \["date","status","type","category","programId","period","code"\]/,
