@@ -17,6 +17,7 @@ import ExternalAccessWorkspace from "../../_components/external-access-workspace
 import AgricultureWorkspace from "../../_components/agriculture-workspace";
 import ApplicationHub from "../../_components/application-hub";
 import BusinessIntelligenceWorkspace from "../../_components/business-intelligence-workspace";
+import PlatformModuleCenter from "../../_components/platform-module-center";
 import Inbox from "../../_components/inbox";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 import OfficialLetterWorkspace from "../../_components/official-letter-workspace";
@@ -98,6 +99,11 @@ export default async function Page({ params }: { params: Promise<{ section?: str
         </a>
       </main>
     );
+  if (active === "module-center" && admin.role === "admin") {
+    return <WorkspaceShell user={admin} section={active} title="Pusat Modul & Platform" defaultSidebarOpen={defaultSidebarOpen}>
+      <PlatformModuleCenter user={admin} />
+    </WorkspaceShell>;
+  }
   if (dashboardDefinition && visibleDashboard?.catalogOnly) {
     return (
       <WorkspaceShell user={admin} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
