@@ -31,6 +31,10 @@ Pembuatan tabel memerlukan migrasi tambahan `005_ecosystem_foundation.sql` dan `
 
 **Publikasi:** kerjakan di branch `feat/ecosystem-v11-5`, lalu pull request ke `main` setelah semua test, build, migrasi dan uji browser berhasil. Vercel Preview harus diuji sebelum promosi ke production. Lihat `docs/RELEASE_v11.5.md`.
 
+## Rilis v13
+
+Fondasi platform modular v13 dan persyaratan keselamatan rilis didokumentasikan pada [`docs/RELEASE_v13.md`](docs/RELEASE_v13.md). **Jangan mempromosikan Preview ke Production sebelum UAT terautentikasi, rekonsiliasi ledger, backup, dan persetujuan rilis selesai.**
+
 ## Keamanan
 
 Jangan commit `.env.local`, backup database, foto/dokumen privat atau API key ke repositori publik. Aplikasi ini baru memiliki fondasi perdagangan/akuntansi, bukan sistem pembayaran dan perpajakan tersertifikasi.
