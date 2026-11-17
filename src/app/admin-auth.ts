@@ -18,7 +18,7 @@ export async function getSecretariatUser(){
  return u?.role==='sekretaris'?u:null;
 }
 
-/** Public enquiries are handled by the Secretariat, with Chair oversight. */
+/** Public enquiries are handled by the Secretariat and Chair; the platform owner has audited operational access. */
 export async function getMessageManagerUser(){
  const u=await getAuthenticatedUser();
  return u&&['admin','ketua','sekretaris'].includes(u.role)?u:null;
