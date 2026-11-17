@@ -17,6 +17,9 @@ assert.match(auth, /user\.id!==user\.workspace_owner/);
 assert.match(auth, /String\(user\.email\)\.toLowerCase\(\)!==process\.env\.ADMIN_EMAIL\.trim\(\)\.toLowerCase\(\)/,
   "Only the primary ADMIN_EMAIL account may hold the root Administrator Sistem identity.");
 
+assert.match(auth, /architectFullAccess:user\.role === "admin"/, "The verified root administrator must retain full access in Production as well as Preview.");
+assert.doesNotMatch(auth, /isArchitectQaPreview|VERCEL_ENV/, "Root administrator authority must not depend on a Preview-only environment flag.");
+
 assert.match(policy, /export function isArchitectFullAccess\(user: Pick<Principal, "role">\): boolean \{\s*return user\.role === "admin";/);
 assert.match(policy, /if \(user\.role === "admin"\) return true;/,
   "System administrator must bypass module availability restrictions.");
