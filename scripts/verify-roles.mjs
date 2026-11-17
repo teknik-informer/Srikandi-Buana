@@ -60,7 +60,9 @@ assert.equal(policy.canPublishRecord(chair,galleryDraft,{...galleryPublished,dat
 const sourceImportRouteSource=readFileSync('src/app/api/source-import/route.ts','utf8');
 assert(sourceImportRouteSource.includes("user.role==='sekretaris'?fullSource:{...fullSource,members:[],board:[],attendance:[]}"),'Only the Secretariat may receive raw personal source data');
 const sourceDocumentRouteSource=readFileSync('src/app/api/source-document/route.ts','utf8');
-assert(sourceDocumentRouteSource.includes('getSecretariatUser()'),'Private source document download must use the Secretariat-only guard');
+assert(sourceDocumentRouteSource.includes('getAuthenticatedUser()'),'Private source document download must require an authenticated internal account');
+assert(sourceDocumentRouteSource.includes("user.role==='admin'&&(reason.length<10||reason.length>500)"),'System Administrator must provide a reason for private source-document access');
+assert(sourceDocumentRouteSource.includes('accessAudit') && sourceDocumentRouteSource.includes('auditStatement.run()'),'Every private source-document download must be committed to the access audit');
 assert(!sourceImportRouteSource.includes('member.phone'),'Source bootstrap must not copy member phone numbers into business records');
 assert(!sourceImportRouteSource.includes('source.attendance.map'),'Source bootstrap must not copy personal attendance names or addresses');
 assert(!sourceImportRouteSource.includes('user.role===\'ketua\'?fullSource'),'Chair must not receive raw personal source details');
