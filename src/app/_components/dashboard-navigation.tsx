@@ -40,7 +40,8 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
 type ApplicationNavigation = {
   id: string;
   label: string;
@@ -85,7 +86,7 @@ function getApplicationNavigation(user: Principal, fullAccess: boolean, includeC
     .filter((application) => application.items.length > 0);
 }
 
-export default function DashboardNavigation({ section, user, architectFullAccess = false, qaPreviewEnabled = false, searchQuery = "" }: { section: string; user: Principal; architectFullAccess?: boolean; qaPreviewEnabled?: boolean; searchQuery?: string }) {
+export default function DashboardNavigation({ section, user, architectFullAccess = false, qaPreviewEnabled = false }: { section: string; user: Principal; architectFullAccess?: boolean; qaPreviewEnabled?: boolean }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const allApplications = getApplicationNavigation(user, architectFullAccess, user.role === "admin");
@@ -93,10 +94,22 @@ export default function DashboardNavigation({ section, user, architectFullAccess
     application.href.split("/").pop() === section || application.items.some((item) => item.id === section),
   );
   const [expanded, setExpanded] = useState(activeApplication?.id || "");
-  const query = searchQuery.trim();
+  const [query, setQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     setExpanded(activeApplication?.id || "");
   }, [section, activeApplication?.id]);
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        if (state === "collapsed" && !isMobile) setOpen(true);
+        window.requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [state, isMobile, setOpen]);
   const applications = allApplications
     .map((application) => ({
       ...application,
@@ -142,6 +155,25 @@ export default function DashboardNavigation({ section, user, architectFullAccess
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup className="dashboard-menu-search">
+          {state === "collapsed" && !isMobile ? (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Cari halaman" onClick={() => { setOpen(true); window.requestAnimationFrame(() => searchInputRef.current?.focus()); }}>
+                  <Search />
+                  <span>Cari halaman</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          ) : (
+            <div className="dashboard-nav-search" role="search">
+              <Search size={15} aria-hidden="true" />
+              <Input ref={searchInputRef} aria-label="Cari halaman dan modul" placeholder="Cari halaman atau modul…" value={query} onChange={(event) => setQuery(event.target.value)} />
+              {query && <button type="button" aria-label="Hapus pencarian menu" onClick={() => setQuery("")}><X size={14} /></button>}
+              <kbd>⌘ K</kbd>
+            </div>
+          )}
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>APLIKASI TERPADU</SidebarGroupLabel>
