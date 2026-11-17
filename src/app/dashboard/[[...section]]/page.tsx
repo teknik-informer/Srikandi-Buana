@@ -81,7 +81,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       >
         {isMember
           ? <MemberAudienceDashboard user={admin} />
-          : <ApplicationHub dashboards={getVisibleEnterpriseDashboards(admin.role, isArchitectFullAccess(admin), admin.role === "admin")} displayName={admin.displayName || admin.fullName} />}
+          : <ApplicationHub dashboards={getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin")} displayName={admin.displayName || admin.fullName} />}
       </WorkspaceShell>
     );
   }
@@ -115,6 +115,26 @@ export default async function Page({ params }: { params: Promise<{ section?: str
             <p className="text-sm leading-6 text-muted-foreground">
               Modul ini terdaftar pada platform, tetapi akun Administrator Sistem belum diberi akses operasional terhadap datanya.
               Pengelolaan teknis platform tidak otomatis memberikan kewenangan membaca, mengubah, atau menyetujui data organisasi.
+            </p>
+            <a href="/dashboard" className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
+              Kembali ke Pusat Aplikasi
+            </a>
+          </section>
+        </main>
+      </WorkspaceShell>
+    );
+  }
+  if (dashboardDefinition && visibleDashboard?.accessOnly) {
+    return (
+      <WorkspaceShell user={admin} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
+        <main className="workspace-page">
+          <section className="max-w-3xl space-y-3 rounded-2xl border bg-card p-6 sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Akses aplikasi ditetapkan</p>
+            <h1 className="text-2xl font-semibold tracking-tight">{dashboardDefinition.label}</h1>
+            <p className="text-sm leading-6 text-muted-foreground">{dashboardDefinition.description}</p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Akun ini dapat membuka ruang aplikasi, tetapi belum memiliki izin fitur untuk membaca atau mengubah data di dalamnya.
+              Penetapan akses aplikasi tidak menggantikan role organisasi, kewenangan persetujuan, maupun penugasan program.
             </p>
             <a href="/dashboard" className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
               Kembali ke Pusat Aplikasi
