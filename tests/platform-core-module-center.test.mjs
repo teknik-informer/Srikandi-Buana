@@ -37,15 +37,16 @@ test("support domains disclose their implementation limits rather than presentin
   assert.equal(registry.supportingPlatformModules.find((module) => module.id === "collaboration")?.route, null);
 });
 
-test("module visibility is derived from the current server policy and keeps technical admin catalog-only", () => {
+test("module visibility grants all six applications to System Administrator while retaining scoped role access", () => {
   const matrix = registry.buildModuleAccessMatrix();
   const access = (moduleId, role) => matrix.find((row) => row.moduleId === moduleId)?.access.find((item) => item.role === role);
   assert.equal(access("analytics", "ketua")?.allowed, true);
   assert.equal(access("analytics", "koordinator")?.allowed, true);
   assert.equal(access("analytics", "anggota")?.allowed, false);
-  assert.equal(access("analytics", "admin")?.allowed, false);
-  assert.equal(access("analytics", "admin")?.catalogOnly, true);
-  assert.equal(access("accounting", "admin")?.allowed, false);
+  assert.equal(access("analytics", "admin")?.allowed, true);
+  assert.equal(access("analytics", "admin")?.catalogOnly, false);
+  assert.equal(access("accounting", "admin")?.allowed, true);
+  assert.equal(access("accounting", "admin")?.catalogOnly, false);
   assert.equal(access("accounting", "bendahara")?.allowed, true);
   assert.equal(access("projects", "koordinator")?.allowed, true);
   assert.equal(access("projects", "anggota")?.allowed, true, "Members can read the member-facing activity feature within Project Management");
