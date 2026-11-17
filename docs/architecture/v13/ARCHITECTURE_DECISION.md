@@ -20,7 +20,7 @@ The target application workspaces are:
 5. Point of Sale (POS)
 6. Business Intelligence & Analytics (BI & Analitik)
 
-Supporting domains and platform services include Inventory & Procurement, Agriculture, Document Management, Collaboration, Monitoring & Evaluation (MEL), Business Intelligence (BI), Public Website CMS and System Administration.
+Supporting domains and platform services include Inventory & Procurement, Agriculture, Document Management, Collaboration, Monitoring & Evaluation (MEL), Public Website CMS and System Administration.
 
 The user experience remains unified: one application origin, one global identity, consistent navigation and design language, and permission-aware module discovery.
 
@@ -61,6 +61,8 @@ The current application login implementation reads `public.users` and `public.se
 - Keep system role, organizational position, module role, granular permission and record scope separate.
 - Every read and write remains authorized on the server. Hiding a menu is not authorization.
 - The System Administrator sees all six business workspaces as catalog entries and can manage technical configuration. This does not automatically grant operational access to member records, finance operations, partnership records, project execution, sales, BI aggregates or organizational decisions. Technical settings, source documents and global notifications remain separately permissioned platform utilities.
+- BI & Analitik is read-only for Ketua, Sekretaris, Bendahara and Koordinator; Koordinator aggregates only assigned programme records.
+- BI exposes aggregate indicators only and does not return member identity or raw financial transaction detail.
 - Architect Full Access remains confined to the isolated QA Preview path and must not become a Production role shortcut.
 
 ### 3.3 Domain modularity
