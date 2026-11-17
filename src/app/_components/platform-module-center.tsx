@@ -21,6 +21,7 @@ import {
   supportingPlatformModules,
 } from "@/features/platform/module-registry";
 import { WorkspacePageHeader } from "./workspace-ui";
+import PlatformModuleAccessManager from "./platform-module-access-manager";
 
 const roles = ["Ketua", "Sekretaris", "Bendahara", "Koordinator", "Anggota", "Administrator Sistem"];
 
@@ -47,11 +48,13 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
 
       <Alert>
         <ShieldCheck />
-        <AlertTitle>Pusat kendali diagnostik — belum menjadi editor izin</AlertTitle>
+        <AlertTitle>Pusat kendali modul dan hak akses</AlertTitle>
         <AlertDescription>
-          Registri dan matriks di halaman ini dibaca dari konfigurasi aplikasi serta policy server. Database Production belum memiliki tabel khusus module_registry atau role_grants. Karena itu, halaman ini tidak menampilkan tombol aktivasi atau pemberian hak akses yang belum memiliki penyimpanan persisten dan enforcement lengkap.
+          Registri, status modul dan override akses dibaca dari database Preview. Perubahan memerlukan alasan dan dicatat dalam audit append-only. Grant hanya mengatur akses peluncuran aplikasi; role organisasi tetap menentukan hak data dan tindakan.
         </AlertDescription>
       </Alert>
+
+      <PlatformModuleAccessManager />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan platform">
         <Card>
