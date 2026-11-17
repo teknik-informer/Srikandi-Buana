@@ -1,6 +1,7 @@
 import { env } from "@/lib/runtime";
 import { getAuthenticatedUser } from "@/lib/auth";
 import type { Principal, Role } from "@/lib/permissions";
+import { isModuleAvailableForUser } from "@/features/identity/access-policy";
 import { json, sameOrigin } from "@/lib/account-access";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 
@@ -37,6 +38,7 @@ const slug = (value: string) => value.normalize("NFKD").replace(/[\u0300-\u036f]
 async function context(request: Request, write = false, verification = false) {
   const user = await getAuthenticatedUser();
   if (!user) return { error: json({ error: "Silakan masuk untuk mengelola data pertanian." }, 401) };
+  if (!isModuleAvailableForUser(user, "agriculture")) return { error: json({ error: "Layanan pertanian sedang dinonaktifkan atau diblokir untuk akun ini." }, 403) };
   if (write && !sameOrigin(request)) return { error: json({ error: "Permintaan lintas situs ditolak." }, 403) };
   if (!env.DB) return { error: json({ error: "Database belum tersedia." }, 503) };
   const assignedAgriculture = user.role === "koordinator" && user.programIds.includes("3");
