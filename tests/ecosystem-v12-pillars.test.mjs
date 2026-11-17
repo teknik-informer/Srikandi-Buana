@@ -86,7 +86,7 @@ test("katalog System Administrator menampilkan enam modul tanpa memberi izin ope
 test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", () => {
   const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
   const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
-  assert.match(hub, /dashboard\.catalogOnly/);
+  assert.match(hub, /dashboard\?\.catalogOnly/);
   assert.match(hub, /aplikasi terdaftar/);
   assert.match(route, /getVisibleEnterpriseDashboardsForUser\(admin, isArchitectFullAccess\(admin\), admin\.role === "admin"\)/);
   assert.match(route, /visibleDashboard\?\.catalogOnly/);
