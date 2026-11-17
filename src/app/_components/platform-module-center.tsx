@@ -29,8 +29,8 @@ function ReadinessBadge({ value }: { value: keyof typeof platformReadinessLabels
   return <Badge variant={variant}>{platformReadinessLabels[value]}</Badge>;
 }
 
-function metricLabel(value: string) {
-  return value.toLocaleString("id-ID");
+function metricLabel(value: number) {
+  return new Intl.NumberFormat("id-ID").format(value);
 }
 
 export default function PlatformModuleCenter({ user }: { user: Principal }) {
@@ -57,14 +57,14 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Aplikasi utama</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">{metricLabel(String(coreApplicationModules.length))}</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{metricLabel(coreApplicationModules.length)}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">HRM, Accounting, CRM, Project, POS dan BI</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Domain pendukung</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">{metricLabel(String(supportingPlatformModules.length))}</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{metricLabel(supportingPlatformModules.length)}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">Pertanian, persediaan, dokumen, kolaborasi, MEL, CMS dan sistem</CardContent>
         </Card>
@@ -78,7 +78,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Rute aplikasi utama</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">{metricLabel(String(modulesWithRoutes))}/6</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{metricLabel(modulesWithRoutes)}/6</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">Route terdaftar; bukan bukti workflow selesai</CardContent>
         </Card>
