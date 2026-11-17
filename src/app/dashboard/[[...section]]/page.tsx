@@ -22,6 +22,7 @@ import Inbox from "../../_components/inbox";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 import OfficialLetterWorkspace from "../../_components/official-letter-workspace";
 import { getSiteSettings } from "@/lib/site-settings";
+import { isArchitectQaPreview } from "@/features/shared/qa-preview.mjs";
 import ArchitectQaTestCenter from "../../_components/architect-qa-test-center";
 import QaMemberLab from "../../_components/qa-member-lab";
 import HrmAttendanceWorkspace from "../../_components/hrm-attendance-workspace";
@@ -57,11 +58,11 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   const defaultSidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   const active = section?.[0] || "ringkasan";
   if (active === "qa-members") {
-    if (admin.role !== "admin" || admin.architectFullAccess !== true) return notFound();
+    if (admin.role !== "admin" || !isArchitectQaPreview(process.env)) return notFound();
     return <WorkspaceShell user={admin} section={active} title="Laboratorium Anggota QA" defaultSidebarOpen={defaultSidebarOpen}><QaMemberLab /></WorkspaceShell>;
   }
   if (active === "qa-test-center") {
-    if (admin.role !== "admin") return notFound();
+    if (admin.role !== "admin" || !isArchitectQaPreview(process.env)) return notFound();
     return <WorkspaceShell user={admin} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter user={admin} /></WorkspaceShell>;
   }
   if (active === "presensi" || active === "presensi-saya") {
