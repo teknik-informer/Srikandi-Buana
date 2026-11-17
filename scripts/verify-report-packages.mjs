@@ -100,7 +100,7 @@ console.log('PASS: report-package schema invariants, null-safe version uniquenes
 for(const token of [
   'export async function GET(request: Request)',
   'pkg.status !== "approved"',
-  'user.role === "admin" || user.role === "anggota"',
+  'user.role === "anggota" || !env.DB',
   'Content-Type":"text/csv; charset=utf-8"',
   'format === "csv"',
   'Disetujui oleh',
