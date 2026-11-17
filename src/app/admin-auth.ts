@@ -6,10 +6,10 @@ export async function getAdminUser(){
  return u?.role==='admin'?u:null;
 }
 
-/** Organizational authority is reserved to the elected Chair. */
+/** Platform owner and elected Chair can administer external-access and controlled export services. */
 export async function getGovernanceAdminUser(){
  const u=await getAuthenticatedUser();
- return u?.role==='ketua'?u:null;
+ return u&&['admin','ketua'].includes(u.role)?u:null;
 }
 
 /** Source documents contain member identities and are available only to the Secretariat. */
@@ -21,5 +21,5 @@ export async function getSecretariatUser(){
 /** Public enquiries are handled by the Secretariat, with Chair oversight. */
 export async function getMessageManagerUser(){
  const u=await getAuthenticatedUser();
- return u&&['ketua','sekretaris'].includes(u.role)?u:null;
+ return u&&['admin','ketua','sekretaris'].includes(u.role)?u:null;
 }
