@@ -8,7 +8,7 @@ const policy = readFileSync("src/features/identity/access-policy.ts", "utf8");
 
 assert(route.includes('"qa-test-center"'), "QA Test Center route must be registered");
 assert(route.includes('if (admin.role !== "admin") return notFound()'), "QA Test Center must be restricted to the technical administrator");
-assert(route.includes("<ArchitectQaTestCenter />"), "QA route must render the inspector");
+assert(route.includes("<ArchitectQaTestCenter user={admin} />"), "QA route must render the inspector");
 assert(navigation.includes('user.role === "admin"'), "QA navigation must be inside the admin-only shortcut");
 assert(navigation.includes('/dashboard/qa-test-center'), "QA navigation destination must exist");
 assert(center.includes("canReadSection") && center.includes("canReadKind") && center.includes("canWriteKind"), "Inspector must derive matrix from user-aware active access policy functions");
