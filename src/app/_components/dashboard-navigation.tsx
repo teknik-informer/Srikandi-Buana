@@ -275,7 +275,7 @@ export function DashboardMegaMenu({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
-  const groups = getVisibleEnterpriseDashboards(user.role, architectFullAccess)
+  const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
   const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess)
