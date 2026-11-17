@@ -63,11 +63,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
 ];
 
 export const enterpriseUtilities: readonly NavItem[] = [
-  { id: "notifikasi", label: "Notifikasi", description: "Pemberitahuan dan status tindak lanjut akun.", href: "/dashboard/notifikasi" },
   { id: "monitoring", label: "Status Sistem", description: "Status layanan dan kelengkapan data.", href: "/dashboard/monitoring" },
-  { id: "akun", label: "Pengguna & Hak Akses", description: "Pengelolaan pengguna dan kewenangan akun.", href: "/dashboard/akun" },
-  { id: "pengaturan", label: "Pengaturan Website", description: "Identitas dan konfigurasi situs.", href: "/dashboard/pengaturan" },
-  { id: "panduan", label: "Pusat Bantuan", description: "Panduan penggunaan aplikasi.", href: "/dashboard/panduan" },
 ];
 
 export const dashboardRouteIds = enterpriseDashboards.map((dashboard) => dashboard.id);
