@@ -47,6 +47,8 @@ for (const id of ["platform-core", "organization", "agriculture", "business", "b
     "Sidebar must explicitly map application " + id);
 }
 
+assert.match(policy, /\["admin", "sekretaris"\]\.includes\(user\.role\)/, "System administrator may review task outcomes.");
+assert.match(policy, /\["admin", "ketua"\]\.includes\(user\.role\)/, "System administrator may publish reviewed content.");
 assert.match(operations, /canReview = \(user: Principal\) => user\.role === "admin" \|\| user\.role === "ketua"/);
 assert.match(operations, /canInspectOperations = \(user: Principal\) => user\.role === "admin" \|\| user\.role === "ketua"/);
 assert.match(operations, /return user\.role === "admin" \|\|/);
