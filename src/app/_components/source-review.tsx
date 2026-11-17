@@ -31,6 +31,7 @@ export default function SourceReview({
   const [canImport, setCanImport] = useState(false);
   const [error, setError] = useState("");
   const [summary, setSummary] = useState<{ importedMembers: number; skippedMembers: number; deferredMembers?: number; sourceMembers?: number; sourceAttendance?: number; personalDataImported?: boolean } | null>(null);
+  const [sourceAccessReason, setSourceAccessReason] = useState("");
 
   async function load() {
     try {
@@ -94,7 +95,7 @@ export default function SourceReview({
           <CardTitle>Referensi dan Verifikasi Dokumen</CardTitle>
           <CardDescription>
             {role === "admin"
-              ? "Administrator Sistem hanya dapat menerapkan metadata nonpribadi satu kali. Identitas, alamat, dan nomor kontak tidak ditampilkan pada layar ini."
+              ? "Administrator Sistem dapat menerapkan metadata nonpribadi dan mengunduh dokumen sumber privat melalui akses istimewa yang mewajibkan alasan serta mencatat audit. Identitas tidak ditampilkan pada layar ini."
               : role === "ketua"
                 ? "Ketua melihat status dan metadata kelembagaan. Identitas anggota, alamat, kontak, serta dokumen asli dikelola terbatas oleh Sekretariat."
                 : "Sekretariat memeriksa dokumen asli, mencocokkan identitas, dan mencatat hasil verifikasi. Impor metadata tidak mengganti catatan yang sudah ada."}
@@ -129,11 +130,22 @@ export default function SourceReview({
           {!source && !error ? (
             <Skeleton className="h-40 w-full" />
           ) : role === "admin" ? (
-            <p className="section-note">
-              {summary
-                ? "Impor awal selesai. Pemeriksaan identitas, alamat, status keanggotaan, dan persetujuan data dilakukan oleh pengelola organisasi."
-                : "Metadata nonpribadi dapat diterapkan satu kali. Data individu tidak disalin ke database melalui akun teknis; pemeriksaan identitas dan dasar pemrosesan dilakukan oleh pengelola organisasi."}
-            </p>
+            <div className="space-y-4">
+              <p className="section-note">
+                {summary
+                  ? "Impor awal selesai. Dokumen asli tetap privat. Setiap unduhan Administrator Sistem memerlukan alasan dan dicatat dalam audit akses."
+                  : "Metadata nonpribadi dapat diterapkan satu kali. Dokumen asli berisi identitas pribadi hanya dapat diunduh melalui akses istimewa yang diaudit."}
+              </p>
+              <form className="grid gap-2 rounded-xl border p-4" onSubmit={(event) => { event.preventDefault(); if (sourceAccessReason.trim().length >= 10) window.location.assign("/api/source-document?reason=" + encodeURIComponent(sourceAccessReason.trim())); }}>
+                <label htmlFor="source-access-reason" className="text-sm font-medium">Alasan mengakses dokumen sumber privat</label>
+                <input id="source-access-reason" value={sourceAccessReason} onChange={(event) => setSourceAccessReason(event.target.value)} minLength={10} maxLength={500} required className="h-10 rounded-md border bg-background px-3 text-sm" placeholder="Contoh: verifikasi data sebelum penetapan anggota" />
+                <p className="text-xs text-muted-foreground">Minimal 10 karakter. Alasan dan identitas akun dicatat sebelum dokumen diunduh.</p>
+                <Button type="submit" disabled={sourceAccessReason.trim().length < 10}>
+                  <Download data-icon="inline-start" />
+                  Unduh paket lengkap (akses diaudit)
+                </Button>
+              </form>
+            </div>
           ) : role === "ketua" ? (
             <p className="section-note">
               Ketua memperoleh ringkasan nonpribadi untuk pengawasan. Daftar nama, alamat, nomor kontak, transkripsi daftar hadir, dan paket dokumen lengkap hanya tersedia bagi Sekretariat sesuai kebutuhan verifikasi.
