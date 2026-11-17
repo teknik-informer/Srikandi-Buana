@@ -20,6 +20,7 @@ import {
   platformReadinessLabels,
   supportingPlatformModules,
 } from "@/features/platform/module-registry";
+import { platformApplications } from "@/features/platform/application-registry";
 import { WorkspacePageHeader } from "./workspace-ui";
 import PlatformModuleAccessManager from "./platform-module-access-manager";
 
@@ -60,9 +61,9 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Aplikasi utama</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">{metricLabel(coreApplicationModules.length)}</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{metricLabel(platformApplications.length)}</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">HRM, Accounting, CRM, Project, POS dan BI</CardContent>
+          <CardContent className="text-xs text-muted-foreground">Platform Core, Organization, Agriculture, Business, BI, dan Public</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -85,6 +86,47 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">Route terdaftar; bukan bukti workflow selesai</CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-3" aria-labelledby="canonical-applications-title">
+        <div>
+          <h2 id="canonical-applications-title" className="text-lg font-semibold">Arsitektur aplikasi utama · enam pilar</h2>
+          <p className="text-sm text-muted-foreground">Ini adalah katalog produk tingkat platform. Rute saat ini mengarah ke ruang kerja yang sudah tersedia; pemetaan ini tidak mengklaim seluruh aplikasi telah selesai atau memberi hak akses baru.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {platformApplications.map((application) => (
+            <Card key={application.id} className="min-w-0">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardDescription className="text-[10px] font-semibold tracking-[0.12em]">{application.eyebrow}</CardDescription>
+                    <CardTitle className="text-base">{application.name}</CardTitle>
+                  </div>
+                  <Badge variant={application.status === "preview" ? "default" : application.status === "partial" ? "secondary" : "outline"}>
+                    {application.status === "preview" ? "Preview" : application.status === "partial" ? "Parsial" : "Fondasi"}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm leading-6 text-muted-foreground">{application.description}</p>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Workspace lama yang dipetakan</p>
+                  <p className="mt-1 text-xs leading-5">{application.legacyWorkspaces.length ? application.legacyWorkspaces.join(" · ") : "Layanan fondasi platform"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Domain pendukung</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{application.supportingDomains.join(" · ")}</p>
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t pt-3">
+                  <span className="truncate text-xs text-muted-foreground">{application.route}</span>
+                  <Link href={application.route} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                    Buka <ArrowUpRight className="size-3.5" />
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </section>
 
       <section className="space-y-3" aria-labelledby="platform-applications-title">

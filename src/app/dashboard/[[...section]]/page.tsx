@@ -81,7 +81,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       >
         {isMember
           ? <MemberAudienceDashboard user={admin} />
-          : <ApplicationHub dashboards={getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin")} displayName={admin.displayName || admin.fullName} />}
+          : <ApplicationHub dashboards={getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin")} displayName={admin.displayName || admin.fullName} canOpenPlatformCore={admin.role === "admin" && (isArchitectFullAccess(admin) || canReadSection(admin, "module-center"))} />}
       </WorkspaceShell>
     );
   }

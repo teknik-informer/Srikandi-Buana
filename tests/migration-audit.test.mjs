@@ -18,6 +18,9 @@ test("migration audit is read-only and the runner stops on database-only drift",
   const runner = readFileSync("scripts/migrate.mjs", "utf8");
   assert.match(audit, /SELECT name FROM public\.schema_migrations/);
   assert.doesNotMatch(audit, /\b(?:CREATE|INSERT|UPDATE|DELETE|ALTER|DROP)\s+(?:TABLE|INTO|SET|FROM|COLUMN|SCHEMA)\b/i);
+  assert.match(runner, /MIGRATION_TARGET/);
+  assert.match(runner, /PRODUCTION_MIGRATION_APPROVAL/);
+  assert.match(runner, /PRODUCTION_MIGRATION_FILES/);
   assert.match(runner, /comparison\.databaseOnly\.length/);
   assert.match(runner, /Migrasi dihentikan/);
   assert.match(runner, /tidak ada migrasi baru yang dijalankan/);
