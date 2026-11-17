@@ -141,7 +141,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>MENU UTAMA</SidebarGroupLabel>
+          <SidebarGroupLabel>WORKSPACE OPERASIONAL</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -303,7 +303,7 @@ export function DashboardMegaMenu({
           </DialogClose>
           <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih aplikasi operasional sesuai kewenangan akun Anda: HRM, Accounting, CRM, Project Management, POS, dan BI & Analitik.
+            Pilih modul operasional di dalam enam aplikasi utama: Platform Core, Organization, Agriculture, Business, BI & Analytics, serta Public & Partnership.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
