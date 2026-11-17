@@ -65,6 +65,7 @@ assert.match(api,/if \(user\.role === "bendahara"\) return \["keuangan","usaha"\
   "Treasury package reads must stay within finance and business domains");
 assert.match(api,/if \(user\.role === "admin"\) return true/,
   "System administrator must retain cross-domain package read, create and verification authority");
+assert.match(api,/String\(pkg\.created_by\) === c\.user!\.accountId/,"Administrator Sistem must not approve a package it created.");
 assert.match(api,/\["admin","ketua"\]\.includes\(c\.user!\.role\)/,
   "System administrator may approve or reject another user's package with an audit event");
 assert.match(api,/function chairSafeSnapshot\(value: unknown\)/,
