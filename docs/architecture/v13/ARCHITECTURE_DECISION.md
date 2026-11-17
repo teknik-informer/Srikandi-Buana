@@ -59,7 +59,7 @@ The current application login implementation reads `public.users` and `public.se
 - Do not migrate to Supabase Auth or another identity provider as part of the database-boundary work. A provider migration requires a separate proof of concept, account mapping, token verification, session revocation, recovery and rollback plan.
 - Keep system role, organizational position, module role, granular permission and record scope separate.
 - Every read and write remains authorized on the server. Hiding a menu is not authorization.
-- The System Administrator can inspect the module catalog and manage technical configuration. This does not automatically grant access to private member records, finance operations, publication approval or organizational decisions.
+- The System Administrator sees all five business workspaces as catalog entries and can manage technical configuration. This does not automatically grant operational access to member records, finance operations, partnership records, project execution, sales, publication approval or organizational decisions. Technical settings, source documents and global notifications remain separately permissioned platform utilities.
 - Architect Full Access remains confined to the isolated QA Preview path and must not become a Production role shortcut.
 
 ### 3.3 Domain modularity
