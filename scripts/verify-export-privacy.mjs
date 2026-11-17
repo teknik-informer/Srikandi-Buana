@@ -56,11 +56,13 @@ const bundle = await build({
       context.onResolve({ filter: /^@\/lib\/runtime$/ }, () => ({ path: "runtime", namespace: "test" }));
       context.onResolve({ filter: /^\.\.\/\.\.\/admin-auth$/ }, () => ({ path: "admin-auth", namespace: "test" }));
       context.onResolve({ filter: /^@\/lib\/permissions$/ }, () => ({ path: "permissions", namespace: "test" }));
+      context.onResolve({ filter: /^@\/features\/identity\/access-policy$/ }, () => ({ path: "access-policy", namespace: "test" }));
       context.onResolve({ filter: /^@\/lib\/file-access$/ }, () => ({ path: "file-access", namespace: "test" }));
       context.onLoad({ filter: /.*/, namespace: "test" }, (args) => {
         if (args.path === "runtime") return { contents: "export const env={DB:globalThis.__testDb};", loader: "js" };
         if (args.path === "admin-auth") return { contents: "export async function getGovernanceAdminUser(){return globalThis.__testUser;}", loader: "js" };
         if (args.path === "permissions") return { contents: "export function visibleRecord(user,record){return record;}", loader: "js" };
+        if (args.path === "access-policy") return { contents: "export function canReadRecord(user,record){return true;} export function isModuleAvailableForUser(user,moduleId){return !user?.moduleAccess?.disabledModules?.includes(moduleId) && !user?.moduleAccess?.deniedModules?.includes(moduleId);}", loader: "js" };
         if (args.path === "file-access") return { contents: "export async function allowedFileIds(){return new Set();}", loader: "js" };
         throw new Error("Unexpected test module: " + args.path);
       });
