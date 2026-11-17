@@ -23,7 +23,7 @@ export default function ApplicationHub({ dashboards, displayName }: { dashboards
     const matched = presentation.legacy.map((id) => byId.get(id)).filter(Boolean);
     const dashboard = matched.find((item) => !item?.catalogOnly && !item?.accessOnly) ?? matched[0];
     const enabled = application.id === "platform-core" ? canOpenPlatformCore : matched.length > 0;
-    const href = application.id === "platform-core" || application.id === "agriculture" ? application.route : dashboard?.href ?? application.route;
+    const href = ["platform-core", "agriculture", "public-partnership"].includes(application.id) ? application.route : dashboard?.href ?? application.route;
     const restricted = !enabled || Boolean(dashboard?.catalogOnly || dashboard?.accessOnly);
     return { application, presentation, href, enabled, restricted, dashboard };
   });
