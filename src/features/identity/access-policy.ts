@@ -32,6 +32,7 @@ export type Principal = {
   position: string;
   programIds: string[];
   architectFullAccess?: boolean;
+  moduleAccess?: ModuleAccessState;
 };
 export type AccessRecord = { id: string; kind: string; data: Record<string, unknown> };
 export type ModuleAccessState = {
