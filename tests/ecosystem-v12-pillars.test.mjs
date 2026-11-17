@@ -47,7 +47,8 @@ test("pembatasan akses per peran tetap diterapkan", () => {
   const visible = (role) => registry.getVisibleEnterpriseDashboards(role).flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
   const admin = visible("admin");
   assert.ok(admin.includes("akuntansi") && admin.includes("kas") && admin.includes("penjualan") && admin.includes("analytics"));
-  assert.ok(admin.includes("akun") && admin.includes("pengaturan") && admin.includes("sumber"));
+  assert.ok(admin.includes("akun") && admin.includes("sumber"));
+  assert.ok(!admin.includes("pengaturan"), "Pengaturan Website is not a navigation feature");
   const member = visible("anggota");
   for (const restricted of ["akun", "pengaturan", "sumber", "pesan", "akuntansi"]) assert.ok(!member.includes(restricted));
   assert.ok(member.includes("portal"));
@@ -104,6 +105,10 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   assert.doesNotMatch(navigation, /dashboard-menu-query/);
   const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
   assert.match(shell, /Cari halaman atau modul/);
+  assert.doesNotMatch(shell, /DashboardMegaMenu section=/);
+  assert.match(navigation, /<span>Pengaturan<\/span>/);
+  assert.doesNotMatch(navigation, /LogoutButton/);
+  assert.doesNotMatch(navigation, /Pengaturan Website/);
   assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, architectFullAccess, user\.role === "admin"\)/);
   assert.match(overview, /ACCOUNTING & FINANCE/);
   assert.match(overview, /HUMAN RESOURCE MANAGEMENT/);
