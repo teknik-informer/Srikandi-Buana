@@ -66,7 +66,7 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.doesNotMatch(navigation, /RUANG KERJA OPERASIONAL/);
   assert.match(navigation, /modulesByApplication/);
   assert.match(navigation, /Ringkasan aplikasi/);
-  assert.doesNotMatch(shellSource, /DashboardMegaMenu section=/);
+  assert.match(shellSource, /DashboardMegaMenu section=/);
 });
 
 
