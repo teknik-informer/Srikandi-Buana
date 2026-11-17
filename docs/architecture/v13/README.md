@@ -14,7 +14,7 @@ This directory defines the target architecture for the integrated modular platfo
 
 The audit was performed against Production deployment commit `811d682a969e6c91a8555ceb7356f5637e804557`, the connected repository branch `integration/phase1-preview-2026-11-16`, and the Neon Production application database `neondb`.
 
-The current application remains a Next.js modular monolith on Neon PostgreSQL. The five workspace cards are user-experience groupings; they are not evidence of five independent databases or completed end-to-end business workflows.
+The current application remains a Next.js modular monolith on Neon PostgreSQL. The six workspace cards (HRM, Accounting, CRM, Project Management, POS, and BI & Analitik) are user-experience groupings; they are not evidence of six independent databases or completed end-to-end business workflows.
 
 ## Safety
 
