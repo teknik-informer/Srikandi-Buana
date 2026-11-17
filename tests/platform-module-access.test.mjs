@@ -16,6 +16,12 @@ const registry = await loadModule("src/features/enterprise/registry.ts");
 const api = readFileSync("src/app/api/platform/modules/route.ts", "utf8");
 const migration = readFileSync("migrations/020_platform_module_access.sql", "utf8");
 const component = readFileSync("src/app/_components/platform-module-access-manager.tsx", "utf8");
+const productApi = readFileSync("src/app/api/ecosystem/products/route.ts", "utf8");
+const settingsApi = readFileSync("src/app/api/settings/route.ts", "utf8");
+const reportApi = readFileSync("src/app/api/report-packages/route.ts", "utf8");
+const reportExportApi = readFileSync("src/app/api/report-packages/export/route.ts", "utf8");
+const agricultureApi = readFileSync("src/app/api/agriculture/route.ts", "utf8");
+const attendanceApi = readFileSync("src/app/api/hrm/attendance/route.ts", "utf8");
 
 const principal = (role, moduleAccess = undefined) => ({
   accountId: "account-" + role,
@@ -87,6 +93,15 @@ test("Platform Module API requires system admin and carries reason, scope, expir
   assert.match(api, /platform_module_access_grants/);
   assert.match(api, /target\.role === "admin"/);
   assert.match(api, /sameOrigin\(request\)/);
+});
+
+test("module availability is enforced by sensitive domain APIs as well as navigation", () => {
+  assert.match(productApi, /isModuleAvailableForUser\(c\.user,'pos'\)/);
+  assert.match(settingsApi, /isModuleAvailableForUser\(user,'cms'\)/);
+  assert.match(reportApi, /groupModulesEnabled/);
+  assert.match(reportExportApi, /groupModulesEnabled/);
+  assert.match(agricultureApi, /isModuleAvailableForUser\(user, "agriculture"\)/);
+  assert.match(attendanceApi, /isModuleAvailableForUser\(user, "hrm"\)/);
 });
 
 test("platform access schema has a separate workspace setting, user override and append-only audit", () => {
