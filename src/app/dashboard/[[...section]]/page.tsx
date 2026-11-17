@@ -5,7 +5,7 @@ import { canReadSection, isArchitectFullAccess } from "@/lib/permissions";
 import RoleWorkspace from "../../_components/access/role-workspace";
 import { safeReturn } from "@/lib/auth";
 import { modules } from "@/lib/srikandi";
-import { dashboardRouteIds, dashboardSectionIds, getEnterpriseDashboardById, getEnterpriseFeature, getVisibleEnterpriseDashboards } from "@/features/enterprise/registry";
+import { dashboardRouteIds, dashboardSectionIds, getEnterpriseDashboardById, getEnterpriseFeature, getVisibleEnterpriseDashboardsForUser } from "@/features/enterprise/registry";
 import { redirect, notFound } from "next/navigation";
 import EnterpriseWorkspace from "../../_components/enterprise-workspace";
 import Workspace from "../../_components/workspace";
@@ -87,7 +87,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   }
   const dashboardDefinition = getEnterpriseDashboardById(active);
   const visibleDashboard = dashboardDefinition
-    ? getVisibleEnterpriseDashboards(admin.role, isArchitectFullAccess(admin), admin.role === "admin").find((dashboard) => dashboard.id === active)
+    ? getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin").find((dashboard) => dashboard.id === active)
     : undefined;
   if (dashboardDefinition ? !visibleDashboard : !canReadSection(admin, active))
     return (
