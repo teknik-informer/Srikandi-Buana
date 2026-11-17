@@ -35,18 +35,22 @@ Deliver working, testable capabilities in the existing application. Do not repla
 - Module visibility and module-level access.
 - Central navigation, notifications and platform audit.
 - System Administrator catalog-only visibility for registered modules.
+- Read-only Platform Module Center showing code-defined registry, delivery readiness, data ownership and policy-derived role visibility.
 - BI & Analitik as a role-scoped read-only workspace.
 
 **Rules**
 - A catalog entry is not an access grant.
 - System Administrator technical configuration is distinct from organizational record access and approval authority.
 - Architect Full Access stays in isolated QA Preview.
+- Until dedicated registry/grant persistence and comprehensive route/API enforcement are implemented, module activation and module-specific grant editing remain disabled; do not display pretend toggles.
 
 **Exit criteria**
 - All six application modules appear in the System Administrator's module catalog.
 - Modules without operational grants open an informational, non-data landing page.
 - Unauthorized API and record access remains denied.
 - Existing member, secretary, treasurer, coordinator and chair access remains unchanged.
+
+**Current platform limitation:** Production has no dedicated `module_registry` or `role_grants` table. The current Platform Module Center is diagnostic/read-only. Persistent module lifecycle and per-module access administration require a separately reviewed schema and API migration.
 
 ## Phase 2 — HRM
 
