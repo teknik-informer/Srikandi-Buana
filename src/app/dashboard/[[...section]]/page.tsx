@@ -22,6 +22,7 @@ import Inbox from "../../_components/inbox";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 import OfficialLetterWorkspace from "../../_components/official-letter-workspace";
 import { getSiteSettings } from "@/lib/site-settings";
+import { isArchitectQaPreview } from "@/features/shared/qa-preview.mjs";
 import ArchitectQaTestCenter from "../../_components/architect-qa-test-center";
 import QaMemberLab from "../../_components/qa-member-lab";
 import HrmAttendanceWorkspace from "../../_components/hrm-attendance-workspace";
@@ -57,16 +58,16 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   const defaultSidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   const active = section?.[0] || "ringkasan";
   if (active === "qa-members") {
-    if (admin.role !== "admin" || admin.architectFullAccess !== true) return notFound();
-    return <WorkspaceShell user={admin} section={active} title="Laboratorium Anggota QA" defaultSidebarOpen={defaultSidebarOpen}><QaMemberLab /></WorkspaceShell>;
+    if (admin.role !== "admin" || !isArchitectQaPreview(process.env)) return notFound();
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Laboratorium Anggota QA" defaultSidebarOpen={defaultSidebarOpen}><QaMemberLab /></WorkspaceShell>;
   }
   if (active === "qa-test-center") {
-    if (admin.role !== "admin") return notFound();
-    return <WorkspaceShell user={admin} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter user={admin} /></WorkspaceShell>;
+    if (admin.role !== "admin" || !isArchitectQaPreview(process.env)) return notFound();
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="QA Test Center" defaultSidebarOpen={defaultSidebarOpen}><ArchitectQaTestCenter user={admin} /></WorkspaceShell>;
   }
   if (active === "presensi" || active === "presensi-saya") {
     if (!canReadSection(admin, active)) return <main className="max-w-xl mx-auto p-8"><h1 className="text-2xl font-semibold">Akses dibatasi</h1><p className="my-4">Halaman presensi berada di luar kewenangan akun ini.</p><a href="/dashboard" className="underline">Kembali ke ruang kerja</a></main>;
-    return <WorkspaceShell user={admin} section={active} title={active === "presensi-saya" ? "Presensi Saya" : "Smart Attendance Management"} defaultSidebarOpen={defaultSidebarOpen}>
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={active === "presensi-saya" ? "Presensi Saya" : "Smart Attendance Management"} defaultSidebarOpen={defaultSidebarOpen}>
       <HrmAttendanceWorkspace user={admin} />
     </WorkspaceShell>;
   }
@@ -78,10 +79,10 @@ export default async function Page({ params }: { params: Promise<{ section?: str
         section={active}
         title={isMember ? "Dashboard Anggota" : "Pusat Aplikasi"}
         defaultSidebarOpen={defaultSidebarOpen}
-      >
+       qaPreviewEnabled={isArchitectQaPreview(process.env)}>
         {isMember
           ? <MemberAudienceDashboard user={admin} />
-          : <ApplicationHub dashboards={getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin")} displayName={admin.displayName || admin.fullName} />}
+          : <ApplicationHub dashboards={getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin")} displayName={admin.displayName || admin.fullName} canOpenPlatformCore={admin.role === "admin" && (isArchitectFullAccess(admin) || canReadSection(admin, "module-center"))} />}
       </WorkspaceShell>
     );
   }
@@ -100,13 +101,13 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       </main>
     );
   if (active === "module-center" && admin.role === "admin") {
-    return <WorkspaceShell user={admin} section={active} title="Pusat Modul & Platform" defaultSidebarOpen={defaultSidebarOpen}>
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Pusat Modul & Platform" defaultSidebarOpen={defaultSidebarOpen}>
       <PlatformModuleCenter user={admin} />
     </WorkspaceShell>;
   }
   if (dashboardDefinition && visibleDashboard?.catalogOnly) {
     return (
-      <WorkspaceShell user={admin} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
+      <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
         <main className="workspace-page">
           <section className="max-w-3xl space-y-3 rounded-2xl border bg-card p-6 sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Katalog modul</p>
@@ -126,7 +127,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   }
   if (dashboardDefinition && visibleDashboard?.accessOnly) {
     return (
-      <WorkspaceShell user={admin} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
+      <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
         <main className="workspace-page">
           <section className="max-w-3xl space-y-3 rounded-2xl border bg-card p-6 sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Akses aplikasi ditetapkan</p>
@@ -145,41 +146,41 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     );
   }
   if (dashboardDefinition?.id === "analytics" && visibleDashboard) {
-    return <WorkspaceShell user={admin} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
       <BusinessIntelligenceWorkspace user={admin} />
     </WorkspaceShell>;
   }
   if (dashboardDefinition && visibleDashboard) {
     return (
-      <WorkspaceShell user={admin} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
+      <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
         <EnterpriseDashboardOverview dashboard={visibleDashboard} user={admin} />
       </WorkspaceShell>
     );
   }
   if (active === "pertanian") {
-    return <WorkspaceShell user={admin} section={active} title="Pengelolaan Pertanian" defaultSidebarOpen={defaultSidebarOpen}>
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Pengelolaan Pertanian" defaultSidebarOpen={defaultSidebarOpen}>
       <AgricultureWorkspace role={admin.role} programIds={admin.programIds} />
     </WorkspaceShell>;
   }
   if (active === "surat-resmi") {
     const settings = await getSiteSettings();
-    return <WorkspaceShell user={admin} section={active} title="Penyusunan Surat Resmi" defaultSidebarOpen={defaultSidebarOpen}>
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Penyusunan Surat Resmi" defaultSidebarOpen={defaultSidebarOpen}>
       <OfficialLetterWorkspace role={admin.role} settings={{ address: settings.address, email: settings.email, phone: settings.phone }} />
     </WorkspaceShell>;
   }
   if (active === "akses-eksternal") {
-    return <WorkspaceShell user={admin} section={active} title="Akses Pemerintah & Mitra" defaultSidebarOpen={defaultSidebarOpen}>
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Akses Pemerintah & Mitra" defaultSidebarOpen={defaultSidebarOpen}>
       <ExternalAccessWorkspace />
     </WorkspaceShell>;
   }
   if (["notifikasi", "penjualan", "akuntansi"].includes(active)) {
     const title = active === "notifikasi" ? "Pusat Notifikasi" : active === "penjualan" ? "Katalog dan Pemesanan" : "Akuntansi dan Buku Besar";
-    return <WorkspaceShell user={admin} section={active} title={title} defaultSidebarOpen={defaultSidebarOpen}>
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={title} defaultSidebarOpen={defaultSidebarOpen}>
       {active === "notifikasi" ? <NotificationCenter /> : active === "penjualan" ? <CommerceWorkspace role={admin.role} /> : <AccountingWorkspace role={admin.role} />}
     </WorkspaceShell>;
   }
-  if (active === "pesan" && ["ketua", "sekretaris"].includes(admin.role)) {
-    return <WorkspaceShell user={admin} section={active} title="Pesan pengunjung" defaultSidebarOpen={defaultSidebarOpen}>
+  if (active === "pesan" && ["admin", "ketua", "sekretaris"].includes(admin.role)) {
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Pesan pengunjung" defaultSidebarOpen={defaultSidebarOpen}>
       <Inbox />
     </WorkspaceShell>;
   }

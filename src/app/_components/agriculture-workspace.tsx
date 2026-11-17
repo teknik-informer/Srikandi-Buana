@@ -38,9 +38,9 @@ const numberLabel = (value: string | number) => new Intl.NumberFormat("id-ID", {
 const dateLabel = (value: string) => value ? new Date(value.slice(0, 10) + "T12:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
 export default function AgricultureWorkspace({ role, programIds = [] }: { role: string; programIds?: string[] }) {
-  const canManageTechnical = role === "koordinator" && programIds.includes("3");
-  const canManageCommodity = role === "sekretaris";
-  const canManageLand = role === "sekretaris";
+  const canManageTechnical = role === "admin" || role === "koordinator" && programIds.includes("3");
+  const canManageCommodity = role === "admin" || role === "sekretaris";
+  const canManageLand = role === "admin" || role === "sekretaris";
   const [data, setData] = useState<Data>({ members: [], memberCount: 0, commodities: [], parcels: [], cropCycles: [], harvests: [], audit: [], permissions: { canVerify: false } });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -269,7 +269,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
         <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{parcel.parcel_code} · {parcel.member_name || "Identitas anggota dibatasi"}</p><h3 className="font-semibold">{parcel.name}</h3><p className="mt-1 text-xs text-muted-foreground">{numberLabel(parcel.area_m2)} m² · {tenureLabels[parcel.tenure_type] || parcel.tenure_type}{parcel.location_label ? " · "+parcel.location_label : ""}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${verificationStyle[parcel.verification_status] || ""}`}>{verificationLabels[parcel.verification_status] || parcel.verification_status}</span></div>
         {parcel.status === "archived" && <p className="mt-2 text-xs font-medium text-muted-foreground">Register diarsipkan · tidak tersedia untuk siklus tanam baru</p>}
         {parcel.verification_note && <p className="mt-2 text-xs text-muted-foreground">{parcel.verification_note}</p>}
-        {role === "sekretaris" && parcel.status === "active" && <div className="mt-3">
+        {(role === "sekretaris" || role === "admin") && parcel.status === "active" && <div className="mt-3">
           {editingParcelId === parcel.id ? <form className="grid gap-3 rounded-xl bg-muted/30 p-3 sm:grid-cols-2" onSubmit={(event) => void saveParcel(event, parcel.id)}>
             <label className="grid gap-1 text-xs font-medium sm:col-span-2">Anggota penanggung jawab<select required value={parcelDraft.memberId} onChange={e => setParcelDraft(v => ({ ...v, memberId: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm">{data.members.map(m => <option key={m.id} value={m.id}>{m.name}{m.dusun ? " · "+m.dusun : ""}</option>)}</select></label>
             <label className="grid gap-1 text-xs font-medium">Kode lahan<input required minLength={2} maxLength={80} value={parcelDraft.parcelCode} onChange={e => setParcelDraft(v => ({ ...v, parcelCode: e.target.value }))} className="min-h-10 rounded-lg border bg-background px-3 text-sm"/></label>

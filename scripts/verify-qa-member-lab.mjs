@@ -15,7 +15,7 @@ assert.match(api,/DATA SINTETIS QA/);
 assert.match(api,/normalizeIndonesianMobilePhone/);
 assert.match(api,/INSERT INTO records/);
 assert.match(page,/active === "qa-members"/);
-assert.match(page,/admin\.architectFullAccess !== true/);
+assert.match(page,/!isArchitectQaPreview\(process\.env\)/);
 assert.match(ui,/\/api\/qa\/members/);
 assert.match(ui,/data sintetis/i);
 assert.match(center,/\/dashboard\/qa-members/);

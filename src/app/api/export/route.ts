@@ -9,7 +9,7 @@ export const dynamic='force-dynamic';
 
 export async function GET(){
  const user=await getGovernanceAdminUser();
- if(!user)return new Response('Akses khusus Ketua.',{status:403,headers:{'Cache-Control':'no-store'}});
+ if(!user)return new Response('Akses khusus Administrator Sistem atau Ketua.',{status:403,headers:{'Cache-Control':'no-store'}});
  if(!env.DB)return new Response('Database belum tersedia.',{status:503,headers:{'Cache-Control':'no-store'}});
  try{
   const exportedAt=new Date().toISOString();
@@ -40,7 +40,7 @@ export async function GET(){
    settings:isModuleAvailableForUser(user,'cms')?settings.results.map(row=>({...row,data:JSON.parse(String(row.data))})):[],
    operationSummary:isModuleAvailableForUser(user,'projects')?operationSummary.results.map(row=>({category:String(row.category),status:String(row.status),count:Number(row.count||0)})):[],
    operationHistorySummary:isModuleAvailableForUser(user,'projects')?operationHistorySummary.results.map(row=>({action:String(row.action),count:Number(row.count||0)})):[],
-   catatan:'Ekspor JSON dasar terbatas untuk Ketua; record mengikuti masking field, dan draf pengajuan pribadi akun lain tidak disertakan. Berisi record JSON, metadata file yang diizinkan, ringkasan jumlah pesan per status tanpa identitas atau isi pesan mentah, pengaturan, ringkasan pengajuan operasional per kategori/status, dan ringkasan tindakan histori tanpa nama pengaju, nama pelaksana, atau catatan bebas. Tidak mencakup isi biner lampiran, buku besar/jurnal terstruktur, katalog dan pesanan terstruktur, tabel pertanian terstruktur, grant eksternal, atau seluruh state penyimpanan. Bukan backup penuh untuk pemulihan dan bukan paket laporan eksternal yang telah disahkan.'
+   catatan:'Ekspor JSON dasar terbatas untuk Administrator Sistem atau Ketua; record mengikuti masking field, dan draf pengajuan pribadi akun lain tidak disertakan. Berisi record JSON, metadata file yang diizinkan, ringkasan jumlah pesan per status tanpa identitas atau isi pesan mentah, pengaturan, ringkasan pengajuan operasional per kategori/status, dan ringkasan tindakan histori tanpa nama pengaju, nama pelaksana, atau catatan bebas. Tidak mencakup isi biner lampiran, buku besar/jurnal terstruktur, katalog dan pesanan terstruktur, tabel pertanian terstruktur, grant eksternal, atau seluruh state penyimpanan. Bukan backup penuh untuk pemulihan dan bukan paket laporan eksternal yang telah disahkan.'
   };
   return Response.json(archive,{headers:{
    'Content-Disposition':'attachment; filename=srikandi-buana-data.json',

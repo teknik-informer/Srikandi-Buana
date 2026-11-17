@@ -2,13 +2,13 @@
  * Server-side organization access policy.
  *
  * Organizational authority and technical administration are separate:
- * - admin: platform configuration and technical maintenance only
+ * - admin: full technical and operational authority across all six applications
  * - ketua: organizational oversight and explicit final decisions
  * - sekretaris / bendahara: their respective business domains
  * - koordinator: assigned program scope
  * - anggota: own profile and member-facing information
  *
- * No role inherits broad business access merely because it is called admin.
+ * The Administrator Sistem role is the platform super-administrator. All other roles retain their scoped organizational permissions.
  */
 export const roles = {
   admin: "Administrator Sistem",
@@ -78,7 +78,10 @@ const recordKindModuleMap: Record<string, string> = {
   enterprise: "projects", lotkopi: "pos", penjualan: "pos",
 };
 
-export function isModuleAvailableForUser(user: Pick<Principal, "moduleAccess">, moduleId: string): boolean {
+export function isModuleAvailableForUser(user: Pick<Principal, "moduleAccess" | "role">, moduleId: string): boolean {
+  // The platform super-administrator must be able to enter and administer every application,
+  // including modules that are disabled or explicitly denied for ordinary accounts.
+  if (user.role === "admin") return true;
   const state = user.moduleAccess;
   return !state?.disabledModules.includes(moduleId) && !state?.deniedModules.includes(moduleId);
 }
@@ -94,7 +97,7 @@ export function canOpenModule(user: Principal, moduleId: string): boolean {
   return (moduleBaselineSections[moduleId] || []).some((section) => canReadSectionForRole(user.role, section));
 }
 
-export function isSectionModuleAvailableForUser(user: Pick<Principal, "moduleAccess">, sectionId: string): boolean {
+export function isSectionModuleAvailableForUser(user: Pick<Principal, "moduleAccess" | "role">, sectionId: string): boolean {
   const moduleId = sectionModuleMap[sectionId];
   return !moduleId || isModuleAvailableForUser(user, moduleId);
 }
@@ -104,11 +107,11 @@ function recordModule(kind: string): string | undefined {
 }
 
 /**
- * Arsitek Sistem receives full CRUD capability only in the isolated QA Preview.
- * Production keeps technical administration separate from organizational records.
+ * Backward-compatible capability check. Administrator Sistem is the super-administrator
+ * in every environment (Preview and Production), not a QA-only identity flag.
  */
 export function isArchitectFullAccess(user: Pick<Principal, "role">): boolean {
-  return user.role === "admin" && "architectFullAccess" in user && user.architectFullAccess === true;
+  return user.role === "admin";
 }
 
 
@@ -132,8 +135,8 @@ const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_progr
 const privateAttendanceKinds = new Set(["attendance_session", "attendance_record", "attendance_correction", "attendance_qr_token", "attendance_audit"]);
 
 export function canReadKindForRole(role: Role, kind: string): boolean {
+  if (role === "admin") return true;
   if (privateAttendanceKinds.has(kind) || kind === "kehadiran") return false;
-  if (role === "admin") return false;
   if (role === "ketua") return true;
   if (role === "sekretaris") return secretariatWrite.includes(kind) || secretariatReadOnly.includes(kind);
   if (role === "bendahara") return financeWrite.includes(kind) || financeReadOnly.includes(kind);
@@ -208,19 +211,19 @@ function stableValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
-/** The Secretary may verify task outcomes, but cannot rewrite the task itself. */
+/** The Secretary or System Administrator may verify task outcomes, but cannot rewrite the task itself. */
 export function canReviewFollowup(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
   if (!isModuleAvailableForUser(user, "projects")) return false;
-  if (user.role !== "sekretaris" || previous.kind !== "tindaklanjut" || next.kind !== "tindaklanjut" || previous.id !== next.id) return false;
+  if (!["admin", "sekretaris"].includes(user.role) || previous.kind !== "tindaklanjut" || next.kind !== "tindaklanjut" || previous.id !== next.id) return false;
   const stripReview = (data: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(data).filter(([key]) => !taskReviewFields.has(key)));
   return stableValue(stripReview(previous.data)) === stableValue(stripReview(next.data));
 }
 
-/** The Chair can publish an existing, unchanged draft; the Chair does not author its content. */
+/** The Chair or System Administrator can publish an existing, unchanged draft; neither may alter its content during publication. */
 export function canPublishRecord(user: Principal, previous: AccessRecord, next: AccessRecord): boolean {
   if (!isModuleAvailableForUser(user, "crm")) return false;
-  if (user.role !== "ketua" || previous.id !== next.id || previous.kind !== next.kind) return false;
+  if (!["admin", "ketua"].includes(user.role) || previous.id !== next.id || previous.kind !== next.kind) return false;
   if (!["publikasi", "galeri"].includes(next.kind)) return false;
   if (previous.data.status === "Terbit" || next.data.status !== "Terbit") return false;
   const stripStatus = (data: Record<string, unknown>) =>
@@ -271,19 +274,19 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
 }
 
 export function canReadSectionForRole(role: Role, id: string): boolean {
+  if (role === "admin") return true;
   if (["akun-saya", "panduan", "notifikasi", "ringkasan"].includes(id)) return true;
   if (id === "presensi-saya") return role === "anggota";
-  if (id === "presensi") return ["ketua", "sekretaris", "koordinator"].includes(role);
+  if (id === "presensi") return ["admin", "ketua", "sekretaris", "koordinator"].includes(role);
   if (id === "analytics") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
-  if (id === "module-center") return role === "admin";
-  if (role === "admin") return ["akun", "pengaturan", "sumber"].includes(id);
+  if (id === "module-center") return false;
   if (id === "pengaturan") return false;
   if (id === "akun") return ["admin", "ketua"].includes(role);
   if (id === "akses-eksternal") return role === "ketua";
   if (id === "sumber") return ["ketua", "sekretaris"].includes(role);
   if (id === "penjualan") return true;
   if (id === "akuntansi") return ["ketua", "sekretaris", "bendahara"].includes(role);
-  if (id === "pertanian") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
+  if (id === "pertanian") return ["admin", "ketua", "sekretaris", "bendahara", "koordinator"].includes(role);
   if (["portal", "pengajuan"].includes(id)) return true;
   if (id === "enterprise") return ["ketua", "sekretaris", "bendahara"].includes(role);
   if (id === "dokumen") return ["ketua", "sekretaris", "bendahara", "koordinator"].includes(role);

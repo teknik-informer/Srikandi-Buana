@@ -181,9 +181,9 @@ export function buildModuleAccessMatrix() {
     access: roleOrder.map((role) => ({
       role,
       roleLabel: roles[role],
-      // Technical administrators see the catalog only. They never inherit business access.
-      allowed: role !== "admin" && module.permissionSections.some((section) => canReadSectionForRole(role, section)),
-      catalogOnly: role === "admin",
+      // The verified root System Administrator has full application access; other roles remain section-scoped.
+      allowed: module.permissionSections.some((section) => canReadSectionForRole(role, section)),
+      catalogOnly: false,
     })),
   }));
 }

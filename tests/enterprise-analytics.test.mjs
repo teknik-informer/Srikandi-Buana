@@ -55,19 +55,21 @@ test("Coordinator analytics honors assigned programme scope before aggregation",
   assert.equal(JSON.stringify(coordinator).includes("Program Lain"), false);
 });
 
-test("System Administrator without QA full access receives zero organizational data", () => {
+test("System Administrator receives cross-application BI aggregates without exposing row-level identities", () => {
   const admin = analytics.buildEnterpriseAnalytics(rows, files, principal("admin"), new Date("2026-11-17T05:00:00.000Z"));
-  assert.equal(admin.records, 0);
-  assert.equal(admin.members, null);
-  assert.equal(admin.programs, null);
-  assert.equal(admin.openTasks, null);
-  assert.deepEqual(Array.from(admin.domains, (domain) => domain.id), []);
+  assert.equal(admin.records, 5);
+  assert.equal(admin.members, 1);
+  assert.equal(admin.programs, 1);
+  assert.equal(admin.openTasks, 2);
+  assert.ok(admin.domains.some((domain) => domain.id === "accounting"));
+  assert.equal(JSON.stringify(admin).includes("Nama Rahasia"), false);
+  assert.equal(JSON.stringify(admin).includes("Transaksi Rahasia"), false);
 });
 
-test("BI route permission is assigned to organizational roles, not technical admin or members", () => {
+test("BI route permission includes the System Administrator and authorized organizational roles", () => {
   for (const role of ["ketua", "sekretaris", "bendahara", "koordinator"]) {
     assert.equal(access.canReadSectionForRole(role, "analytics"), true);
   }
-  assert.equal(access.canReadSectionForRole("admin", "analytics"), false);
+  assert.equal(access.canReadSectionForRole("admin", "analytics"), true);
   assert.equal(access.canReadSectionForRole("anggota", "analytics"), false);
 });

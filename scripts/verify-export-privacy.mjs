@@ -104,6 +104,13 @@ assert.ok(messageQuery, "The export must query message oversight data.");
 assert.match(messageQuery, /SELECT\s+status\s*,\s*COUNT\(\*\)\s+AS count\s+FROM messages\s+GROUP BY status/i);
 assert.doesNotMatch(messageQuery, /\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\b/i);
 assert.equal(archive.messageSummary.reduce((sum, row) => sum + row.count, 0), 5);
+const administratorGET = await handlerFor({ role: "admin", userId: "workspace-1", accountId: "admin-1" });
+const administratorResponse = await administratorGET();
+assert.equal(administratorResponse.status, 200, "System Administrator can export the authorized workspace data");
+const administratorArchive = await administratorResponse.json();
+assert.deepEqual(JSON.parse(JSON.stringify(administratorArchive.messageSummary)), [
+  { status: "Baru", count: 3 }, { status: "Ditindaklanjuti", count: 2 },
+]);
 const unauthorizedGET = await handlerFor(null);
 assert.equal((await unauthorizedGET()).status, 403);
-console.log("PASS: Chair export contains non-identifying message counts only; raw contact/name/body fields are absent and unauthenticated access is denied.");
+console.log("PASS: Chair and System Administrator exports contain non-identifying message counts only; raw contact/name/body fields are absent and unauthenticated access is denied.");

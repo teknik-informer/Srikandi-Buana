@@ -9,6 +9,7 @@ export const architectQaPreviewBranches = Object.freeze([
   "feat/architect-identity-console-2026-11-15",
   "implementation/five-app-platform-hub-2026-11-17",
   "architecture/v13-modular-platform-foundation-2026-11-17",
+  "feat/admin-full-access-six-app-sidebar-2026-11-18",
 ]);
 
 export function isArchitectQaPreview(env = process.env) {

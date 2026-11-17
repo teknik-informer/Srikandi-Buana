@@ -18,6 +18,7 @@ function groupModulesEnabled(user: Principal, group: ReportGroupId) {
   return groupModules[group].every((moduleId) => isModuleAvailableForUser(user,moduleId));
 }
 function canRead(user: Principal, group: ReportGroupId, createdBy: string) {
+  if (user.role === "admin") return true;
   if (user.role === "ketua") return true;
   if (user.role === "sekretaris") return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
   if (user.role === "bendahara") return ["keuangan","usaha"].includes(group);
@@ -42,7 +43,7 @@ function flatten(value: unknown, prefix = "", output: Array<[string,string]> = [
 export async function GET(request: Request) {
   const user = await getAuthenticatedUser();
   if (!user) return Response.json({error:"Silakan masuk untuk mengekspor paket laporan."},{status:401,headers:{"Cache-Control":"private, no-store"}});
-  if (user.role === "admin" || user.role === "anggota" || !env.DB)
+  if (user.role === "anggota" || !env.DB)
     return Response.json({error:"Akses ekspor paket laporan tidak tersedia."},{status:403,headers:{"Cache-Control":"private, no-store"}});
   const url = new URL(request.url);
   const id = url.searchParams.get("id") || "";
