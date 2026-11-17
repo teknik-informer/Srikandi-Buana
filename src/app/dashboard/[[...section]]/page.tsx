@@ -15,7 +15,7 @@ import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem
 import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-overview";
 import ExternalAccessWorkspace from "../../_components/external-access-workspace";
 import AgricultureWorkspace from "../../_components/agriculture-workspace";
-import ManagementAudienceDashboard from "../../_components/management-audience-dashboard";
+import ApplicationHub from "../../_components/application-hub";
 import Inbox from "../../_components/inbox";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 import OfficialLetterWorkspace from "../../_components/official-letter-workspace";
@@ -55,7 +55,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   const defaultSidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   const active = section?.[0] || "ringkasan";
   if (active === "qa-members") {
-    if (admin.role !== "admin" || process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== "feat/architect-identity-console-2026-11-15") return notFound();
+    if (admin.role !== "admin" || process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== "implementation/five-app-platform-hub-2026-11-17") return notFound();
     return <WorkspaceShell user={admin} section={active} title="Laboratorium Anggota QA" defaultSidebarOpen={defaultSidebarOpen}><QaMemberLab /></WorkspaceShell>;
   }
   if (active === "qa-test-center") {
@@ -74,12 +74,12 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       <WorkspaceShell
         user={admin}
         section={active}
-        title={isMember ? "Dashboard Anggota" : "Dashboard Pengurus"}
+        title={isMember ? "Dashboard Anggota" : "Pusat Aplikasi"}
         defaultSidebarOpen={defaultSidebarOpen}
       >
         {isMember
           ? <MemberAudienceDashboard user={admin} />
-          : <ManagementAudienceDashboard user={admin} />}
+          : <ApplicationHub dashboards={getVisibleEnterpriseDashboards(admin.role, isArchitectFullAccess(admin))} displayName={admin.displayName || admin.fullName} />}
       </WorkspaceShell>
     );
   }

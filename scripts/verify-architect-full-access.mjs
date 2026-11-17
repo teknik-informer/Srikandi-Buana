@@ -11,7 +11,7 @@ const center = read("src/app/_components/architect-qa-test-center.tsx");
 const files = read("src/lib/file-access.ts");
 const fileApi = read("src/app/api/files/route.ts");
 assert(auth.includes('process.env.VERCEL_ENV === "preview"'));
-assert(auth.includes('process.env.VERCEL_GIT_COMMIT_REF === "feat/architect-identity-console-2026-11-15"'));
+assert(auth.includes('process.env.VERCEL_GIT_COMMIT_REF === "implementation/five-app-platform-hub-2026-11-17"'));
 assert(policy.includes('"architectFullAccess" in user && user.architectFullAccess === true'));
 assert(policy.includes("if (isArchitectFullAccess(user)) return true;"));
 assert(policy.includes('if (role === "admin") return false;'), "Production role-only policy must not grant organization access");

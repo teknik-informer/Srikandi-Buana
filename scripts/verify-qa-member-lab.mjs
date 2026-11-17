@@ -16,7 +16,7 @@ assert.match(api,/normalizeIndonesianMobilePhone/);
 assert.match(api,/INSERT INTO records/);
 assert.match(page,/active === "qa-members"/);
 assert.match(page,/process\.env\.VERCEL_ENV !== "preview"/);
-assert.match(page,/process\.env\.VERCEL_GIT_COMMIT_REF !== "feat\/architect-identity-console-2026-11-15"/);
+assert.match(page,/process\.env\.VERCEL_GIT_COMMIT_REF !== "implementation\/five-app-platform-hub-2026-11-17"/);
 assert.match(ui,/\/api\/qa\/members/);
 assert.match(ui,/data sintetis/i);
 assert.match(center,/\/dashboard\/qa-members/);

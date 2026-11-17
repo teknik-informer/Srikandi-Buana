@@ -1,7 +1,7 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
 import { canReadSectionForRole, type Role } from "../identity/access-policy";
 
-export type EnterpriseDashboardId = "ecosystem" | "publication" | "finance" | "system";
+export type EnterpriseDashboardId = "hrm" | "accounting" | "crm" | "projects" | "pos";
 export type EnterpriseDashboard = {
   id: EnterpriseDashboardId;
   href: string;
@@ -20,35 +20,45 @@ function features(ids: readonly string[]): readonly NavItem[] {
   });
 }
 
-/** Four user-facing areas; detailed operational modules remain available by role. */
+/**
+ * Five integrated application workspaces. Existing operational routes remain the
+ * source of truth while each application gets its own landing/dashboard route.
+ */
 export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
-    id: "ecosystem",
-    href: "/dashboard/ecosystem",
-    label: "Organisasi",
-    description: "Profil, keanggotaan, pengurus, program, kegiatan, dan dokumen organisasi.",
-    features: features(["portal", "notifikasi", "anggota", "alsintan", "pengurus", "musyawarah", "persetujuan", "program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "presensi", "presensi-saya", "pengajuan", "enterprise"]),
+    id: "hrm",
+    href: "/dashboard/hrm",
+    label: "HRM · SDM & Keanggotaan",
+    description: "Keanggotaan, struktur, presensi, profil, dan administrasi sumber daya manusia.",
+    features: features(["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya", "akun", "pengaturan"]),
   },
   {
-    id: "publication",
-    href: "/dashboard/publication",
-    label: "Publikasi",
-    description: "Berita, pengumuman, dokumentasi kegiatan, galeri, dan komunikasi publik.",
-    features: features(["publikasi", "galeri", "pesan"]),
+    id: "accounting",
+    href: "/dashboard/accounting",
+    label: "Accounting · Keuangan",
+    description: "Buku kas, akun perkiraan, jurnal, aset, dan pelaporan keuangan.",
+    features: features(["kas", "laporan", "akuntansi", "aset"]),
   },
   {
-    id: "finance",
-    href: "/dashboard/finance",
-    label: "Pelaporan",
-    description: "Laporan kegiatan, keuangan, aset, usaha, dan pertanggungjawaban.",
-    features: features(["kas", "laporan", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]),
+    id: "crm",
+    href: "/dashboard/crm",
+    label: "CRM · Relasi & Kemitraan",
+    description: "Hubungan anggota, mitra, komunikasi, publikasi, dan layanan eksternal.",
+    features: features(["kemitraan", "pesan", "akses-eksternal", "publikasi", "galeri", "notifikasi"]),
   },
   {
-    id: "system",
-    href: "/dashboard/system",
-    label: "Administrasi",
-    description: "Surat, arsip, referensi, akun, hak akses, dan pengaturan.",
-    features: features(["surat-resmi", "surat", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "akses-eksternal", "akun", "akun-saya", "pengaturan", "panduan"]),
+    id: "projects",
+    href: "/dashboard/projects",
+    label: "Project Management · Program",
+    description: "Program kerja, kegiatan, penugasan, tindak lanjut, pertanian, dan dokumen proyek.",
+    features: features(["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "usaha", "alsintan", "kehadiran", "surat-resmi", "surat", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "pengajuan", "enterprise", "panduan"]),
+  },
+  {
+    id: "pos",
+    href: "/dashboard/pos",
+    label: "POS · Penjualan",
+    description: "Katalog produk, pemesanan, penerimaan komoditas, dan pengelolaan transaksi.",
+    features: features(["penjualan", "lotkopi"]),
   },
 ];
 
