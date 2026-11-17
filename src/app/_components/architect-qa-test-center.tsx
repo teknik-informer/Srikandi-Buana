@@ -20,7 +20,7 @@ const domains = [
   { label: "Pengaturan akun", kind: "akun", section: "akun" },
 ] as const;
 
-function principalFor(role: Role): Principal {
+function principalFor(role: Role, architectFullAccess: boolean): Principal {
   return {
     accountId: "qa-policy-inspector",
     userId: "qa-policy-inspector",
@@ -31,18 +31,19 @@ function principalFor(role: Role): Principal {
     memberId: null,
     position: "Mode pemeriksaan",
     programIds: ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
-    architectFullAccess: role === "admin" && typeof process !== "undefined" && process.env.VERCEL_ENV === "preview" && process.env.VERCEL_GIT_COMMIT_REF === "feat/architect-identity-console-2026-11-15",
+    architectFullAccess: role === "admin" && architectFullAccess,
   };
 }
 
-function permission(role: Role, kind: string, section: string) {
-  const principal = principalFor(role);
+function permission(role: Role, kind: string, section: string, architectFullAccess: boolean) {
+  const principal = principalFor(role, architectFullAccess);
   const read = canReadSection(principal, section) || canReadKind(principal, kind);
   const write = canWriteKind(principal, kind);
   return { read, write };
 }
 
-export default function ArchitectQaTestCenter() {
+export default function ArchitectQaTestCenter({ user }: { user: Principal }) {
+  const architectFullAccess = user.architectFullAccess === true;
   return (
     <section className="workspace workspace-page space-y-6" aria-labelledby="qa-center-title">
       <div className="workspace-page-header">
@@ -121,7 +122,7 @@ export default function ArchitectQaTestCenter() {
                   <TableRow key={domain.kind}>
                     <TableCell className="min-w-40 font-medium">{domain.label}</TableCell>
                     {roleOrder.map((role) => {
-                      const access = permission(role, domain.kind, domain.section);
+                      const access = permission(role, domain.kind, domain.section, architectFullAccess);
                       return (
                         <TableCell key={role} className="text-center">
                           <span className="inline-flex min-w-14 flex-col items-center gap-1">
