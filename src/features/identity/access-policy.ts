@@ -2,13 +2,13 @@
  * Server-side organization access policy.
  *
  * Organizational authority and technical administration are separate:
- * - admin: platform configuration and technical maintenance only
+ * - admin: full technical and operational authority across all six applications
  * - ketua: organizational oversight and explicit final decisions
  * - sekretaris / bendahara: their respective business domains
  * - koordinator: assigned program scope
  * - anggota: own profile and member-facing information
  *
- * No role inherits broad business access merely because it is called admin.
+ * The Administrator Sistem role is the platform super-administrator. All other roles retain their scoped organizational permissions.
  */
 export const roles = {
   admin: "Administrator Sistem",
@@ -78,7 +78,10 @@ const recordKindModuleMap: Record<string, string> = {
   enterprise: "projects", lotkopi: "pos", penjualan: "pos",
 };
 
-export function isModuleAvailableForUser(user: Pick<Principal, "moduleAccess">, moduleId: string): boolean {
+export function isModuleAvailableForUser(user: Pick<Principal, "moduleAccess" | "role">, moduleId: string): boolean {
+  // The platform super-administrator must be able to enter and administer every application,
+  // including modules that are disabled or explicitly denied for ordinary accounts.
+  if (user.role === "admin") return true;
   const state = user.moduleAccess;
   return !state?.disabledModules.includes(moduleId) && !state?.deniedModules.includes(moduleId);
 }
@@ -94,7 +97,7 @@ export function canOpenModule(user: Principal, moduleId: string): boolean {
   return (moduleBaselineSections[moduleId] || []).some((section) => canReadSectionForRole(user.role, section));
 }
 
-export function isSectionModuleAvailableForUser(user: Pick<Principal, "moduleAccess">, sectionId: string): boolean {
+export function isSectionModuleAvailableForUser(user: Pick<Principal, "moduleAccess" | "role">, sectionId: string): boolean {
   const moduleId = sectionModuleMap[sectionId];
   return !moduleId || isModuleAvailableForUser(user, moduleId);
 }
@@ -104,11 +107,11 @@ function recordModule(kind: string): string | undefined {
 }
 
 /**
- * Arsitek Sistem receives full CRUD capability only in the isolated QA Preview.
- * Production keeps technical administration separate from organizational records.
+ * Backward-compatible capability check. Administrator Sistem is the super-administrator
+ * in every environment (Preview and Production), not a QA-only identity flag.
  */
 export function isArchitectFullAccess(user: Pick<Principal, "role">): boolean {
-  return user.role === "admin" && "architectFullAccess" in user && user.architectFullAccess === true;
+  return user.role === "admin";
 }
 
 
@@ -132,8 +135,8 @@ const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_progr
 const privateAttendanceKinds = new Set(["attendance_session", "attendance_record", "attendance_correction", "attendance_qr_token", "attendance_audit"]);
 
 export function canReadKindForRole(role: Role, kind: string): boolean {
+  if (role === "admin") return true;
   if (privateAttendanceKinds.has(kind) || kind === "kehadiran") return false;
-  if (role === "admin") return false;
   if (role === "ketua") return true;
   if (role === "sekretaris") return secretariatWrite.includes(kind) || secretariatReadOnly.includes(kind);
   if (role === "bendahara") return financeWrite.includes(kind) || financeReadOnly.includes(kind);
@@ -271,6 +274,7 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
 }
 
 export function canReadSectionForRole(role: Role, id: string): boolean {
+  if (role === "admin") return true;
   if (["akun-saya", "panduan", "notifikasi", "ringkasan"].includes(id)) return true;
   if (id === "presensi-saya") return role === "anggota";
   if (id === "presensi") return ["ketua", "sekretaris", "koordinator"].includes(role);
