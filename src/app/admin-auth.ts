@@ -1,6 +1,6 @@
 import {getAuthenticatedUser} from '@/lib/auth';
 
-/** Technical platform owner. This role is not an organizational approver. */
+/** System administrator has full cross-application authority; high-impact actions remain workspace-scoped, audited, and subject to no-self-approval controls. */
 export async function getAdminUser(){
  const u=await getAuthenticatedUser();
  return u?.role==='admin'?u:null;
