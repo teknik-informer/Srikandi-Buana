@@ -17,6 +17,7 @@ const { platformApplications, platformApplicationIds } = commonjs.exports;
 const center = readFileSync("src/app/_components/platform-module-center.tsx", "utf8");
 const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
 const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
+const shellSource = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
 
 test("canonical application registry contains exactly six stable top-level applications", () => {
   assert.equal(platformApplications.length, 6);
@@ -65,7 +66,7 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.doesNotMatch(navigation, /RUANG KERJA OPERASIONAL/);
   assert.match(navigation, /modulesByApplication/);
   assert.match(navigation, /Ringkasan aplikasi/);
-  assert.doesNotMatch(shell, /DashboardMegaMenu section=/);
+  assert.doesNotMatch(shellSource, /DashboardMegaMenu section=/);
 });
 
 
