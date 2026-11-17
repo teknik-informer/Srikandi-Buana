@@ -47,13 +47,11 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
 const dashboardIcons: Record<string, typeof Grid2X2> = {
-  ecosystem: Grid2X2,
-  management: BriefcaseBusiness,
-  administration: Files,
-  finance: Wallet,
-  commerce: ShoppingBag,
-  publication: Megaphone,
-  system: Settings2,
+  hrm: BriefcaseBusiness,
+  accounting: Wallet,
+  crm: MessagesSquare,
+  projects: Grid2X2,
+  pos: ShoppingBag,
 };
 export default function DashboardNavigation({ section, user, architectFullAccess = false }: { section: string; user: Principal; architectFullAccess?: boolean }) {
   const identity = useProfileIdentity(user);
@@ -101,7 +99,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
               <SidebarMenuButton asChild isActive={section === "ringkasan"} tooltip="Beranda">
                 <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
                   <LayoutDashboard />
-                  <span>{user.role === "anggota" ? "Dashboard Anggota" : "Dashboard Pengurus"}</span>
+                  <span>{user.role === "anggota" ? "Dashboard Anggota" : "Pusat Aplikasi"}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -300,7 +298,7 @@ export function DashboardMegaMenu({
           </DialogClose>
           <DialogTitle>Navigasi aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih ruang kerja, monitoring, laporan, atau Pusat Bantuan sesuai kewenangan akun Anda.
+            Pilih aplikasi operasional sesuai kewenangan akun Anda: HRM, Accounting, CRM, Project Management, dan POS.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
