@@ -46,7 +46,7 @@ for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecor
 }
 
 assert.match(shell, /architectFullAccess=\{isArchitectFullAccess\(user\)\}/);
-assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, architectFullAccess, user\.role === "admin"\)/);
+assert.match(navigation, /getApplicationNavigation\(user, architectFullAccess, user\.role === "admin"\)/);
 assert.match(navigation, /getVisibleEnterpriseUtilities\(user\.role, architectFullAccess\)/);
 assert.match(hub, /platformApplications/);
 assert.match(registry, /platform-core[\s\S]*organization[\s\S]*agriculture[\s\S]*business[\s\S]*bi-analytics[\s\S]*public-partnership/);
