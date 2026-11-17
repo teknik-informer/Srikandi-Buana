@@ -79,6 +79,7 @@ assert.match(adminAuth, /return u&&\['admin','ketua','sekretaris'\]\.includes\(u
 assert.match(messagesApi, /getMessageManagerUser/);
 assert.match(sourceDocumentApi, /user\.role===\x27admin\x27&&\(reason\.length<10\|\|reason\.length>500\)/, "Private source documents require a reason for administrator access.");
 assert.match(sourceDocumentApi, /accessAudit\(user\.userId,user\.accountId,action,target\)/, "Private source document access must be audited.");
+assert.match(sourceDocumentApi, /await auditStatement\.run\(\)/, "Source-document audit must commit before the download is returned.");
 assert.match(sourceReviewUi, /sourceAccessReason\.trim\(\)\.length >= 10/, "Administrator source-document access requires an explicit reason in the UI.");
 
 assert.match(fileAccess, /if\(isArchitectFullAccess\(user\)\)/);
