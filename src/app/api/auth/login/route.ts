@@ -36,6 +36,17 @@ export async function POST(request: Request) {
       return json({ error: "Terlalu banyak percobaan. Coba lagi setelah 15 menit." }, 429);
     }
 
+    if (isPhone) {
+      const phoneSchema = await env.DB.prepare(
+        "SELECT count(*) AS total FROM information_schema.columns " +
+        "WHERE table_schema='public' AND table_name='users' " +
+        "AND column_name IN ('login_phone','phone_verified_at')"
+      ).first();
+      if (Number(phoneSchema?.total || 0) < 2) {
+        return json({ error: "Login WhatsApp belum diaktifkan pada server. Silakan masuk menggunakan email akun." }, 503);
+      }
+    }
+
     const internal = isPhone
       ? await env.DB.prepare(
           "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,u.workspace_owner " +
