@@ -53,6 +53,8 @@ test("administrator module center renders the canonical registry separately from
 test("application hub renders the canonical suite and keeps access derived from existing workspace permissions", () => {
   assert.match(hub, /platformApplications/);
   assert.match(hub, /application\.id === "platform-core" \|\| application\.id === "agriculture"/);
+  assert.match(hub, /public-partnership/);
+  assert.match(nav, /href: publicPartnership\.route/);
   assert.match(hub, /Enam aplikasi Srikandi Buana/);
   assert.match(hub, /Belum ditugaskan/);
   assert.match(hub, /kebijakan server/);
