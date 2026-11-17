@@ -52,7 +52,8 @@ assert.match(hub, /platformApplications/);
 assert.match(registry, /platform-core[\s\S]*organization[\s\S]*agriculture[\s\S]*business[\s\S]*bi-analytics[\s\S]*public-partnership/);
 
 for (const id of ["platform-core", "organization", "agriculture", "business", "bi-analytics", "public-partnership"]) {
-  assert.ok(navigation.includes('"' + id + '":'), "Sidebar must define navigation mapping for application " + id);
+  const keyPattern = new RegExp("(?:^|\\n)\\s*(?:\\\"" + id + "\\\"|" + id + "):");
+  assert.match(navigation, keyPattern, "Sidebar must define navigation mapping for application " + id);
 }
 assert.match(navigation, /\.map\(\(application\) => \(\{[\s\S]*?id: application\.id[\s\S]*?items: modulesByApplication\[application\.id\]/,
   "Sidebar must render application groups from the canonical application registry.");
