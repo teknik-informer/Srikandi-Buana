@@ -52,6 +52,8 @@ test("administrator module center renders the canonical registry separately from
 
 test("application hub renders the canonical suite and keeps access derived from existing workspace permissions", () => {
   assert.match(hub, /platformApplications/);
+  assert.match(hub, /canOpenPlatformCore: boolean/);
+  assert.match(hub, /application\.id === "platform-core" \? canOpenPlatformCore/);
   assert.match(hub, /application\.id === "platform-core" \|\| application\.id === "agriculture"/);
   assert.match(hub, /public-partnership/);
   assert.match(nav, /href: publicPartnership\.route/);
@@ -59,6 +61,7 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(hub, /Belum ditugaskan/);
   assert.match(hub, /kebijakan server/);
   assert.match(navigation, /APLIKASI UTAMA/);
+  assert.match(readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8"), /canOpenPlatformCore=\{admin\.role === "admin"/);
   assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /getApplicationLaunches/);
   assert.match(navigation, /features\.some\(\(feature\) => feature\.id === "pertanian"\)/);
