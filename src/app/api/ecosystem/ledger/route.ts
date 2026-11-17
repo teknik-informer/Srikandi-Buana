@@ -7,7 +7,7 @@ import {ensureDefaultLedgerAccounts} from '@/features/finance/record-posting';
 import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
 export const dynamic='force-dynamic';
-const canRead=(role:string)=>['ketua','sekretaris','bendahara'].includes(role),canWrite=(role:string)=>role==='bendahara';
+const canRead=(role:string)=>['admin','ketua','sekretaris','bendahara'].includes(role),canWrite=(role:string)=>role==='admin'||role==='bendahara';
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'accounting'))return json({error:'Aplikasi Accounting sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(!canRead(c.user.role))return json({error:'Akses akuntansi dibatasi.'},403);
  try{
  if(new URL(request.url).searchParams.get('format')==='csv'){
