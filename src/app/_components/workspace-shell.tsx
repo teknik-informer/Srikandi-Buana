@@ -28,12 +28,14 @@ export default function WorkspaceShell({
   title,
   children,
   defaultSidebarOpen = true,
+  qaPreviewEnabled = false,
 }: {
   user: Principal;
   section: string;
   title: string;
   children: ReactNode;
   defaultSidebarOpen?: boolean;
+  qaPreviewEnabled?: boolean;
 }) {
   return (
     <SidebarProvider
@@ -47,7 +49,7 @@ export default function WorkspaceShell({
       <a href="#workspace-content" className="skip-link">
         Langsung ke isi dashboard
       </a>
-      <Navigation user={user} section={section} architectFullAccess={isArchitectFullAccess(user)} />
+      <Navigation user={user} section={section} architectFullAccess={isArchitectFullAccess(user)} qaPreviewEnabled={qaPreviewEnabled} />
       <SidebarInset className="min-w-0 overflow-x-clip">
         <ConnectionStatus />
         <header className="workspace-header">
