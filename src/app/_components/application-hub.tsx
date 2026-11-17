@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  Activity, ArrowUpRight, Building2, ChartNoAxesCombined, Globe2,
+  ArrowUpRight, ChartNoAxesCombined, Globe2,
   Leaf, LockKeyhole, Network, Wallet,
 } from "lucide-react";
 import type { EnterpriseDashboard } from "@/features/enterprise/registry";
