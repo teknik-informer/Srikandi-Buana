@@ -24,6 +24,7 @@
 | Database isolation | Preview is configured for the sanitized QA database, separate from the default Production branch | Preview-only PREVIEW_DATABASE_URL configuration; Neon QA branch br-mute-meadow-b4rhx1mn is non-default and ready. No runtime write test performed. | CONFIGURED; write verification pending |
 | Authenticated UAT | All role and workflow cases below pass | Completed test record | PENDING |
 | Production readiness | No open critical/high defects; migration, backup, secrets, and release approvals complete | Release review | NOT APPROVED |
+| Production schema parity | Platform module registry/access schema exists before deploying code that depends on it | Read-only Neon Production query: migration `020_platform_module_access.sql` absent; `platform_modules`, `workspace_module_settings`, `platform_module_access_grants`, and `platform_module_access_audit` absent | BLOCKED |
 
 ## 3. Public website and authentication
 
@@ -128,4 +129,4 @@ A test is accepted only when its expected result is observed in the Preview envi
 
 ## 11. Release decision
 
-The integration is **not production-approved** until authenticated UAT is complete, the migration plan is separately reviewed and rehearsed on the disposable child branch, backup/restore is verified, and the release owner explicitly approves production deployment.
+The integration is **not production-approved** until authenticated UAT is complete, the migration plan is separately reviewed and rehearsed on the disposable child branch, backup/restore is verified, and the release owner explicitly approves production deployment. The current Production branch has not applied migration 020 and does not contain the four platform module registry/access tables; do not deploy this release to Production until migration 020 is separately reviewed, rehearsed, approved, and applied through the controlled migration process.
