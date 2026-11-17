@@ -24,7 +24,9 @@ assert(registry.includes("getVisibleEnterpriseDashboards(role: Role, fullAccess 
 assert(registry.includes("getVisibleEnterpriseUtilities(role: Role, fullAccess = false)"));
 assert(route.includes("isArchitectFullAccess(admin)"));
 assert(shell.includes("architectFullAccess={user.architectFullAccess === true}"));
-assert(navigation.includes("getVisibleEnterpriseDashboards(user.role, architectFullAccess)"));
+assert(navigation.includes("getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === \"admin\")"));
+assert(registry.includes("isModuleAvailableForUser(user, dashboard.id)"));
+assert(registry.includes("isSectionModuleAvailableForUser(user, feature.id)"));
 assert(navigation.includes("getVisibleEnterpriseUtilities(user.role, architectFullAccess)"));
 assert(center.includes("canReadSection(principal, section)"));
 assert(center.includes("Full Access QA"));
