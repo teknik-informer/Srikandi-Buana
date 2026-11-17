@@ -1,6 +1,7 @@
 import {env} from '@/lib/runtime';
 import {getGovernanceAdminUser} from '../../admin-auth';
-import {canReadRecord,visibleRecord} from '@/lib/permissions';
+import {visibleRecord} from '@/lib/permissions';
+import {canReadRecord} from '@/features/identity/access-policy';
 import {isModuleAvailableForUser} from '@/features/identity/access-policy';
 import {allowedFileIds} from '@/lib/file-access';
 
