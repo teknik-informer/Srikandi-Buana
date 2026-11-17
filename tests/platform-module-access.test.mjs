@@ -116,6 +116,7 @@ test("module availability is enforced by sensitive domain APIs as well as naviga
   assert.match(exportApi, /canReadRecord\(user,record\)/);
   assert.match(exportApi, /isModuleAvailableForUser\(user,\x27crm\x27\)/);
   assert.match(exportApi, /isModuleAvailableForUser\(user,\x27projects\x27\)/);
+  assert.match(exportApi, /isModuleAvailableForUser\(user,\x27cms\x27\)/);
 });
 
 test("platform access schema has a separate workspace setting, user override and append-only audit", () => {
