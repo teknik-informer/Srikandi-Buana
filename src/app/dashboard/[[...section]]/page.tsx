@@ -179,7 +179,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       {active === "notifikasi" ? <NotificationCenter /> : active === "penjualan" ? <CommerceWorkspace role={admin.role} /> : <AccountingWorkspace role={admin.role} />}
     </WorkspaceShell>;
   }
-  if (active === "pesan" && ["ketua", "sekretaris"].includes(admin.role)) {
+  if (active === "pesan" && ["admin", "ketua", "sekretaris"].includes(admin.role) {
     return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Pesan pengunjung" defaultSidebarOpen={defaultSidebarOpen}>
       <Inbox />
     </WorkspaceShell>;
