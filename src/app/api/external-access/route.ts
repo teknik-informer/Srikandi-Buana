@@ -79,6 +79,7 @@ export async function GET() {
   const user = await getGovernanceAdminUser();
   if (!user) return json({ error: "Akses khusus administrator." }, 403);
   if (!isModuleAvailableForUser(user, "crm")) return json({ error: "Aplikasi CRM sedang dinonaktifkan atau diblokir untuk akun ini." }, 403);
+  if (!isModuleAvailableForUser(user, "crm")) return json({ error: "Aplikasi CRM sedang dinonaktifkan atau diblokir untuk akun ini." }, 403);
   if (!env.DB) return json({ error: "Database belum tersedia." }, 503);
   try {
     const [organizations, accounts, grants, auditRows, invitations] = await Promise.all([
