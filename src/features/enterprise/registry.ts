@@ -1,5 +1,5 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
-import { canReadSectionForRole, isModuleAvailableForUser, type Principal, type Role } from "../identity/access-policy";
+import { canReadSectionForRole, isModuleAvailableForUser, isSectionModuleAvailableForUser, type Principal, type Role } from "../identity/access-policy";
 
 export type EnterpriseDashboardId = "hrm" | "accounting" | "crm" | "projects" | "pos" | "analytics";
 export type EnterpriseDashboard = {
@@ -136,6 +136,7 @@ export function getVisibleEnterpriseDashboardsForUser(
       const features = dashboard.features.filter((feature) =>
         feature.id !== "kehadiran"
         && moduleAvailable
+        && isSectionModuleAvailableForUser(user, feature.id)
         && (fullAccess || canReadSectionForRole(user.role, feature.id)),
       );
       const catalogOnly = includeCatalog && user.role === "admin" && !fullAccess;
