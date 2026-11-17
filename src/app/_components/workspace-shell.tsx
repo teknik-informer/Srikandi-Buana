@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { isArchitectFullAccess, type Principal } from "@/lib/permissions";
-import Navigation, { DashboardMegaMenu } from "./dashboard-navigation";
+import Navigation from "./dashboard-navigation";
 import ConnectionStatus from "./connection-status";
 import UnsavedChangesGuard from "./access/unsaved-changes-guard";
 import AccountMenu from "./access/account-menu";
@@ -99,7 +99,6 @@ export default function WorkspaceShell({
             className="workspace-header-actions"
             aria-label="Akun dan tindakan utama"
           >
-            <DashboardMegaMenu section={section} user={user} architectFullAccess={isArchitectFullAccess(user)} compact />
             <NotificationCenter compact />
             <ThemeControl />
             <AccountMenu user={user} />
