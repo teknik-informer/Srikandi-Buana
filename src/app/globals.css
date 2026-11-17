@@ -571,10 +571,10 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5}butto
 .workspace-shell [data-collapsible=icon] .account>div,.workspace-shell [data-collapsible=icon] .account>svg{display:none}
 .workspace-shell [data-collapsible=icon] .sidebar-profile-link{width:38px;height:38px;align-items:center;justify-content:center}
 .workspace-shell [data-collapsible=icon] .sidebar-account-actions{flex-direction:column;align-items:center;gap:7px;margin-top:2px}
-.workspace-shell [data-collapsible=icon] .sidebar-account-actions .sidebar-account-link{display:none}
-.workspace-shell [data-collapsible=icon] .sidebar-account-actions .workspace-logout{width:100%;align-items:center}
-.workspace-shell [data-collapsible=icon] .sidebar-account-actions .workspace-logout>button{width:38px;height:38px;min-width:38px;min-height:38px;padding:0;border:1px solid var(--border);border-radius:10px;background:var(--sidebar);color:var(--muted-foreground)}
-.workspace-shell [data-collapsible=icon] .sidebar-account-actions .workspace-logout>button:hover{background:var(--muted);color:var(--foreground)}
+.workspace-shell [data-collapsible=icon] .sidebar-account-actions .sidebar-account-link{display:flex;width:38px;height:38px;min-height:38px;min-width:38px;padding:0;justify-content:center;border:1px solid var(--border);border-radius:10px;background:var(--sidebar);color:var(--muted-foreground)}
+.workspace-shell [data-collapsible=icon] .sidebar-account-actions .sidebar-account-link span{display:none}
+.workspace-shell [data-collapsible=icon] .sidebar-account-actions .sidebar-account-link:hover{background:var(--muted);color:var(--foreground)}
+
 .workspace-shell [data-collapsible=icon] .sidebar-account-label{display:none}
 @media(max-width:900px){.workspace-global-search{width:clamp(160px,22vw,230px)}.workspace-global-search kbd{display:none}}
 @media(max-width:767px){.workspace-global-search{width:38px;min-width:38px;height:40px;padding:0 10px;border:0;background:transparent}.workspace-global-search input,.workspace-global-search kbd{display:none}.workspace-global-search:focus-within{width:min(48vw,220px);border:1px solid var(--border);background:var(--background)}.workspace-global-search:focus-within input{display:block}.workspace-global-search button{display:none}.workspace-global-search:focus-within button{display:grid}}
