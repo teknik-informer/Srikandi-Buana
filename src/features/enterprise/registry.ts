@@ -34,7 +34,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     href: "/dashboard/hrm",
     label: "HRM · SDM & Keanggotaan",
     description: "Keanggotaan, struktur, presensi, profil, dan administrasi sumber daya manusia.",
-    features: features(["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya", "akun", "pengaturan"]),
+    features: features(["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya", "akun"]),
   },
   {
     id: "accounting",
