@@ -43,6 +43,7 @@ test("Architect Full Access is limited to allowlisted Vercel Preview branches", 
     "feat/architect-identity-console-2026-11-15",
     "implementation/five-app-platform-hub-2026-11-17",
     "architecture/v13-modular-platform-foundation-2026-11-17",
+    "feat/admin-full-access-six-app-sidebar-2026-11-18",
   ];
   for (const branch of branches) {
     assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: branch }), true);
@@ -102,11 +103,17 @@ test("an explicit shell-only grant appears as access-only and does not invent fe
   assert.deepEqual(Array.from(accounting.features), []);
 });
 
-test("a disabled module is omitted from regular navigation, while technical admin remains catalog-only", () => {
+test("a disabled module is omitted for ordinary roles, while system administrator retains full operational access", () => {
   const user = principal("bendahara", { disabledModules: ["accounting"], allowedModules: [], deniedModules: [] });
   assert.ok(!registry.getVisibleEnterpriseDashboardsForUser(user).some((item) => item.id === "accounting"));
-  const admin = registry.getVisibleEnterpriseDashboardsForUser(principal("admin"), false, true);
-  assert.ok(admin.some((item) => item.id === "accounting" && item.catalogOnly === true));
+  const adminUser = principal("admin", { disabledModules: ["accounting"], allowedModules: [], deniedModules: ["accounting"] });
+  const admin = registry.getVisibleEnterpriseDashboardsForUser(adminUser, true, true);
+  const accounting = admin.find((item) => item.id === "accounting");
+  assert.ok(accounting && accounting.features.length > 0);
+  assert.equal(accounting.catalogOnly, false);
+  assert.equal(policy.canReadKind(adminUser, "kas"), true);
+  assert.equal(policy.canWriteKind(adminUser, "kas"), true);
+  assert.equal(policy.canReadSection(adminUser, "akuntansi"), true);
 });
 
 test("Platform Module API requires system admin and carries reason, scope, expiry and audit", () => {
