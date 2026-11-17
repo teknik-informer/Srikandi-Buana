@@ -29,7 +29,7 @@ test("canonical application registry contains exactly six stable top-level appli
 
 test("every canonical application has a grounded route, description, status and domain mapping", () => {
   for (const app of platformApplications) {
-    assert.match(app.route, /^\\/dashboard\\//);
+    assert.match(app.route, /^\/dashboard\//);
     assert.ok(app.description.length > 30);
     assert.ok(["foundation", "partial", "preview"].includes(app.status));
     assert.ok(Array.isArray(app.legacyWorkspaces));
