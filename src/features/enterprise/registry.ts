@@ -1,7 +1,7 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
 import { canReadSectionForRole, type Role } from "../identity/access-policy";
 
-export type EnterpriseDashboardId = "hrm" | "accounting" | "crm" | "projects" | "pos";
+export type EnterpriseDashboardId = "hrm" | "accounting" | "crm" | "projects" | "pos" | "analytics";
 export type EnterpriseDashboard = {
   id: EnterpriseDashboardId;
   href: string;
@@ -23,7 +23,7 @@ function features(ids: readonly string[]): readonly NavItem[] {
 }
 
 /**
- * Five integrated application workspaces. Existing operational routes remain the
+ * Six integrated application workspaces. Existing operational routes remain the
  * source of truth while each application gets its own landing/dashboard route.
  */
 export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
@@ -61,6 +61,13 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     label: "POS · Penjualan",
     description: "Katalog produk, pemesanan, penerimaan komoditas, dan pengelolaan transaksi.",
     features: features(["penjualan", "lotkopi"]),
+  },
+  {
+    id: "analytics",
+    href: "/dashboard/analytics",
+    label: "BI & Analitik",
+    description: "Indikator kinerja, tren kegiatan, distribusi data, dan kualitas informasi berdasarkan kewenangan pengguna.",
+    features: [{ id: "analytics", label: "Dashboard BI & Analitik", description: "Analisis ringkasan, tren, dan kualitas data organisasi sesuai lingkup akses.", href: "/dashboard/analytics" }],
   },
 ];
 
