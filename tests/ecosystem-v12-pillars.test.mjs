@@ -97,7 +97,7 @@ test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", 
 test("menu navigasi memakai label formal dan ringkas", () => {
   const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
-  assert.match(navigation, /WORKSPACE OPERASIONAL/);
+  assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /Cari halaman/);
   assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, architectFullAccess, user\.role === "admin"\)/);
   assert.match(overview, /ACCOUNTING & FINANCE/);
