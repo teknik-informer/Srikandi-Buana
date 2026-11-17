@@ -28,6 +28,7 @@ const secretary={role:'sekretaris'};
 const taskBefore={id:'task-1',kind:'tindaklanjut',data:{name:'Task',status:'Selesai',verification:'Menunggu verifikasi',completionEvidence:'Bukti',reviewNote:'',meetingReviewStatus:'Belum dievaluasi'}};
 const taskAfter={...taskBefore,data:{...taskBefore.data,verification:'Terverifikasi',reviewNote:'Bukti diperiksa'}};
 assert.equal(policy.canReviewFollowup(secretary,taskBefore,taskAfter),true,'Secretariat can verify task outcomes without changing source facts');
+assert.equal(policy.canReviewFollowup({role:'admin'},taskBefore,taskAfter),true,'System administrator can review task outcomes across applications');
 assert.equal(policy.canReviewFollowup(chair,taskBefore,taskAfter),false,'Chair does not approve individual task rows');
 assert.equal(policy.canReviewFollowup(secretary,taskBefore,{...taskAfter,data:{...taskAfter.data,name:'Tampered task'}}),false,'Secretariat cannot rewrite task source data during verification');
 const galleryDraft={id:'gallery-1',kind:'galeri',data:{name:'Gallery',status:'Draf',fileId:'file-1',publicationPermission:'Dikonfirmasi'}};
@@ -53,6 +54,7 @@ assert.equal(chairAttendance.data.notes,undefined,'Chair cannot receive free-tex
 assert.equal(policy.visibleRecord(secretary,transcriptFixture).data.notes,'Nama dan alamat peserta pribadi','Secretariat retains access for source verification');
 const galleryPublished={...galleryDraft,data:{...galleryDraft.data,status:'Terbit'}};
 assert.equal(policy.canPublishRecord(chair,galleryDraft,galleryPublished),true,'Chair can publish an unchanged Secretariat draft');
+assert.equal(policy.canPublishRecord({role:'admin'},galleryDraft,galleryPublished),true,'System administrator can publish an unchanged reviewed draft');
 assert.equal(policy.canPublishRecord(secretary,galleryDraft,galleryPublished),false,'Secretariat cannot publish its own draft');
 assert.equal(policy.canPublishRecord(chair,galleryDraft,{...galleryPublished,data:{...galleryPublished.data,name:'Changed after review'}}),false,'Chair cannot change content while publishing');
 const sourceImportRouteSource=readFileSync('src/app/api/source-import/route.ts','utf8');
