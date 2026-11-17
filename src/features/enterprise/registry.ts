@@ -1,5 +1,5 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
-import { canReadSectionForRole, type Role } from "../identity/access-policy";
+import { canReadSectionForRole, isModuleAvailableForUser, type Principal, type Role } from "../identity/access-policy";
 
 export type EnterpriseDashboardId = "hrm" | "accounting" | "crm" | "projects" | "pos" | "analytics";
 export type EnterpriseDashboard = {
@@ -10,6 +10,8 @@ export type EnterpriseDashboard = {
   features: readonly NavItem[];
   /** True only when a System Administrator is viewing the registered module catalog without operational data access. */
   catalogOnly?: boolean;
+  /** The account may open the module shell, but no business feature permission is inherited. */
+  accessOnly?: boolean;
 };
 
 const legacyFeatures = new Map(dashboardGroups.flatMap((group) => group.items).map((item) => [item.id, item]));
@@ -117,6 +119,37 @@ export function getVisibleEnterpriseDashboards(role: Role, fullAccess = false, i
     })
     .filter((dashboard) => dashboard.features.length > 0 || (includeCatalog && role === "admin"));
 }
+
+/**
+ * Resolve the launch catalog for an authenticated principal.
+ * Explicit module grants affect the application shell only; feature links continue
+ * to be derived from the immutable role policy and record/API authorization.
+ */
+export function getVisibleEnterpriseDashboardsForUser(
+  user: Principal,
+  fullAccess = false,
+  includeCatalog = false,
+) {
+  return enterpriseDashboards
+    .map((dashboard) => {
+      const moduleAvailable = isModuleAvailableForUser(user, dashboard.id);
+      const features = dashboard.features.filter((feature) =>
+        feature.id !== "kehadiran"
+        && moduleAvailable
+        && (fullAccess || canReadSectionForRole(user.role, feature.id)),
+      );
+      const catalogOnly = includeCatalog && user.role === "admin" && !fullAccess;
+      const accessOnly = !catalogOnly
+        && features.length === 0
+        && moduleAvailable
+        && user.moduleAccess?.allowedModules.includes(dashboard.id) === true;
+      return { ...dashboard, features, catalogOnly, accessOnly };
+    })
+    .filter((dashboard) =>
+      dashboard.features.length > 0 || dashboard.accessOnly || dashboard.catalogOnly,
+    );
+}
+
 export function getVisibleEnterpriseUtilities(role: Role, fullAccess = false) {
   if (fullAccess) return enterpriseUtilities;
   return enterpriseUtilities.filter((item) => canReadSectionForRole(role, item.id));
