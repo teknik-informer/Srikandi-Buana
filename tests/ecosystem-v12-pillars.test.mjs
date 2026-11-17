@@ -63,7 +63,11 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   assert.match(navigation, /MENU UTAMA/);
   assert.match(navigation, /Cari halaman/);
   assert.match(navigation, /getVisibleEnterpriseDashboards\(user\.role, architectFullAccess\)/);
-  assert.match(overview, /PELAPORAN/);
+  assert.match(overview, /ACCOUNTING & FINANCE/);
+  assert.match(overview, /HUMAN RESOURCE MANAGEMENT/);
+  assert.match(overview, /CUSTOMER RELATIONSHIP MANAGEMENT/);
+  assert.match(overview, /PROJECT MANAGEMENT/);
+  assert.match(overview, /POINT OF SALE/);
   assert.doesNotMatch(overview, /LANGKAH 0/);
 });
 
