@@ -81,7 +81,6 @@
     "@types/react-dom": "19.2.3",
     "esbuild": "^0.28.2",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.4.5",
     "json-rpc-2.0": "1.7.1",
     "pg-mem": "^3.0.5",
     "raw-body": "3.0.2",
