@@ -15,9 +15,8 @@ const applicationPresentation = {
   "public-partnership": { icon: Globe2, modules: "Publikasi · Mitra · Transparansi", legacy: ["crm"] as const },
 } as const;
 
-export default function ApplicationHub({ dashboards, displayName }: { dashboards: readonly EnterpriseDashboard[]; displayName: string }) {
+export default function ApplicationHub({ dashboards, displayName, canOpenPlatformCore }: { dashboards: readonly EnterpriseDashboard[]; displayName: string; canOpenPlatformCore: boolean }) {
   const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
-  const canOpenPlatformCore = dashboards.some((dashboard) => dashboard.catalogOnly);
   const applications = platformApplications.map((application) => {
     const presentation = applicationPresentation[application.id];
     const matched = presentation.legacy.map((id) => byId.get(id)).filter(Boolean);
