@@ -4,7 +4,6 @@ import { useProfileIdentity } from "@/hooks/use-profile-identity";
 import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
 import BrandLogo from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogClose, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Sidebar,
@@ -45,12 +44,12 @@ import {
   ShoppingBag,
   Search,
   ShieldCheck,
+  Settings,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
-import LogoutButton from "./access/logout-button";
 type ApplicationLaunch = { id: string; label: string; href: string; description: string; Icon: typeof Grid2X2 };
 
 function getApplicationLaunches(user: Principal): ApplicationLaunch[] {
@@ -124,7 +123,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
   useEffect(() => {
     setExpanded(active?.id || "");
   }, [section, active?.id]);
-  const applicationLaunches = getApplicationLaunches(user);
+  const applicationLaunches = getApplicationLaunches(user).filter((application) => !query || (application.label + " " + application.description).toLocaleLowerCase("id-ID").includes(query.toLocaleLowerCase("id-ID")));
   const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
     .map((pillar) => ({
       ...pillar,
@@ -291,9 +290,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
       </SidebarContent>
       <SidebarFooter className="p-4">
         <div className="account">
-          <Link href="/dashboard/akun-saya" className="sidebar-profile-link" title="Buka profil dan pengaturan akun" aria-label="Buka profil akun">
-            <UserAvatar user={identity} className="size-9" />
-          </Link>
+          <UserAvatar user={identity} className="size-9" />
           <div className="min-w-0 flex-1">
             <strong className="block truncate">{identity.displayName || user.email}</strong>
             <small>{user.role === "admin" ? "Administrator Sistem · Akses Penuh" : roles[user.role]}</small>
@@ -302,12 +299,11 @@ export default function DashboardNavigation({ section, user, architectFullAccess
         </div>
         <div className="sidebar-account-actions">
           <Button variant="ghost" asChild className="min-h-11 sidebar-account-link">
-            <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)} title="Akun saya">
-              <ShieldCheck size={16} />
-              <span>Akun saya</span>
+            <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)} title="Pengaturan" aria-label="Pengaturan akun">
+              <Settings size={16} />
+              <span>Pengaturan</span>
             </Link>
           </Button>
-          <LogoutButton compact />
         </div>
       </SidebarFooter>
     </Sidebar>
