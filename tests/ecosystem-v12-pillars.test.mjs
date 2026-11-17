@@ -13,13 +13,13 @@ const permissionCommonjs = { exports: {} };
 vm.runInNewContext(permissionBundle.outputFiles[0].text, { module: permissionCommonjs, exports: permissionCommonjs.exports });
 const permissions = permissionCommonjs.exports;
 const navigationSource = readFileSync("src/lib/navigation-config.ts", "utf8");
-const legacyRouteIds = [...navigationSource.matchAll(/admin\\('([^']+)'/g)].map((match) => match[1]);
+const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((match) => match[1]);
 const assigned = registry.enterpriseDashboards.flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
 const expected = [...legacyRouteIds.filter((id) => id !== "laporan" && id !== "pengaturan"), "laporan", "monitoring", "analytics"];
 
 test("dashboard utama menyediakan enam aplikasi operasional terintegrasi", () => {
   assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos", "analytics"]);
-  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["HRM · SDM & Keanggotaan", "Accounting · Keuangan", "CRM · Relasi & Kemitraan", "Project Management · Program", "POS · Penjualan", "BI · Analitik"]);
+  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["HRM · SDM & Keanggotaan", "Accounting · Keuangan", "CRM · Relasi & Kemitraan", "Project Management · Program", "POS · Penjualan", "BI & Analitik"]);
   for (const dashboard of registry.enterpriseDashboards) {
     assert.equal(dashboard.href, "/dashboard/" + dashboard.id);
     assert.equal(registry.getEnterpriseDashboardById(dashboard.id)?.id, dashboard.id);
@@ -91,10 +91,10 @@ test("System Administrator memiliki enam aplikasi dengan izin operasional penuh"
 test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", () => {
   const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
   const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
-  assert.match(hub, /dashboard\\?\\.catalogOnly/);
+  assert.match(hub, /dashboard\?\.catalogOnly/);
   assert.match(hub, /aplikasi terdaftar/);
-  assert.match(route, /getVisibleEnterpriseDashboardsForUser\\(admin, isArchitectFullAccess\\(admin\\), admin\\.role === "admin"\\)/);
-  assert.match(route, /visibleDashboard\\?\\.catalogOnly/);
+  assert.match(route, /getVisibleEnterpriseDashboardsForUser\(admin, isArchitectFullAccess\(admin\), admin\.role === "admin"\)/);
+  assert.match(route, /visibleDashboard\?\.catalogOnly/);
   assert.match(route, /BusinessIntelligenceWorkspace/);
   assert.match(route, /tidak otomatis memberikan kewenangan/);
 });
@@ -112,10 +112,10 @@ test("menu navigasi memakai label formal dan ringkas serta pencarian header vers
   const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
   assert.match(shell, /DashboardMegaMenu section=/);
   assert.doesNotMatch(shell, /Cari halaman atau modul/);
-  assert.match(navigation, /<span>Pengaturan<\\/span>/);
+  assert.match(navigation, /<span>Pengaturan<\/span>/);
   assert.doesNotMatch(navigation, /LogoutButton/);
   assert.doesNotMatch(navigation, /Pengaturan Website/);
-  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\\(user, fullAccess, includeCatalog\\)/);
+  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, fullAccess, includeCatalog\)/);
   assert.match(overview, /ACCOUNTING & FINANCE/);
   assert.match(overview, /HUMAN RESOURCE MANAGEMENT/);
   assert.match(overview, /CUSTOMER RELATIONSHIP MANAGEMENT/);
