@@ -94,6 +94,11 @@ export function canOpenModule(user: Principal, moduleId: string): boolean {
   return (moduleBaselineSections[moduleId] || []).some((section) => canReadSectionForRole(user.role, section));
 }
 
+export function isSectionModuleAvailableForUser(user: Pick<Principal, "moduleAccess">, sectionId: string): boolean {
+  const moduleId = sectionModuleMap[sectionId];
+  return !moduleId || isModuleAvailableForUser(user, moduleId);
+}
+
 function recordModule(kind: string): string | undefined {
   return recordKindModuleMap[kind];
 }
