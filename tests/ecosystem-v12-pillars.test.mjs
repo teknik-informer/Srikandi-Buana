@@ -46,7 +46,8 @@ test("enam aplikasi memiliki pemetaan modul operasional yang jelas", () => {
 test("pembatasan akses per peran tetap diterapkan", () => {
   const visible = (role) => registry.getVisibleEnterpriseDashboards(role).flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
   const admin = visible("admin");
-  assert.deepEqual([...admin].sort(), ["akun", "akun-saya", "notifikasi", "panduan", "pengaturan", "sumber"].sort());
+  assert.ok(admin.includes("akuntansi") && admin.includes("kas") && admin.includes("penjualan") && admin.includes("analytics"));
+  assert.ok(admin.includes("akun") && admin.includes("pengaturan") && admin.includes("sumber"));
   const member = visible("anggota");
   for (const restricted of ["akun", "pengaturan", "sumber", "pesan", "akuntansi"]) assert.ok(!member.includes(restricted));
   assert.ok(member.includes("portal"));
@@ -60,27 +61,27 @@ test("pembatasan akses per peran tetap diterapkan", () => {
     assert.equal(permissions.canReadSectionForRole(role, "analytics"), true);
     assert.ok(registry.getVisibleEnterpriseDashboards(role).some((dashboard) => dashboard.id === "analytics"));
   }
-  assert.ok(!registry.getVisibleEnterpriseDashboards("admin").some((dashboard) => dashboard.id === "analytics"));
+  assert.ok(registry.getVisibleEnterpriseDashboards("admin").some((dashboard) => dashboard.id === "analytics"));
   assert.ok(!registry.getVisibleEnterpriseDashboards("anggota").some((dashboard) => dashboard.id === "analytics"));
-  assert.equal(permissions.canReadSectionForRole("admin", "analytics"), false);
+  assert.equal(permissions.canReadSectionForRole("admin", "analytics"), true);
   assert.equal(permissions.canReadSectionForRole("anggota", "analytics"), false);
 });
 
-test("katalog System Administrator menampilkan enam modul tanpa memberi izin operasional baru", () => {
-  const catalog = registry.getVisibleEnterpriseDashboards("admin", false, true);
+test("System Administrator memiliki enam aplikasi dengan izin operasional penuh", () => {
+  const catalog = registry.getVisibleEnterpriseDashboards("admin", true, false);
   assert.deepEqual(Array.from(catalog, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos", "analytics"]);
   assert.deepEqual(
-    Array.from(catalog.filter((dashboard) => dashboard.catalogOnly), (dashboard) => dashboard.id),
+    Array.from(catalog.filter((dashboard) => !dashboard.catalogOnly && dashboard.features.length > 0), (dashboard) => dashboard.id),
     ["hrm", "accounting", "crm", "projects", "pos", "analytics"],
-    "All six business workspaces remain catalog entries for the technical administrator",
+    "All six business workspaces are operationally available to the System Administrator",
   );
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseDashboards("admin"), (dashboard) => dashboard.id),
-    ["hrm", "crm", "projects"],
-    "Default navigation remains restricted to assigned features",
+    ["hrm", "accounting", "crm", "projects", "pos", "analytics"],
+    "System Administrator navigation includes all six applications",
   );
-  assert.equal(permissions.canReadSectionForRole("admin", "kas"), false);
-  assert.equal(permissions.canReadSectionForRole("admin", "penjualan"), false);
+  assert.equal(permissions.canReadSectionForRole("admin", "kas"), true);
+  assert.equal(permissions.canReadSectionForRole("admin", "penjualan"), true);
 });
 
 test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", () => {
