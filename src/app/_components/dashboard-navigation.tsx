@@ -115,15 +115,14 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   projects: Grid2X2,
   pos: ShoppingBag,
 };
-export default function DashboardNavigation({ section, user, architectFullAccess = false, qaPreviewEnabled = false }: { section: string; user: Principal; architectFullAccess?: boolean; qaPreviewEnabled?: boolean }) {
+export default function DashboardNavigation({ section, user, architectFullAccess = false, qaPreviewEnabled = false, searchQuery = "" }: { section: string; user: Principal; architectFullAccess?: boolean; qaPreviewEnabled?: boolean; searchQuery?: string }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
-  const [expanded, setExpanded] = useState(active?.id || ""),
-    [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState(active?.id || "");
+  const query = searchQuery.trim();
   useEffect(() => {
     setExpanded(active?.id || "");
-    setQuery("");
   }, [section, active?.id]);
   const applicationLaunches = getApplicationLaunches(user);
   const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
@@ -186,7 +185,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
         </SidebarGroup>
         {applicationLaunches.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>APLIKASI UTAMA</SidebarGroupLabel>
+            <SidebarGroupLabel>APLIKASI TERPADU</SidebarGroupLabel>
             <SidebarMenu>
               {applicationLaunches.map((application) => {
                 const Icon = application.Icon;
@@ -205,27 +204,8 @@ export default function DashboardNavigation({ section, user, architectFullAccess
             </SidebarMenu>
           </SidebarGroup>
         )}
-        <SidebarGroup className="dashboard-menu-search">
-          <label htmlFor="dashboard-menu-query" className="sr-only">
-            Cari menu dashboard
-          </label>
-          <div className="dashboard-nav-search">
-            <Search size={14} />
-            <Input
-              id="dashboard-menu-query"
-              placeholder="Cari halaman…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button aria-label="Hapus pencarian menu" onClick={() => setQuery("")}>
-                <X size={13} />
-              </button>
-            )}
-          </div>
-        </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>MODUL DALAM APLIKASI</SidebarGroupLabel>
+          <SidebarGroupLabel>RUANG KERJA OPERASIONAL</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -312,7 +292,9 @@ export default function DashboardNavigation({ section, user, architectFullAccess
       </SidebarContent>
       <SidebarFooter className="p-4">
         <div className="account">
-          <UserAvatar user={identity} className="size-9" />
+          <Link href="/dashboard/akun-saya" className="sidebar-profile-link" title="Buka profil dan pengaturan akun" aria-label="Buka profil akun">
+            <UserAvatar user={identity} className="size-9" />
+          </Link>
           <div className="min-w-0 flex-1">
             <strong className="block truncate">{identity.displayName || user.email}</strong>
             <small>{user.role === "admin" ? "Administrator Sistem · Akses Penuh" : roles[user.role]}</small>
@@ -320,9 +302,10 @@ export default function DashboardNavigation({ section, user, architectFullAccess
           <ShieldCheck size={17} />
         </div>
         <div className="sidebar-account-actions">
-          <Button variant="ghost" asChild className="min-h-11">
-            <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)}>
-              Akun saya
+          <Button variant="ghost" asChild className="min-h-11 sidebar-account-link">
+            <Link href="/dashboard/akun-saya" onClick={() => setOpenMobile(false)} title="Akun saya">
+              <ShieldCheck size={16} />
+              <span>Akun saya</span>
             </Link>
           </Button>
           <LogoutButton compact />
