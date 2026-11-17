@@ -2,6 +2,9 @@
 import UserAvatar from "./access/user-avatar";
 import { useProfileIdentity } from "@/hooks/use-profile-identity";
 import BrandLogo from "@/components/brand-logo";
+import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
+import { Dialog, DialogClose, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -23,24 +26,66 @@ import { platformApplications } from "@/features/platform/application-registry";
 import { roles, type Principal } from "@/lib/permissions";
 import { getVisibleEnterpriseDashboardsForUser, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
+  Activity,
   ArrowUpRight,
+  BriefcaseBusiness,
   ChevronDown,
   BookOpen,
+  Files,
+  FileText,
   Grid2X2,
+  Layers3,
   LayoutDashboard,
   ChartNoAxesCombined,
   Globe2,
   Leaf,
+  MessagesSquare,
   LockKeyhole,
   Network,
   Search,
+  ShoppingBag,
   ShieldCheck,
   Settings,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+type ApplicationLaunch = { id: string; label: string; href: string; description: string; Icon: typeof Grid2X2 };
+
+function getApplicationLaunches(user: Principal): ApplicationLaunch[] {
+  if (user.role === "admin") {
+    const icons: Record<string, typeof Grid2X2> = {
+      "platform-core": LockKeyhole, organization: Network, agriculture: Leaf,
+      business: Wallet, "bi-analytics": ChartNoAxesCombined, "public-partnership": Globe2,
+    };
+    return platformApplications.map((application) => ({
+      id: application.id, label: application.name, href: application.route,
+      description: application.description, Icon: icons[application.id] ?? Grid2X2,
+    }));
+  }
+  const dashboards = getVisibleEnterpriseDashboardsForUser(user, false, false);
+  const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
+  const utilities = getVisibleEnterpriseUtilities(user.role, false);
+  const launches: ApplicationLaunch[] = [];
+  const core = platformApplications.find((application) => application.id === "platform-core");
+  if (core && utilities.some((item) => item.id === "module-center")) launches.push({ id: core.id, label: core.name, href: core.route, description: core.description, Icon: LockKeyhole });
+  const organization = platformApplications.find((application) => application.id === "organization");
+  if (organization && byId.get("hrm")?.features.length) launches.push({ id: organization.id, label: organization.name, href: organization.route, description: organization.description, Icon: Network });
+  const agriculture = platformApplications.find((application) => application.id === "agriculture");
+  const agricultureWorkspace = byId.get("projects");
+  if (agriculture && agricultureWorkspace?.features.some((feature) => feature.id === "pertanian")) launches.push({ id: agriculture.id, label: agriculture.name, href: agriculture.route, description: agriculture.description, Icon: Leaf });
+  const business = platformApplications.find((application) => application.id === "business");
+  const businessWorkspace = byId.get("accounting")?.features.length ? byId.get("accounting") : byId.get("pos");
+  if (business && businessWorkspace?.features.length) launches.push({ id: business.id, label: business.name, href: businessWorkspace.href, description: business.description, Icon: Wallet });
+  const analytics = platformApplications.find((application) => application.id === "bi-analytics");
+  if (analytics && byId.get("analytics")?.features.length) launches.push({ id: analytics.id, label: analytics.name, href: analytics.route, description: analytics.description, Icon: ChartNoAxesCombined });
+  const publicPartnership = platformApplications.find((application) => application.id === "public-partnership");
+  const publicWorkspace = byId.get("crm");
+  if (publicPartnership && publicWorkspace?.features.some((feature) => ["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"].includes(feature.id))) launches.push({ id: publicPartnership.id, label: publicPartnership.name, href: publicPartnership.route, description: publicPartnership.description, Icon: Globe2 });
+  return launches;
+}
+
 type ApplicationNavigation = {
   id: string;
   label: string;
@@ -232,5 +277,68 @@ export default function DashboardNavigation({ section, user, architectFullAccess
         </div>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+export function DashboardMegaMenu({ section, user, compact = false, architectFullAccess = false }: {
+  section: string; user: Principal; compact?: boolean; architectFullAccess?: boolean;
+}) {
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false), [query, setQuery] = useState("");
+  useEffect(() => { setOpen(false); setQuery(""); }, [section]);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setOpen(true); }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, []);
+  const applicationLaunches = getApplicationLaunches(user).filter((application) =>
+    !query.trim() || (application.label + " " + application.description).toLocaleLowerCase("id-ID").includes(query.trim().toLocaleLowerCase("id-ID")),
+  );
+  const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
+    .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
+    .filter((pillar) => pillar.items.length);
+  const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess).filter((item) => navigationMatches(item, query));
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button variant="ghost" size={compact ? "icon" : "sm"}
+        onClick={() => setOpen(true)}
+        className={compact ? "dashboard-app-menu workspace-icon-button" : "dashboard-app-menu"}
+        aria-label="Cari menu aplikasi" title="Cari menu · Ctrl/⌘ K">
+        <Search data-icon="inline-start" />
+        {!compact && <>Cari menu<kbd>⌘ K</kbd></>}
+      </Button></DialogTrigger>
+      <DialogContent showCloseButton={false} className="workspace-dialog dashboard-mega-dialog sm:max-w-5xl"
+        onOpenAutoFocus={(e) => { e.preventDefault(); searchInput.current?.focus(); }}>
+        <DialogClose className="dashboard-mega-close" aria-label="Tutup menu aplikasi"><X size={18} /></DialogClose>
+        <DialogTitle>Navigasi aplikasi</DialogTitle>
+        <DialogDescription>Pilih modul operasional di dalam enam aplikasi utama: Platform Core, Organization, Agriculture, Business, BI & Analytics, serta Public & Partnership.</DialogDescription>
+        <div className="dashboard-mega-search"><Search size={17} /><Input ref={searchInput} aria-label="Cari fitur aplikasi" value={query}
+          onChange={(e) => setQuery(e.target.value)} placeholder="Cari publikasi, laporan, anggota…" /></div>
+        {applicationLaunches.length > 0 && <section className="dashboard-mega-shortcuts" aria-label="Aplikasi utama">
+          <p>APLIKASI UTAMA</p><div>{applicationLaunches.map((application) => {
+            const Icon = application.Icon; const active = section === application.href.split("/").pop();
+            return <Link href={application.href} key={application.id} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}>
+              <Icon size={17} aria-hidden="true" /><span><strong>{application.label}</strong><small>{application.description}</small></span><ArrowUpRight size={14} />
+            </Link>;
+          })}</div></section>}
+        {utilities.length > 0 && <section className="dashboard-mega-shortcuts" aria-label="Akses cepat">
+          <p>AKSES CEPAT</p><div>{utilities.map((item) => {
+            const Icon = item.id === "monitoring" ? Activity : item.id === "module-center" ? Layers3 : FileText;
+            return <Link href={item.href} key={item.id} onClick={() => setOpen(false)} aria-current={section === item.id ? "page" : undefined}>
+              <Icon size={17} aria-hidden="true" /><span><strong>{item.label}</strong><small>{item.description}</small></span><ArrowUpRight size={14} />
+            </Link>;
+          })}</div></section>}
+        <div className="dashboard-mega-grid">{groups.map((g) => <section key={g.id}>
+          <h3><Link href={g.href} onClick={() => setOpen(false)}>{g.label}</Link></h3><p>{g.description}</p>
+          {g.items.filter((item) => item.href !== g.href).map((item) => <Link href={item.href} key={item.id} onClick={() => setOpen(false)} aria-current={section === item.id ? "page" : undefined}>
+            <span><strong>{user.role === "anggota" && item.id === "anggota" ? "Data saya" : item.label}</strong><small>{item.description}</small></span><ArrowUpRight size={14} />
+          </Link>)}
+        </section>)}</div>
+        {!groups.length && <div className="dashboard-nav-empty"><p>Fitur belum ditemukan. Coba kata lain.</p></div>}
+        <div className="dashboard-mega-footer"><Link href="/dashboard/panduan" onClick={() => setOpen(false)}><BookOpen size={14} /> Pusat Bantuan</Link>
+          <Link href="/dashboard" onClick={() => setOpen(false)}>Kembali ke Pusat Kendali</Link><span>Ctrl / ⌘ K · Esc untuk menutup</span></div>
+      </DialogContent>
+    </Dialog>
   );
 }
