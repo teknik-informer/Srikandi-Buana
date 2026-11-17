@@ -37,7 +37,7 @@ export async function GET(){
    }),
    files:files.results.filter(file=>fileIds.has(String(file.id))).map(file=>({id:String(file.id),name:"Lampiran",mime:String(file.mime),size:Number(file.size),created:String(file.created)})),
    messageSummary:isModuleAvailableForUser(user,'crm')?messageSummary.results.map(row=>({status:String(row.status||'Belum diklasifikasikan'),count:Number(row.count||0)})):[],
-   settings:settings.results.map(row=>({...row,data:JSON.parse(String(row.data))})),
+   settings:isModuleAvailableForUser(user,'cms')?settings.results.map(row=>({...row,data:JSON.parse(String(row.data))})):[],
    operationSummary:isModuleAvailableForUser(user,'projects')?operationSummary.results.map(row=>({category:String(row.category),status:String(row.status),count:Number(row.count||0)})):[],
    operationHistorySummary:isModuleAvailableForUser(user,'projects')?operationHistorySummary.results.map(row=>({action:String(row.action),count:Number(row.count||0)})):[],
    catatan:'Ekspor JSON dasar terbatas untuk Ketua; record mengikuti masking field, dan draf pengajuan pribadi akun lain tidak disertakan. Berisi record JSON, metadata file yang diizinkan, ringkasan jumlah pesan per status tanpa identitas atau isi pesan mentah, pengaturan, ringkasan pengajuan operasional per kategori/status, dan ringkasan tindakan histori tanpa nama pengaju, nama pelaksana, atau catatan bebas. Tidak mencakup isi biner lampiran, buku besar/jurnal terstruktur, katalog dan pesanan terstruktur, tabel pertanian terstruktur, grant eksternal, atau seluruh state penyimpanan. Bukan backup penuh untuk pemulihan dan bukan paket laporan eksternal yang telah disahkan.'
