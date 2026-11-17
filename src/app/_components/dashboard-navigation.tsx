@@ -4,6 +4,7 @@ import { useProfileIdentity } from "@/hooks/use-profile-identity";
 import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
 import BrandLogo from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogClose, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Sidebar,
@@ -265,7 +266,6 @@ export default function DashboardNavigation({ section, user, architectFullAccess
             <div className="dashboard-nav-empty">
               <Search size={20} />
               <p>Menu belum ditemukan.</p>
-              <button onClick={() => setQuery("")}>Tampilkan semua kategori</button>
             </div>
           )}
         </SidebarGroup>
