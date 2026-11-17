@@ -47,7 +47,7 @@ test("module visibility is derived from the current server policy and keeps tech
   assert.equal(access("accounting", "admin")?.allowed, false);
   assert.equal(access("accounting", "bendahara")?.allowed, true);
   assert.equal(access("projects", "koordinator")?.allowed, true);
-  assert.equal(access("projects", "anggota")?.allowed, false);
+  assert.equal(access("projects", "anggota")?.allowed, true, "Members can read the member-facing activity feature within Project Management");
 });
 
 test("System Administrator alone can view the Platform Module Center", () => {
@@ -64,7 +64,7 @@ test("Platform Module Center is routed through authenticated dashboard and has n
   assert.match(routes, /PlatformModuleCenter/);
   assert.match(routes, /active === "module-center"/);
   assert.match(nav, /Layers3/);
-  assert.match(center, /Belum menjadi editor izin/);
+  assert.match(center, /belum menjadi editor izin/i);
   assert.match(center, /belum memiliki tabel khusus module_registry atau role_grants/);
   assert.doesNotMatch(center, /onClick=\{.*?(Aktifkan|Nonaktifkan|Beri hak)/s);
 });
