@@ -20,6 +20,8 @@ const productsApi = read("src/app/api/ecosystem/products/route.ts");
 const stockApi = read("src/app/api/ecosystem/stock-history/route.ts");
 const adminAuth = read("src/app/admin-auth.ts");
 const messagesApi = read("src/app/api/messages/route.ts");
+const sourceDocumentApi = read("src/app/api/source-document/route.ts");
+const sourceReviewUi = read("src/app/_components/source-review.tsx");
 
 assert.match(auth, /process\.env\.ADMIN_EMAIL/);
 assert.match(auth, /user\.owner_role!=='admin'/);
@@ -75,6 +77,10 @@ assert.match(productsApi, /c\.user\.role!=='bendahara'&&c\.user\.role!=='admin'/
 assert.match(stockApi, /\['admin','ketua','bendahara'\]\.includes\(c\.user\.role\)/);
 assert.match(adminAuth, /return u&&\['admin','ketua','sekretaris'\]\.includes\(u\.role\)\?u:null/);
 assert.match(messagesApi, /getMessageManagerUser/);
+assert.match(sourceDocumentApi, /user\.role===\x27admin\x27&&\(reason\.length<10\|\|reason\.length>500\)/, "Private source documents require a reason for administrator access.");
+assert.match(sourceDocumentApi, /accessAudit\(user\.userId,user\.accountId,action,target\)/, "Private source document access must be audited.");
+assert.match(sourceReviewUi, /sourceAccessReason\.trim\(\)\.length >= 10/, "Administrator source-document access requires an explicit reason in the UI.");
+
 assert.match(fileAccess, /if\(isArchitectFullAccess\(user\)\)/);
 assert.match(fileApi, /file\.uploader_id!==user\.accountId&&!isArchitectFullAccess\(user\)/,
   "Only the authenticated root administrator may manage another uploader's file.");
