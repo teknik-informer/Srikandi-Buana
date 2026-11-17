@@ -52,10 +52,10 @@ assert.match(hub, /platformApplications/);
 assert.match(registry, /platform-core[\s\S]*organization[\s\S]*agriculture[\s\S]*business[\s\S]*bi-analytics[\s\S]*public-partnership/);
 
 for (const id of ["platform-core", "organization", "agriculture", "business", "bi-analytics", "public-partnership"]) {
-  assert.ok(navigation.includes('application.id === "' + id + '"') ||
-    navigation.includes('application.id === "' + id.replace("bi-analytics", "bi-analytics") + '"'),
-    "Sidebar must explicitly map application " + id);
+  assert.ok(navigation.includes('"' + id + '":'), "Sidebar must define navigation mapping for application " + id);
 }
+assert.match(navigation, /\.map\(\(application\) => \(\{[\s\S]*?id: application\.id[\s\S]*?items: modulesByApplication\[application\.id\]/,
+  "Sidebar must render application groups from the canonical application registry.");
 
 assert.match(policy, /\["admin", "sekretaris"\]\.includes\(user\.role\)/, "System administrator may review task outcomes.");
 assert.match(policy, /\["admin", "ketua"\]\.includes\(user\.role\)/, "System administrator may publish reviewed content.");
