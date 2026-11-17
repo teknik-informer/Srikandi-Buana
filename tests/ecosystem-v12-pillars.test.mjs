@@ -17,9 +17,9 @@ const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((
 const assigned = registry.enterpriseDashboards.flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
 const expected = [...legacyRouteIds.filter((id) => id !== "laporan"), "laporan", "monitoring"];
 
-test("dashboard utama disederhanakan menjadi empat area kerja", () => {
-  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["ecosystem", "publication", "finance", "system"]);
-  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["Organisasi", "Publikasi", "Pelaporan", "Administrasi"]);
+test("dashboard utama menyediakan lima aplikasi operasional terintegrasi", () => {
+  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos"]);
+  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["HRM · SDM & Keanggotaan", "Accounting · Keuangan", "CRM · Relasi & Kemitraan", "Project Management · Program", "POS · Penjualan"]);
   for (const dashboard of registry.enterpriseDashboards) {
     assert.equal(dashboard.href, "/dashboard/" + dashboard.id);
     assert.equal(registry.getEnterpriseDashboardById(dashboard.id)?.id, dashboard.id);
@@ -33,12 +33,13 @@ test("seluruh rute fitur lama tetap tersedia tepat satu kali", () => {
   assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
 });
 
-test("publikasi dan pelaporan memiliki akses yang jelas", () => {
-  const ids = (area) => Array.from(registry.enterpriseDashboards.find((dashboard) => dashboard.id === area).features, (feature) => feature.id);
-  assert.deepEqual(ids("publication"), ["publikasi", "galeri", "pesan"]);
-  assert.deepEqual(ids("finance"), ["kas", "laporan", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]);
-  assert.ok(ids("ecosystem").includes("laporan_program"));
-  assert.ok(ids("system").includes("panduan"));
+test("lima aplikasi memiliki pemetaan modul operasional yang jelas", () => {
+  const ids = (app) => Array.from(registry.enterpriseDashboards.find((dashboard) => dashboard.id === app).features, (feature) => feature.id);
+  assert.ok(ids("hrm").includes("anggota") && ids("hrm").includes("presensi"));
+  assert.ok(ids("accounting").includes("kas") && ids("accounting").includes("akuntansi"));
+  assert.ok(ids("crm").includes("kemitraan") && ids("crm").includes("pesan"));
+  assert.ok(ids("projects").includes("program") && ids("projects").includes("tindaklanjut"));
+  assert.ok(ids("pos").includes("penjualan") && ids("pos").includes("lotkopi"));
 });
 
 test("pembatasan akses per peran tetap diterapkan", () => {
