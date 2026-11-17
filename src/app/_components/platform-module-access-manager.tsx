@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AlertCircle, CheckCircle2, Clock3, KeyRound, RefreshCw, ShieldCheck, ToggleLeft, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -147,7 +147,7 @@ export default function PlatformModuleAccessManager() {
     setModuleReasons((current) => ({ ...current, [module.id]: "" }));
   }
 
-  function saveUserAccess(event: React.FormEvent<HTMLFormElement>) {
+  function saveUserAccess(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!targetUser || !targetModule) {
       setError("Pilih akun dan aplikasi terlebih dahulu.");
