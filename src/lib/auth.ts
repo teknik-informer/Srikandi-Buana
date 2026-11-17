@@ -4,6 +4,7 @@ import {createHash,randomBytes} from 'node:crypto';
 import {env} from './runtime';
 import {roles,type Principal,type Role} from './permissions';
 import type { ModuleAccessState } from '@/features/identity/access-policy';
+import { isArchitectQaPreview } from '../features/shared/qa-preview.mjs';
 import {sessionCookie} from "./session-config";
 export {sessionCookie} from "./session-config";
 export const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
@@ -41,6 +42,6 @@ export async function getAuthenticatedUser():Promise<Principal|null>{
   moduleAccess = undefined;
  }
  const profile=await getAccountProfile(String(user.workspace_owner),String(user.id));
- return {accountId:String(user.id),userId:String(user.workspace_owner),email:String(user.email),displayName:profile.displayName||String(user.full_name),avatarUrl:profile.avatarUrl,fullName:String(user.full_name),role:user.role as Role,memberId:user.member_id?String(user.member_id):null,position:String(user.position||''),programIds,moduleAccess,architectFullAccess:user.role === "admin" && process.env.VERCEL_ENV === "preview" && process.env.VERCEL_GIT_COMMIT_REF === "implementation/five-app-platform-hub-2026-11-17"};
+ return {accountId:String(user.id),userId:String(user.workspace_owner),email:String(user.email),displayName:profile.displayName||String(user.full_name),avatarUrl:profile.avatarUrl,fullName:String(user.full_name),role:user.role as Role,memberId:user.member_id?String(user.member_id):null,position:String(user.position||''),programIds,moduleAccess,architectFullAccess:user.role === "admin" && isArchitectQaPreview(process.env)};
 }
 export async function createSession(userId:string,remember:boolean){if(!env.DB)throw Error('Database belum tersedia.');const token=randomBytes(32).toString('base64url'),maxAge=remember?30*86400:8*3600;await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires,created) VALUES(?,?,?,?)').bind(digest(token),userId,new Date(Date.now()+maxAge*1000).toISOString(),new Date().toISOString()).run();const jar=await cookies();jar.set(sessionCookie,token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge});return token}
