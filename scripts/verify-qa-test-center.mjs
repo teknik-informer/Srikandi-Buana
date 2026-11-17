@@ -7,15 +7,15 @@ const center = readFileSync("src/app/_components/architect-qa-test-center.tsx", 
 const policy = readFileSync("src/features/identity/access-policy.ts", "utf8");
 
 assert(route.includes('"qa-test-center"'), "QA Test Center route must be registered");
-assert(route.includes('if (admin.role !== "admin") return notFound()'), "QA Test Center must be restricted to the technical administrator");
+assert(route.includes('if (admin.role !== "admin" || !isArchitectQaPreview(process.env)) return notFound()'), "QA Test Center must be restricted to the technical administrator on approved Preview deployments");
 assert(route.includes("<ArchitectQaTestCenter user={admin} />"), "QA route must render the inspector");
-assert(navigation.includes('user.role === "admin"'), "QA navigation must be inside the admin-only shortcut");
+assert(navigation.includes('user.role === "admin" && qaPreviewEnabled'), "QA navigation must be restricted to admin users on approved Preview deployments");
 assert(navigation.includes('/dashboard/qa-test-center'), "QA navigation destination must exist");
 assert(center.includes("canReadSection") && center.includes("canReadKind") && center.includes("canWriteKind"), "Inspector must derive matrix from user-aware active access policy functions");
 assert(center.includes("Full Access QA") && center.includes("Preview QA"), "Inspector must explain the isolated architect QA full-access mode");
 assert(center.includes("Menunggu uji langsung"), "Policy inspection must be distinguished from live account testing");
 assert(center.includes('href="/dashboard/akun"'), "Account testing shortcut must open account management, not website settings");
 assert(center.includes("Wakil Ketua/Wakil Sekretaris/Wakil Bendahara"), "Deputy positions must not be represented as already-approved access profiles");
-assert(policy.includes('if (role === "admin") return false'), "Role-only production policy must keep technical administrator excluded");
-assert(policy.includes("isArchitectFullAccess"), "Preview-only full access must be a separate user-aware capability");
+assert(route.includes('qaPreviewEnabled={isArchitectQaPreview(process.env)}'), "Preview-only QA visibility must be passed from the server");
+assert(policy.includes('return user.role === "admin"'), "Administrator Sistem must retain full application authority in every deployment environment");
 console.log("PASS QA Test Center: admin-only route, admin-only navigation, live policy matrix, no impersonation, and deputy-profile guard.");
