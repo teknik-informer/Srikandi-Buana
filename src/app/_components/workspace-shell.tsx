@@ -24,7 +24,7 @@ import ThemeControl from "./access/theme-control";
 import NotificationCenter from "./notification-center";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 export default function WorkspaceShell({
   user,
   section,
@@ -41,6 +41,17 @@ export default function WorkspaceShell({
   qaPreviewEnabled?: boolean;
 }) {
   const [navigationQuery, setNavigationQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
   return (
     <SidebarProvider
       defaultOpen={defaultSidebarOpen}
@@ -91,7 +102,7 @@ export default function WorkspaceShell({
           </div>
           <div className="workspace-global-search" role="search">
             <Search size={16} aria-hidden="true" />
-            <Input aria-label="Cari menu aplikasi" placeholder="Cari halaman atau modul…" value={navigationQuery} onChange={(event) => setNavigationQuery(event.target.value)} />
+            <Input ref={searchInputRef} aria-label="Cari menu aplikasi" placeholder="Cari halaman atau modul…" value={navigationQuery} onChange={(event) => setNavigationQuery(event.target.value)} />
             {navigationQuery && <button type="button" aria-label="Hapus pencarian" onClick={() => setNavigationQuery("")}><X size={14} /></button>}
             <kbd>⌘ K</kbd>
           </div>
