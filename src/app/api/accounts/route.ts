@@ -4,9 +4,10 @@ import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
 import {sendAccountEmail} from '@/lib/account-mailer';
 import {normalizeIndonesianMobilePhone} from '@/lib/phone';
+import {isArchitectQaPreview} from '@/features/shared/qa-preview.mjs';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
-const qaPreview=()=>process.env.VERCEL_ENV==='preview'&&process.env.VERCEL_GIT_COMMIT_REF==='feat/architect-identity-console-2026-11-15';
+const qaPreview=()=>isArchitectQaPreview(process.env);
 export async function GET(){
  const u=await getAuthenticatedUser();
  if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus pengelola akun.'},403);
