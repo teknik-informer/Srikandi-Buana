@@ -5,7 +5,6 @@ import { WorkspaceDialogContent as DialogContent } from "./workspace-dialog";
 import BrandLogo from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   Sidebar,
   SidebarContent,
