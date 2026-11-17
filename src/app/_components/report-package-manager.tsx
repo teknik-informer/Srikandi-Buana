@@ -124,12 +124,12 @@ export default function ReportPackageManager({user}:{user:Principal}){
      </div>}
      {pkg.verification_note&&<p className="text-sm text-muted-foreground">Catatan verifikasi: {pkg.verification_note}</p>}
      {pkg.approval_note&&<p className="text-sm text-muted-foreground">Catatan persetujuan: {pkg.approval_note}</p>}
-     {((canVerify(user.role,pkg.group_id)&&pkg.status==="draft"&&pkg.created_by!==user.accountId)||((user.role==="ketua"||user.role==="admin")&&pkg.status==="verified"&&pkg.created_by!==user.accountId&&pkg.verified_by!==user.accountId&&pkg.verified_by!==user.accountId))&&<div className="space-y-2 border-t pt-3">
+     {((canVerify(user.role,pkg.group_id)&&pkg.status==="draft"&&pkg.created_by!==user.accountId)||((user.role==="ketua"||user.role==="admin")&&pkg.status==="verified"&&pkg.created_by!==user.accountId&&pkg.verified_by!==user.accountId))&&<div className="space-y-2 border-t pt-3">
       <Label htmlFor={"package-note-"+pkg.id}>{user.role==="admin"?"Catatan keputusan Administrator Sistem":user.role==="ketua"?"Catatan keputusan Ketua":"Catatan verifikasi domain"}</Label>
       <Input id={"package-note-"+pkg.id} value={notes[pkg.id]||""} onChange={e=>setNotes(current=>({...current,[pkg.id]:e.target.value}))} maxLength={2000} placeholder="Tuliskan hasil pemeriksaan atau alasan keputusan"/>
       <div className="flex flex-wrap gap-2">
        {canVerify(user.role,pkg.group_id)&&pkg.status==="draft"&&<Button size="sm" onClick={()=>void transition(pkg,"verify")} disabled={busy}>Verifikasi domain</Button>}
-       {(user.role==="ketua"||user.role==="admin")&&pkg.status==="verified"&&pkg.created_by!==user.accountId&&<><Button size="sm" onClick={()=>void transition(pkg,"approve")} disabled={busy}>Setujui paket</Button><Button size="sm" variant="outline" onClick={()=>void transition(pkg,"reject")} disabled={busy}>Tolak paket</Button></>}
+       {(user.role==="ketua"||user.role==="admin")&&pkg.status==="verified"&&pkg.created_by!==user.accountId&&pkg.verified_by!==user.accountId&&<><Button size="sm" onClick={()=>void transition(pkg,"approve")} disabled={busy}>Setujui paket</Button><Button size="sm" variant="outline" onClick={()=>void transition(pkg,"reject")} disabled={busy}>Tolak paket</Button></>}
       </div>
      </div>}
     </CardContent>
