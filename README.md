@@ -35,6 +35,10 @@ Pembuatan tabel memerlukan migrasi tambahan `005_ecosystem_foundation.sql` dan `
 
 Baseline arsitektur enam aplikasi—Platform Core, Organization, Agriculture, Business & Enterprise, BI & Analytics, serta Public & Partnership—tersedia pada [`docs/MASTER_APPLICATION_ARCHITECTURE_v1.md`](docs/MASTER_APPLICATION_ARCHITECTURE_v1.md). Dokumen ini menetapkan batas domain, sumber kebenaran data, integrasi, akses, standar UX, tahapan implementasi, dan kriteria penerimaan. Statusnya adalah baseline arsitektur/review draft, bukan pengesahan kebijakan organisasi.
 
+## Audit implementasi enam aplikasi v1.0
+
+Kondisi aktual repositori, pemetaan workspace lama ke enam aplikasi target, bukti teknis, risiko lintas domain, dan prioritas perbaikan dicatat pada [`docs/IMPLEMENTATION_AUDIT_MATRIX_v1.md`](docs/IMPLEMENTATION_AUDIT_MATRIX_v1.md). Audit ini bersifat statis; UAT browser terautentikasi, rekonsiliasi database, dan pemeriksaan Production tetap merupakan gerbang terpisah.
+
 ## Rilis v13
 
 Fondasi platform modular v13 dan persyaratan keselamatan rilis didokumentasikan pada [`docs/RELEASE_v13.md`](docs/RELEASE_v13.md). **Jangan mempromosikan Preview ke Production sebelum UAT terautentikasi, rekonsiliasi ledger, backup, dan persetujuan rilis selesai.**
