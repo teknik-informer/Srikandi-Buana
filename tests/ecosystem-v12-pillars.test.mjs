@@ -62,9 +62,9 @@ test("katalog System Administrator menampilkan lima modul tanpa memberi izin ope
   assert.deepEqual(Array.from(catalog, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos"]);
   assert.deepEqual(
     Array.from(catalog.filter((dashboard) => dashboard.catalogOnly), (dashboard) => dashboard.id),
-    ["accounting", "pos"],
+    ["hrm", "accounting", "crm", "projects", "pos"],
+    "All five business workspaces remain catalog entries for the technical administrator",
   );
-  assert.ok(catalog.filter((dashboard) => !dashboard.catalogOnly).every((dashboard) => dashboard.features.length > 0));
   assert.deepEqual(
     Array.from(registry.getVisibleEnterpriseDashboards("admin"), (dashboard) => dashboard.id),
     ["hrm", "crm", "projects"],
