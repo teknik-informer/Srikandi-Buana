@@ -54,6 +54,25 @@ import LogoutButton from "./access/logout-button";
 type ApplicationLaunch = { id: string; label: string; href: string; description: string; Icon: typeof Grid2X2 };
 
 function getApplicationLaunches(user: Principal, architectFullAccess: boolean): ApplicationLaunch[] {
+  // The verified root Administrator Sistem always sees the complete canonical app catalog,
+  // even when a module is disabled for ordinary workspace roles or has no legacy feature list.
+  if (user.role === "admin") {
+    const icons: Record<string, typeof Grid2X2> = {
+      "platform-core": LockKeyhole,
+      organization: Network,
+      agriculture: Leaf,
+      business: Wallet,
+      "bi-analytics": ChartNoAxesCombined,
+      "public-partnership": Globe2,
+    };
+    return platformApplications.map((application) => ({
+      id: application.id,
+      label: application.name,
+      href: application.route,
+      description: application.description,
+      Icon: icons[application.id] ?? Grid2X2,
+    }));
+  }
   const dashboards = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin");
   const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
   const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess);
