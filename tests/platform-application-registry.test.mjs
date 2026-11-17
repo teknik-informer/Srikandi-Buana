@@ -15,6 +15,8 @@ const commonjs = { exports: {} };
 vm.runInNewContext(bundle.outputFiles[0].text, { module: commonjs, exports: commonjs.exports });
 const { platformApplications, platformApplicationIds } = commonjs.exports;
 const center = readFileSync("src/app/_components/platform-module-center.tsx", "utf8");
+const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
+const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
 
 test("canonical application registry contains exactly six stable top-level applications", () => {
   assert.equal(platformApplications.length, 6);
@@ -46,4 +48,13 @@ test("administrator module center renders the canonical registry separately from
   assert.match(center, /platformApplications/);
   assert.match(center, /canonical-applications-title/);
   assert.match(center, /Registri enam aplikasi utama/);
+});
+
+test("application hub renders the canonical suite and keeps access derived from existing workspace permissions", () => {
+  assert.match(hub, /platformApplications/);
+  assert.match(hub, /Enam aplikasi Srikandi Buana/);
+  assert.match(hub, /Belum ditugaskan/);
+  assert.match(hub, /kebijakan server/);
+  assert.match(navigation, /WORKSPACE OPERASIONAL/);
+  assert.match(navigation, /enam aplikasi utama/);
 });
