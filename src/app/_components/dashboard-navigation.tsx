@@ -143,9 +143,29 @@ export default function DashboardNavigation({ section, user, architectFullAccess
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader className="workspace-sidebar-brand p-5">
-        <Link href="/dashboard" aria-label="Srikandi Buana beranda">
+        <Link href="/dashboard" aria-label="Srikandi Buana beranda" className="workspace-sidebar-brand-link">
           <BrandLogo />
         </Link>
+        <div className="dashboard-menu-search">
+          <label htmlFor="dashboard-menu-query" className="sr-only">
+            Cari menu dashboard
+          </label>
+          <div className="dashboard-nav-search">
+            <Search size={14} aria-hidden="true" />
+            <Input
+              id="dashboard-menu-query"
+              placeholder="Cari halaman…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Cari halaman dashboard"
+            />
+            {query && (
+              <button type="button" aria-label="Hapus pencarian menu" onClick={() => setQuery("")}>
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        </div>
         {isMobile && (
           <Button
             variant="ghost"
@@ -205,27 +225,8 @@ export default function DashboardNavigation({ section, user, architectFullAccess
             </SidebarMenu>
           </SidebarGroup>
         )}
-        <SidebarGroup className="dashboard-menu-search">
-          <label htmlFor="dashboard-menu-query" className="sr-only">
-            Cari menu dashboard
-          </label>
-          <div className="dashboard-nav-search">
-            <Search size={14} />
-            <Input
-              id="dashboard-menu-query"
-              placeholder="Cari halaman…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button aria-label="Hapus pencarian menu" onClick={() => setQuery("")}>
-                <X size={13} />
-              </button>
-            )}
-          </div>
-        </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>MODUL DALAM APLIKASI</SidebarGroupLabel>
+          <SidebarGroupLabel>MODUL OPERASIONAL</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -310,7 +311,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
           )}
         </div>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="workspace-sidebar-footer p-4">
         <div className="account">
           <UserAvatar user={identity} className="size-9" />
           <div className="min-w-0 flex-1">
