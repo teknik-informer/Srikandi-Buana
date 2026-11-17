@@ -57,7 +57,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   const defaultSidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   const active = section?.[0] || "ringkasan";
   if (active === "qa-members") {
-    if (admin.role !== "admin" || process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== "implementation/five-app-platform-hub-2026-11-17") return notFound();
+    if (admin.role !== "admin" || admin.architectFullAccess !== true) return notFound();
     return <WorkspaceShell user={admin} section={active} title="Laboratorium Anggota QA" defaultSidebarOpen={defaultSidebarOpen}><QaMemberLab /></WorkspaceShell>;
   }
   if (active === "qa-test-center") {
