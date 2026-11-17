@@ -15,7 +15,7 @@ const permissions = permissionCommonjs.exports;
 const navigationSource = readFileSync("src/lib/navigation-config.ts", "utf8");
 const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((match) => match[1]);
 const assigned = registry.enterpriseDashboards.flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
-const expected = [...legacyRouteIds.filter((id) => id !== "laporan"), "laporan", "monitoring", "analytics"];
+const expected = [...legacyRouteIds.filter((id) => id !== "laporan" && id !== "pengaturan"), "laporan", "monitoring", "analytics"];
 
 test("dashboard utama menyediakan enam aplikasi operasional terintegrasi", () => {
   assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["hrm", "accounting", "crm", "projects", "pos", "analytics"]);
@@ -26,7 +26,9 @@ test("dashboard utama menyediakan enam aplikasi operasional terintegrasi", () =>
   }
 });
 
-test("seluruh rute fitur lama dan BI tetap tersedia tepat satu kali", () => {
+test("seluruh rute fitur lama dan BI tetap tersedia tepat satu kali, sementara pengaturan situs tidak menjadi modul sidebar", () => {
+  assert.ok(legacyRouteIds.includes("pengaturan"), "the legacy site settings route identifier remains registered");
+  assert.ok(!assigned.includes("pengaturan"), "site settings is excluded from visible operational navigation");
   assert.equal(new Set(assigned).size, assigned.length);
   assert.equal(new Set(registry.dashboardSectionIds).size, registry.dashboardSectionIds.length);
   assert.deepEqual([...assigned].sort(), [...expected].filter((id) => id !== "monitoring").sort());
@@ -47,12 +49,14 @@ test("pembatasan akses per peran tetap diterapkan", () => {
   const visible = (role) => registry.getVisibleEnterpriseDashboards(role).flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
   const admin = visible("admin");
   assert.ok(admin.includes("akuntansi") && admin.includes("kas") && admin.includes("penjualan") && admin.includes("analytics"));
-  assert.ok(admin.includes("akun") && admin.includes("pengaturan") && admin.includes("sumber"));
+  assert.ok(admin.includes("akun") && admin.includes("sumber"));
+  assert.ok(!admin.includes("pengaturan"), "Pengaturan Website is not a navigation feature");
   const member = visible("anggota");
   for (const restricted of ["akun", "pengaturan", "sumber", "pesan", "akuntansi"]) assert.ok(!member.includes(restricted));
   assert.ok(member.includes("portal"));
   assert.ok(member.includes("akun-saya"));
   assert.equal(permissions.canReadSectionForRole("admin", "akun"), true);
+  assert.equal(permissions.canReadSectionForRole("admin", "pengaturan"), true, "Hiding the site settings menu does not revoke the administrator route permission");
   assert.equal(permissions.canReadSectionForRole("anggota", "akun"), false);
   assert.equal(permissions.canReadSectionForRole("anggota", "laporan"), false);
   assert.equal(permissions.canReadSectionForRole("sekretaris", "laporan"), true);
@@ -95,12 +99,23 @@ test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", 
   assert.match(route, /tidak otomatis memberikan kewenangan/);
 });
 
-test("menu navigasi memakai label formal dan ringkas", () => {
+test("menu navigasi memakai label formal dan ringkas serta pencarian header versi lama", () => {
   const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
-  assert.match(navigation, /MODUL DALAM APLIKASI/);
-  assert.match(navigation, /Cari halaman/);
-  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, architectFullAccess, user\.role === "admin"\)/);
+  assert.match(navigation, /APLIKASI TERPADU/);
+  assert.doesNotMatch(navigation, /RUANG KERJA OPERASIONAL/);
+  assert.match(navigation, /modulesByApplication/);
+  assert.doesNotMatch(navigation, /MODUL DALAM APLIKASI/);
+  assert.doesNotMatch(navigation, /dashboard-menu-query/);
+  assert.match(navigation, /aria-label="Cari fitur aplikasi"/);
+  assert.match(navigation, /placeholder="Cari publikasi, laporan, anggota/);
+  const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
+  assert.match(shell, /DashboardMegaMenu section=/);
+  assert.doesNotMatch(shell, /Cari halaman atau modul/);
+  assert.match(navigation, /<span>Pengaturan<\/span>/);
+  assert.doesNotMatch(navigation, /LogoutButton/);
+  assert.doesNotMatch(navigation, /Pengaturan Website/);
+  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser\(user, fullAccess, includeCatalog\)/);
   assert.match(overview, /ACCOUNTING & FINANCE/);
   assert.match(overview, /HUMAN RESOURCE MANAGEMENT/);
   assert.match(overview, /CUSTOMER RELATIONSHIP MANAGEMENT/);

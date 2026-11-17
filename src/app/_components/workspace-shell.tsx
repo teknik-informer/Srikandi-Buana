@@ -22,6 +22,7 @@ import UnsavedChangesGuard from "./access/unsaved-changes-guard";
 import AccountMenu from "./access/account-menu";
 import ThemeControl from "./access/theme-control";
 import NotificationCenter from "./notification-center";
+
 export default function WorkspaceShell({
   user,
   section,
@@ -85,11 +86,11 @@ export default function WorkspaceShell({
               </BreadcrumbList>
             </Breadcrumb>
           </div>
+          <DashboardMegaMenu section={section} user={user} architectFullAccess={isArchitectFullAccess(user)} compact />
           <nav
             className="workspace-header-actions"
             aria-label="Akun dan tindakan utama"
           >
-            <DashboardMegaMenu section={section} user={user} architectFullAccess={isArchitectFullAccess(user)} compact />
             <NotificationCenter compact />
             <ThemeControl />
             <AccountMenu user={user} />

@@ -65,7 +65,7 @@ test("System Administrator alone can view the Platform Module Center", () => {
 test("Platform Module Center exposes persistent access controls through the guarded administrator API", () => {
   assert.match(routes, /PlatformModuleCenter/);
   assert.match(routes, /active === "module-center"/);
-  assert.match(nav, /Layers3/);
+  assert.match(nav, /"platform-core": LockKeyhole/);
   assert.match(center, /PlatformModuleAccessManager/);
   assert.match(accessManager, /set_module_enabled/);
   assert.match(accessManager, /set_user_module_access/);
