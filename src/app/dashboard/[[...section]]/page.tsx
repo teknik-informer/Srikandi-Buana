@@ -79,7 +79,7 @@ export default async function Page({ params }: { params: Promise<{ section?: str
         section={active}
         title={isMember ? "Dashboard Anggota" : "Pusat Aplikasi"}
         defaultSidebarOpen={defaultSidebarOpen}
-      >
+       qaPreviewEnabled={isArchitectQaPreview(process.env)}>
         {isMember
           ? <MemberAudienceDashboard user={admin} />
           : <ApplicationHub dashboards={getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin")} displayName={admin.displayName || admin.fullName} canOpenPlatformCore={admin.role === "admin" && (isArchitectFullAccess(admin) || canReadSection(admin, "module-center"))} />}
