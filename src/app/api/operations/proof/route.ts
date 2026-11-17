@@ -26,7 +26,7 @@ export async function POST(request:Request){
  const item=await findOperation(user.userId,String(form.get('id')||''));if(!item||!canViewOperation(user,item))return json({error:'Pengajuan tidak ditemukan.'},404);
  if(!operationActions(user,item).includes('proof'))return json({error:'Bukti hanya dapat diubah pengaju pada tahap draf atau revisi.'},403);
  if(Number(form.get('version'))!==item.version)return json({error:'Pengajuan telah berubah. Muat ulang.'},409);
- const file=form.get('file');if(!(file instanceof File)||!file.size||file.size>3*1024*1024||file.name.length>180||/[<>:/\\\\\\x00-\\x1f]/.test(file.name))throw new OperationError('Pilih bukti PDF/JPG/PNG maksimal 3 MB dengan nama berkas yang valid.');
+ const file=form.get('file');if(!(file instanceof File)||!file.size||file.size>3*1024*1024||file.name.length>180||/[<>:]/.test(file.name)||file.name.includes('/')||file.name.includes(String.fromCharCode(92))||[...file.name].some(char=>char.charCodeAt(0)<32))throw new OperationError('Pilih bukti PDF/JPG/PNG maksimal 3 MB dengan nama berkas yang valid.');
  const ext=file.name.split('.').pop()?.toLowerCase();if(!['pdf','jpg','jpeg','png'].includes(ext||''))throw new OperationError('Format bukti harus PDF, JPG atau PNG.');
  if(!await consumeRateLimit(db,'operations:proof:'+user.accountId,20,900000))return json({error:'Terlalu banyak unggahan. Coba setelah 15 menit.'},429);
  let bytes=await file.arrayBuffer();const mime=ext==='pdf'?'application/pdf':ext==='png'?'image/png':'image/jpeg';
