@@ -27,7 +27,6 @@ import { getVisibleEnterpriseDashboardsForUser, getVisibleEnterpriseUtilities } 
 import {
   Activity,
   ArrowUpRight,
-  BriefcaseBusiness,
   ChevronDown,
   BookOpen,
   Files,
@@ -40,8 +39,6 @@ import {
   Leaf,
   LockKeyhole,
   Network,
-  MessagesSquare,
-  ShoppingBag,
   Search,
   ShieldCheck,
   Settings,
