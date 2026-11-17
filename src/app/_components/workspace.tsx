@@ -1180,7 +1180,7 @@ export default function Workspace({
                           disabled={
                             editor.kind === "tindaklanjut" &&
                             ["verification", "meetingReviewStatus"].includes(f.key) &&
-                            !["admin", "ketua", "sekretaris"].includes(principal.role)
+                            !["admin", "sekretaris"].includes(principal.role)
                           }
                           defaultValue={String(
                             editor.row?.data[f.key] ??
