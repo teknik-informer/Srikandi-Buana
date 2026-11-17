@@ -1,4 +1,5 @@
 import { getAuthenticatedUser } from "@/lib/auth";
+import { isModuleAvailableForUser } from "@/features/identity/access-policy";
 import {notifyOwner} from "@/lib/ecosystem/notifications";
 import { json, sameOrigin } from "@/lib/account-access";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
@@ -23,7 +24,7 @@ async function catalog(user:Principal){
  return rows.results.flatMap(row=>{try{const d=JSON.parse(String(row.data));const total=Number(d.quantity);return Number.isSafeInteger(total)&&total>=0&&d.status!=='Nonaktif'?[{id:String(row.id),name:String(d.name),condition:String(d.condition||'Perlu verifikasi'),quantity:total,available:d.condition==='Baik'?Math.max(0,total-(used.get(String(row.id))||0)):0}]:[];}catch{return [];}});
 }
 export async function GET(request:Request){
- const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);
+ const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!isModuleAvailableForUser(user,'projects'))return json({error:'Modul operasional sedang dinonaktifkan atau diblokir untuk akun ini.'},403);
  try{const db=operationDB(),url=new URL(request.url),id=url.searchParams.get('id');
   if(id){const item=await findOperation(user.userId,id);if(!item||!canViewOperation(user,item))return json({error:'Pengajuan tidak ditemukan.'},404);
    const history=await db.prepare("SELECT version,actor_name,action,from_status,to_status,note,created FROM operational_events WHERE owner=? AND request_id=? ORDER BY version ASC").bind(user.userId,id).all();
@@ -35,10 +36,9 @@ export async function GET(request:Request){
    }
    return json({item,actions:operationActions(user,item),history:history.results,cash,asset:asset?{name:String(asset.data.name),condition:String(asset.data.condition)}:null});
   }
-  if(user.role==='admin')return json({error:'Administrator Sistem tidak mengakses antrean atau daftar pengajuan operasional.'},403);
   const scope=url.searchParams.get('scope')||'mine',filter=url.searchParams.get('status')||'all',query=(url.searchParams.get('q')||'').trim().slice(0,160);
   if(!['mine','review','fulfill','all'].includes(scope))return json({error:'Lingkup tidak valid.'},400);
-  if(scope==='all'&&user.role!=='ketua')return json({error:'Pemantauan lintas pengajuan hanya menjadi kewenangan Ketua.'},403);
+  if(scope==='all'&&!['admin','ketua'].includes(user.role))return json({error:'Pemantauan lintas pengajuan hanya tersedia bagi Administrator Sistem dan Ketua.'},403);
   if(scope==='review'&&!canReview(user)||scope==='fulfill'&&!(Object.keys(categories)as Category[]).some(c=>canFulfillCategory(user,c)))return json({error:'Lingkup di luar kewenangan.'},403);
   const visibility=visibleSQL(user),conditions=['owner=?',visibility.sql],args:unknown[]=[user.userId,...visibility.args];
   if(scope==='mine'){conditions.push('requester_id=?');args.push(user.accountId);}
@@ -54,18 +54,18 @@ export async function GET(request:Request){
  }catch(error){return json({error:error instanceof OperationError?error.message:'Layanan operasional belum dapat dimuat. Pastikan migrasi enterprise telah diterapkan.'},error instanceof OperationError?error.status:503);}
 }
 export async function POST(request:Request){
- const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(user.role==='admin')return json({error:'Administrator Sistem tidak membuat pengajuan operasional.'},403);
+ const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!isModuleAvailableForUser(user,'projects'))return json({error:'Modul operasional sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
  try{const db=operationDB(),raw=await readJsonObject(request,12000);if(raw.accountId!==user.accountId)return json({error:'Akun aktif berubah. Muat ulang.'},409);if(!uuid(raw.clientRequestId))throw new OperationError('Identitas pengajuan tidak valid. Buka formulir baru.');
  const submit=raw.submit===true,input=validateOperation(raw.data,submit);await checkInputAsset(user.userId,input,submit);
  if(submit&&input.category==='expense')throw new OperationError('Simpan draf dan unggah bukti pengeluaran sebelum mengajukan penggantian biaya.');
  if(!await consumeRateLimit(db,'operations:create:'+user.accountId,30,3600000))return json({error:'Terlalu banyak pengajuan. Coba kembali setelah satu jam.'},429);
  const item=await createOperation(user,String(raw.clientRequestId),input,submit);
- if(submit){const approvers=await db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='ketua' AND enabled=TRUE ORDER BY created,id").bind(user.userId).all();for(const approver of approvers.results)if(String(approver.id)!==user.accountId)await notifyOwner(user.userId,String(approver.id),'operation:'+item.id+':submitted','Pengajuan menunggu persetujuan Ketua',input.title,'/dashboard/enterprise','operasional');}
+ if(submit){const approvers=await db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role IN ('ketua','admin') AND enabled=TRUE ORDER BY created,id").bind(user.userId).all();for(const approver of approvers.results)if(String(approver.id)!==user.accountId)await notifyOwner(user.userId,String(approver.id),'operation:'+item.id+':submitted','Pengajuan menunggu tinjauan pengelola',input.title,'/dashboard/enterprise','operasional');}
  return json({ok:true,item});
  }catch(error){return failure(error);}
 }
 export async function PATCH(request:Request){
- const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(user.role==='admin')return json({error:'Administrator Sistem tidak mengubah pengajuan operasional.'},403);
+ const user=await getAuthenticatedUser();if(!user)return json({error:'Silakan masuk.'},401);if(!isModuleAvailableForUser(user,'projects'))return json({error:'Modul operasional sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
  try{const db=operationDB(),raw=await readJsonObject(request,14000);if(raw.accountId!==user.accountId)return json({error:'Akun aktif berubah. Muat ulang.'},409);
  const item=await findOperation(user.userId,String(raw.id));if(!item||!canViewOperation(user,item))return json({error:'Pengajuan tidak ditemukan.'},404);
  if(Number(raw.version)!==item.version)return json({error:'Pengajuan sudah berubah. Muat ulang sebelum melanjutkan.'},409);

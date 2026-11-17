@@ -1,6 +1,7 @@
 import { env } from "@/lib/runtime";
 import { getAuthenticatedUser } from "@/lib/auth";
 import type { Principal, Role } from "@/lib/permissions";
+import { isModuleAvailableForUser } from "@/features/identity/access-policy";
 import { json, sameOrigin } from "@/lib/account-access";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 
@@ -37,15 +38,16 @@ const slug = (value: string) => value.normalize("NFKD").replace(/[\u0300-\u036f]
 async function context(request: Request, write = false, verification = false) {
   const user = await getAuthenticatedUser();
   if (!user) return { error: json({ error: "Silakan masuk untuk mengelola data pertanian." }, 401) };
+  if (!isModuleAvailableForUser(user, "agriculture")) return { error: json({ error: "Layanan pertanian sedang dinonaktifkan atau diblokir untuk akun ini." }, 403) };
   if (write && !sameOrigin(request)) return { error: json({ error: "Permintaan lintas situs ditolak." }, 403) };
   if (!env.DB) return { error: json({ error: "Database belum tersedia." }, 503) };
   const assignedAgriculture = user.role === "koordinator" && user.programIds.includes("3");
-  const mayRead = ["ketua", "sekretaris", "bendahara"].includes(user.role) || assignedAgriculture;
-  const mayWrite = user.role === "sekretaris" || assignedAgriculture;
+  const mayRead = user.role === "admin" || ["ketua", "sekretaris", "bendahara"].includes(user.role) || assignedAgriculture;
+  const mayWrite = user.role === "admin" || user.role === "sekretaris" || assignedAgriculture;
   if (!mayRead || write && !mayWrite) {
     return { error: json({ error: "Modul pertanian berada di luar kewenangan akun ini." }, 403) };
   }
-  if (verification && user.role !== "sekretaris") {
+  if (verification && user.role !== "sekretaris" && user.role !== "admin") {
     return { error: json({ error: "Verifikasi data pertanian merupakan kewenangan Sekretariat." }, 403) };
   }
   return { user, db: env.DB };
@@ -76,7 +78,7 @@ export async function GET(request: Request) {
       c.db!.prepare("SELECT h.id,h.crop_cycle_id,h.harvest_date,h.quantity,h.unit_code,h.notes,h.verification_status,h.verification_note,h.created_at,c.season_label,p.name AS parcel_name,p.parcel_code,a.name AS commodity_name FROM harvest_records h JOIN crop_cycles c ON c.id=h.crop_cycle_id AND c.workspace_owner=h.workspace_owner JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner WHERE h.workspace_owner=? ORDER BY h.harvest_date DESC,h.created_at DESC").bind(owner).all(),
       c.db!.prepare("SELECT actor_id,actor_role,action,target_type,target_id,reason,created_at FROM agriculture_audit WHERE workspace_owner=? ORDER BY created_at DESC LIMIT 40").bind(owner).all(),
     ]);
-    const isSecretariat = c.user!.role === "sekretaris";
+    const isSecretariat = c.user!.role === "sekretaris" || c.user!.role === "admin";
     const isCoordinator = c.user!.role === "koordinator";
     const memberOptions = isSecretariat ? members.results.flatMap((row) => {
       try {
@@ -143,7 +145,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "create_commodity") {
-      if (user.role !== "sekretaris") {
+      if (user.role !== "sekretaris" && user.role !== "admin") {
         return json({ error: "Master komoditas merupakan register referensi yang dikelola Sekretariat." }, 403);
       }
       const name = textValue(raw.name, "Nama komoditas", 2, 120);
@@ -284,7 +286,7 @@ export async function PATCH(request: Request) {
       ]);
       return json({ ok: true, status: "archived" });
     }
-    if (user.role !== "sekretaris") return json({ error: "Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis." }, 403);
+    if (user.role !== "sekretaris" && user.role !== "admin") return json({ error: "Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis." }, 403);
     if (!["verify_parcel", "reject_parcel", "verify_crop_cycle", "reject_crop_cycle", "verify_harvest", "reject_harvest"].includes(action)) {
       return json({ error: "Tindakan verifikasi tidak dikenal." }, 400);
     }

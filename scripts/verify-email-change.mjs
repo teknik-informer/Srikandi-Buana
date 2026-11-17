@@ -12,7 +12,7 @@ const mailer=read('src/lib/account-mailer.ts');
 const pkg=JSON.parse(read('package.json'));
 const pkgLock=JSON.parse(read('package-lock.json'));
 
-assert.match(migration,/purpose IN \('activate', 'reset', 'change_email'\)/);
+assert.match(migration,/purpose IN \('activate', 'reset', 'change_email', 'activate_wa', 'reset_wa'\)/);
 assert.match(migration,/users_email_lower_unique ON users \(lower\(email\)\)/);
 assert.doesNotMatch(migration,/DELETE FROM users|TRUNCATE|DROP TABLE/i);
 

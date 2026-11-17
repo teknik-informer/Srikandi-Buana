@@ -7,6 +7,7 @@ const protectedRecords = readFileSync("src/lib/enterprise/protected-records.ts",
 const sync = readFileSync("src/lib/workspace-v14-sync.ts", "utf8");
 const mapping = readFileSync("src/features/workspace-v14/legacy-mapping.mjs", "utf8");
 const finance = readFileSync("src/features/finance/record-posting.ts", "utf8");
+const operationProof = readFileSync("src/app/api/operations/proof/route.ts", "utf8");
 
 assert(records.includes('import { buildV14RecordSyncStatements }'), "Records API must import the v14 adapter");
 assert(records.includes("...normalizedWrites,...ledgerWrites"), "Legacy record and ledger writes must join the same database batch");
@@ -19,6 +20,7 @@ assert(sync.includes("to_regclass('workspace_v14.organizations')") && sync.inclu
 assert(sync.includes("source_owner_user_id=?") && sync.includes("return statementForMapping"), "Adapter must resolve organization ownership before writing");
 assert(sync.includes("catch {") && sync.includes("return []"), "Legacy compatibility path must remain available if v14 schema is unavailable");
 assert(mapping.includes('kind === "anggota"') && mapping.includes('kind === "kegiatan"') && mapping.includes('kind === "tindaklanjut"'), "Core legacy domain mappings must be present");
+assert(operationProof.includes("isModuleAvailableForUser") && (operationProof.match(/isModuleAvailableForUser/g)||[]).length === 3, "Proof route must import and enforce the projects module gate in both GET and POST");
 assert(finance.includes("buildCashLedgerPostingStatements") && finance.includes("ON CONFLICT(owner,code) DO NOTHING"), "Cash posting must use the controlled chart-of-accounts initializer");
 
 console.log("PASS v14 integration: atomic records, protected assets/cash, legacy attendance, schema guard, tenant ownership mapping, and finance posting.");

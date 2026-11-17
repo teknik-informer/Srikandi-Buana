@@ -1,13 +1,15 @@
 import {env} from '@/lib/runtime';
 import {getGovernanceAdminUser} from '../../admin-auth';
 import {visibleRecord} from '@/lib/permissions';
+import {canReadRecord} from '@/features/identity/access-policy';
+import {isModuleAvailableForUser} from '@/features/identity/access-policy';
 import {allowedFileIds} from '@/lib/file-access';
 
 export const dynamic='force-dynamic';
 
 export async function GET(){
  const user=await getGovernanceAdminUser();
- if(!user)return new Response('Akses khusus Ketua.',{status:403,headers:{'Cache-Control':'no-store'}});
+ if(!user)return new Response('Akses khusus Administrator Sistem atau Ketua.',{status:403,headers:{'Cache-Control':'no-store'}});
  if(!env.DB)return new Response('Database belum tersedia.',{status:503,headers:{'Cache-Control':'no-store'}});
  try{
   const exportedAt=new Date().toISOString();
@@ -29,16 +31,16 @@ export async function GET(){
    formatVersion:5,
    organisasi:'KWT Srikandi Buana',
    diekspor:exportedAt,
-   records:rows.results.map(row=>{
+   records:rows.results.flatMap(row=>{
     const record={id:String(row.id),kind:String(row.kind),data:JSON.parse(String(row.data)) as Record<string,unknown>};
-    return {...row,data:visibleRecord(user,record).data};
+    return canReadRecord(user,record) ? [{...row,data:visibleRecord(user,record).data}] : [];
    }),
    files:files.results.filter(file=>fileIds.has(String(file.id))).map(file=>({id:String(file.id),name:"Lampiran",mime:String(file.mime),size:Number(file.size),created:String(file.created)})),
-   messageSummary:messageSummary.results.map(row=>({status:String(row.status||'Belum diklasifikasikan'),count:Number(row.count||0)})),
-   settings:settings.results.map(row=>({...row,data:JSON.parse(String(row.data))})),
-   operationSummary:operationSummary.results.map(row=>({category:String(row.category),status:String(row.status),count:Number(row.count||0)})),
-   operationHistorySummary:operationHistorySummary.results.map(row=>({action:String(row.action),count:Number(row.count||0)})),
-   catatan:'Ekspor JSON dasar terbatas untuk Ketua; record mengikuti masking field, dan draf pengajuan pribadi akun lain tidak disertakan. Berisi record JSON, metadata file yang diizinkan, ringkasan jumlah pesan per status tanpa identitas atau isi pesan mentah, pengaturan, ringkasan pengajuan operasional per kategori/status, dan ringkasan tindakan histori tanpa nama pengaju, nama pelaksana, atau catatan bebas. Tidak mencakup isi biner lampiran, buku besar/jurnal terstruktur, katalog dan pesanan terstruktur, tabel pertanian terstruktur, grant eksternal, atau seluruh state penyimpanan. Bukan backup penuh untuk pemulihan dan bukan paket laporan eksternal yang telah disahkan.'
+   messageSummary:isModuleAvailableForUser(user,'crm')?messageSummary.results.map(row=>({status:String(row.status||'Belum diklasifikasikan'),count:Number(row.count||0)})):[],
+   settings:isModuleAvailableForUser(user,'cms')?settings.results.map(row=>({...row,data:JSON.parse(String(row.data))})):[],
+   operationSummary:isModuleAvailableForUser(user,'projects')?operationSummary.results.map(row=>({category:String(row.category),status:String(row.status),count:Number(row.count||0)})):[],
+   operationHistorySummary:isModuleAvailableForUser(user,'projects')?operationHistorySummary.results.map(row=>({action:String(row.action),count:Number(row.count||0)})):[],
+   catatan:'Ekspor JSON dasar terbatas untuk Administrator Sistem atau Ketua; record mengikuti masking field, dan draf pengajuan pribadi akun lain tidak disertakan. Berisi record JSON, metadata file yang diizinkan, ringkasan jumlah pesan per status tanpa identitas atau isi pesan mentah, pengaturan, ringkasan pengajuan operasional per kategori/status, dan ringkasan tindakan histori tanpa nama pengaju, nama pelaksana, atau catatan bebas. Tidak mencakup isi biner lampiran, buku besar/jurnal terstruktur, katalog dan pesanan terstruktur, tabel pertanian terstruktur, grant eksternal, atau seluruh state penyimpanan. Bukan backup penuh untuk pemulihan dan bukan paket laporan eksternal yang telah disahkan.'
   };
   return Response.json(archive,{headers:{
    'Content-Disposition':'attachment; filename=srikandi-buana-data.json',

@@ -25,7 +25,7 @@ export type TaskVerificationInput = {
  * verification. The Chair approves report packages rather than each task row.
  */
 export function taskVerificationError(input: TaskVerificationInput): string | null {
-  const reviewer = input.role === "sekretaris";
+  const reviewer = input.role === "admin" || input.role === "sekretaris";
   const valid = taskVerificationStatuses.includes(
     input.verification as TaskVerificationStatus,
   );
@@ -36,7 +36,7 @@ export function taskVerificationError(input: TaskVerificationInput): string | nu
       return "Tugas yang sudah diverifikasi hanya dapat dibuka kembali melalui pemeriksaan Sekretariat.";
     }
     if (["Terverifikasi", "Perlu perbaikan"].includes(input.verification)) {
-      return "Hanya Sekretariat yang dapat mengesahkan hasil atau meminta perbaikan.";
+      return "Hanya Sekretariat atau Administrator Sistem yang dapat mengesahkan hasil atau meminta perbaikan.";
     }
     if ((input.reviewNote || "") !== (input.previousReviewNote || "")) {
       return "Catatan pemeriksaan hanya dapat diubah oleh Sekretariat.";
@@ -57,7 +57,7 @@ export function taskVerificationError(input: TaskVerificationInput): string | nu
   }
 
   if (input.verification === "Terverifikasi" && !reviewer) {
-    return "Hanya Sekretariat yang dapat mengesahkan hasil.";
+    return "Hanya Sekretariat atau Administrator Sistem yang dapat mengesahkan hasil.";
   }
 
   if (input.verification === "Perlu perbaikan") {

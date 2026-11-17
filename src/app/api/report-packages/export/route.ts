@@ -2,10 +2,23 @@ import {getAuthenticatedUser} from "@/lib/auth";
 import {env} from "@/lib/runtime";
 import type {Principal} from "@/lib/permissions";
 import type {ReportGroupId} from "@/lib/enterprise-reporting";
+import {isModuleAvailableForUser} from "@/features/identity/access-policy";
 
 export const dynamic = "force-dynamic";
 const groups: ReportGroupId[] = ["operasional","keanggotaan","administrasi","keuangan","usaha","publikasi"];
+const groupModules: Record<ReportGroupId,string[]> = {
+  operasional:["projects","hrm"],
+  keanggotaan:["hrm"],
+  administrasi:["hrm","documents"],
+  keuangan:["accounting"],
+  usaha:["accounting","pos","crm","projects"],
+  publikasi:["crm"],
+};
+function groupModulesEnabled(user: Principal, group: ReportGroupId) {
+  return groupModules[group].every((moduleId) => isModuleAvailableForUser(user,moduleId));
+}
 function canRead(user: Principal, group: ReportGroupId, createdBy: string) {
+  if (user.role === "admin") return true;
   if (user.role === "ketua") return true;
   if (user.role === "sekretaris") return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
   if (user.role === "bendahara") return ["keuangan","usaha"].includes(group);
@@ -30,7 +43,7 @@ function flatten(value: unknown, prefix = "", output: Array<[string,string]> = [
 export async function GET(request: Request) {
   const user = await getAuthenticatedUser();
   if (!user) return Response.json({error:"Silakan masuk untuk mengekspor paket laporan."},{status:401,headers:{"Cache-Control":"private, no-store"}});
-  if (user.role === "admin" || user.role === "anggota" || !env.DB)
+  if (user.role === "anggota" || !env.DB)
     return Response.json({error:"Akses ekspor paket laporan tidak tersedia."},{status:403,headers:{"Cache-Control":"private, no-store"}});
   const url = new URL(request.url);
   const id = url.searchParams.get("id") || "";
@@ -40,6 +53,7 @@ export async function GET(request: Request) {
   try {
     const pkg = await env.DB.prepare(`SELECT p.id,p.group_id,p.title,p.period_start,p.period_end,p.package_version,p.status,p.snapshot,p.snapshot_hash,p.created_at,p.created_by,p.approved_at,p.approved_by,p.approval_note,u.full_name AS approver_name FROM report_packages p LEFT JOIN users u ON u.id=p.approved_by WHERE p.id=? AND p.owner=?`).bind(id,user.userId).first();
     if (!pkg || pkg.status !== "approved" || !groups.includes(String(pkg.group_id) as ReportGroupId) ||
+      !groupModulesEnabled(user,String(pkg.group_id) as ReportGroupId) ||
       !canRead(user,String(pkg.group_id) as ReportGroupId,String(pkg.created_by)))
       return Response.json({error:"Paket tidak ditemukan, belum disetujui, atau berada di luar kewenangan akun."},{status:404,headers:{"Cache-Control":"private, no-store"}});
     const snapshot = typeof pkg.snapshot === "string" ? JSON.parse(pkg.snapshot) : pkg.snapshot;

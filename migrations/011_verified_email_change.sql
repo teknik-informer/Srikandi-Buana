@@ -6,7 +6,7 @@ ALTER TABLE account_invitations
 
 ALTER TABLE account_invitations
   ADD CONSTRAINT account_invitations_purpose_check
-  CHECK (purpose IN ('activate', 'reset', 'change_email'));
+  CHECK (purpose IN ('activate', 'reset', 'change_email', 'activate_wa', 'reset_wa'));
 
 -- Enforce the same case-insensitive uniqueness used by login and the API.
 -- The QA preflight checked for duplicates; the unique index is the final guard.

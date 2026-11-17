@@ -56,11 +56,13 @@ const bundle = await build({
       context.onResolve({ filter: /^@\/lib\/runtime$/ }, () => ({ path: "runtime", namespace: "test" }));
       context.onResolve({ filter: /^\.\.\/\.\.\/admin-auth$/ }, () => ({ path: "admin-auth", namespace: "test" }));
       context.onResolve({ filter: /^@\/lib\/permissions$/ }, () => ({ path: "permissions", namespace: "test" }));
+      context.onResolve({ filter: /^@\/features\/identity\/access-policy$/ }, () => ({ path: "access-policy", namespace: "test" }));
       context.onResolve({ filter: /^@\/lib\/file-access$/ }, () => ({ path: "file-access", namespace: "test" }));
       context.onLoad({ filter: /.*/, namespace: "test" }, (args) => {
         if (args.path === "runtime") return { contents: "export const env={DB:globalThis.__testDb};", loader: "js" };
         if (args.path === "admin-auth") return { contents: "export async function getGovernanceAdminUser(){return globalThis.__testUser;}", loader: "js" };
         if (args.path === "permissions") return { contents: "export function visibleRecord(user,record){return record;}", loader: "js" };
+        if (args.path === "access-policy") return { contents: "export function canReadRecord(user,record){return true;} export function isModuleAvailableForUser(user,moduleId){return !user?.moduleAccess?.disabledModules?.includes(moduleId) && !user?.moduleAccess?.deniedModules?.includes(moduleId);}", loader: "js" };
         if (args.path === "file-access") return { contents: "export async function allowedFileIds(){return new Set();}", loader: "js" };
         throw new Error("Unexpected test module: " + args.path);
       });
@@ -102,6 +104,13 @@ assert.ok(messageQuery, "The export must query message oversight data.");
 assert.match(messageQuery, /SELECT\s+status\s*,\s*COUNT\(\*\)\s+AS count\s+FROM messages\s+GROUP BY status/i);
 assert.doesNotMatch(messageQuery, /\b(name|contact|topic|message|ip_hash|consent_version|consented_at)\b/i);
 assert.equal(archive.messageSummary.reduce((sum, row) => sum + row.count, 0), 5);
+const administratorGET = await handlerFor({ role: "admin", userId: "workspace-1", accountId: "admin-1" });
+const administratorResponse = await administratorGET();
+assert.equal(administratorResponse.status, 200, "System Administrator can export the authorized workspace data");
+const administratorArchive = await administratorResponse.json();
+assert.deepEqual(JSON.parse(JSON.stringify(administratorArchive.messageSummary)), [
+  { status: "Baru", count: 3 }, { status: "Ditindaklanjuti", count: 2 },
+]);
 const unauthorizedGET = await handlerFor(null);
 assert.equal((await unauthorizedGET()).status, 403);
-console.log("PASS: Chair export contains non-identifying message counts only; raw contact/name/body fields are absent and unauthenticated access is denied.");
+console.log("PASS: Chair and System Administrator exports contain non-identifying message counts only; raw contact/name/body fields are absent and unauthenticated access is denied.");

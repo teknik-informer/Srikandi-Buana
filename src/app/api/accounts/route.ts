@@ -4,9 +4,10 @@ import {readJsonObject,RequestBodyError} from '@/lib/request-body';
 import {accessInput,accessAudit,inviteToken,activationLink,json,sameOrigin} from '@/lib/account-access';
 import {sendAccountEmail} from '@/lib/account-mailer';
 import {normalizeIndonesianMobilePhone} from '@/lib/phone';
+import {isArchitectQaPreview} from '@/features/shared/qa-preview.mjs';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
-const qaPreview=()=>process.env.VERCEL_ENV==='preview'&&process.env.VERCEL_GIT_COMMIT_REF==='feat/architect-identity-console-2026-11-15';
+const qaPreview=()=>isArchitectQaPreview(process.env);
 export async function GET(){
  const u=await getAuthenticatedUser();
  if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus pengelola akun.'},403);
@@ -31,13 +32,13 @@ export async function GET(){
 }
 export async function POST(request:Request){
  const u=await getAuthenticatedUser();
- if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus Ketua.'},403);
+ if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus pengelola akun.'},403);
  if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
  if(!env.DB)return json({error:'Database belum tersedia.'},503);
  try{
   const raw=await readJsonObject(request,8000);
-  if((raw.channel==='whatsapp'||raw.action==='reset_wa'||raw.action==='verify_phone')&&u.role!=='admin')return json({error:'Konfirmasi dan pemulihan WhatsApp manual hanya dapat dilakukan oleh Arsitek Sistem.'},403);
-  if(u.role==='admin'&&!['invite','reset','reset_wa','change_email','verify_phone'].includes(String(raw.action)))return json({error:'Arsitek Sistem hanya dapat mengundang akun struktural, memulihkan akses, dan mengelola hak akses teknis.'},403);
+  if((raw.channel==='whatsapp'||raw.action==='reset_wa'||raw.action==='verify_phone')&&u.role!=='admin')return json({error:'Konfirmasi dan pemulihan WhatsApp manual hanya dapat dilakukan oleh Administrator Sistem.'},403);
+  if(u.role==='admin'&&!['invite','reset','reset_wa','change_email','verify_phone'].includes(String(raw.action)))return json({error:'Administrator Sistem hanya dapat mengundang akun struktural, memulihkan akses, dan mengelola hak akses teknis.'},403);
   if(raw.action==='verify_phone'){
    const target=await env.DB.prepare('SELECT id,member_id,role,enabled FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();
    if(!target||target.role==='admin'||(target.role==='ketua'&&u.role!=='admin')||target.id===u.accountId||!target.enabled)return json({error:'Akun ini tidak dapat diubah melalui verifikasi WhatsApp biasa.'},403);
@@ -53,14 +54,14 @@ export async function POST(request:Request){
    return json({ok:true,verified:true,phone});
   }
   if(u.role==='ketua'&&raw.action==='invite'&&raw.role==='ketua')return json({error:'Peran Ketua hanya ditetapkan melalui bootstrap Ketua pertama. Penyerahan kewenangan Ketua berikutnya memerlukan prosedur serah-terima resmi dan tidak melalui undangan biasa.'},403);
-  if(raw.action==='change_email'&&u.role!=='admin')return json({error:'Perubahan email struktural hanya dapat dimulai oleh Arsitek Sistem.'},403);
+  if(raw.action==='change_email'&&u.role!=='admin')return json({error:'Perubahan email struktural hanya dapat dimulai oleh Administrator Sistem.'},403);
   const purpose=raw.action==='reset_wa'?'reset_wa':raw.action==='reset'?'reset':raw.action==='change_email'?'change_email':raw.channel==='whatsapp'?'activate_wa':'activate';
   if(!['invite','reset','reset_wa','change_email'].includes(String(raw.action)))return json({error:'Tindakan tidak valid.'},400);
  const normalizePhone=(value:string)=>normalizeIndonesianMobilePhone(value);
  let memberId=String(raw.memberId||''),phone=normalizePhone(String(raw.phone||'')),email=String(raw.email||'').trim().toLowerCase(),fullName='',targetId:string|null=null,access=purpose==='change_email'?accessInput({role:'anggota'}):accessInput(raw);
  if(purpose==='reset'||purpose==='reset_wa'||purpose==='change_email'){
   const target=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,member_id,role,position,program_ids,enabled FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();
-  if(!target||target.role==='admin'||(target.role==='ketua'&&u.role!=='admin')||target.id===u.accountId||(purpose==='change_email'&&!target.enabled))return json({error:purpose==='change_email'?'Email Administrator Sistem atau akun nonaktif tidak dapat diubah melalui alur biasa. Pengelolaan akun Ketua hanya tersedia bagi Arsitek Sistem.':'Pemulihan akun Ketua tidak tersedia melalui pengelolaan akun biasa. Gunakan prosedur pemulihan khusus yang diaudit.'},403);
+  if(!target||target.role==='admin'||(target.role==='ketua'&&u.role!=='admin')||target.id===u.accountId||(purpose==='change_email'&&!target.enabled))return json({error:purpose==='change_email'?'Email Administrator Sistem atau akun nonaktif tidak dapat diubah melalui alur biasa. Pengelolaan akun Ketua hanya tersedia bagi Administrator Sistem.':'Pemulihan akun Ketua tidak tersedia melalui pengelolaan akun biasa. Gunakan prosedur pemulihan khusus yang diaudit.'},403);
   targetId=String(target.id);memberId=String(target.member_id);if(purpose==='reset')email=String(target.email);if(purpose==='reset_wa'){if(!target.login_phone||!target.phone_verified_at)return json({error:'Nomor WhatsApp akun ini belum dikonfirmasi Admin.'},409);phone=String(target.login_phone);email='wa-'+phone.replace(/\D/g,'')+'@login.srikandibuana.invalid';}fullName=String(target.full_name);
   access=accessInput({role:target.role,position:target.position,programIds:JSON.parse(String(target.program_ids))});
  }
@@ -89,5 +90,5 @@ export async function POST(request:Request){
  return json({ok:true,sent:true,expires,email,purpose});
  }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);if(e instanceof Error&&/duplicate key|unique constraint/i.test(e.message))return json({error:'Kewenangan Ketua atau undangannya sudah ditetapkan. Periksa akun dan undangan sebelum mencoba kembali.'},409);return json({error:e instanceof Error&&/Pilih|Jabatan|Program|Alamat/.test(e.message)?e.message:'Undangan belum tersimpan. Muat ulang dan coba kembali.'},400)}}
 export async function PATCH(request:Request){const u=await getAuthenticatedUser();if(!u||!['admin','ketua'].includes(u.role))return json({error:'Akses khusus pengelola akun.'},403);if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);if(!env.DB)return json({error:'Database belum tersedia.'},503);try{const raw=await readJsonObject(request,8000);if(raw.action==='revoke'){const now=new Date().toISOString();await env.DB.batch([env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE id=? AND owner=? AND consumed_at IS NULL AND revoked_at IS NULL').bind(now,String(raw.id||''),u.userId),await accessAudit(u.userId,u.accountId,'Undangan dicabut',String(raw.id||''))]);return json({ok:true})}
- const target=await env.DB.prepare('SELECT id,role,member_id,email FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();if(!target)return json({error:'Akun tidak ditemukan.'},404);if(target.role==='admin'||target.id===u.accountId||(target.role==='ketua'&&u.role!=='admin'))return json({error:'Akun Administrator Sistem tetap dilindungi; perubahan akun Ketua hanya dapat dilakukan Arsitek Sistem.'},403);if(typeof raw.enabled!=='boolean')return json({error:'Status akun tidak valid.'},400);const access=accessInput(raw);if(access.role==='ketua'&&u.role!=='admin')return json({error:'Penetapan profil kewenangan Ketua hanya dapat dilakukan Arsitek Sistem sesuai keputusan organisasi.'},403);const now=new Date().toISOString();await env.DB.batch([env.DB.prepare('UPDATE users SET role=?,position=?,program_ids=?,enabled=? WHERE id=? AND workspace_owner=?').bind(access.role,access.position,JSON.stringify(access.programIds),raw.enabled,target.id,u.userId),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(target.id),env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL').bind(now,u.userId,target.member_id),await accessAudit(u.userId,u.accountId,raw.enabled?'Hak akses diperbarui; sesi dicabut':'Akun dinonaktifkan; sesi dicabut',String(target.email))]);return json({ok:true});
+ const target=await env.DB.prepare('SELECT id,role,member_id,email FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();if(!target)return json({error:'Akun tidak ditemukan.'},404);if(target.role==='admin'||target.id===u.accountId||(target.role==='ketua'&&u.role!=='admin'))return json({error:'Akun Administrator Sistem tetap dilindungi; perubahan akun Ketua hanya dapat dilakukan Administrator Sistem.'},403);if(typeof raw.enabled!=='boolean')return json({error:'Status akun tidak valid.'},400);const access=accessInput(raw);if(access.role==='ketua'&&u.role!=='admin')return json({error:'Penetapan profil kewenangan Ketua hanya dapat dilakukan Administrator Sistem sesuai keputusan organisasi.'},403);const now=new Date().toISOString();await env.DB.batch([env.DB.prepare('UPDATE users SET role=?,position=?,program_ids=?,enabled=? WHERE id=? AND workspace_owner=?').bind(access.role,access.position,JSON.stringify(access.programIds),raw.enabled,target.id,u.userId),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(target.id),env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL').bind(now,u.userId,target.member_id),await accessAudit(u.userId,u.accountId,raw.enabled?'Hak akses diperbarui; sesi dicabut':'Akun dinonaktifkan; sesi dicabut',String(target.email))]);return json({ok:true});
  }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);return json({error:e instanceof Error&&/Pilih|Jabatan|Program/.test(e.message)?e.message:'Perubahan belum tersimpan.'},400)}}
