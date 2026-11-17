@@ -268,10 +268,10 @@ export function DashboardMegaMenu({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
-  const groups = getVisibleEnterpriseDashboards(user.role)
+  const groups = getVisibleEnterpriseDashboards(user.role, architectFullAccess)
     .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
     .filter((pillar) => pillar.items.length);
-  const utilities = getVisibleEnterpriseUtilities(user.role)
+  const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess)
     .filter((item) => navigationMatches(item, query));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
