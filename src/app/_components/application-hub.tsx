@@ -11,6 +11,8 @@ const appMeta = {
 } as const;
 
 export default function ApplicationHub({ dashboards, displayName }: { dashboards: readonly EnterpriseDashboard[]; displayName: string }) {
+  const operationalCount = dashboards.filter((dashboard) => !dashboard.catalogOnly).length;
+
   return (
     <main className="workspace-page space-y-7" aria-labelledby="application-hub-title">
       <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-emerald-900/10 bg-[radial-gradient(circle_at_86%_12%,rgba(167,243,208,0.72),transparent_34%),linear-gradient(120deg,#effcf4_0%,#ffffff_54%,#e8f7ee_100%)] p-6 text-slate-900 shadow-sm sm:p-9">
@@ -19,7 +21,7 @@ export default function ApplicationHub({ dashboards, displayName }: { dashboards
         <h1 id="application-hub-title" className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">Selamat datang, {displayName}.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Satu pintu untuk mengelola sumber daya manusia, keuangan, relasi, program, dan transaksi dalam ekosistem kerja yang saling terhubung.</p>
         <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-medium text-emerald-950">
-          <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">5 aplikasi operasional</span>
+          <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">5 modul terdaftar</span>
           <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">Satu identitas pengguna</span>
           <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">Akses sesuai kewenangan</span>
         </div>
@@ -32,7 +34,7 @@ export default function ApplicationHub({ dashboards, displayName }: { dashboards
             <h2 className="mt-1 text-xl font-semibold tracking-tight">Pilih aplikasi kerja</h2>
             <p className="mt-1 text-sm text-muted-foreground">Setiap aplikasi memiliki ruang kerja dan modul operasionalnya sendiri.</p>
           </div>
-          <span className="text-xs text-muted-foreground">{dashboards.length} aplikasi tersedia untuk akun ini</span>
+          <span className="text-xs text-muted-foreground">{operationalCount} aplikasi dengan akses operasional · {dashboards.length} modul terdaftar</span>
         </div>
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {dashboards.map((dashboard) => {
@@ -47,9 +49,11 @@ export default function ApplicationHub({ dashboards, displayName }: { dashboards
                 <h3 className="mt-1 text-lg font-semibold tracking-tight">{dashboard.label}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{dashboard.description}</p>
                 <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-                  <span className="text-xs text-muted-foreground">{meta.modules}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {dashboard.catalogOnly ? "Akses operasional belum ditugaskan" : meta.modules}
+                  </span>
                   <Link href={dashboard.href} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
-                    Buka aplikasi <ArrowUpRight className="size-4" />
+                    {dashboard.catalogOnly ? "Lihat informasi" : "Buka aplikasi"} <ArrowUpRight className="size-4" />
                   </Link>
                 </div>
               </article>
