@@ -68,3 +68,16 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /enam aplikasi utama/);
 });
+
+
+test("system administrator receives all six launchers in the sidebar and mega menu", () => {
+  const policy = readFileSync("src/features/identity/access-policy.ts", "utf8");
+  const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
+  assert.match(policy, /export function isArchitectFullAccess\(user: Pick<Principal, "role">\): boolean \{\s*return user\.role === "admin";/);
+  assert.match(policy, /export function canWriteKind\(user: Principal, kind: string\): boolean \{[\s\S]*?if \(isArchitectFullAccess\(user\)\) return true;/);
+  assert.match(policy, /export function canReadSectionForRole\(role: Role, id: string\): boolean \{\s*if \(role === "admin"\) return true;/);
+  assert.match(shell, /architectFullAccess=\{isArchitectFullAccess\(user\)\}/);
+  for (const id of ["platform-core", "organization", "agriculture", "business", "bi-analytics", "public-partnership"]) {
+    assert.ok(navigation.includes(`const ${id === "bi-analytics" ? "analytics" : id === "public-partnership" ? "publicPartnership" : id} = platformApplications.find((application) => application.id === "${id}")`) || navigation.includes(`application.id === "${id}"`), `sidebar launch mapping missing for ${id}`);
+  }
+});
