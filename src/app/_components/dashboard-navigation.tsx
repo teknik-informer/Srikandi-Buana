@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { navigationMatches } from "@/lib/navigation-config";
 import { roles, type Principal } from "@/lib/permissions";
-import { enterpriseDashboards, getVisibleEnterpriseDashboards, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
+import { enterpriseDashboards, getVisibleEnterpriseDashboardsForUser, getVisibleEnterpriseUtilities } from "@/features/enterprise/registry";
 import {
   Activity,
   ArrowUpRight,
@@ -63,9 +63,12 @@ export default function DashboardNavigation({ section, user, architectFullAccess
     setExpanded(active?.id || "");
     setQuery("");
   }, [section, active?.id]);
-  const groups = getVisibleEnterpriseDashboards(user.role, architectFullAccess)
-    .map((pillar) => ({ ...pillar, items: pillar.features.filter((feature) => navigationMatches(feature, query)) }))
-    .filter((pillar) => pillar.items.length);
+  const groups = getVisibleEnterpriseDashboardsForUser(user, architectFullAccess, user.role === "admin")
+    .map((pillar) => ({
+      ...pillar,
+      items: pillar.features.filter((feature) => navigationMatches(feature, query)),
+    }))
+    .filter((pillar) => pillar.items.length || pillar.accessOnly);
   const utilities = getVisibleEnterpriseUtilities(user.role, architectFullAccess)
     .filter((item) => navigationMatches(item, query));
   function toggle(id: string) {
