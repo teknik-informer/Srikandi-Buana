@@ -101,17 +101,11 @@ function renderEmail(input: {
       <td align="center" style="padding:34px 12px 38px;">
         <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
           <tr>
-            <td class="email-brand" bgcolor="#123d32" style="padding:25px 34px 23px;background-color:#123d32;border-radius:14px 14px 0 0;">
+            <td class="email-brand" bgcolor="#315b49" style="padding:25px 34px 23px;background-color:#315b49;background-image:linear-gradient(112deg,#234b3d 0%,#54745d 58%,#8b8050 100%);border-radius:14px 14px 0 0;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
                 <tr>
                   <td align="left" valign="middle" style="padding:0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
-                      <tr>
-                        <td bgcolor="#fffdf7" valign="middle" style="padding:9px 13px;background-color:#fffdf7;border-radius:8px;">
-                          <img src="${brandLogoUrl}" width="190" alt="Srikandi Buana — Kelompok Wanita Tani" style="display:block;width:190px;max-width:100%;height:auto;color:#123d32;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;">
-                        </td>
-                      </tr>
-                    </table>
+                    <img src="${brandLogoUrl}" width="190" alt="Srikandi Buana — Kelompok Wanita Tani" style="display:block;width:190px;max-width:100%;height:auto;color:#fffdf7;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;">
                   </td>
                   <td align="right" valign="middle" style="padding:0 0 0 12px;color:#e8d7aa;font-size:9px;line-height:15px;letter-spacing:1.4px;font-weight:bold;">
                     SISTEM INFORMASI<br>ORGANISASI
@@ -183,7 +177,7 @@ function renderEmail(input: {
             </td>
           </tr>
           <tr>
-            <td align="center" bgcolor="#123d32" style="padding:18px 24px 20px;background-color:#123d32;border-radius:0 0 14px 14px;">
+            <td align="center" bgcolor="#315b49" style="padding:18px 24px 20px;background-color:#315b49;background-image:linear-gradient(112deg,#234b3d 0%,#456b54 58%,#7d7950 100%);border-radius:0 0 14px 14px;">
               <p style="margin:0;color:#e6ddc7;font-size:10px;line-height:17px;letter-spacing:.35px;">SRIKANDI BUANA&nbsp;&nbsp;·&nbsp;&nbsp;TUMBUH BERSAMA, BERDAYA BERSAMA</p>
               <p style="margin:5px 0 0;color:#b7c7bc;font-size:10px;line-height:16px;">Pesan otomatis dari Sistem Informasi Srikandi Buana. Mohon tidak membalas email ini.</p>
             </td>
