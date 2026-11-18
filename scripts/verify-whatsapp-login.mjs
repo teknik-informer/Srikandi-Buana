@@ -75,7 +75,7 @@ assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone
 
 assert.match(accountUi,/Konfirmasi WhatsApp & buat aktivasi/);
 assert.match(accountUi,/whatsappConfirmed/);
-assert.match(accountUi,/Buka WhatsApp dan siapkan pesan/);
+assert.ok(!accountUi.includes('wa.me/'));
 assert.match(accountUi,/https:\/\/wa\.me\//);
 assert.match(accountUi,/manualPhone\.replace\(\/\\D\/g/);
 assert.match(accountUi,/Pulihkan via WhatsApp/);
