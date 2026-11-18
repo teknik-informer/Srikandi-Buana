@@ -99,6 +99,13 @@ test("Pusat Aplikasi menampilkan aplikasi; pengaturan teknis tetap berada pada a
   assert.match(route, /active === "module-center" && admin\.role === "admin"/);
   assert.match(route, /BusinessIntelligenceWorkspace/);
   assert.match(route, /Tetapkan izin fitur dan ruang lingkup organisasi/);
+  const qaCenter = readFileSync("src/app/_components/architect-qa-test-center.tsx", "utf8");
+  assert.match(qaCenter, /Administrator Sistem memiliki akses penuh pada keenam aplikasi di Preview maupun Production/);
+  assert.match(qaCenter, /Administrator Sistem memiliki Full Access lintas lingkungan/);
+  assert.match(qaCenter, /Laboratorium dan alat QA tetap dibatasi pada Preview yang diizinkan/);
+  assert.doesNotMatch(qaCenter, /akses operasional tetap ditolak|tidak berlaku pada Production/);
+  const qaGate = readFileSync("src/features/shared/qa-preview.mjs", "utf8");
+  assert.match(qaGate, /QA-only tools are available only/);
 });
 
 test("menu navigasi memakai label formal dan ringkas serta pencarian header versi lama", () => {
