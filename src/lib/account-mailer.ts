@@ -61,3 +61,26 @@ export async function sendAccountEmail(input: {
     disableUrlAccess: true,
   });
 }
+
+export async function sendAccountEmailTest() {
+  if (!senderEmail || !appPassword || !/^kwt\\.srikandibuana@gmail\\.com$/i.test(senderEmail)) {
+    throw new Error('Konfigurasi Gmail belum lengkap atau tidak sesuai alamat resmi.');
+  }
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: senderEmail, pass: appPassword },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
+  });
+  await transporter.sendMail({
+    from: { name: 'KWT Srikandi Buana', address: senderEmail },
+    to: senderEmail,
+    replyTo: senderEmail,
+    subject: 'Uji layanan email — KWT Srikandi Buana',
+    text: 'Pengiriman email uji berhasil. Gmail SMTP siap digunakan untuk aktivasi dan pemulihan akun Srikandi Buana.',
+    html: '<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#1f2937"><h2 style="color:#174b35">Email operasional terhubung</h2><p>Pengiriman email uji berhasil. Gmail SMTP siap digunakan untuk aktivasi dan pemulihan akun Srikandi Buana.</p><p style="font-size:12px;color:#6b7280">Pesan otomatis dari sistem Srikandi Buana.</p></div>',
+    disableFileAccess: true,
+    disableUrlAccess: true,
+  });
+}
