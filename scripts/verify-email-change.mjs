@@ -34,6 +34,18 @@ assert.match(mailer,/GMAIL_APP_PASSWORD/);
 assert.ok(mailer.includes("/^kwt\\.srikandibuana@gmail\\.com$/i"));
 assert.match(mailer,/sendMail/);
 assert.match(mailer,/replyTo: senderEmail/);
+assert.match(mailer,/KELOMPOK WANITA TANI/);
+assert.match(mailer,/UNDANGAN AKSES RESMI/);
+assert.match(mailer,/KEAMANAN AKUN/);
+assert.match(mailer,/KONFIRMASI ALAMAT EMAIL/);
+assert.match(mailer,/Batas waktu keamanan/);
+assert.match(mailer,/preheader/);
+assert.match(mailer,/role="presentation"/);
+assert.match(mailer,/max-width:620px/);
+assert.match(mailer,/word-break:break-all/);
+assert.match(mailer,/Pratinjau desain email/);
+assert.match(mailer,/Contoh tombol tindakan/);
+assert.match(mailer,/disableUrlAccess: true/);
 
 assert.match(activate,/invite\.purpose!=='change_email'&&raw\.password!==raw\.confirmation/);
 assert.match(activate,/i\.target_user_id AND u\.workspace_owner=i\.owner/);
