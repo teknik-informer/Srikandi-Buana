@@ -6,6 +6,7 @@ const apiKey=process.env.OPENWA_API_KEY?.trim();
 const sessionId=process.env.OPENWA_SESSION_ID?.trim();
 
 function config(){
+ if(process.env.OPENWA_OUTBOUND_ENABLED!=='true')throw Object.assign(new Error('WhatsApp outbound belum diaktifkan. Integrasi ditunda sampai infrastruktur dan anggaran disetujui.'),{code:'OPENWA_DISABLED'});
  if(!baseUrl||!apiKey||!sessionId)throw Object.assign(new Error('OpenWA belum dikonfigurasi. Siapkan OPENWA_BASE_URL, OPENWA_API_KEY, dan OPENWA_SESSION_ID pada layanan Preview.'),{code:'OPENWA_NOT_CONFIGURED'});
  let parsed:URL;try{parsed=new URL(baseUrl)}catch{throw Object.assign(new Error('Alamat layanan OpenWA tidak valid.'),{code:'OPENWA_CONFIG_INVALID'})}
  if(parsed.protocol!=='https:'&&parsed.hostname!=='localhost'&&parsed.hostname!=='127.0.0.1')throw Object.assign(new Error('Layanan OpenWA harus menggunakan HTTPS.'),{code:'OPENWA_HTTPS_REQUIRED'});
