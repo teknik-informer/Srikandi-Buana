@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 const senderEmail = process.env.GMAIL_USER?.trim().toLowerCase();
 const appPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
 const organizationAddress = 'Desa Ngadimulyo, Kecamatan Kedu, Kabupaten Temanggung, Jawa Tengah';
+const brandLogoUrl = 'https://raw.githubusercontent.com/teknik-informer/Srikandi-Buana/main/public/brand/wordmark.png';
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -62,83 +63,142 @@ function renderEmail(input: {
     timeStyle: 'short',
   }) + ' WIB';
   const preheader = escapeHtml(input.copy.intro);
+  const safeExpiry = escapeHtml(expiry);
+  const safeHeading = escapeHtml(input.copy.heading);
+  const safeEyebrow = escapeHtml(input.copy.eyebrow);
+  const safeIntro = escapeHtml(input.copy.intro);
+  const safeAction = escapeHtml(input.copy.action);
+  const safeNote = escapeHtml(input.copy.note);
+
+  // Table-first layout and inline styles follow the responsive, email-client-safe
+  // construction principles in konsav/email-templates (MIT licensed reference).
   const html = `<!doctype html>
-<html lang="id">
+<html lang="id" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
   <title>${escapeHtml(input.copy.subject)}</title>
+  <style>
+    body,table,td,a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table,td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
+    @media screen and (max-width:620px) {
+      .email-shell { width:100% !important; }
+      .email-gutter { padding-left:24px !important; padding-right:24px !important; }
+      .email-heading { font-size:27px !important; line-height:34px !important; }
+      .email-brand { padding:22px 24px !important; }
+      .email-body { padding-top:30px !important; }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:#f3f5f0;font-family:Arial,Helvetica,sans-serif;color:#243329;-webkit-text-size-adjust:100%;">
-  <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all;">${preheader}</div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f3f5f0;">
-    <tr><td align="center" style="padding:36px 14px 42px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;">
-        <tr><td style="padding:0 8px 18px;">
-          <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-            <tr>
-              <td valign="middle" style="width:42px;height:42px;border-radius:12px;background-color:#174b35;text-align:center;color:#e7d39a;font-family:Georgia,serif;font-size:22px;font-weight:bold;">S</td>
-              <td valign="middle" style="padding-left:12px;">
-                <div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:22px;font-weight:bold;letter-spacing:.2px;color:#174b35;">Srikandi Buana</div>
-                <div style="padding-top:3px;font-size:9px;line-height:13px;letter-spacing:1.7px;color:#8a7440;">KELOMPOK WANITA TANI</div>
-              </td>
-            </tr>
-          </table>
-        </td></tr>
-        <tr><td style="background-color:#ffffff;border:1px solid #e4e9df;border-radius:18px;overflow:hidden;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-            <tr><td style="height:5px;background-color:#b69a55;font-size:0;line-height:0;">&nbsp;</td></tr>
-            <tr><td style="padding:38px 42px 12px;">
-              <div style="font-size:10px;line-height:16px;letter-spacing:1.8px;font-weight:bold;color:#9a8044;">${input.copy.eyebrow}</div>
-              <h1 style="margin:13px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.22;font-weight:normal;letter-spacing:-.35px;color:#173f2d;">${escapeHtml(input.copy.heading)}</h1>
-            </td></tr>
-            <tr><td style="padding:12px 42px 0;">
-              <p style="margin:0 0 12px;font-size:15px;line-height:25px;color:#33443a;">Yth. <strong style="color:#173f2d;">${safeName}</strong>,</p>
-              <p style="margin:0;font-size:14px;line-height:25px;color:#59665d;">${escapeHtml(input.copy.intro)}</p>
-            </td></tr>
-            <tr><td align="left" style="padding:30px 42px 24px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                <tr><td align="center" bgcolor="#1d583d" style="border-radius:8px;">
-                  <a href="${safeUrl}" target="_blank" style="display:inline-block;padding:15px 25px;border:1px solid #1d583d;border-radius:8px;background-color:#1d583d;color:#ffffff;text-decoration:none;font-size:13px;line-height:18px;font-weight:bold;letter-spacing:.2px;">${escapeHtml(input.copy.action)} &nbsp; &#8594;</a>
-                </td></tr>
+<body style="margin:0;padding:0;width:100%;background-color:#f1f2ed;font-family:Arial,Helvetica,sans-serif;color:#24372e;">
+  <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;">${preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f1f2ed" style="width:100%;background-color:#f1f2ed;border-collapse:collapse;">
+    <tr>
+      <td align="center" style="padding:34px 12px 38px;">
+        <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
+          <tr>
+            <td class="email-brand" bgcolor="#123d32" style="padding:25px 34px 23px;background-color:#123d32;border-radius:14px 14px 0 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                <tr>
+                  <td align="left" valign="middle" style="padding:0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                      <tr>
+                        <td bgcolor="#fffdf7" valign="middle" style="padding:9px 13px;background-color:#fffdf7;border-radius:8px;">
+                          <img src="${brandLogoUrl}" width="190" alt="Srikandi Buana — Kelompok Wanita Tani" style="display:block;width:190px;max-width:100%;height:auto;color:#123d32;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;">
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" valign="middle" style="padding:0 0 0 12px;color:#e8d7aa;font-size:9px;line-height:15px;letter-spacing:1.4px;font-weight:bold;">
+                    SISTEM INFORMASI<br>ORGANISASI
+                  </td>
+                </tr>
               </table>
-            </td></tr>
-            <tr><td style="padding:0 42px 28px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f7f8f4;border:1px solid #e8ece4;border-radius:10px;">
-                <tr><td style="padding:16px 18px;">
-                  <div style="font-size:11px;line-height:17px;font-weight:bold;color:#31483a;">Batas waktu keamanan</div>
-                  <div style="padding-top:4px;font-size:13px;line-height:20px;color:#526056;">Tautan berlaku sampai <strong style="color:#243b2d;">${escapeHtml(expiry)}</strong>.</div>
-                  <div style="padding-top:7px;font-size:11px;line-height:17px;color:#7a847c;">${escapeHtml(input.copy.note)}</div>
-                </td></tr>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                <tr><td style="padding-top:22px;border-bottom:1px solid #49685b;font-size:1px;line-height:1px;">&nbsp;</td></tr>
+                <tr><td style="padding-top:10px;color:#d9e4dc;font-size:10px;line-height:16px;letter-spacing:1.15px;">NGADIMULYO&nbsp;&nbsp;·&nbsp;&nbsp;KEDU&nbsp;&nbsp;·&nbsp;&nbsp;TEMANGGUNG</td></tr>
               </table>
-            </td></tr>
-            <tr><td style="padding:0 42px 30px;">
-              <p style="margin:0 0 8px;font-size:11px;line-height:18px;color:#7b857d;">Jika tombol tidak dapat dibuka, salin dan tempel tautan berikut ke browser:</p>
-              <p style="margin:0;font-size:11px;line-height:18px;word-break:break-all;"><a href="${safeUrl}" style="color:#386b50;text-decoration:underline;">${safeUrl}</a></p>
-            </td></tr>
-            <tr><td style="padding:0 42px;"><div style="height:1px;background-color:#e9ede7;font-size:0;line-height:0;">&nbsp;</div></td></tr>
-            <tr><td style="padding:22px 42px 30px;">
-              <p style="margin:0;font-size:12px;line-height:20px;color:#6d786f;">Demi keamanan, jangan teruskan email ini kepada orang lain. Jika Anda tidak mengenali aktivitas tersebut, Anda dapat mengabaikan pesan ini.</p>
-              <p style="margin:18px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:21px;font-weight:bold;color:#174b35;">KWT Srikandi Buana</p>
-              <p style="margin:4px 0 0;font-size:11px;line-height:18px;color:#7b857d;">${organizationAddress}</p>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td align="center" style="padding:20px 14px 0;">
-          <p style="margin:0;font-size:10px;line-height:17px;letter-spacing:.2px;color:#899289;">Pesan otomatis dari Sistem Informasi Srikandi Buana.</p>
-          <p style="margin:4px 0 0;font-size:10px;line-height:17px;color:#a0a89f;">Mohon tidak membalas email ini.</p>
-        </td></tr>
-      </table>
-    </td></tr>
+            </td>
+          </tr>
+          <tr>
+            <td bgcolor="#ffffff" style="background-color:#ffffff;border-left:1px solid #e4e7df;border-right:1px solid #e4e7df;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                <tr><td bgcolor="#b88727" style="height:4px;background-color:#b88727;font-size:0;line-height:0;">&nbsp;</td></tr>
+                <tr>
+                  <td class="email-gutter email-body" style="padding:42px 48px 0;">
+                    <p style="margin:0 0 13px;color:#987326;font-size:10px;line-height:15px;letter-spacing:1.7px;font-weight:bold;">${safeEyebrow}</p>
+                    <h1 class="email-heading" style="margin:0;color:#123d32;font-family:Georgia,'Times New Roman',serif;font-size:32px;line-height:40px;font-weight:normal;letter-spacing:-.55px;">${safeHeading}</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="email-gutter" style="padding:25px 48px 0;">
+                    <p style="margin:0 0 12px;color:#263b31;font-size:15px;line-height:24px;">Yth. <strong style="color:#123d32;">${safeName}</strong>,</p>
+                    <p style="margin:0;color:#59675e;font-size:14px;line-height:25px;">${safeIntro}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="email-gutter" align="left" style="padding:30px 48px 28px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;">
+                      <tr>
+                        <td align="center" bgcolor="#174b3b" style="background-color:#174b3b;border-radius:6px;">
+                          <a href="${safeUrl}" target="_blank" style="display:inline-block;padding:15px 24px;border:1px solid #174b3b;border-radius:6px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:18px;font-weight:bold;letter-spacing:.15px;text-decoration:none;">${safeAction}&nbsp;&nbsp;&#8594;</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="email-gutter" style="padding:0 48px 30px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f7f7f2" style="width:100%;background-color:#f7f7f2;border:1px solid #e9e8dd;border-left:3px solid #b88727;border-collapse:separate;">
+                      <tr>
+                        <td style="padding:16px 18px 17px;">
+                          <p style="margin:0 0 6px;color:#123d32;font-size:11px;line-height:16px;font-weight:bold;letter-spacing:.65px;">INFORMASI KEAMANAN</p>
+                          <p style="margin:0;color:#59675e;font-size:12px;line-height:20px;">Tautan ini berlaku sampai <strong style="color:#263b31;">${safeExpiry}</strong>.</p>
+                          <p style="margin:6px 0 0;color:#758077;font-size:11px;line-height:18px;">${safeNote}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="email-gutter" style="padding:0 48px 30px;">
+                    <p style="margin:0 0 8px;color:#7a857d;font-size:11px;line-height:18px;">Jika tombol tidak dapat dibuka, salin tautan berikut ke browser:</p>
+                    <p style="margin:0;color:#37664f;font-size:11px;line-height:19px;word-break:break-all;"><a href="${safeUrl}" target="_blank" style="color:#37664f;text-decoration:underline;word-break:break-all;">${safeUrl}</a></p>
+                  </td>
+                </tr>
+                <tr><td class="email-gutter" style="padding:0 48px;"><div style="height:1px;background-color:#e9ece6;font-size:0;line-height:0;">&nbsp;</div></td></tr>
+                <tr>
+                  <td class="email-gutter" style="padding:23px 48px 35px;">
+                    <p style="margin:0;color:#66736a;font-size:11px;line-height:19px;">Demi keamanan, jangan teruskan email ini kepada orang lain. Jika Anda tidak mengenali aktivitas tersebut, abaikan pesan ini.</p>
+                    <p style="margin:17px 0 0;color:#123d32;font-size:12px;line-height:19px;font-weight:bold;">Hormat kami,</p>
+                    <p style="margin:2px 0 0;color:#123d32;font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:23px;font-weight:bold;">KWT Srikandi Buana</p>
+                    <p style="margin:5px 0 0;color:#7a857d;font-size:10px;line-height:17px;">${organizationAddress}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" bgcolor="#123d32" style="padding:18px 24px 20px;background-color:#123d32;border-radius:0 0 14px 14px;">
+              <p style="margin:0;color:#e6ddc7;font-size:10px;line-height:17px;letter-spacing:.35px;">SRIKANDI BUANA&nbsp;&nbsp;·&nbsp;&nbsp;TUMBUH BERSAMA, BERDAYA BERSAMA</p>
+              <p style="margin:5px 0 0;color:#b7c7bc;font-size:10px;line-height:16px;">Pesan otomatis dari Sistem Informasi Srikandi Buana. Mohon tidak membalas email ini.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
 </html>`;
   const text = [
     'SRIKANDI BUANA | KELOMPOK WANITA TANI',
-    input.copy.eyebrow,
+    organizationAddress,
     '',
+    input.copy.eyebrow,
     input.copy.heading,
     '',
     'Yth. ' + input.name + ',',
@@ -146,11 +206,11 @@ function renderEmail(input: {
     '',
     input.copy.action + ': ' + input.url,
     '',
-    'Batas waktu: ' + expiry,
+    'INFORMASI KEAMANAN',
+    'Tautan berlaku sampai: ' + expiry,
     input.copy.note,
     '',
-    'Jika Anda tidak mengenali aktivitas tersebut, abaikan pesan ini.',
-    '',
+    'Demi keamanan, jangan teruskan email ini kepada orang lain.',
     'KWT Srikandi Buana',
     organizationAddress,
     '',
@@ -200,12 +260,12 @@ export async function sendAccountEmail(input: {
 export async function sendAccountEmailTest() {
   const transporter = createTransporter();
   const copy: MailCopy = {
-    subject: 'Pratinjau desain email | KWT Srikandi Buana',
-    eyebrow: 'PRATINJAU DESAIN EMAIL',
-    heading: 'Identitas digital yang tertata',
-    intro: 'Ini adalah email pratinjau untuk memeriksa tampilan visual, keterbacaan, dan konsistensi identitas email resmi Srikandi Buana.',
+    subject: 'Pratinjau identitas email | KWT Srikandi Buana',
+    eyebrow: 'PRATINJAU IDENTITAS EMAIL',
+    heading: 'Identitas organisasi, hadir dengan lebih baik',
+    intro: 'Pratinjau ini digunakan untuk menilai konsistensi logo, warna, tata letak, dan keterbacaan email resmi Srikandi Buana.',
     action: 'Contoh tombol tindakan',
-    note: 'Ini hanya email pratinjau. Tombol contoh tidak menjalankan tindakan apa pun.',
+    note: 'Ini hanya email pratinjau. Tombol contoh tidak menjalankan tindakan akun apa pun.',
   };
   const rendered = renderEmail({
     name: 'Pengelola Srikandi Buana',
