@@ -63,7 +63,7 @@ async function renderEmail(input: {
   const heroImageUrl = escapeHtml(new URL(heroPath, siteOrigin()).toString());
   const heroTitle = escapeHtml(site.heroTitle || 'Perempuan tani. Penggerak kemandirian.');
   const heroSubtitle = escapeHtml(site.heroSubtitle || 'Kelompok Wanita Tani Srikandi Buana, Ngadimulyo, Kedu, Temanggung.');
-  const socialNetworks = [
+  const socialNetworks: Array<{label:string;url:string;host:string[];mark:string;safeUrl?:string}> = [
     {label:'Facebook',url:site.facebookUrl,host:['facebook.com','www.facebook.com','m.facebook.com'],mark:'f'},
     {label:'Instagram',url:site.instagramUrl,host:['instagram.com','www.instagram.com'],mark:'◎'},
     {label:'YouTube',url:site.youtubeUrl,host:['youtube.com','www.youtube.com','youtu.be'],mark:'▶'},
