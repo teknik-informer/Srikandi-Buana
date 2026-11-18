@@ -7,7 +7,6 @@ const senderEmail = process.env.GMAIL_USER?.trim().toLowerCase();
 const appPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
 const organizationAddress = 'Desa Ngadimulyo, Kecamatan Kedu, Kabupaten Temanggung, Jawa Tengah';
 const brandLogoUrl = 'https://raw.githubusercontent.com/teknik-informer/Srikandi-Buana/main/public/brand/wordmark.png';
-const whiteBrandLogoUrl = 'https://raw.githubusercontent.com/teknik-informer/Srikandi-Buana/feat/qa-preview-test-center-access-2026-11-18/public/brand/wordmark-white.svg';
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -60,6 +59,7 @@ async function renderEmail(input: {
   copy: MailCopy;
 }) {
   const site = await getSiteSettings();
+  const whiteBrandLogoUrl = new URL('/brand/wordmark-white.svg', siteOrigin()).toString();
   const heroPath = settingImage(site.heroFileId, '/images/pertanian-premium-v1.webp');
   const heroImageUrl = escapeHtml(new URL(heroPath, siteOrigin()).toString());
   const heroTitle = escapeHtml(site.heroTitle || 'Perempuan tani. Penggerak kemandirian.');
