@@ -59,7 +59,7 @@ async function renderEmail(input: {
   copy: MailCopy;
 }) {
   const site = await getSiteSettings();
-  const whiteBrandLogoUrl = new URL('/brand/wordmark-white.svg', siteOrigin()).toString();
+  const whiteBrandLogoUrl = 'https://raw.githubusercontent.com/teknik-informer/Srikandi-Buana/feat/qa-preview-test-center-access-2026-11-18/public/brand/wordmark-white.svg';
   const heroPath = settingImage(site.heroFileId, '/images/pertanian-premium-v1.webp');
   const heroImageUrl = escapeHtml(new URL(heroPath, siteOrigin()).toString());
   const heroTitle = escapeHtml(site.heroTitle || 'Perempuan tani. Penggerak kemandirian.');
