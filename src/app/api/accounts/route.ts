@@ -29,7 +29,9 @@ export async function GET(){
   const users={results:accountRows};
   const invitationRows=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,purpose,login_phone,expires,consumed_at,revoked_at,created FROM account_invitations WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
   const invitations={results:u.role==='admin'&&qaPreview()?invitationRows.results.filter(row=>scopedMemberIdSet.has(String(row.member_id))):invitationRows.results};
-  const audit=await env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 50').bind(u.userId).all();
+  const auditRows=await env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
+  const qaAuditTargets=new Set([...memberIds,...users.results.flatMap(row=>[String(row.id||''),String(row.email||'')]),...invitations.results.map(row=>String(row.email||''))]);
+  const audit={results:u.role==='admin'&&qaPreview()?auditRows.results.filter(row=>qaAuditTargets.has(String(row.target||''))).slice(0,50):auditRows.results.slice(0,50)};
   return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:scopedMembers.flatMap(r=>{try{const data=JSON.parse(String(r.data));if(u.role==='admin'&&qaPreview()&&data.qaFixture!==true)return [];return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
  }catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}
 }
