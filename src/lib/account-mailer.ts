@@ -7,6 +7,7 @@ const senderEmail = process.env.GMAIL_USER?.trim().toLowerCase();
 const appPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
 const organizationAddress = 'Desa Ngadimulyo, Kecamatan Kedu, Kabupaten Temanggung, Jawa Tengah';
 const brandLogoUrl = 'https://raw.githubusercontent.com/teknik-informer/Srikandi-Buana/main/public/brand/wordmark.png';
+const whiteBrandLogoUrl = 'https://raw.githubusercontent.com/teknik-informer/Srikandi-Buana/feat/qa-preview-test-center-access-2026-11-18/public/brand/wordmark-white.svg';
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -63,11 +64,11 @@ async function renderEmail(input: {
   const heroImageUrl = escapeHtml(new URL(heroPath, siteOrigin()).toString());
   const heroTitle = escapeHtml(site.heroTitle || 'Perempuan tani. Penggerak kemandirian.');
   const heroSubtitle = escapeHtml(site.heroSubtitle || 'Kelompok Wanita Tani Srikandi Buana, Ngadimulyo, Kedu, Temanggung.');
-  const socialNetworks: Array<{label:string;url:string;host:string[];mark:string;safeUrl?:string}> = [
-    {label:'Facebook',url:site.facebookUrl,host:['facebook.com','www.facebook.com','m.facebook.com'],mark:'f'},
-    {label:'Instagram',url:site.instagramUrl,host:['instagram.com','www.instagram.com'],mark:'◎'},
-    {label:'YouTube',url:site.youtubeUrl,host:['youtube.com','www.youtube.com','youtu.be'],mark:'▶'},
-    {label:'TikTok',url:site.tiktokUrl,host:['tiktok.com','www.tiktok.com'],mark:'♪'},
+  const socialNetworks: Array<{label:string;url:string;host:string[];icon:string;safeUrl?:string}> = [
+    {label:'Facebook',url:site.facebookUrl,host:['facebook.com','www.facebook.com','m.facebook.com'],icon:'facebook'},
+    {label:'Instagram',url:site.instagramUrl,host:['instagram.com','www.instagram.com'],icon:'instagram'},
+    {label:'YouTube',url:site.youtubeUrl,host:['youtube.com','www.youtube.com','youtu.be'],icon:'youtube'},
+    {label:'TikTok',url:site.tiktokUrl,host:['tiktok.com','www.tiktok.com'],icon:'tiktok'},
   ].map((item) => {
     try {
       const url = new URL(item.url);
@@ -75,13 +76,11 @@ async function renderEmail(input: {
         ? {...item, safeUrl:escapeHtml(url.toString())} : item;
     } catch { return item; }
   });
-  const socialLinks = socialNetworks.map((item) => {
-    const tag = item.safeUrl
-      ? '<a href="' + item.safeUrl + '" aria-label="' + item.label + '"'
-      : '<span aria-label="' + item.label + '"';
-    const closeTag = item.safeUrl ? '</a>' : '</span>';
-    return tag + ' style="display:inline-block;width:30px;height:30px;margin:0 7px 0 0;border:1px solid #789080;border-radius:50%;color:#ffffff;text-align:center;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:30px;font-weight:bold;">' + item.mark + closeTag;
-  }).join('');
+  const socialLinks = socialNetworks.filter((item) => item.safeUrl).map((item) =>
+    '<a href="' + item.safeUrl + '" aria-label="' + item.label + '" style="display:inline-block;width:36px;height:36px;margin:0 8px 0 0;border:1px solid #789080;border-radius:50%;background-color:rgba(255,255,255,.10);text-align:center;text-decoration:none;line-height:36px;">' +
+    '<img src="https://cdn.simpleicons.org/' + item.icon + '/FFFFFF" width="16" height="16" alt="' + item.label + '" style="display:inline-block;width:16px;height:16px;vertical-align:middle;border:0;outline:none;">' +
+    '</a>'
+  ).join('');
   const safeName = escapeHtml(input.name || 'Pengguna Srikandi Buana');
   const safeUrl = escapeHtml(input.url);
   const expiry = new Date(input.expires).toLocaleString('id-ID', {
@@ -222,9 +221,8 @@ async function renderEmail(input: {
           <tr>
             <td class="email-gutter" bgcolor="#0b3a28" style="padding:30px 38px 28px;background-color:#0b3a28;background-image:linear-gradient(112deg,#0b3a28 0%,#174b3b 62%,#526b45 100%);border-radius:0 0 14px 14px;">
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 10px;border-collapse:collapse;">
-                <tr><td style="padding:0;"><img src="${brandLogoUrl}" width="142" alt="Logo resmi KWT Srikandi Buana" style="display:block;width:142px;height:auto;max-width:100%;border:0;filter:brightness(0) invert(1);"></td></tr>
+                <tr><td style="padding:0;"><img src="${whiteBrandLogoUrl}" width="142" alt="Logo putih Srikandi Buana" style="display:block;width:142px;height:auto;max-width:100%;border:0;"></td></tr>
               </table>
-              <p style="margin:0 0 15px;color:#e8c77e;font-size:10px;line-height:16px;letter-spacing:1.25px;font-weight:bold;">KELOMPOK WANITA TANI · NGADIMULYO</p>
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 17px;border-collapse:collapse;">
                 <tr>
                   <td style="font-size:11px;line-height:18px;color:#e8c77e;">
@@ -236,7 +234,7 @@ async function renderEmail(input: {
                   </td>
                 </tr>
               </table>
-              ${socialLinks ? '<p style="margin:0 0 15px;color:#b9c9bd;font-size:10px;line-height:16px;letter-spacing:.8px;">IKUTI KANAL RESMI KAMI</p><div style="margin:0 0 18px;">' + socialLinks + '</div>' : ''}
+              ${socialLinks ? '<div style="margin:0 0 18px;">' + socialLinks + '</div>' : ''}
               <div style="height:1px;background-color:#365b48;font-size:0;line-height:0;">&nbsp;</div>
               <p style="margin:15px 0 5px;color:#b9c9bd;font-size:11px;line-height:18px;">${organizationAddress}</p>
               <p style="margin:0;color:#8fa898;font-size:10px;line-height:17px;">© 2026 KWT Srikandi Buana. Pesan otomatis dari Sistem Informasi Srikandi Buana. Mohon tidak membalas email ini.</p>
