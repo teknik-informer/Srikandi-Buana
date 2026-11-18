@@ -21,7 +21,7 @@ Jika kelak diaktifkan, WhatsApp hanya digunakan untuk:
 Di luar lingkup:
 - Tidak menerima, membaca, menyimpan, atau memproses pesan masuk.
 - Tidak membuat chatbot atau layanan balas otomatis.
-- Tidak menjadikan WhatsApp sebagai kanal login, verifikasi akun, atau pemulihan akun.
+- Aktivasi dan pemulihan akun melalui WhatsApp tetap dinonaktifkan; Gmail menjadi jalur operasional utama.
 - Tidak melakukan broadcast massal tanpa persetujuan penerima.
 
 QR pairing OpenWA adalah proses menautkan perangkat WhatsApp ke gateway; QR itu bukan QR untuk mengirim broadcast. Pembuatan QR pairing tetap memerlukan gateway OpenWA yang sedang berjalan. Aplikasi tidak dapat menghasilkan QR pairing WhatsApp secara mandiri tanpa sesi gateway.
