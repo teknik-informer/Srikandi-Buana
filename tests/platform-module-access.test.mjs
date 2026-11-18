@@ -162,3 +162,14 @@ test("admin UI provides concise access guidance and exposes activation, override
   assert.match(component, /Ikuti role organisasi/);
   assert.match(component, /Riwayat perubahan akses/);
 });
+
+const accountsApi = readFileSync("src/app/api/accounts/route.ts", "utf8");
+
+test("Preview account directory, invitations and audit are restricted to synthetic QA members", () => {
+  assert.match(accountsApi, /const scopedMembers=u\.role==='admin'&&qaPreview\(\)\?members\.results\.filter/);
+  assert.match(accountsApi, /qaFixture===true/);
+  assert.match(accountsApi, /const memberIds=scopedMembers\.map/);
+  assert.match(accountsApi, /scopedMemberIdSet\.has\(String\(row\.member_id\)\)/);
+  assert.match(accountsApi, /qaAuditTargets\.has\(String\(row\.target\|\|''\)\)/);
+  assert.match(accountsApi, /data\.qaFixture!==true/);
+});
