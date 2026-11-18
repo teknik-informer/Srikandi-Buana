@@ -58,7 +58,8 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(hub, /\["platform-core", "agriculture", "public-partnership"\]\.includes\(application\.id\)/);
   assert.match(hub, /public-partnership/);
   assert.match(hub, /application\.route/);
-  assert.match(hub, /Enam aplikasi Srikandi Buana/);
+  assert.match(hub, /Aplikasi Srikandi Buana/);
+  assert.match(hub, /filter\(\(application\) => application\.id !== "platform-core" \|\| canOpenPlatformCore\)/);
   assert.match(hub, /Belum ditugaskan/);
   assert.match(hub, /Pilih aplikasi untuk melanjutkan pekerjaan/);
   assert.doesNotMatch(hub, /presentation\.modules|modules:\s*"/);
