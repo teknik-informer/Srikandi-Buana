@@ -45,4 +45,4 @@
 .public-social-links>a:hover{background:var(--color-emerald-100);color:var(--pub-green)}
 .public-social-links>.social-unconfigured{color:var(--color-stone-500);background:var(--color-stone-100)}
 
-.pub-cta .site-wordmark{width:132px}.pub-cta .site-brand{flex-shrink:0}.pub-news-art .site-wordmark{width:180px}.public-mega-feature .site-wordmark{display:block;width:180px;height:auto;max-width:100%;object-fit:contain;filter:none;-webkit-filter:none;opacity:1;transform:none;image-rendering:auto}
+.pub-cta .site-wordmark{width:132px}.pub-cta .site-brand{flex-shrink:0}.pub-news-art .site-wordmark{width:180px}.public-mega-feature .site-wordmark,.dark .public-mega-feature .site-wordmark{display:block;width:180px;height:auto;max-width:100%;object-fit:contain;filter:none!important;-webkit-filter:none!important;opacity:1!important;transform:none!important;text-shadow:none;image-rendering:auto}
