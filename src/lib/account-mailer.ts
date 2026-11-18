@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import {getSiteSettings} from './site-settings';
+import {settingImage} from './settings-config';
+import {siteOrigin} from './site-origin';
 
 const senderEmail = process.env.GMAIL_USER?.trim().toLowerCase();
 const appPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
@@ -49,12 +52,15 @@ const mailCopy: Record<AccountMailPurpose, MailCopy> = {
   },
 };
 
-function renderEmail(input: {
+async function renderEmail(input: {
   name: string;
   url: string;
   expires: string;
   copy: MailCopy;
 }) {
+  const site = await getSiteSettings();
+  const heroPath = settingImage(site.heroFileId, '/images/pertanian-premium-v1.webp');
+  const heroImageUrl = escapeHtml(new URL(heroPath, siteOrigin()).toString());
   const safeName = escapeHtml(input.name || 'Pengguna Srikandi Buana');
   const safeUrl = escapeHtml(input.url);
   const expiry = new Date(input.expires).toLocaleString('id-ID', {
@@ -101,20 +107,18 @@ function renderEmail(input: {
       <td align="center" style="padding:34px 12px 38px;">
         <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
           <tr>
-            <td class="email-brand" bgcolor="#315b49" style="padding:25px 34px 23px;background-color:#315b49;background-image:linear-gradient(112deg,#234b3d 0%,#54745d 58%,#8b8050 100%);border-radius:14px 14px 0 0;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+            <td class="email-brand" bgcolor="#234b3d" style="padding:0;background-color:#234b3d;border-radius:14px 14px 0 0;overflow:hidden;">
+              <img src="${heroImageUrl}" width="600" height="220" alt="Suasana pertanian pada halaman utama KWT Srikandi Buana" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;border:0;outline:none;text-decoration:none;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#315b49" style="width:100%;border-collapse:collapse;background-color:#315b49;background-image:linear-gradient(112deg,#234b3d 0%,#54745d 58%,#8b8050 100%);">
                 <tr>
-                  <td align="left" valign="middle" style="padding:0;">
+                  <td align="left" valign="middle" style="padding:22px 30px 20px;">
                     <img src="${brandLogoUrl}" width="190" alt="Srikandi Buana — Kelompok Wanita Tani" style="display:block;width:190px;max-width:100%;height:auto;color:#fffdf7;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;">
                   </td>
-                  <td align="right" valign="middle" style="padding:0 0 0 12px;color:#e8d7aa;font-size:9px;line-height:15px;letter-spacing:1.4px;font-weight:bold;">
+                  <td align="right" valign="middle" style="padding:18px 30px 18px 8px;color:#f0dfb4;font-size:9px;line-height:15px;letter-spacing:1.35px;font-weight:bold;">
                     SISTEM INFORMASI<br>ORGANISASI
                   </td>
                 </tr>
-              </table>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
-                <tr><td style="padding-top:22px;border-bottom:1px solid #49685b;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-                <tr><td style="padding-top:10px;color:#d9e4dc;font-size:10px;line-height:16px;letter-spacing:1.15px;">NGADIMULYO&nbsp;&nbsp;·&nbsp;&nbsp;KEDU&nbsp;&nbsp;·&nbsp;&nbsp;TEMANGGUNG</td></tr>
+                <tr><td colspan="2" style="padding:0 30px 17px;color:#e1e9e2;font-size:10px;line-height:16px;letter-spacing:1.15px;">NGADIMULYO&nbsp;&nbsp;·&nbsp;&nbsp;KEDU&nbsp;&nbsp;·&nbsp;&nbsp;TEMANGGUNG</td></tr>
               </table>
             </td>
           </tr>
@@ -238,7 +242,7 @@ export async function sendAccountEmail(input: {
 }) {
   const transporter = createTransporter();
   const copy = mailCopy[input.purpose];
-  const rendered = renderEmail({ name: input.name, url: input.url, expires: input.expires, copy });
+  const rendered = await renderEmail({ name: input.name, url: input.url, expires: input.expires, copy });
   await transporter.sendMail({
     from: { name: 'KWT Srikandi Buana', address: senderEmail! },
     to: input.to,
@@ -261,7 +265,7 @@ export async function sendAccountEmailTest() {
     action: 'Contoh tombol tindakan',
     note: 'Ini hanya email pratinjau. Tombol contoh tidak menjalankan tindakan akun apa pun.',
   };
-  const rendered = renderEmail({
+  const rendered = await renderEmail({
     name: 'Pengelola Srikandi Buana',
     url: 'https://example.com/pratinjau-email',
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
