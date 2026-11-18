@@ -154,7 +154,7 @@ test("platform access schema has a separate workspace setting, user override and
 });
 
 test("admin UI explains app-launch-only grants and exposes activation, override and audit workflows", () => {
-  assert.match(component, /Grant aplikasi bukan grant data/);
+  assert.match(component, /Hak data tetap mengikuti peran dan penugasan yang berlaku/);
   assert.match(component, /set_module_enabled/);
   assert.match(component, /set_user_module_access/);
   assert.match(component, /Ikuti role organisasi/);
