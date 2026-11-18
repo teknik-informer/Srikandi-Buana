@@ -78,7 +78,7 @@ assert.ok(!accountUi.includes('wa.me/'));
 assert.ok(!accountUi.includes('manualPhone'));
 assert.match(accountUi,/whatsappConfirmed/);
 assert.ok(!accountUi.includes('wa.me/'));
-assert.match(accountUi,/Pulihkan via WhatsApp/);
+assert.doesNotMatch(accountUi,/Pulihkan via WhatsApp/);
 const accountMailer=read('src/lib/account-mailer.ts');
 assert.match(accounts,/raw\.action==='test_email'/);
 assert.match(accounts,/sendAccountEmailTest/);
