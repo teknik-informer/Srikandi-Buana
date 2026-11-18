@@ -14,7 +14,9 @@ export async function GET(){
  if(!env.DB)return json({error:'Database belum tersedia.'},503);
  try{
   const members=await env.DB.prepare("SELECT id,data FROM records WHERE owner=? AND kind='anggota' ORDER BY created").bind(u.userId).all();
-  const memberIds=members.results.map(row=>String(row.id));
+  const scopedMembers=u.role==='admin'&&qaPreview()?members.results.filter(row=>{try{return JSON.parse(String(row.data)).qaFixture===true}catch{return false}}):members.results;
+  const memberIds=scopedMembers.map(row=>String(row.id));
+  const scopedMemberIdSet=new Set(memberIds);
   const memberPhones=new Map(members.results.map(row=>{try{return [String(row.id),String(JSON.parse(String(row.data)).phone||'')]}catch{return [String(row.id),'']}}));
   const linkedAccounts=memberIds.length
    ? await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
@@ -25,9 +27,10 @@ export async function GET(){
    if(self)accountRows.unshift({...self,member_phone:''} as Record<string,unknown>);
   }
   const users={results:accountRows};
-  const invitations=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,purpose,login_phone,expires,consumed_at,revoked_at,created FROM account_invitations WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
+  const invitationRows=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,purpose,login_phone,expires,consumed_at,revoked_at,created FROM account_invitations WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
+  const invitations={results:u.role==='admin'&&qaPreview()?invitationRows.results.filter(row=>scopedMemberIdSet.has(String(row.member_id))):invitationRows.results};
   const audit=await env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 50').bind(u.userId).all();
-  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:members.results.flatMap(r=>{try{const data=JSON.parse(String(r.data));if(u.role==='admin'&&qaPreview()&&data.qaFixture!==true)return [];return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
+  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:scopedMembers.flatMap(r=>{try{const data=JSON.parse(String(r.data));if(u.role==='admin'&&qaPreview()&&data.qaFixture!==true)return [];return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
  }catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}
 }
 export async function POST(request:Request){
