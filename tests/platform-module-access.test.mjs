@@ -44,12 +44,14 @@ test("Architect Full Access is limited to allowlisted Vercel Preview branches", 
     "implementation/five-app-platform-hub-2026-11-17",
     "architecture/v13-modular-platform-foundation-2026-11-17",
     "feat/admin-full-access-six-app-sidebar-2026-11-18",
+    "feat/qa-preview-test-center-access-2026-11-18",
   ];
   for (const branch of branches) {
     assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: branch }), true);
     assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "production", VERCEL_GIT_COMMIT_REF: branch }), false);
   }
   assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "main" }), false);
+  assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "feat/qa-preview-test-center-access-2026-11-18-extra" }), false);
   assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "development", VERCEL_GIT_COMMIT_REF: "architecture/v13-modular-platform-foundation-2026-11-17" }), false);
 });
 
