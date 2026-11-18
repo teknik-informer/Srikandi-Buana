@@ -218,7 +218,7 @@ async function renderEmail(input: {
           <tr>
             <td class="email-gutter" bgcolor="#0b3a28" style="padding:30px 38px 28px;background-color:#0b3a28;background-image:linear-gradient(112deg,#0b3a28 0%,#174b3b 62%,#526b45 100%);border-radius:0 0 14px 14px;">
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 10px;border-collapse:collapse;">
-                <tr><td style="padding:0;"><img src="\${brandLogoUrl}" width="142" alt="Logo resmi KWT Srikandi Buana" style="display:block;width:142px;height:auto;max-width:100%;border:0;filter:brightness(0) invert(1);"></td></tr>
+                <tr><td style="padding:0;"><img src="${brandLogoUrl}" width="142" alt="Logo resmi KWT Srikandi Buana" style="display:block;width:142px;height:auto;max-width:100%;border:0;filter:brightness(0) invert(1);"></td></tr>
               </table>
               <p style="margin:0 0 15px;color:#e8c77e;font-size:10px;line-height:16px;letter-spacing:1.25px;font-weight:bold;">KELOMPOK WANITA TANI · NGADIMULYO</p>
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 17px;border-collapse:collapse;">
