@@ -1,54 +1,66 @@
-# Integrasi OpenWA — Srikandi Buana
+# WhatsApp Srikandi Buana — kebijakan dan aktivasi bertahap
 
-## Arsitektur
+## Keputusan operasional saat ini
 
-Srikandi Buana berjalan di Vercel. OpenWA adalah gateway WhatsApp yang harus berjalan sebagai layanan Node.js/Docker tersendiri dan terus aktif. Vercel memanggil REST API OpenWA melalui HTTPS; sesi WhatsApp tidak dijalankan di dalam fungsi serverless Vercel.
+Integrasi WhatsApp **dinonaktifkan secara default**. Gmail tetap menjadi kanal aktif untuk verifikasi akun, undangan, perubahan email, dan pemulihan akses.
 
-Situs dan dokumentasi proyek: https://www.open-wa.org/ dan https://docs.open-wa.org/
+Belum ada gateway OpenWA, server persisten, atau anggaran operasional yang disetujui. Karena itu:
+- Jangan memasang OpenWA pada komputer kerja/laptop pengurus.
+- Jangan menambahkan URL gateway, API key, atau session ID ke Vercel.
+- Jangan mengaktifkan pengiriman WhatsApp sebelum ada host yang dikelola dan disetujui.
+- Tombol uji koneksi OpenWA tidak ditampilkan sebagai layanan aktif; pilihan aktivasi WhatsApp ditandai belum diaktifkan.
+- Kegagalan/ketiadaan gateway tidak boleh mengganggu pengiriman Gmail.
 
-## Menjalankan gateway
+## Lingkup WhatsApp yang direncanakan
 
-1. Siapkan host yang selalu aktif dan mendukung Docker. Jangan mengandalkan laptop/desktop yang sering dimatikan untuk operasional kelompok.
-2. Ikuti Quick Start resmi OpenWA: clone repository OpenWA, lalu jalankan `docker compose -f docker-compose.dev.yml up -d` untuk uji awal. Untuk operasional, gunakan konfigurasi Docker production resmi, volume persisten, HTTPS, firewall, dan restart policy.
-3. Buka dashboard OpenWA pada host, buat satu session khusus Srikandi Buana, lalu tautkan nomor WhatsApp organisasi melalui QR/perangkat tertaut.
-4. Pastikan session berstatus `ready`. Simpan session ID yang dikembalikan OpenWA.
-5. Buat API key operator khusus integrasi Srikandi Buana. Jangan gunakan key admin gateway untuk aplikasi bila key operator dengan izin kirim sudah cukup.
-6. Pastikan API gateway hanya dapat diakses melalui HTTPS dan API key tidak pernah dikirim ke browser.
+Jika kelak diaktifkan, WhatsApp hanya digunakan untuk:
+1. Menautkan nomor khusus organisasi melalui QR pairing pada gateway yang dikelola.
+2. Mengirim notifikasi dan pengumuman keluar kepada penerima yang relevan dan telah menyetujui pesan.
+3. Mencatat status permintaan/pengiriman dan hasil yang benar-benar dikonfirmasi gateway.
 
-## Environment Vercel — Preview terlebih dahulu
+Di luar lingkup:
+- Tidak menerima, membaca, menyimpan, atau memproses pesan masuk.
+- Tidak membuat chatbot atau layanan balas otomatis.
+- Tidak menjadikan WhatsApp sebagai kanal login, verifikasi akun, atau pemulihan akun.
+- Tidak melakukan broadcast massal tanpa persetujuan penerima.
 
-Tambahkan variabel berikut ke environment Preview, kemudian redeploy Preview:
+QR pairing OpenWA adalah proses menautkan perangkat WhatsApp ke gateway; QR itu bukan QR untuk mengirim broadcast. Pembuatan QR pairing tetap memerlukan gateway OpenWA yang sedang berjalan. Aplikasi tidak dapat menghasilkan QR pairing WhatsApp secara mandiri tanpa sesi gateway.
 
-- `OPENWA_BASE_URL`: root URL gateway, misalnya `https://wa-gateway.example.org` (tanpa `/api` juga diterima).
-- `OPENWA_API_KEY`: API key operator OpenWA.
-- `OPENWA_SESSION_ID`: ID session WhatsApp yang sudah berstatus `ready`.
+## Arsitektur jika anggaran tersedia
+
+Srikandi Buana tetap berjalan di Vercel. OpenWA berjalan pada layanan cloud/VPS persisten yang mendukung Docker dan penyimpanan sesi. Vercel hanya memanggil API gateway melalui HTTPS.
+
+Persyaratan minimum:
+- Host persisten dengan restart policy dan volume penyimpanan sesi.
+- HTTPS, firewall, pembatasan akses API, dan API key khusus pengiriman.
+- Nomor WhatsApp khusus organisasi, bukan nomor pribadi pengurus.
+- Konfigurasi gateway tanpa webhook/listener pesan masuk; hanya endpoint status/pairing dan pengiriman keluar yang dibutuhkan.
+- Pengujian Preview dengan nomor penerima yang menyetujui pesan sebelum operasional.
+
+OpenWA adalah proyek self-hosted dan bukan WhatsApp Business Platform resmi Meta. Otomatisasi WhatsApp Web memiliki risiko pembatasan akun. Untuk notifikasi organisasi yang kritis atau skala besar, evaluasi WhatsApp Business Platform/Cloud API resmi Meta sebagai alternatif yang lebih sesuai kebijakan, dengan konsekuensi biaya dan template messaging.
+
+## Gerbang aktivasi teknis
+
+Aktivasi hanya dilakukan setelah ada persetujuan anggaran dan host:
+1. Siapkan host persisten yang mendukung Docker dan volume.
+2. Ikuti dokumentasi resmi OpenWA untuk deployment production dan pairing QR.
+3. Buat session khusus Srikandi Buana dan pastikan statusnya siap.
+4. Buat API key terbatas untuk aplikasi.
+5. Tambahkan environment berikut pada Preview saja, lalu redeploy:
+   - `OPENWA_OUTBOUND_ENABLED=true`
+   - `OPENWA_BASE_URL`
+   - `OPENWA_API_KEY`
+   - `OPENWA_SESSION_ID`
+6. Uji status session, satu notifikasi opt-in, deduplikasi, audit, dan kegagalan jaringan.
+7. Pastikan tidak ada handler pesan masuk/webhook yang diaktifkan.
+8. Setelah UAT dan persetujuan terpisah, baru pertimbangkan konfigurasi Production.
 
 Jangan menaruh API key di source code, browser, atau repository. Jangan mengirim nilai rahasia melalui percakapan.
 
-## Pengujian di Srikandi Buana
-
-1. Masuk sebagai Administrator Sistem di Preview.
-2. Buka Pengguna dan Hak Akses.
-3. Tekan **Uji koneksi OpenWA**. Status harus menunjukkan session `ready`.
-4. Uji undangan WhatsApp menggunakan akun uji dan nomor yang pemiliknya telah menyetujui pesan.
-5. Pastikan pesan diterima, tautan aktivasi dapat dipakai sekali, dan audit tercatat.
-6. Ulangi untuk pemulihan akun sebelum mengaktifkan penggunaan operasional.
-
-## Perilaku integrasi
-
-- Aktivasi dan pemulihan WhatsApp mengirim pesan melalui `POST /api/sessions/{sessionId}/messages/send-text`.
-- Pengiriman menggunakan `X-API-Key`, format penerima `62xxxxxxxxxx@c.us`, dan `Idempotency-Key`.
-- Sistem hanya mengirim setelah Admin mengonfirmasi nomor dan tindakan undangan/pemulihan dimulai.
-- Jika gateway tidak tersedia atau session belum `ready`, undangan yang belum terkirim dibatalkan agar tautan tidak beredar tanpa pesan.
-- Email tetap melalui Gmail SMTP; OpenWA tidak menggantikan layanan email.
-
-## Catatan operasional
-
-OpenWA adalah proyek independen, bukan WhatsApp Business Platform/Cloud API resmi Meta. Otomatisasi melalui WhatsApp Web memiliki risiko pembatasan akun. Gunakan nomor khusus organisasi, hanya kirim pesan yang diminta/diantisipasi penerima, batasi frekuensi, dan jangan melakukan broadcast dingin. OpenWA gratis dan MIT-licensed menurut situs proyek, tetapi host server, domain, dan pemeliharaan dapat tetap memerlukan biaya.
-
-## Referensi
+## Referensi resmi
 
 - https://www.open-wa.org/
+- https://docs.open-wa.org/
 - https://docs.open-wa.org/guides/authentication
 - https://docs.open-wa.org/guides/sending-messages
 - https://docs.open-wa.org/operations/security-and-deployment
