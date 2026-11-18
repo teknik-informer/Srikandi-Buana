@@ -33,6 +33,14 @@ assert.equal(policy.canReviewFollowup(chair,taskBefore,taskAfter),false,'Chair d
 assert.equal(policy.canReviewFollowup(secretary,taskBefore,{...taskAfter,data:{...taskAfter.data,name:'Tampered task'}}),false,'Secretariat cannot rewrite task source data during verification');
 const galleryDraft={id:'gallery-1',kind:'galeri',data:{name:'Gallery',status:'Draf',fileId:'file-1',publicationPermission:'Dikonfirmasi'}};
 const memberFixture={id:'member-1',kind:'anggota',data:{name:'Nama uji',dusun:'Alamat uji',phone:'081234567890',potential:'Kebutuhan pribadi',role:'Anggota',status:'Aktif',verification:'Terverifikasi'}};
+const memberSelf={role:'anggota',memberId:'member-1',programIds:[]};
+assert.equal(policy.canWriteKind(secretary,'anggota'),true,'Secretariat manages the membership register and verification data');
+assert.equal(policy.canWriteKind(chair,'anggota'),false,'Chair oversees membership but does not edit source register rows');
+assert.equal(policy.canWriteKind({role:'bendahara'},'anggota'),false,'Treasurer has read-only membership access');
+assert.equal(policy.canWriteKind(memberSelf,'anggota'),false,'Members cannot directly change official membership records');
+assert.equal(policy.canReadRecord(memberSelf,memberFixture),true,'Members can read their own membership record');
+assert.equal(policy.canReadRecord(memberSelf,{...memberFixture,id:'member-2'}),false,'Members cannot read another member record');
+assert.equal(policy.canReadRecord({role:'koordinator',programIds:[]},memberFixture),false,'Coordinators do not receive unrestricted membership records');
 const chairMember=policy.visibleRecord(chair,memberFixture);
 const secretaryMember=policy.visibleRecord(secretary,memberFixture);
 assert.equal(chairMember.data.phone,undefined,'Chair oversight does not expose private contact details by default');
