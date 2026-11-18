@@ -62,7 +62,7 @@ assert.match(mailer,/youtubeUrl/);
 assert.match(mailer,/tiktokUrl/);
 assert.match(mailer,/socialLinks/);
 assert.match(mailer,/Logo resmi KWT Srikandi Buana/);
-assert.match(mailer,/filter:brightness\(0\) invert\(1\)/);
+assert.match(mailer,/wordmark-white\\.svg/);
 assert.ok(mailer.includes("background-image:linear-gradient(112deg,#0b3a28 0%,#174b3b 62%,#526b45 100%)"));
 assert.match(mailer,/bgcolor="#0b3a28"/);
 assert.ok(mailer.includes('href="${escapeHtml(siteOrigin())}/profil"'));
