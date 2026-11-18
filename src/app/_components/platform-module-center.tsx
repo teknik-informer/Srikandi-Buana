@@ -64,7 +64,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Satu basis data saat ini</CardDescription>
+            <CardDescription>Database utama</CardDescription>
             <CardTitle className="text-2xl">Neon</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">PostgreSQL · neondb · public · workspace_v14 · neon_auth</CardContent>
@@ -74,7 +74,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
             <CardDescription>Rute aplikasi utama</CardDescription>
             <CardTitle className="text-3xl tabular-nums">{metricLabel(modulesWithRoutes)}/6</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Rute terdaftar</CardContent>
+          <CardContent className="text-xs text-muted-foreground">Rute tersedia</CardContent>
         </Card>
       </section>
 
@@ -122,7 +122,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
       <section className="space-y-3" aria-labelledby="platform-applications-title">
         <div>
           <h2 id="platform-applications-title" className="text-lg font-semibold">Registri enam aplikasi utama</h2>
-          <p className="text-sm text-muted-foreground">Status mengikuti cakupan implementasi saat ini.</p>
+          <p className="text-sm text-muted-foreground">Verifikasi fitur dan UAT sebelum mengubah status.</p>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {coreApplicationModules.map((module) => (
@@ -146,7 +146,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{module.limitation}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Jejak data saat ini · masih dalam satu database</p>
+                  <p className="text-xs font-medium text-muted-foreground">Sumber data</p>
                   <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">{module.sourceFootprint}</p>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t pt-3">
@@ -166,7 +166,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
       <section className="space-y-3" aria-labelledby="module-access-title">
         <div>
           <h2 id="module-access-title" className="text-lg font-semibold">Ketersediaan fitur per peran</h2>
-          <p className="text-sm text-muted-foreground">Ketersediaan fitur berdasarkan kebijakan akses.</p>
+          <p className="text-sm text-muted-foreground">Gunakan matriks ini saat meninjau penugasan akses.</p>
         </div>
         <Card>
           <CardContent className="overflow-x-auto p-0">
