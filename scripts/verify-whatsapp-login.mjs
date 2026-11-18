@@ -82,7 +82,11 @@ assert.match(accounts,/raw\.action==='test_email'/);
 assert.match(accounts,/sendAccountEmailTest/);
 assert.match(accountUi,/Uji pengiriman Gmail/);
 assert.match(accountMailer,/GMAIL_APP_PASSWORD/);
-assert.match(accountMailer,/sendAccountEmailTest/);\nassert.match(accountMailer,/kwt\\\\\\\\\.srikandibuana@gmail\\\\\\\\\.com/);\nassert.match(read('src/lib/open-wa.ts'),/messages\\/send-text/);\nassert.match(read('src/app/api/accounts/route.ts'),/sendOpenWaText/);\nassert.match(read('src/app/_components/access/accounts.tsx'),/Uji koneksi OpenWA/);
+assert.match(accountMailer,/sendAccountEmailTest/);
+assert.ok(accountMailer.includes("!/^kwt\\.srikandibuana@gmail\\.com$/i.test(senderEmail)"));
+assert.match(read('src/lib/open-wa.ts'),/messages\\/send-text/);
+assert.match(read('src/app/api/accounts/route.ts'),/sendOpenWaText/);
+assert.match(read('src/app/_components/access/accounts.tsx'),/Uji koneksi OpenWA/);
 
 assert.match(accountUi,/terverifikasi/i);
 assert.match(accountUi,/reset_wa/);
