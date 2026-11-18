@@ -73,8 +73,17 @@ assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone
 
 assert.match(accountUi,/Konfirmasi WhatsApp & buat aktivasi/);
 assert.match(accountUi,/whatsappConfirmed/);
-assert.match(accountUi,/Buka WhatsApp dan siapkan pesan/);\nassert.match(accountUi,/https:\/\/wa\.me\//);\nassert.match(accountUi,/manualPhone\.replace\(\/\\D\/g/);
-assert.match(accountUi,/Pulihkan via WhatsApp/);\nconst accountMailer=read('src/lib/account-mailer.ts');\nassert.match(accounts,/raw\.action==='test_email'/);\nassert.match(accounts,/sendAccountEmailTest/);\nassert.match(accountUi,/Uji pengiriman Gmail/);\nassert.match(accountMailer,/GMAIL_APP_PASSWORD/);\nassert.match(accountMailer,/sendAccountEmailTest/);\n
+assert.match(accountUi,/Buka WhatsApp dan siapkan pesan/);
+assert.match(accountUi,/https:\/\/wa\.me\//);
+assert.match(accountUi,/manualPhone\.replace\(\/\\D\/g/);
+assert.match(accountUi,/Pulihkan via WhatsApp/);
+const accountMailer=read('src/lib/account-mailer.ts');
+assert.match(accounts,/raw\.action==='test_email'/);
+assert.match(accounts,/sendAccountEmailTest/);
+assert.match(accountUi,/Uji pengiriman Gmail/);
+assert.match(accountMailer,/GMAIL_APP_PASSWORD/);
+assert.match(accountMailer,/sendAccountEmailTest/);
+
 assert.match(accountUi,/terverifikasi/i);
 assert.match(accountUi,/reset_wa/);
 assert.match(accountUi,/Verifikasi WhatsApp/);
