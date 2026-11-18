@@ -62,17 +62,14 @@ export default function ApplicationHub({ dashboards, displayName, canOpenPlatfor
                 <p className="mt-5 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground">{application.eyebrow}</p>
                 <h3 className="mt-1 text-lg font-semibold tracking-tight">{application.name}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{application.description}</p>
-                <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-                  <span className="text-xs text-muted-foreground">
-                    {!enabled ? "Belum ditugaskan" : restricted ? "Akses belum ditetapkan" : ""}
-                  </span>
+                <div className="mt-auto flex items-center justify-end pt-5">
                   {enabled && !restricted ? (
                     <Link href={href} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
                       Buka aplikasi <ArrowUpRight className="size-4" />
                     </Link>
                   ) : (
                     <span aria-disabled="true" className="inline-flex shrink-0 items-center gap-1 rounded-lg border px-3 py-2 text-xs font-semibold text-muted-foreground">
-                      {restricted && dashboard?.catalogOnly ? "Akses terbatas" : "Belum ditugaskan"} <LockKeyhole className="size-3.5" />
+                      {enabled ? "Akses terbatas" : "Belum ditugaskan"} <LockKeyhole className="size-3.5" />
                     </span>
                   )}
                 </div>
