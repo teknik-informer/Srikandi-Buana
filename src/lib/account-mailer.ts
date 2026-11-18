@@ -68,16 +68,20 @@ async function renderEmail(input: {
     {label:'Instagram',url:site.instagramUrl,host:['instagram.com','www.instagram.com'],mark:'◎'},
     {label:'YouTube',url:site.youtubeUrl,host:['youtube.com','www.youtube.com','youtu.be'],mark:'▶'},
     {label:'TikTok',url:site.tiktokUrl,host:['tiktok.com','www.tiktok.com'],mark:'♪'},
-  ].flatMap((item) => {
+  ].map((item) => {
     try {
       const url = new URL(item.url);
       return url.protocol === 'https:' && !url.username && !url.password && item.host.includes(url.hostname)
-        ? [{...item, safeUrl:escapeHtml(url.toString())}] : [];
-    } catch { return []; }
+        ? {...item, safeUrl:escapeHtml(url.toString())} : item;
+    } catch { return item; }
   });
-  const socialLinks = socialNetworks.map((item) =>
-    '<a href="' + item.safeUrl + '" aria-label="' + item.label + '" style="display:inline-block;width:30px;height:30px;margin:0 7px 0 0;border:1px solid #789080;border-radius:50%;color:#ffffff;text-align:center;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:30px;font-weight:bold;">' + item.mark + '</a>'
-  ).join('');
+  const socialLinks = socialNetworks.map((item) => {
+    const tag = item.safeUrl
+      ? '<a href="' + item.safeUrl + '" aria-label="' + item.label + '"'
+      : '<span aria-label="' + item.label + '"';
+    const closeTag = item.safeUrl ? '</a>' : '</span>';
+    return tag + ' style="display:inline-block;width:30px;height:30px;margin:0 7px 0 0;border:1px solid #789080;border-radius:50%;color:#ffffff;text-align:center;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:30px;font-weight:bold;">' + item.mark + closeTag;
+  }).join('');
   const safeName = escapeHtml(input.name || 'Pengguna Srikandi Buana');
   const safeUrl = escapeHtml(input.url);
   const expiry = new Date(input.expires).toLocaleString('id-ID', {
