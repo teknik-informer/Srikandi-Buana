@@ -42,7 +42,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
       <WorkspacePageHeader
         title="Pusat Modul & Platform"
         eyebrow="PLATFORM CORE · SYSTEM ADMINISTRATION"
-        description="Registri aplikasi, status layanan, dan pengaturan akses."
+        description="Atur status aplikasi, akses akun, dan kebijakan platform."
       />
 
       <PlatformModuleAccessManager />
@@ -53,21 +53,21 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
             <CardDescription>Aplikasi utama</CardDescription>
             <CardTitle className="text-3xl tabular-nums">{metricLabel(platformApplications.length)}</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Enam aplikasi dalam satu platform.</CardContent>
+          <CardContent className="text-xs text-muted-foreground">Tinjau susunan aplikasi utama.</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Domain pendukung</CardDescription>
             <CardTitle className="text-3xl tabular-nums">{metricLabel(supportingPlatformModules.length)}</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Layanan lintas aplikasi.</CardContent>
+          <CardContent className="text-xs text-muted-foreground">Kelola layanan bersama.</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Satu basis data saat ini</CardDescription>
             <CardTitle className="text-2xl">Neon</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">neondb · skema public dan workspace_v14, plus neon_auth</CardContent>
+          <CardContent className="text-xs text-muted-foreground">PostgreSQL · neondb · public · workspace_v14 · neon_auth</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -81,7 +81,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
       <section className="space-y-3" aria-labelledby="canonical-applications-title">
         <div>
           <h2 id="canonical-applications-title" className="text-lg font-semibold">Arsitektur aplikasi utama · enam pilar</h2>
-          <p className="text-sm text-muted-foreground">Pemetaan enam aplikasi utama dan ruang kerja terkait.</p>
+          <p className="text-sm text-muted-foreground">Tinjau cakupan dan jalur kerja setiap aplikasi.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {platformApplications.map((application) => (
@@ -138,11 +138,11 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Yang sudah tersedia</p>
+                  <p className="text-xs font-medium text-muted-foreground">Cakupan saat ini</p>
                   <p className="mt-1 text-sm leading-6">{module.implemented}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Batas implementasi saat ini</p>
+                  <p className="text-xs font-medium text-muted-foreground">Pekerjaan lanjutan</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{module.limitation}</p>
                 </div>
                 <div>
@@ -197,14 +197,14 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
           </CardContent>
         </Card>
         <p className="text-xs leading-5 text-muted-foreground">
-          Hak akses data mengikuti peran dan ruang lingkup penugasan.
+          Tinjau peran organisasi dan ruang lingkup penugasan saat mengevaluasi akses.
         </p>
       </section>
 
       <section className="space-y-3" aria-labelledby="support-domains-title">
         <div>
           <h2 id="support-domains-title" className="text-lg font-semibold">Domain dan layanan pendukung</h2>
-          <p className="text-sm text-muted-foreground">Layanan yang digunakan bersama oleh aplikasi utama.</p>
+          <p className="text-sm text-muted-foreground">Kelola layanan yang dipakai bersama oleh aplikasi utama.</p>
         </div>
         <Card>
           <CardContent className="overflow-x-auto p-0">
@@ -243,7 +243,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><Database className="size-4 text-primary" /> Batas database aktual</CardTitle>
-            <CardDescription>Ringkasan skema Production dari pemeriksaan terakhir.</CardDescription>
+            <CardDescription>Skema dan sumber data yang terdeteksi pada pemeriksaan terakhir.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>Seluruh domain masih berada di satu database PostgreSQL Neon bernama <strong>neondb</strong>. Skema berbeda adalah pemisahan logis, belum database fisik independen.</p>
@@ -254,7 +254,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><LockKeyhole className="size-4 text-primary" /> Batas kewenangan sistem</CardTitle>
-            <CardDescription>Pengaturan teknis dan kewenangan organisasi.</CardDescription>
+            <CardDescription>Konfigurasi teknis dan kebijakan organisasi.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p><strong>Administrator Sistem</strong> dapat memeriksa registri, status implementasi dan kebijakan akses. Katalog aplikasi tidak memberikan hak membaca atau mengubah data organisasi.</p>
