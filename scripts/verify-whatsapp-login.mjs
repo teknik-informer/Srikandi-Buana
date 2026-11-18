@@ -55,7 +55,9 @@ assert.match(accounts,/raw\.action==='verify_phone'/);
 assert.match(accounts,/target\.role==='ketua'&&u\.role!=='admin'/);
 assert.match(accounts,/Nomor WhatsApp akun dikonfirmasi ulang/);
 assert.match(accounts,/member_phone/);
-assert.match(accounts,/sendOpenWaText\(phone,message,'srikandi-account-\'\+id\)/);\nassert.match(accounts,/whatsappSent:true/);\nassert.match(accounts,/Pengiriman WhatsApp melalui OpenWA gagal; tautan dicabut/);
+assert.match(accounts,/sendOpenWaText\(phone,message,'srikandi-account-\'\+id\)/);
+assert.match(accounts,/whatsappSent:true/);
+assert.match(accounts,/Pengiriman WhatsApp melalui OpenWA gagal; tautan dicabut/);
 assert.match(accounts,/sendAccountEmail/);
 
 assert.match(activate,/normalizeIndonesianMobilePhone\(raw\.phone\)/);
