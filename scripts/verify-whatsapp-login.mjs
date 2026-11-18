@@ -88,7 +88,8 @@ assert.match(accountMailer,/sendAccountEmailTest/);
 assert.ok(accountMailer.includes("!/^kwt\\.srikandibuana@gmail\\.com$/i.test(senderEmail)"));
 assert.ok(read('src/lib/open-wa.ts').includes('/messages/send-text'));
 assert.match(read('src/app/api/accounts/route.ts'),/sendOpenWaText/);
-assert.match(read('src/app/_components/access/accounts.tsx'),/WhatsApp outbound ditunda sampai infrastruktur dan anggaran tersedia/);\nassert.match(read('src/lib/open-wa.ts'),/OPENWA_OUTBOUND_ENABLED!=='true'/);
+assert.match(read('src/app/_components/access/accounts.tsx'),/WhatsApp outbound ditunda sampai infrastruktur dan anggaran tersedia/);
+assert.match(read('src/lib/open-wa.ts'),/OPENWA_OUTBOUND_ENABLED!=='true'/);
 
 assert.match(accountUi,/terverifikasi/i);
 assert.match(accountUi,/reset_wa/);
