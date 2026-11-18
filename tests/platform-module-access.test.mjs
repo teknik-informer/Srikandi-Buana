@@ -157,6 +157,8 @@ test("admin UI provides concise access guidance and exposes activation, override
   assert.match(component, /Periksa peran organisasi dan ruang lingkup penugasan sebelum menetapkan akses aplikasi/);
   assert.match(component, /set_module_enabled/);
   assert.match(component, /set_user_module_access/);
+  assert.match(component, /expiresAt: expiryDate \? expiryDate\.toISOString\(\) : null/);
+  assert.match(component, /datetime-local is browser-local/);
   assert.match(component, /Ikuti role organisasi/);
   assert.match(component, /Riwayat perubahan akses/);
 });
