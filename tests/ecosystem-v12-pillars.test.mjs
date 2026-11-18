@@ -88,15 +88,17 @@ test("System Administrator memiliki enam aplikasi dengan izin operasional penuh"
   assert.equal(permissions.canReadSectionForRole("admin", "penjualan"), true);
 });
 
-test("halaman Pusat Aplikasi membedakan modul terdaftar dan akses operasional", () => {
+test("Pusat Aplikasi menampilkan aplikasi; pengaturan teknis tetap berada pada akses sistem", () => {
   const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
   const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
-  assert.match(hub, /dashboard\?\.catalogOnly/);
-  assert.match(hub, /aplikasi terdaftar/);
+  assert.match(hub, /Pilih aplikasi untuk melanjutkan pekerjaan/);
+  assert.doesNotMatch(hub, /presentation\.modules|modules:\s*"/);
+  assert.doesNotMatch(hub, /Katalog aplikasi|aplikasi terdaftar/);
   assert.match(route, /getVisibleEnterpriseDashboardsForUser\(admin, isArchitectFullAccess\(admin\), admin\.role === "admin"\)/);
   assert.match(route, /visibleDashboard\?\.catalogOnly/);
+  assert.match(route, /active === "module-center" && admin\.role === "admin"/);
   assert.match(route, /BusinessIntelligenceWorkspace/);
-  assert.match(route, /tidak otomatis memberikan kewenangan/);
+  assert.match(route, /Tetapkan izin fitur dan ruang lingkup organisasi/);
 });
 
 test("menu navigasi memakai label formal dan ringkas serta pencarian header versi lama", () => {
