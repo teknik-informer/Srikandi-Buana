@@ -17,7 +17,9 @@ const applicationPresentation = {
 
 export default function ApplicationHub({ dashboards, displayName, canOpenPlatformCore }: { dashboards: readonly EnterpriseDashboard[]; displayName: string; canOpenPlatformCore: boolean }) {
   const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
-  const applications = platformApplications.map((application) => {
+  const applications = platformApplications
+    .filter((application) => application.id !== "platform-core" || canOpenPlatformCore)
+    .map((application) => {
     const presentation = applicationPresentation[application.id];
     const matched = presentation.legacy.map((id) => byId.get(id)).filter(Boolean);
     const dashboard = matched.find((item) => !item?.catalogOnly && !item?.accessOnly) ?? matched[0];
@@ -35,7 +37,6 @@ export default function ApplicationHub({ dashboards, displayName, canOpenPlatfor
         <h1 id="application-hub-title" className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">Selamat datang, {displayName}.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Pilih aplikasi untuk melanjutkan pekerjaan.</p>
         <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-medium text-emerald-950">
-          <span className="rounded-full border border-emerald-800/15 bg-white/70 px-3 py-1.5">6 aplikasi</span>
         </div>
       </section>
 
@@ -43,7 +44,7 @@ export default function ApplicationHub({ dashboards, displayName, canOpenPlatfor
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Integrated application suite</p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight">Enam aplikasi Srikandi Buana</h2>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight">Aplikasi Srikandi Buana</h2>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
