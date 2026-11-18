@@ -197,7 +197,7 @@ export default function PlatformModuleAccessManager() {
       {error && (
         <Alert variant="destructive">
           <AlertCircle />
-          <AlertTitle>Tidak dapat menyimpan perubahan</AlertTitle>
+          <AlertTitle>Periksa detail kendala</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
