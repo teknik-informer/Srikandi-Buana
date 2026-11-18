@@ -157,11 +157,18 @@ export default function PlatformModuleAccessManager() {
       setError("Isi dasar penetapan akses minimal 12 karakter.");
       return;
     }
+    const expiryDate = expiresAt ? new Date(expiresAt) : null;
+    if (expiryDate && !Number.isFinite(expiryDate.getTime())) {
+      setError("Masa berlaku tidak valid. Periksa kembali tanggal dan waktu.");
+      return;
+    }
     void submit("set_user_module_access", {
       userId: targetUser,
       moduleId: targetModule,
       effect,
-      expiresAt: expiresAt || null,
+      // datetime-local is browser-local; send an explicit UTC instant so the API
+      // does not reinterpret a WIB timestamp using the server's timezone.
+      expiresAt: expiryDate ? expiryDate.toISOString() : null,
       reason: grantReason.trim(),
     });
     setGrantReason("");
