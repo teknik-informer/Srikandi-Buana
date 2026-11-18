@@ -96,6 +96,7 @@ async function renderEmail(input: {
       .email-gutter { padding-left:24px !important; padding-right:24px !important; }
       .email-heading { font-size:27px !important; line-height:34px !important; }
       .email-brand { padding:22px 24px !important; }
+      .hero-img { width:100% !important; height:auto !important; }
       .email-body { padding-top:30px !important; }
     }
   </style>
@@ -106,20 +107,27 @@ async function renderEmail(input: {
     <tr>
       <td align="center" style="padding:34px 12px 38px;">
         <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
+          <!-- Brand masthead: white canvas and official wordmark -->
           <tr>
-            <td class="email-brand" bgcolor="#234b3d" style="padding:0;background-color:#234b3d;border-radius:14px 14px 0 0;overflow:hidden;">
-              <img src="${heroImageUrl}" width="600" height="220" alt="Suasana pertanian pada halaman utama KWT Srikandi Buana" style="display:block;width:100%;max-width:600px;height:220px;object-fit:cover;border:0;outline:none;text-decoration:none;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#315b49" style="width:100%;border-collapse:collapse;background-color:#315b49;background-image:linear-gradient(112deg,#234b3d 0%,#54745d 58%,#8b8050 100%);">
+            <td bgcolor="#ffffff" style="padding:22px 34px 20px;background-color:#ffffff;border-bottom:1px solid #edf0e9;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;">
                 <tr>
-                  <td align="left" valign="middle" style="padding:22px 30px 20px;">
-                    <img src="${brandLogoUrl}" width="190" alt="Srikandi Buana — Kelompok Wanita Tani" style="display:block;width:190px;max-width:100%;height:auto;color:#fffdf7;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;">
+                  <td align="left" valign="middle" style="padding:0;">
+                    <a href="${escapeHtml(siteOrigin())}" style="text-decoration:none;">
+                      <img src="${brandLogoUrl}" width="150" height="54" alt="Srikandi Buana" style="display:block;width:150px;height:auto;max-width:100%;border:0;">
+                    </a>
                   </td>
-                  <td align="right" valign="middle" style="padding:18px 30px 18px 8px;color:#f0dfb4;font-size:9px;line-height:15px;letter-spacing:1.35px;font-weight:bold;">
-                    SISTEM INFORMASI<br>ORGANISASI
+                  <td align="right" valign="middle" style="padding:0 0 0 12px;color:#b9822a;font-size:9px;line-height:15px;letter-spacing:1.5px;font-weight:bold;">
+                    TUMBUH BERSAMA<br>BERDAYA BERSAMA
                   </td>
                 </tr>
-                <tr><td colspan="2" style="padding:0 30px 17px;color:#e1e9e2;font-size:10px;line-height:16px;letter-spacing:1.15px;">NGADIMULYO&nbsp;&nbsp;·&nbsp;&nbsp;KEDU&nbsp;&nbsp;·&nbsp;&nbsp;TEMANGGUNG</td></tr>
               </table>
+            </td>
+          </tr>
+          <!-- Landing-page hero image -->
+          <tr>
+            <td bgcolor="#173f30" style="padding:0;background-color:#173f30;">
+              <img class="hero-img" src="${heroImageUrl}" width="600" alt="Lanskap pertanian Ngadimulyo, Kedu, Temanggung" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;">
             </td>
           </tr>
           <tr>
@@ -180,10 +188,25 @@ async function renderEmail(input: {
               </table>
             </td>
           </tr>
+          <!-- Branded footer inspired by the supplied email reference -->
           <tr>
-            <td align="center" bgcolor="#315b49" style="padding:18px 24px 20px;background-color:#315b49;background-image:linear-gradient(112deg,#234b3d 0%,#456b54 58%,#7d7950 100%);border-radius:0 0 14px 14px;">
-              <p style="margin:0;color:#e6ddc7;font-size:10px;line-height:17px;letter-spacing:.35px;">SRIKANDI BUANA&nbsp;&nbsp;·&nbsp;&nbsp;TUMBUH BERSAMA, BERDAYA BERSAMA</p>
-              <p style="margin:5px 0 0;color:#b7c7bc;font-size:10px;line-height:16px;">Pesan otomatis dari Sistem Informasi Srikandi Buana. Mohon tidak membalas email ini.</p>
+            <td class="email-gutter" bgcolor="#0b3a28" style="padding:30px 38px 28px;background-color:#0b3a28;background-image:linear-gradient(112deg,#0b3a28 0%,#174b3b 62%,#526b45 100%);border-radius:0 0 14px 14px;">
+              <p style="margin:0 0 7px;color:#f5f2e8;font-family:Georgia,'Times New Roman',serif;font-size:21px;line-height:27px;font-weight:bold;letter-spacing:.1px;">Srikandi Buana</p>
+              <p style="margin:0 0 17px;color:#e8c77e;font-size:10px;line-height:16px;letter-spacing:1.5px;font-weight:bold;">TUMBUH BERSAMA · BERDAYA BERSAMA</p>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 17px;border-collapse:collapse;">
+                <tr>
+                  <td style="font-size:11px;line-height:18px;color:#e8c77e;">
+                    <a href="${escapeHtml(siteOrigin())}/profil" style="color:#e8c77e;text-decoration:none;font-weight:600;">Profil</a>
+                    <span style="color:#66806f;padding:0 7px;">·</span>
+                    <a href="${escapeHtml(siteOrigin())}/program" style="color:#e8c77e;text-decoration:none;font-weight:600;">Program</a>
+                    <span style="color:#66806f;padding:0 7px;">·</span>
+                    <a href="${escapeHtml(siteOrigin())}/kontak" style="color:#e8c77e;text-decoration:none;font-weight:600;">Kontak</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="height:1px;background-color:#365b48;font-size:0;line-height:0;">&nbsp;</div>
+              <p style="margin:15px 0 5px;color:#b9c9bd;font-size:11px;line-height:18px;">${organizationAddress}</p>
+              <p style="margin:0;color:#8fa898;font-size:10px;line-height:17px;">© 2026 KWT Srikandi Buana. Pesan otomatis dari Sistem Informasi Srikandi Buana. Mohon tidak membalas email ini.</p>
             </td>
           </tr>
         </table>
