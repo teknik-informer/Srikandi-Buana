@@ -31,7 +31,7 @@ assert.equal(pkgLock.packages['node_modules/nodemailer'].version,'10.5.0');
 assert.equal(pkgLock.packages[''].dependencies.nodemailer,'^10.5.0');
 assert.match(mailer,/service: 'gmail'/);
 assert.match(mailer,/GMAIL_APP_PASSWORD/);
-assert.ok(mailer.includes(String.raw\`/^kwt\.srikandibuana@gmail\.com$/i\`));
+assert.ok(mailer.includes('/^kwt' + String.fromCharCode(92) + '.srikandibuana@gmail' + String.fromCharCode(92) + '.com$/i'));
 assert.match(mailer,/sendMail/);
 assert.match(mailer,/replyTo: senderEmail/);
 assert.match(mailer,/KELOMPOK WANITA TANI/);
