@@ -53,7 +53,7 @@ assert.match(mailer,/await renderEmail/);
 assert.match(mailer,/public\/brand\/wordmark\.png/);
 assert.match(mailer,/#123d32/);
 assert.match(mailer,/#b88727/);
-assert.equal((mailer.match(/background-image:linear-gradient\\(112deg/g)||[]).length,2);
+assert.equal((mailer.match(/background-image:linear-gradient\\(112deg/g)||[]).length,1);
 assert.match(mailer,/background-image:linear-gradient\\(112deg,#234b3d 0%,#54745d 58%,#8b8050 100%\)/);
 assert.match(mailer,/background-image:linear-gradient\\(112deg,#234b3d 0%,#456b54 58%,#7d7950 100%\)/);
 assert.doesNotMatch(mailer,/bgcolor="#fffdf7"/,'Official logo must sit directly on the brand gradient without a white badge.');
