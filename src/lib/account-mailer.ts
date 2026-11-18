@@ -63,7 +63,7 @@ export async function sendAccountEmail(input: {
 }
 
 export async function sendAccountEmailTest() {
-  if (!senderEmail || !appPassword || !/^kwt\\.srikandibuana@gmail\\.com$/i.test(senderEmail)) {
+  if (!senderEmail || !appPassword || !/^kwt\.srikandibuana@gmail\.com$/i.test(senderEmail)) {
     throw new Error('Konfigurasi Gmail belum lengkap atau tidak sesuai alamat resmi.');
   }
   const transporter = nodemailer.createTransport({
