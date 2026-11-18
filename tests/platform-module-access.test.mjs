@@ -153,8 +153,8 @@ test("platform access schema has a separate workspace setting, user override and
   assert.match(migration, /INSERT INTO platform_modules/);
 });
 
-test("admin UI explains app-launch-only grants and exposes activation, override and audit workflows", () => {
-  assert.match(component, /Hak data tetap mengikuti peran dan penugasan yang berlaku/);
+test("admin UI provides concise access guidance and exposes activation, override and audit workflows", () => {
+  assert.match(component, /Periksa peran organisasi dan ruang lingkup penugasan sebelum menetapkan akses aplikasi/);
   assert.match(component, /set_module_enabled/);
   assert.match(component, /set_user_module_access/);
   assert.match(component, /Ikuti role organisasi/);
