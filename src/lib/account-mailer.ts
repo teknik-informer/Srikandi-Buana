@@ -137,7 +137,7 @@ async function renderEmail(input: {
                     </a>
                   </td>
                   <td align="right" valign="middle" style="padding:0 0 0 12px;color:#315d49;font-size:9px;line-height:15px;letter-spacing:1.25px;font-weight:bold;">
-                    ${safeEyebrow}
+                    INFORMASI RESMI
                   </td>
                 </tr>
               </table>
