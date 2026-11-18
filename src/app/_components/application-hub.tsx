@@ -20,14 +20,14 @@ export default function ApplicationHub({ dashboards, displayName, canOpenPlatfor
   const applications = platformApplications
     .filter((application) => application.id !== "platform-core" || canOpenPlatformCore)
     .map((application) => {
-    const presentation = applicationPresentation[application.id];
-    const matched = presentation.legacy.map((id) => byId.get(id)).filter(Boolean);
-    const dashboard = matched.find((item) => !item?.catalogOnly && !item?.accessOnly) ?? matched[0];
-    const enabled = application.id === "platform-core" ? canOpenPlatformCore : matched.length > 0;
-    const href = ["platform-core", "agriculture", "public-partnership"].includes(application.id) ? application.route : dashboard?.href ?? application.route;
-    const restricted = !enabled || Boolean(dashboard?.catalogOnly || dashboard?.accessOnly);
-    return { application, presentation, href, enabled, restricted, dashboard };
-  });
+      const presentation = applicationPresentation[application.id];
+      const matched = presentation.legacy.map((id) => byId.get(id)).filter(Boolean);
+      const dashboard = matched.find((item) => !item?.catalogOnly && !item?.accessOnly) ?? matched[0];
+      const enabled = application.id === "platform-core" ? canOpenPlatformCore : matched.length > 0;
+      const href = ["platform-core", "agriculture", "public-partnership"].includes(application.id) ? application.route : dashboard?.href ?? application.route;
+      const restricted = !enabled || Boolean(dashboard?.catalogOnly || dashboard?.accessOnly);
+      return { application, presentation, href, enabled, restricted, dashboard };
+    });
 
   return (
     <main className="workspace-page space-y-7" aria-labelledby="application-hub-title">
@@ -36,17 +36,10 @@ export default function ApplicationHub({ dashboards, displayName, canOpenPlatfor
         <p className="text-xs font-semibold tracking-[0.16em] text-emerald-900/70">SRIKANDI BUANA · INTEGRATED PLATFORM</p>
         <h1 id="application-hub-title" className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">Selamat datang, {displayName}.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Pilih aplikasi untuk melanjutkan pekerjaan.</p>
-        <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-medium text-emerald-950">
-        </div>
       </section>
 
       <section className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Integrated application suite</p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight">Aplikasi Srikandi Buana</h2>
-          </div>
-        </div>
+        <h2 className="text-xl font-semibold tracking-tight">Aplikasi Srikandi Buana</h2>
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {applications.map(({ application, presentation, href, enabled, restricted, dashboard }) => {
             const Icon = presentation.icon;
