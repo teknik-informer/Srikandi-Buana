@@ -110,12 +110,11 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
         <main className="workspace-page">
           <section className="max-w-3xl space-y-3 rounded-2xl border bg-card p-6 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Katalog modul</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Aplikasi</p>
             <h1 className="text-2xl font-semibold tracking-tight">{dashboardDefinition.label}</h1>
             <p className="text-sm leading-6 text-muted-foreground">{dashboardDefinition.description}</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Modul ini terdaftar pada platform, tetapi akun Administrator Sistem belum diberi akses operasional terhadap datanya.
-              Pengelolaan teknis platform tidak otomatis memberikan kewenangan membaca, mengubah, atau menyetujui data organisasi.
+              Periksa peran, izin fitur, dan ruang lingkup organisasi untuk menetapkan akses data.
             </p>
             <a href="/dashboard" className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
               Kembali ke Pusat Aplikasi
@@ -130,12 +129,11 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title={dashboardDefinition.label} defaultSidebarOpen={defaultSidebarOpen}>
         <main className="workspace-page">
           <section className="max-w-3xl space-y-3 rounded-2xl border bg-card p-6 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Akses aplikasi ditetapkan</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Akses aplikasi</p>
             <h1 className="text-2xl font-semibold tracking-tight">{dashboardDefinition.label}</h1>
             <p className="text-sm leading-6 text-muted-foreground">{dashboardDefinition.description}</p>
             <p className="text-sm leading-6 text-muted-foreground">
-              Akun ini dapat membuka ruang aplikasi, tetapi belum memiliki izin fitur untuk membaca atau mengubah data di dalamnya.
-              Penetapan akses aplikasi tidak menggantikan role organisasi, kewenangan persetujuan, maupun penugasan program.
+              Tetapkan izin fitur dan ruang lingkup organisasi untuk membuka data pada aplikasi ini.
             </p>
             <a href="/dashboard" className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">
               Kembali ke Pusat Aplikasi
