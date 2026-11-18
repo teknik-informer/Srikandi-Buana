@@ -51,7 +51,7 @@ export default function ArchitectQaTestCenter({ user }: { user: Principal }) {
           <p className="text-xs font-semibold tracking-[.16em] text-muted-foreground">ARSITEK SISTEM · QUALITY ASSURANCE</p>
           <h1 id="qa-center-title" className="mt-2 text-2xl font-semibold tracking-tight">QA Test Center</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Pusat pemeriksaan akun, profil akses, dan batas kewenangan Srikandi Buana. Pada Preview QA, Arsitek Sistem memperoleh Full Access untuk menguji seluruh modul. Pada Production, hak teknis tetap dipisahkan dari data operasional organisasi.
+            Pusat pemeriksaan akun, profil akses, dan batas kewenangan Srikandi Buana. Administrator Sistem memiliki akses penuh pada keenam aplikasi di Preview maupun Production. Gunakan akun uji terpisah untuk memeriksa pembatasan peran organisasi; hak akses Administrator Sistem tidak menggantikan jejak audit.
           </p>
         </div>
         <Badge variant="outline" className="w-fit">Preview / QA</Badge>
@@ -159,7 +159,7 @@ export default function ArchitectQaTestCenter({ user }: { user: Principal }) {
             ["Verifikasi WhatsApp", "Pastikan konfirmasi dilakukan manual oleh Administrator Sistem dan nomor cocok dengan data anggota."],
             ["Pemulihan akun", "Pastikan tautan satu kali, kedaluwarsa, audit, dan pencabutan sesi lama berjalan."],
             ["Full Access Arsitek Sistem di QA", "Pastikan seluruh modul dapat dibuka dan operasi CRUD berjalan pada Preview QA, tanpa membuka akses operasional pada Production."],
-            ["Isolasi Administrator Sistem di Production", "Pastikan akun teknis tetap tidak dapat membaca atau mengubah data operasional organisasi pada Production."],
+            ["Akses penuh Administrator Sistem di Production", "Pastikan akun root Administrator Sistem dapat membaca dan mengelola keenam aplikasi, konfigurasi, akun, dan hak akses; tindakan penting tetap tercatat dalam audit."],
           ].map(([title, description]) => (
             <div key={title} className="flex gap-3 rounded-lg border p-3">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
