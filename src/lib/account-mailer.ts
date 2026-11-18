@@ -61,6 +61,23 @@ async function renderEmail(input: {
   const site = await getSiteSettings();
   const heroPath = settingImage(site.heroFileId, '/images/pertanian-premium-v1.webp');
   const heroImageUrl = escapeHtml(new URL(heroPath, siteOrigin()).toString());
+  const heroTitle = escapeHtml(site.heroTitle || 'Perempuan tani. Penggerak kemandirian.');
+  const heroSubtitle = escapeHtml(site.heroSubtitle || 'Kelompok Wanita Tani Srikandi Buana, Ngadimulyo, Kedu, Temanggung.');
+  const socialNetworks = [
+    {label:'Facebook',url:site.facebookUrl,host:['facebook.com','www.facebook.com','m.facebook.com'],mark:'f'},
+    {label:'Instagram',url:site.instagramUrl,host:['instagram.com','www.instagram.com'],mark:'◎'},
+    {label:'YouTube',url:site.youtubeUrl,host:['youtube.com','www.youtube.com','youtu.be'],mark:'▶'},
+    {label:'TikTok',url:site.tiktokUrl,host:['tiktok.com','www.tiktok.com'],mark:'♪'},
+  ].flatMap((item) => {
+    try {
+      const url = new URL(item.url);
+      return url.protocol === 'https:' && !url.username && !url.password && item.host.includes(url.hostname)
+        ? [{...item, safeUrl:escapeHtml(url.toString())}] : [];
+    } catch { return []; }
+  });
+  const socialLinks = socialNetworks.map((item) =>
+    '<a href="' + item.safeUrl + '" aria-label="' + item.label + '" style="display:inline-block;width:30px;height:30px;margin:0 7px 0 0;border:1px solid #789080;border-radius:50%;color:#ffffff;text-align:center;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:30px;font-weight:bold;">' + item.mark + '</a>'
+  ).join('');
   const safeName = escapeHtml(input.name || 'Pengguna Srikandi Buana');
   const safeUrl = escapeHtml(input.url);
   const expiry = new Date(input.expires).toLocaleString('id-ID', {
@@ -96,7 +113,9 @@ async function renderEmail(input: {
       .email-gutter { padding-left:24px !important; padding-right:24px !important; }
       .email-heading { font-size:27px !important; line-height:34px !important; }
       .email-brand { padding:22px 24px !important; }
-      .hero-img { width:100% !important; height:auto !important; }
+      .hero-stage { height:300px !important; background-position:center !important; }
+      .hero-stage table { height:300px !important; }
+      .hero-copy { padding:0 24px 25px !important; }
       .email-body { padding-top:30px !important; }
     }
   </style>
@@ -117,17 +136,24 @@ async function renderEmail(input: {
                       <img src="${brandLogoUrl}" width="150" height="54" alt="Srikandi Buana" style="display:block;width:150px;height:auto;max-width:100%;border:0;">
                     </a>
                   </td>
-                  <td align="right" valign="middle" style="padding:0 0 0 12px;color:#b9822a;font-size:9px;line-height:15px;letter-spacing:1.5px;font-weight:bold;">
-                    TUMBUH BERSAMA<br>BERDAYA BERSAMA
+                  <td align="right" valign="middle" style="padding:0 0 0 12px;color:#315d49;font-size:9px;line-height:15px;letter-spacing:1.25px;font-weight:bold;">
+                    \${safeEyebrow}
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          <!-- Landing-page hero image -->
+          <!-- Cinematic hero: landing-page image with layered brand gradient and editorial copy -->
           <tr>
-            <td bgcolor="#173f30" style="padding:0;background-color:#173f30;">
-              <img class="hero-img" src="${heroImageUrl}" width="600" alt="Lanskap pertanian Ngadimulyo, Kedu, Temanggung" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;">
+            <td class="hero-stage" width="600" height="330" valign="bottom" bgcolor="#123d32" background="\${heroImageUrl}" style="width:600px;height:330px;padding:0;background-color:#123d32;background-image:linear-gradient(90deg,rgba(5,39,30,.94) 0%,rgba(8,48,36,.76) 48%,rgba(8,48,36,.12) 100%),url('\${heroImageUrl}');background-position:center;background-size:cover;background-repeat:no-repeat;">
+              <table role="presentation" width="100%" height="330" cellspacing="0" cellpadding="0" border="0" style="width:100%;height:330px;border-collapse:collapse;">
+                <tr><td class="hero-copy" valign="bottom" style="padding:0 38px 30px;">
+                  <p style="margin:0 0 12px;color:#f0d27e;font-size:9px;line-height:14px;letter-spacing:2px;font-weight:bold;">KELOMPOK WANITA TANI SRIKANDI BUANA</p>
+                  <h2 style="margin:0 0 12px;color:#fffdf4;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:38px;font-weight:normal;letter-spacing:-.5px;">\${heroTitle.replace(/\\n/g,'<br>')}</h2>
+                  <p style="max-width:440px;margin:0;color:#f3f1e8;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;">\${heroSubtitle}</p>
+                  <p style="margin:18px 0 0;color:#e8c77e;font-size:8px;line-height:13px;letter-spacing:1.5px;">NGADIMULYO · KEDU · TEMANGGUNG</p>
+                </td></tr>
+              </table>
             </td>
           </tr>
           <tr>
@@ -191,8 +217,10 @@ async function renderEmail(input: {
           <!-- Branded footer inspired by the supplied email reference -->
           <tr>
             <td class="email-gutter" bgcolor="#0b3a28" style="padding:30px 38px 28px;background-color:#0b3a28;background-image:linear-gradient(112deg,#0b3a28 0%,#174b3b 62%,#526b45 100%);border-radius:0 0 14px 14px;">
-              <p style="margin:0 0 7px;color:#f5f2e8;font-family:Georgia,'Times New Roman',serif;font-size:21px;line-height:27px;font-weight:bold;letter-spacing:.1px;">Srikandi Buana</p>
-              <p style="margin:0 0 17px;color:#e8c77e;font-size:10px;line-height:16px;letter-spacing:1.5px;font-weight:bold;">TUMBUH BERSAMA · BERDAYA BERSAMA</p>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 10px;border-collapse:collapse;">
+                <tr><td style="padding:0;"><img src="\${brandLogoUrl}" width="142" alt="Logo resmi KWT Srikandi Buana" style="display:block;width:142px;height:auto;max-width:100%;border:0;"></td></tr>
+              </table>
+              <p style="margin:0 0 15px;color:#e8c77e;font-size:10px;line-height:16px;letter-spacing:1.25px;font-weight:bold;">KELOMPOK WANITA TANI · NGADIMULYO</p>
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 17px;border-collapse:collapse;">
                 <tr>
                   <td style="font-size:11px;line-height:18px;color:#e8c77e;">
@@ -204,8 +232,9 @@ async function renderEmail(input: {
                   </td>
                 </tr>
               </table>
+              \${socialLinks ? '<p style="margin:0 0 15px;color:#b9c9bd;font-size:10px;line-height:16px;letter-spacing:.8px;">IKUTI KANAL RESMI KAMI</p><div style="margin:0 0 18px;">' + socialLinks + '</div>' : ''}
               <div style="height:1px;background-color:#365b48;font-size:0;line-height:0;">&nbsp;</div>
-              <p style="margin:15px 0 5px;color:#b9c9bd;font-size:11px;line-height:18px;">${organizationAddress}</p>
+              <p style="margin:15px 0 5px;color:#b9c9bd;font-size:11px;line-height:18px;">\${organizationAddress}</p>
               <p style="margin:0;color:#8fa898;font-size:10px;line-height:17px;">© 2026 KWT Srikandi Buana. Pesan otomatis dari Sistem Informasi Srikandi Buana. Mohon tidak membalas email ini.</p>
             </td>
           </tr>
