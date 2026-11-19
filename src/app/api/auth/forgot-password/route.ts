@@ -15,7 +15,7 @@ export async function POST(request:Request){
  try{
   const raw=await readJsonObject(request,2000);
   const email=String(raw.email||'').trim().toLowerCase();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan alamat email yang valid.'},400);
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan alamat email yang valid.'},400);
   const ip=request.headers.get('x-vercel-forwarded-for')?.split(',')[0]||request.headers.get('x-forwarded-for')?.split(',')[0]||'local';
   const [ipAllowed,emailAllowed]=await Promise.all([
    consumeRateLimit(env.DB,'forgot-password-ip:'+digest(ip),5,900000),
@@ -31,7 +31,7 @@ export async function POST(request:Request){
   const {token,hash}=inviteToken(),id=crypto.randomUUID(),now=new Date().toISOString(),expires=new Date(Date.now()+3600000).toISOString();
   const url=activationLink(request,token).replace('/aktivasi#','/aktivasi?mode=reset#');
   await env.DB.batch([
-   env.DB.prepare("UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL").bind(now,account.workspace_owner,account.id),
+   env.DB.prepare("UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL").bind(now,account.workspace_owner,account.member_id),
    env.DB.prepare("INSERT INTO account_invitations(id,token_hash,owner,member_id,email,full_name,role,position,program_ids,purpose,target_user_id,expires,created_by,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,hash,account.workspace_owner,account.member_id,email,account.full_name,account.role,account.position,String(account.program_ids||'[]'),'reset',account.id,expires,account.id,now),
    await accessAudit(String(account.workspace_owner),String(account.id),'Permintaan pemulihan mandiri diterima',email)
   ]);
