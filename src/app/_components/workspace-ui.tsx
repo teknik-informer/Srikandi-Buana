@@ -62,7 +62,7 @@ export function WorkspacePageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="page-heading workspace-page-heading">
+    <div className="page-heading workspace-page-heading" data-workspace-hero="true">
       <div className="min-w-0 space-y-1">
         {eyebrow && (
           <p className="text-xs font-medium tracking-wide text-muted-foreground">
