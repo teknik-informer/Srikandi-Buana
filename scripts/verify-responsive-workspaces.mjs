@@ -20,6 +20,9 @@ assert.match(css, /\.workspace-shell \.workspace-main \[data-slot="button"\]:not
 assert.match(css, /@media \(max-width: 767px\)[\s\S]*?\.workspace-shell \[data-slot="button"\]:not\(\[data-size\^="icon"\]\)\s*\{[^}]*height:\s*auto/s, "Mobile text buttons must grow vertically instead of clipping wrapped labels");
 assert.match(css, /\.workspace-shell \.workspace-main \.workspace-page-actions[\s\S]*?flex-wrap:\s*wrap/, "Page action groups must wrap rather than overflow");
 assert.match(css, /\.records-table-region \.record-actions \[data-slot="button"\][\s\S]*?font-size:0/, "Record action labels must remain visually icon-only");
+assert.match(css, /GLOBAL BUTTON CONTRACT[\s\S]*?\.workspace-shell\[data-workspace-theme="tahoe"\] \[data-slot="button"\][\s\S]*?min-height:\s*2\.5rem/s, "All shared buttons must receive the Tahoe size and surface treatment globally");
+assert.match(css, /\[data-slot="button\"]:focus-visible[\s\S]*?--tw-ring-shadow:\s*0 0 #0000 !important[\s\S]*?box-shadow:\s*none !important/s, "Button utility focus rings must be explicitly neutralized inside workspace");
+assert.match(css, /\[data-slot="button"\]\[data-variant="outline"\][\s\S]*?background:\s*var\(--card\)[\s\S]*?border-color:\s*var\(--border\)/s, "Outline buttons must use the shared Tahoe surface and border tokens");
 assert.match(button, /focus-visible:ring/);
 assert.match(input, /min-w-0/);
 assert.match(badge, /overflow-hidden/);
