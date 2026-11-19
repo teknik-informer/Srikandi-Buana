@@ -75,7 +75,7 @@ assert.match(activationForm,/channel:whatsapp\.current\?"whatsapp"/);
 assert.match(accountAccess,/VERCEL_ENV==='preview'\?requestOrigin/);
 assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone"\)\}:\{email:data\.get\("email"\)\},\s*email:/);
 
-assert.match(accountUi,/Konfirmasi WhatsApp & buat aktivasi/);
+assert.match(accountUi,/Konfirmasi nomor & buat aktivasi/);
 assert.ok(!accountUi.includes('wa.me/'));
 assert.ok(!accountUi.includes('manualPhone'));
 assert.match(accountUi,/whatsappConfirmed/);
