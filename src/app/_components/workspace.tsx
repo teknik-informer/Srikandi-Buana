@@ -67,6 +67,7 @@ import {
   ClipboardList,
   Download,
   FileText,
+  Eye,
   Leaf,
   LogIn,
   MapPin,
@@ -97,6 +98,7 @@ import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
 import {
   WorkspacePageHeader,
+  WorkspaceMetric,
   WorkspaceSearch,
   WorkspaceEmptyState,
   StatusBadge,
@@ -440,6 +442,16 @@ export default function Workspace({
   const statusFields = module?.fields.find(
     (f) => f.key === "status" || f.key === "type",
   )?.options;
+  const moduleRows = module ? records(section) : [];
+  const activeCount = moduleRows.filter((row) =>
+    ["Aktif", "Berjalan", "Dalam proses", "Diterima", "Terbit", "Siap", "Terverifikasi"].includes(String(row.data.status || "")),
+  ).length;
+  const reviewCount = moduleRows.filter((row) =>
+    ["Perlu verifikasi", "Perlu perbaikan", "Perlu diperiksa", "Ditahan", "Lewat tenggat", "Belum diperiksa"].includes(String(row.data.status || "")),
+  ).length;
+  const recentActivity = [...audit]
+    .sort((a, b) => String(b.created).localeCompare(String(a.created)))
+    .slice(0, 3);
   return (
     <WorkspaceShell
       user={principal}
@@ -515,6 +527,29 @@ export default function Workspace({
             </>
           }
         />
+        )}
+        {module && !showMembershipAccess && (
+          <section className="workspace-overview" aria-label={"Ringkasan " + module.title}>
+            <div className="workspace-metric-grid">
+              <WorkspaceMetric title="Total catatan" value={moduleRows.length} note="Seluruh data pada modul ini" icon={Users} />
+              <WorkspaceMetric title="Aktif / terverifikasi" value={activeCount} note="Status yang tercatat berjalan atau valid" icon={CheckCircle2} />
+              <WorkspaceMetric title="Perlu perhatian" value={reviewCount} note="Perlu diperiksa atau ditindaklanjuti" icon={ShieldCheck} />
+            </div>
+            {recentActivity.length > 0 && (
+              <div className="workspace-activity-strip" aria-label="Aktivitas terbaru">
+                <div className="workspace-activity-heading"><Activity className="size-4" /><span>Aktivitas terbaru</span></div>
+                <div className="workspace-activity-items">
+                  {recentActivity.map((item, index) => (
+                    <div className="workspace-activity-item" key={item.created + item.title + index}>
+                      <span className="workspace-activity-dot" aria-hidden="true" />
+                      <span className="workspace-activity-title">{item.title || item.action}</span>
+                      <time dateTime={item.created}>{dateID(item.created)}</time>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
         )}
         {error && (
           <Alert variant="destructive">
@@ -713,9 +748,13 @@ export default function Workspace({
                           </a>
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" title={`Lihat ${r.data.name}`} aria-label={`Lihat ${r.data.name}`} onClick={() => openEditor(section, r)}>
+                        <Eye />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
+                        title={`Edit ${r.data.name}`}
                         aria-label={`Edit ${r.data.name}`}
                         onClick={() => openEditor(section, r)}
                       >
