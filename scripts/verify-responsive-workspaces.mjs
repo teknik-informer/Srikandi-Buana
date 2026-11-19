@@ -47,5 +47,7 @@ const blueFocus = sourceFiles.flatMap((path) => {
 });
 assert.deepEqual(blueFocus, [], "Workspace source must not introduce hard-coded blue focus frames");
 
+assert.match(css, /\.workspace-shell :is\(\.workspace-search,\.dashboard-mega-search,\.workspace-global-search\):focus-within\s*\{[^}]*border-color:\s*var\(--border\)[^}]*box-shadow:\s*none\s*!important/s, "Search fields must not show decorative focus halos");
+
 console.log("PASS responsive workspace contracts: mobile button sizing, wrapped indicators, local table scrolling, icon-only record actions, brand-colored focus, and no hard-coded blue focus utilities.");
 console.log("NOTE: source-contract regression only; real viewport and interaction checks remain part of Preview QA.");
