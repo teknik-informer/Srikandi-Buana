@@ -54,5 +54,10 @@ assert.match(css, /\.workspace-page-actions[\s\S]*?flex-wrap:\s*wrap[\s\S]*?font
 assert.match(css, /\.workspace-page-actions[\s\S]*?white-space:\s*normal[\s\S]*?overflow-wrap:\s*anywhere/s, "Mobile workspace action labels must wrap without overflow");
 assert.doesNotMatch(css, /\.workspace-page-actions[^}]*font-size:\s*0(?:\s|;|})/, "Mobile workspace actions must never hide button labels");
 
+assert.match(workspaceUi, /normalizeWorkspaceActions[\s\S]*?workspace-action-label[\s\S]*?aria-label/, "Shared workspace header actions must retain accessible labels when compacted");
+assert.match(css, /workspace-page-actions:has\(> \.workspace-header-action:nth-of-type\(2\)\)[\s\S]*?flex:\s*0 0 2\.5rem[\s\S]*?workspace-action-label[\s\S]*?clip:\s*rect\(0, 0, 0, 0\)/, "Multiple mobile header actions must become visible icon buttons with accessible labels");
+assert.match(css, /\.workspace-direct-header-action[\s\S]*?max-width:\s*100%[\s\S]*?overflow-wrap:\s*anywhere/, "Custom workspace refresh actions must stay inside the viewport");
+
+
 console.log("PASS responsive workspace contracts: mobile button sizing, wrapped indicators, local table scrolling, icon-only record actions, brand-colored focus, and no hard-coded blue focus utilities.");
 console.log("NOTE: source-contract regression only; real viewport and interaction checks remain part of Preview QA.");
