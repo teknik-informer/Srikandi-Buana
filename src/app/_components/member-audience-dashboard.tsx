@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import MemberProfileCompletion from "./member-profile-completion";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CalendarCheck, CircleUserRound, Clock3, HandCoins, Megaphone, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +110,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
                 <div><dt className="text-xs text-muted-foreground">Status keanggotaan</dt><dd className="mt-1"><Badge variant="outline">{String(profile.data.status || "Belum tersedia")}</Badge></dd></div>
                 <div><dt className="text-xs text-muted-foreground">Verifikasi data</dt><dd className="mt-1"><Badge variant={profile.data.verification === "Terverifikasi" ? "default" : "secondary"}>{String(profile.data.verification || "Belum tersedia")}</Badge></dd></div>
               </dl>
+              <MemberProfileCompletion profile={profile.data} onSaved={load}/>
             ) : (
               <div className="rounded-xl border border-dashed p-4 text-sm leading-6 text-muted-foreground">Profil keanggotaan belum dapat ditampilkan. Hubungi pengurus untuk memeriksa hubungan akun dengan data anggota.</div>
             )}
