@@ -652,7 +652,7 @@ body:has(.workspace-shell) {
     min-width: 0;
     max-width: 100%;
   }
-  .workspace-page [class*="grid-cols-"] {
+  .workspace-page :is([class*="grid-cols-3"],[class*="grid-cols-4"],[class*="grid-cols-5"],[class*="grid-cols-6"],[class*="grid-cols-7"],[class*="grid-cols-8"]) {
     grid-template-columns: minmax(0, 1fr);
   }
   .workspace-page [class*="min-w-"] {
