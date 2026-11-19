@@ -749,41 +749,79 @@ body:has(.workspace-shell) {
 }
 
 
-/* Workspace search: keep the field visually steady, matching other search inputs. */
-.workspace-global-search,
-.workspace-search {
+/* Unified search field: workspace tables and Smart Search share one restrained visual. */
+.workspace-search,
+.dashboard-mega-search {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  outline: none !important;
   box-shadow: none !important;
   transition: none !important;
 }
-.workspace-global-search:focus-within,
-.workspace-search:focus-within {
+.workspace-search:focus-within,
+.dashboard-mega-search:focus-within,
+.workspace-search:has([data-slot="input-group-control"]:focus-visible),
+.dashboard-mega-search:has(input:focus-visible) {
   border-color: var(--border) !important;
   outline: none !important;
   box-shadow: none !important;
 }
-.dashboard-mega-search {
-  min-height: 44px;
-  gap: 9px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--background);
-  transition: border-color 140ms ease, background-color 140ms ease;
+.workspace-search > [data-slot="input-group-addon"],
+.dashboard-mega-search > svg {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
 }
-.dashboard-mega-search:focus-within {
-  border-color: color-mix(in oklab, var(--ring) 42%, var(--border));
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 8%, transparent);
-}
+.workspace-search [data-slot="input-group-control"],
 .dashboard-mega-search input {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 32px;
   min-width: 0;
+  min-height: 32px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.workspace-search [data-slot="input-group-control"]:focus,
+.workspace-search [data-slot="input-group-control"]:focus-visible,
+.dashboard-mega-search input:focus,
+.dashboard-mega-search input:focus-visible {
   border: 0 !important;
   outline: none !important;
   box-shadow: none !important;
-  background: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+.workspace-search [data-slot="input-group-addon"] svg {
+  width: 16px;
+  height: 16px;
+}
+.workspace-search [data-slot="input-group-button"] {
+  flex: 0 0 auto;
+  box-shadow: none !important;
 }
 .dashboard-mega-shortcuts a,
 .dashboard-mega-grid a {
-  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  transition: none !important;
 }
 .dashboard-mega-shortcuts a:hover,
 .dashboard-mega-shortcuts a[aria-current="page"] {
@@ -793,12 +831,4 @@ body:has(.workspace-shell) {
 .dashboard-mega-grid a:hover,
 .dashboard-mega-grid a[aria-current="page"] {
   background: var(--muted);
-}
-@media (prefers-reduced-motion: reduce) {
-  .workspace-global-search,
-  .dashboard-mega-search,
-  .dashboard-mega-shortcuts a,
-  .dashboard-mega-grid a {
-    transition: none;
-  }
 }
