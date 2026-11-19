@@ -14,6 +14,7 @@ const fields=[
  {key:"commodities",label:"Komoditas utama",placeholder:"Contoh: Kopi, cabai, sayuran"},
  {key:"experience",label:"Pengalaman pertanian dan usaha",placeholder:"Pengalaman, peran, atau kegiatan yang pernah dijalankan",multiline:true},
  {key:"trainingHistory",label:"Pelatihan dan sertifikasi",placeholder:"Pelatihan, pendampingan, atau sertifikasi yang pernah diikuti",multiline:true},
+ {key:"bio",label:"Profil singkat",placeholder:"Ceritakan minat, pengalaman, dan tujuan pengembangan diri",multiline:true},
 ] as const;
 
 export default function MemberProfileCompletion({profile,onSaved}:{profile:Record<string,unknown>;onSaved:()=>Promise<unknown>}){
@@ -24,7 +25,6 @@ export default function MemberProfileCompletion({profile,onSaved}:{profile:Recor
   event.preventDefault();if(saving)return;setSaving(true);setError("");setSuccess("");
   const form=event.currentTarget;
   const values=Object.fromEntries(new FormData(form).entries()) as Record<string,string>;
-  values.bio=String(profile.bio||"");
   try{
    const response=await fetch("/api/member/profile",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify(values)});
    const result=await response.json();
