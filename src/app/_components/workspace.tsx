@@ -224,6 +224,7 @@ export default function Workspace({
       kind: string;
       row?: Row;
       initial?: Data;
+      readOnly?: boolean;
     } | null>(null),
     [deleteRow, setDeleteRow] = useState<Row | null>(null),
     [selectedProgram, setSelectedProgram] = useState<string | null>(null),
@@ -334,14 +335,14 @@ export default function Workspace({
     clearError,
     mutate,
   } = useRecordMutation(load);
-  const openEditor = (kind: string, row?: Row, initial?: Data) => {
+  const openEditor = (kind: string, row?: Row, initial?: Data, readOnly = false) => {
     if (loading || error) return;
     clearError();
-    setEditor({ kind, row, initial });
+    setEditor({ kind, row, initial, readOnly });
   };
   async function saveForm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!editor || imageUploadPending.current) return;
+    if (!editor || editor.readOnly || imageUploadPending.current) return;
     const form = e.currentTarget;
     const data = Object.fromEntries(new FormData(form));
     if (
@@ -728,7 +729,7 @@ export default function Workspace({
                   )}
                   fields={module.fields.slice(0, section === "kas" ? 5 : 4)}
                   files={files}
-                  onView={(row) => openEditor(section, row)}
+                  onView={(row) => openEditor(section, row, undefined, true)}
                   actions={(r) => (
                     <div className="flex gap-1">
                       {section === "musyawarah" && (
@@ -748,7 +749,7 @@ export default function Workspace({
                           </a>
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" title={`Lihat ${r.data.name}`} aria-label={`Lihat ${r.data.name}`} onClick={() => openEditor(section, r)}>
+                      <Button variant="ghost" size="icon" title={`Lihat ${r.data.name}`} aria-label={`Lihat ${r.data.name}`} onClick={() => openEditor(section, r, undefined, true)}>
                         <Eye />
                       </Button>
                       <Button
@@ -1149,7 +1150,7 @@ export default function Workspace({
         <DialogContent className="workspace-dialog sm:max-w-xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editor?.row ? "Perbarui" : "Tambah"}{" "}
+              {editor?.readOnly ? "Rincian" : editor?.row ? "Perbarui" : "Tambah"}{" "}
               {editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
@@ -1167,7 +1168,7 @@ export default function Workspace({
                 <AlertDescription>{mutationError}</AlertDescription>
               </Alert>
             )}
-            <fieldset disabled={saving || imageUploading} className="min-w-0">
+            <fieldset disabled={saving || imageUploading || Boolean(editor?.readOnly)} className="min-w-0">
               <FieldGroup>
                 {editor &&
                   modules[editor.kind]?.fields.map((f) => (
@@ -1311,11 +1312,13 @@ export default function Workspace({
                       if (canDiscardChanges()) setEditor(null);
                     }}
                   >
-                    Batal
+                    {editor?.readOnly ? "Tutup" : "Batal"}
                   </Button>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? "Menyimpan…" : "Simpan catatan"}
-                  </Button>
+                  {!editor?.readOnly && (
+                    <Button type="submit" disabled={saving}>
+                      {saving ? "Menyimpan…" : "Simpan catatan"}
+                    </Button>
+                  )}
                 </div>
               </FieldGroup>
             </fieldset>
