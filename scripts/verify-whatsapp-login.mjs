@@ -62,6 +62,10 @@ assert.match(accounts,/sendOpenWaText\(phone,message,'srikandi-account-\'\+id\)/
 assert.match(accounts,/whatsappSent:true/);
 assert.match(accounts,/Pengiriman WhatsApp melalui OpenWA gagal; tautan dicabut/);
 assert.match(accounts,/sendAccountEmail/);
+assert.match(accounts,/raw\.action==='activate_member'/);
+assert.match(accounts,/Lengkapi alamat email pribadi pada data anggota/);
+assert.match(accounts,/Lengkapi nomor telepon Indonesia yang valid pada data anggota/);
+assert.match(accounts,/Aktivasi akun anggota dikirim ke email terdaftar/);
 
 assert.match(activate,/normalizeIndonesianMobilePhone\(raw\.phone\)/);
 assert.match(activate,/normalizeIndonesianMobilePhone\(data\.phone\)!==phone/);
@@ -76,7 +80,9 @@ assert.match(activationForm,/channel:whatsapp\.current\?"whatsapp"/);
 assert.match(accountAccess,/VERCEL_ENV==='preview'\?requestOrigin/);
 assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone"\)\}:\{email:data\.get\("email"\)\},\s*email:/);
 
-assert.match(accountUi,/Konfirmasi nomor & buat aktivasi/);
+assert.match(accountUi,/Aktifkan akses & kirim email/);
+assert.match(accountUi,/email dan nomor telepon diambil langsung dari satu data keanggotaan/);
+assert.match(accountUi,/Menunggu verifikasi telepon/);
 assert.ok(!accountUi.includes('wa.me/'));
 assert.ok(!accountUi.includes('manualPhone'));
 assert.match(accountUi,/whatsappConfirmed/);
@@ -101,9 +107,10 @@ assert.match(accountUi,/!u\.phone_verified_by/);
 assert.match(accountUi,/u\.phone_verified_at&&u\.phone_verified_by/);
 assert.match(accountUi,/OTP WhatsApp tidak diperlukan/);
 assert.match(accountUi,/login dengan nomor dan kata sandi/);
-assert.match(accountUi,/whatsappConfirmed:confirm\.action==='verify_phone'/);
+
 
 await transform(accounts,{loader:'ts'});
+await transform(sri,{loader:'ts'});
 await transform(activate,{loader:'ts'});
 await transform(login,{loader:'ts'});
 await transform(loginForm,{loader:'tsx'});
