@@ -54,6 +54,7 @@ assert.match(css, /\.workspace-page-actions[\s\S]*?flex-wrap:\s*wrap[\s\S]*?font
 assert.match(css, /\.workspace-page-actions[\s\S]*?white-space:\s*normal[\s\S]*?overflow-wrap:\s*anywhere/s, "Mobile workspace action labels must wrap without overflow");
 assert.doesNotMatch(css, /\.workspace-page-actions[^}]*font-size:\s*0(?:\s|;|})/, "Mobile workspace actions must never hide button labels");
 
+assert.match(workspaceUi, /workspace-hero-identity[\s\S]*?workspace-hero-icon[\s\S]*?AppWindow/, "Shared page headers must use the product-detail identity hierarchy");
 assert.match(workspaceUi, /normalizeWorkspaceActions[\s\S]*?workspace-action-label[\s\S]*?aria-label/, "Shared workspace header actions must retain accessible labels when compacted");
 assert.match(css, /SRIKANDI BUANA — TAHOE EDITORIAL WORKSPACE SYSTEM[\s\S]*?data-workspace-theme="tahoe"[\s\S]*?Every action stays visible[\s\S]*?workspace-action-label[\s\S]*?position:\s*static/s, "Tahoe workspace system must preserve action labels and visible controls globally");
 assert.doesNotMatch(css.slice(css.indexOf("SRIKANDI BUANA — TAHOE EDITORIAL WORKSPACE SYSTEM")), /\.workspace-action-label\s*\{[^}]*clip:\s*rect\(0, 0, 0, 0\)/s, "The global workspace theme must not visually remove action labels");
