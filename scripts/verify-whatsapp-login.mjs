@@ -139,7 +139,7 @@ await transform(accountUi,{loader:'tsx'});
 await transform(roleFields,{loader:'tsx'});
 await transform(accountAccess,{loader:'ts'});
 
-assert.match(login,/Nomor telepon belum diverifikasi pengelola/);
+assert.match(login,/Nomor telepon belum diverifikasi melalui kode SMS/);
 assert.match(login,/Nomor telepon atau kata sandi tidak sesuai/);
 assert.doesNotMatch(login,/OTP WhatsApp/);
 assert.match(loginForm,/verifikasi kode SMS tersedia/);
