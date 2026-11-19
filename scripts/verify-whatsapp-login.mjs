@@ -93,7 +93,9 @@ assert.match(read('src/lib/open-wa.ts'),/OPENWA_OUTBOUND_ENABLED!=='true'/);
 
 assert.match(accountUi,/terverifikasi/i);
 assert.match(accountUi,/reset_wa/);
-assert.match(accountUi,/Verifikasi WhatsApp/);
+assert.match(accountUi,/Verifikasi nomor telepon/);
+assert.match(accountUi,/OTP WhatsApp tidak diperlukan/);
+assert.match(accountUi,/login dengan nomor dan kata sandi/);
 assert.match(accountUi,/whatsappConfirmed:confirm\.action==='verify_phone'/);
 
 await transform(accounts,{loader:'ts'});
