@@ -7,6 +7,7 @@ const migration=read('migrations/012_whatsapp_login_identity.sql');
 const memberIdentityMigration=read('migrations/021_member_self_service_identity.sql');
 const multiOfficerMigration=read('migrations/013_multi_officer_positions.sql');
 const roleFields=read('src/app/_components/access/role-fields.tsx');
+const memberModel=read('src/lib/srikandi.ts');
 const accounts=read('src/app/api/accounts/route.ts');
 const activate=read('src/app/api/auth/activate/route.ts');
 const login=read('src/app/api/auth/login/route.ts');
@@ -88,6 +89,8 @@ assert.match(accountAccess,/VERCEL_ENV==='preview'\?requestOrigin/);
 assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone"\)\}:\{email:data\.get\("email"\)\},\s*email:/);
 
 assert.match(accountUi,/Aktifkan akses & kirim email/);
+assert.match(memberModel,/key:\"email\",label:\"Email pribadi\"/);
+assert.match(memberModel,/key:\"phone\",label:\"Nomor telepon\"/);
 assert.match(read('src/app/api/auth/forgot-password/route.ts'),/forgot-password-ip/);
 assert.match(read('src/app/api/auth/forgot-password/route.ts'),/genericMessage/);
 assert.match(read('src/app/api/auth/forgot-password/route.ts'),/purpose:'reset'/);
@@ -124,7 +127,7 @@ assert.match(accountUi,/u\.phone_verified_at&&u\.phone_verified_by/);
 
 
 await transform(accounts,{loader:'ts'});
-await transform(sri,{loader:'ts'});
+await transform(memberModel,{loader:'ts'});
 await transform(activate,{loader:'ts'});
 await transform(login,{loader:'ts'});
 await transform(loginForm,{loader:'tsx'});
