@@ -7,7 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, ChevronDown, LoaderCircle, UserRoundPen } from "lucide-react";
 
-const groups = [
+type ProfileField = { key: string; label: string; placeholder: string; multiline?: boolean };
+type ProfileGroup = { title: string; description: string; fields: ProfileField[] };
+
+const groups: ProfileGroup[] = [
   {
     title: "Latar belakang",
     description: "Pendidikan dan kegiatan utama.",
@@ -34,9 +37,9 @@ const groups = [
       { key: "bio", label: "Profil singkat", placeholder: "Ceritakan minat dan tujuan pengembangan diri", multiline: true },
     ],
   },
-] as const;
+];
 
-const fields = groups.flatMap(group => group.fields);
+const fields: ProfileField[] = groups.flatMap(group => group.fields);
 
 export default function MemberProfileCompletion({ profile, onSaved }: { profile: Record<string, unknown>; onSaved: () => unknown }) {
   const [editing, setEditing] = useState(false);
