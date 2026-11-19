@@ -102,6 +102,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
           </CardHeader>
           <CardContent>
             {loading ? <Skeleton className="h-32" /> : profile ? (
+              <>
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div><dt className="text-xs text-muted-foreground">Nama lengkap</dt><dd className="mt-1 font-medium">{String(profile.data.name || "—")}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Peran di kelompok</dt><dd className="mt-1 font-medium">{String(profile.data.role || "Anggota")}</dd></div>
