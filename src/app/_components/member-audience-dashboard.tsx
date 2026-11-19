@@ -106,7 +106,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
                 <div><dt className="text-xs text-muted-foreground">Nama lengkap</dt><dd className="mt-1 font-medium">{String(profile.data.name || "—")}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Peran di kelompok</dt><dd className="mt-1 font-medium">{String(profile.data.role || "Anggota")}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Dusun / alamat</dt><dd className="mt-1 font-medium">{String(profile.data.dusun || "—")}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Nomor WhatsApp</dt><dd className="mt-1 font-medium">{String(profile.data.phone || "Belum dicatat")}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Nomor telepon</dt><dd className="mt-1 font-medium">{String(profile.data.phone || "Belum dicatat")}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Status keanggotaan</dt><dd className="mt-1"><Badge variant="outline">{String(profile.data.status || "Belum tersedia")}</Badge></dd></div>
                 <div><dt className="text-xs text-muted-foreground">Verifikasi data</dt><dd className="mt-1"><Badge variant={profile.data.verification === "Terverifikasi" ? "default" : "secondary"}>{String(profile.data.verification || "Belum tersedia")}</Badge></dd></div>
               </dl>
