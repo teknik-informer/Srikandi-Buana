@@ -602,6 +602,9 @@ body:has(.workspace-shell) {
   max-width: 100%;
   overflow-wrap: normal;
 }
+.workspace-page button span {
+  overflow-wrap: normal;
+}
 .workspace-page :is(img,video,canvas,iframe) {
   max-width: 100%;
 }
@@ -1007,4 +1010,26 @@ body:has(.workspace-shell) {
   .workspace-page :is(.workspace-metric-grid,.stats-grid) {
     grid-template-columns: minmax(0,1fr);
   }
+}
+
+.workspace-page [class*="overflow-x-auto"] {
+  max-width: 100%;
+  min-width: 0;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.workspace-page [data-slot="table-cell"] {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.workspace-page [data-slot="button"]:not([data-size^="icon"]) {
+  min-width: 0;
+  max-width: 100%;
+  flex-shrink: 1;
+}
+.workspace-page .flex:has(> [data-slot="button"] + [data-slot="button"]) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
 }
