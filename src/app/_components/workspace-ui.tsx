@@ -26,50 +26,42 @@ import {
 import { cn } from "@/lib/cn";
 
 
+function getActionText(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(getActionText).filter(Boolean).join(" ").trim();
+  if (isValidElement<{ children?: ReactNode }>(node)) return getActionText(node.props.children);
+  return "";
+}
+function containsActionIcon(node: ReactNode): boolean {
+  if (Array.isArray(node)) return node.some(containsActionIcon);
+  if (!isValidElement<{ children?: ReactNode }>(node)) return false;
+  if (node.type !== Fragment && typeof node.type !== "string") return true;
+  return containsActionIcon(node.props.children);
+}
 function normalizeWorkspaceActions(node: ReactNode): ReactNode[] {
   if (Array.isArray(node)) return node.flatMap(normalizeWorkspaceActions);
   if (node == null || typeof node === "boolean") return [];
   if (!isValidElement<{ children?: ReactNode; className?: string; "aria-label"?: string; title?: string }>(node)) return [node];
   if (node.type === Fragment) return normalizeWorkspaceActions(node.props.children);
-
   if (node.type === Button) {
-    const parts = Children.toArray(node.props.children);
-    const labels = parts.filter((part): part is string => typeof part === "string").join(" ").trim();
-    const label = labels || node.props["aria-label"] || node.props.title || "Tindakan";
-    const hasIcon = parts.some((part) => isValidElement(part) && typeof part.type !== "string");
-    const normalizedLabel = label.toLocaleLowerCase("id");
-    const inferredIcon = normalizedLabel.includes("muat ulang") || normalizedLabel.includes("refresh")
-      ? <RefreshCw aria-hidden="true" />
-      : normalizedLabel.includes("tambah") || normalizedLabel.includes("buat")
-        ? <Plus aria-hidden="true" />
-        : normalizedLabel.includes("ekspor") || normalizedLabel.includes("export")
-          ? <Download aria-hidden="true" />
-          : normalizedLabel.includes("unduh") || normalizedLabel.includes("download")
-            ? <FileDown aria-hidden="true" />
-            : null;
-    const children = [
-      ...(!hasIcon && inferredIcon ? [inferredIcon] : []),
-      ...parts.map((part, index) =>
-        typeof part === "string"
-          ? <span className="workspace-action-label" key={`label-${index}`}>{part}</span>
-          : part
-      ),
-    ];
+    const label = getActionText(node.props.children) || node.props["aria-label"] || node.props.title || "Tindakan";
+    const key = label.toLocaleLowerCase("id");
+    const icon = key.includes("muat ulang") || key.includes("refresh") ? <RefreshCw aria-hidden="true" />
+      : key.includes("tambah") || key.includes("buat") ? <Plus aria-hidden="true" />
+      : key.includes("ekspor") || key.includes("export") ? <Download aria-hidden="true" />
+      : key.includes("unduh") || key.includes("download") ? <FileDown aria-hidden="true" />
+      : null;
+    const original = node.props.children;
+    const hasIcon = containsActionIcon(original);
     return [cloneElement(node, {
-      className: cn(
-        "workspace-header-action",
-        "max-[767px]:!h-10 max-[767px]:!min-h-10 max-[767px]:!w-10 max-[767px]:!min-w-10 max-[767px]:!px-0 max-[767px]:!gap-0 max-[767px]:justify-center max-[767px]:[&_.workspace-action-label]:sr-only",
-        node.props.className,
-      ),
+      className: cn("workspace-header-action", node.props.className),
       "aria-label": node.props["aria-label"] || label,
       title: node.props.title || label,
-      children,
+      children: <>{!hasIcon && icon}{hasIcon ? original : <span className="workspace-action-label">{original}</span>}</>,
     })];
   }
-
   if (node.props.children !== undefined) {
-    const children = Children.toArray(node.props.children).flatMap(normalizeWorkspaceActions);
-    return [cloneElement(node, { children })];
+    return [cloneElement(node, { children: Children.toArray(node.props.children).flatMap(normalizeWorkspaceActions) })];
   }
   return [node];
 }
