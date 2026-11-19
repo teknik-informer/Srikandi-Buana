@@ -1829,3 +1829,117 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
     flex: 0 0 2.5rem;
   }
 }
+
+
+/* Canonical workspace hero/header contract: one geometry and one action system. */
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1.25rem !important;
+  width: 100%;
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.5rem) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 1.25rem !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 5%, var(--card)), var(--card) 68%) !important;
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%) !important;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-hero-identity h1 {
+  color: var(--foreground);
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions {
+  display: flex !important;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem !important;
+  min-width: 0;
+  max-width: 100%;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border-radius: .75rem;
+  white-space: nowrap;
+  box-shadow: none !important;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action[data-variant="default"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action[data-variant="outline"],
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action[data-variant="secondary"] {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+@media (max-width: 767px) {
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-heading {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: .875rem !important;
+    padding: 1rem !important;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-hero-identity {
+    width: 100%;
+    gap: .75rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions {
+    display: flex !important;
+    width: 100%;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: .5rem !important;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action {
+    flex: 0 0 2.5rem;
+    width: 2.5rem;
+    min-width: 2.5rem;
+    max-width: 2.5rem;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-header-action:has(svg) .workspace-action-label {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+}
