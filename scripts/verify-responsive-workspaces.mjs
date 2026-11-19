@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 const button = readFileSync(new URL("../src/components/ui/button.tsx", import.meta.url), "utf8");
 const input = readFileSync(new URL("../src/components/ui/input.tsx", import.meta.url), "utf8");
-const badge = readFileSync(new URL("../src/components/ui/badge.tsx", import.meta.url), "utf8");
+const badge = readFileSync(new URL("../src/components/ui/badge.tsx", import.meta.url), "utf8");\nconst workspaceUi = readFileSync(new URL("../src/app/_components/workspace-ui.tsx", import.meta.url), "utf8");
 const recordTable = readFileSync(new URL("../src/app/_components/record-table.tsx", import.meta.url), "utf8");
 
 assert.match(css, /Workspace responsive contract: shared safeguards for every operational module/);
