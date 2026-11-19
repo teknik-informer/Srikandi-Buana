@@ -82,7 +82,7 @@ export default function MemberProfileCompletion({ profile, onSaved }: { profile:
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><UserRoundPen className="size-5" /></span>
           <div>
-            <h3 id="member-cv-title" className="font-semibold">Profil pribadi & CV</h3>
+            <h3 id="member-cv-title" className="font-semibold">Lengkapi profil & CV</h3>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">Kenalkan pengalaman, keahlian, dan potensi Anda.</p>
           </div>
         </div>
