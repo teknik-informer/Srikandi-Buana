@@ -22,6 +22,7 @@ import UnsavedChangesGuard from "./access/unsaved-changes-guard";
 import AccountMenu from "./access/account-menu";
 import ThemeControl from "./access/theme-control";
 import NotificationCenter from "./notification-center";
+import PresenceHeartbeat from "./presence-heartbeat";
 
 export default function WorkspaceShell({
   user,
@@ -47,6 +48,7 @@ export default function WorkspaceShell({
       }
     >
       <UnsavedChangesGuard />
+      <PresenceHeartbeat />
       <a href="#workspace-content" className="skip-link">
         Langsung ke isi dashboard
       </a>
