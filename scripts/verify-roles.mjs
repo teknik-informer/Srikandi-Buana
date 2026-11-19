@@ -92,6 +92,11 @@ mem.public.none(`
  CREATE TABLE commerce_sales_invoice_receipts(id TEXT PRIMARY KEY,owner TEXT NOT NULL,invoice_id TEXT NOT NULL,cash_record_id TEXT NOT NULL,ledger_entry_id TEXT NOT NULL,amount BIGINT NOT NULL,received_date DATE NOT NULL,actor_id TEXT NOT NULL,created TEXT,UNIQUE(owner,cash_record_id));
  CREATE TABLE commerce_sales_invoices(id TEXT PRIMARY KEY,owner TEXT NOT NULL,invoice_number TEXT NOT NULL,issue_date DATE NOT NULL,total_amount BIGINT NOT NULL,paid_total BIGINT NOT NULL DEFAULT 0,status TEXT NOT NULL);
 `);const {Pool}=mem.adapters.createPg(),pool=new Pool();
+await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS login_phone TEXT');
+await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified_at TEXT');
+await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified_by TEXT');
+await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TEXT');
+await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TEXT');
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});const translate=compat.exports.postgresStatement;
 // pg-mem cannot execute data-modifying CTEs. Only this SQL primitive is emulated;
 // the unmodified activation/reset SQL is separately exercised on the isolated Neon branch.
