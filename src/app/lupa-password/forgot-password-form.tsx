@@ -7,13 +7,14 @@ export default function ForgotPasswordForm(){
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(busy)return;setBusy(true);setError("");setMessage("");
-  const email=String(new FormData(event.currentTarget).get("email")||"").trim();
+  const form=event.currentTarget;
+  const email=String(new FormData(form).get("email")||"").trim();
   try{
    const response=await fetch("/api/auth/forgot-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
    const result=await response.json();
    if(!response.ok)throw Error(result.error||"Permintaan belum dapat diproses.");
    setMessage(result.message||"Jika alamat tersebut terdaftar, tautan pemulihan akan dikirim.");
-   event.currentTarget.reset();
+   form.reset();
   }catch(cause){setError(cause instanceof Error?cause.message:"Koneksi terputus. Coba lagi.");}
   finally{setBusy(false);}
  }
