@@ -5,7 +5,7 @@ import {accessAudit,json,sameOrigin} from '@/lib/account-access';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
-const profileFields=['education','occupation','skills','farmArea','commodities','experience','trainingHistory'] as const;
+const profileFields=['education','occupation','skills','farmArea','commodities','experience','trainingHistory','bio'] as const;
 
 export async function POST(request:Request){
  if(!sameOrigin(request))return json({error:'Permintaan lintas situs ditolak.'},403);
@@ -15,7 +15,7 @@ export async function POST(request:Request){
  try{
   const raw=await readJsonObject(request,12000);
   const patch:Record<string,string>={};
-  for(const key of [...profileFields,'bio'] as const){
+  for(const key of profileFields){
    const value=String(raw[key]??'').trim();
    if(value.length>1200)return json({error:'Salah satu isian profil terlalu panjang.'},400);
    patch[key]=value;
