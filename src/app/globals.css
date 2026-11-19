@@ -872,3 +872,15 @@ body:has(.workspace-shell) {
 .workspace-table-scroll tbody tr:hover{background:color-mix(in oklab,var(--muted) 48%,var(--card))}
 .workspace-table-scroll tbody tr:last-child td{border-bottom:0}
 @media(max-width:767px){[data-slot="table-head"],[data-slot="table-cell"]{padding-right:10px;padding-left:10px}.workspace-table-scroll,[data-slot="table-container"]{-webkit-overflow-scrolling:touch}}
+
+
+/* Consistent icon-only row actions in every operational workspace table. */
+.records-table-region .record-actions{display:inline-flex;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:4px;min-width:112px;white-space:nowrap}
+.records-table-region .record-actions-cell{width:132px;min-width:132px;white-space:nowrap}
+.records-table-region .record-actions [data-slot="button"]{display:inline-flex;flex:0 0 32px;align-items:center;justify-content:center;width:32px;height:32px;min-width:32px;min-height:32px;padding:0;overflow:hidden;font-size:0;line-height:0;border-radius:8px}
+.records-table-region .record-actions [data-slot="button"] svg{display:block;width:15px;height:15px;min-width:15px;min-height:15px}
+.records-table-region .record-actions [data-slot="button"] span{font-size:0;line-height:0}
+.records-table-region .record-actions [data-slot="button"]:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.records-table-region .record-actions [data-slot="button"][aria-label^="Hapus"]{color:var(--destructive)}
+.records-table-region .record-actions [data-slot="button"][aria-label^="Hapus"]:hover{background:color-mix(in oklab,var(--destructive) 10%,transparent)}
+@media(pointer:coarse){.records-table-region .record-actions [data-slot="button"]{flex-basis:40px;width:40px;height:40px;min-width:40px;min-height:40px}.records-table-region .record-actions-cell{width:156px;min-width:156px}}
