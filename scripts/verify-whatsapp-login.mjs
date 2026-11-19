@@ -55,7 +55,7 @@ assert.match(accounts,/purpose==='activate_wa'/);
 assert.match(accounts,/purpose==='reset_wa'/);
 assert.match(accounts,/raw\.action==='verify_phone'/);
 assert.match(accounts,/target\.role==='ketua'&&u\.role!=='admin'/);
-assert.match(accounts,/Nomor WhatsApp akun dikonfirmasi ulang/);
+assert.match(accounts,/Nomor telepon diverifikasi secara manual/);
 assert.match(accounts,/member_phone/);
 assert.match(accounts,/sendOpenWaText\(phone,message,'srikandi-account-\'\+id\)/);
 assert.match(accounts,/whatsappSent:true/);
