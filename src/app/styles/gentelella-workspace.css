@@ -115,3 +115,18 @@
   --sidebar:#102c21; --sidebar-foreground:#e7eee9; --sidebar-primary:#d5b45c; --sidebar-primary-foreground:#1d3327;
   --sidebar-accent:#1e4332; --sidebar-accent-foreground:#fff; --sidebar-border:rgb(255 255 255 / 8%); --sidebar-ring:#d5b45c;
 }
+
+
+/* Keep legacy module accents inside the same forest-green / warm-gold system. */
+.workspace-shell[data-workspace-theme="gentelella"] :is(.text-emerald-800,.text-emerald-700,.text-emerald-900) {color:var(--primary)}
+.workspace-shell[data-workspace-theme="gentelella"] :is(.bg-emerald-800,.bg-emerald-900) {background-color:var(--primary)}
+.workspace-shell[data-workspace-theme="gentelella"] .hover\\:bg-emerald-900:hover {background-color:color-mix(in srgb,var(--primary) 84%,#000)}
+.workspace-shell[data-workspace-theme="gentelella"] :is(.bg-emerald-50,.bg-emerald-100) {background-color:color-mix(in srgb,var(--primary) 7%,var(--card))}
+.workspace-shell[data-workspace-theme="gentelella"] :is(.border-emerald-200,.border-emerald-300) {border-color:color-mix(in srgb,var(--primary) 22%,var(--border))}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="badge"] {white-space:normal;line-height:1.35}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions > * {max-width:100%}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-heading-copy {min-width:0;flex:1 1 280px}
+@media(max-width:767px) {
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-heading-copy {width:100%;flex-basis:auto}
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions > * {flex:0 0 auto}
+}
