@@ -14,6 +14,8 @@ const login=read('src/app/api/auth/login/route.ts');
 const loginForm=read('src/app/masuk/login-form.tsx');
 const activationForm=read('src/app/aktivasi/activation-form.tsx');
 const accountUi=read('src/app/_components/access/accounts.tsx');
+const memberWorkspace=read('src/app/_components/workspace.tsx');
+const dashboardNavigation=read('src/app/_components/dashboard-navigation.tsx');
 const accountAccess=read('src/lib/account-access.ts');
 const phone=read('src/lib/phone.ts');
 
@@ -89,6 +91,9 @@ assert.match(accountAccess,/VERCEL_ENV==='preview'\?requestOrigin/);
 assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone"\)\}:\{email:data\.get\("email"\)\},\s*email:/);
 
 assert.match(accountUi,/Aktifkan akses & kirim email/);
+assert.match(memberWorkspace,/section === \"anggota\" && showMembershipAccess/);
+assert.match(memberWorkspace,/Aktivasi & akses akun/);
+assert.match(dashboardNavigation,/features\(\"hrm\"\)\.filter\(\(item\) => item\.id !== \"akun\"\)/);
 assert.match(memberModel,/key:\"email\",label:\"Email pribadi\"/);
 assert.match(memberModel,/key:\"phone\",label:\"Nomor telepon\"/);
 assert.match(read('src/app/api/auth/forgot-password/route.ts'),/forgot-password-ip/);
@@ -136,6 +141,8 @@ await transform(read('src/app/api/auth/forgot-password/route.ts'),{loader:'ts'})
 await transform(read('src/app/lupa-password/forgot-password-form.tsx'),{loader:'tsx'});
 await transform(read('src/app/lupa-password/page.tsx'),{loader:'tsx'});
 await transform(accountUi,{loader:'tsx'});
+await transform(memberWorkspace,{loader:'tsx'});
+await transform(dashboardNavigation,{loader:'tsx'});
 await transform(roleFields,{loader:'tsx'});
 await transform(accountAccess,{loader:'ts'});
 
