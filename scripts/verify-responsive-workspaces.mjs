@@ -50,8 +50,9 @@ assert.deepEqual(blueFocus, [], "Workspace source must not introduce hard-coded 
 assert.match(css, /\.workspace-shell :is\(\.workspace-search,\.dashboard-mega-search,\.workspace-global-search\):focus-within\s*\{[^}]*border-color:\s*var\(--border\)[^}]*box-shadow:\s*none\s*!important/s, "Search fields must not show decorative focus halos");
 
 assert.match(css, /\.workspace-page-heading\s*\{[^}]*flex-direction:\s*column/s, "Mobile workspace heading must stack before its actions");
-assert.match(css, /\.workspace-page-actions:has\(> \[data-slot="button"\]:nth-child\(2\)\) > \[data-slot="button"\][\s\S]*?flex:\s*0 0 2\.5rem[\s\S]*?font-size:\s*0/s, "Multiple mobile page actions must become consistent icon-only controls");
-assert.match(css, /workspace-page > header:has\(> button:nth-of-type\(2\)\)[\s\S]*?width:\s*2\.5rem[\s\S]*?font-size:\s*0/s, "Custom workspace headers must compact multiple direct action buttons");
+assert.match(css, /\.workspace-page-actions[\s\S]*?flex-wrap:\s*wrap[\s\S]*?font-size:\s*0\.75rem/s, "Mobile workspace actions must wrap and retain readable labels");
+assert.match(css, /\.workspace-page-actions[\s\S]*?white-space:\s*normal[\s\S]*?overflow-wrap:\s*anywhere/s, "Mobile workspace action labels must wrap without overflow");
+assert.doesNotMatch(css, /\.workspace-page-actions[^}]*font-size:\s*0(?:\s|;|})/, "Mobile workspace actions must never hide button labels");
 
 console.log("PASS responsive workspace contracts: mobile button sizing, wrapped indicators, local table scrolling, icon-only record actions, brand-colored focus, and no hard-coded blue focus utilities.");
 console.log("NOTE: source-contract regression only; real viewport and interaction checks remain part of Preview QA.");
