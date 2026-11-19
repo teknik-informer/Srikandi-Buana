@@ -130,3 +130,23 @@
   .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-heading-copy {width:100%;flex-basis:auto}
   .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions > * {flex:0 0 auto}
 }
+
+
+/* Header actions keep stable hit targets without forcing labels into narrow viewports. */
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"][data-size="icon"] {
+  width:36px; min-width:36px; height:36px; min-height:36px; padding:0; flex:0 0 36px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"] svg {
+  width:16px; height:16px; flex:0 0 auto;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions {
+  flex:0 1 auto; align-self:flex-start;
+}
+@media(max-width:767px) {
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions {
+    display:flex; width:100%; max-width:100%; min-width:0; align-items:center;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"] {
+    flex:0 0 auto; min-width:36px;
+  }
+}
