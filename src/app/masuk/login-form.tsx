@@ -99,7 +99,7 @@ export default function LoginForm() {
         )}
       </button>
       <p className="login-session-note"><Link href="/lupa-password">Lupa kata sandi? Pulihkan melalui email</Link></p>
-      <p className="login-session-note">Nomor telepon harus tercatat dan diverifikasi melalui kode kepemilikan. Login dengan nomor telepon tidak memerlukan OTP WhatsApp.</p>
+      <p className="login-session-note">Login dengan nomor telepon baru dapat digunakan setelah verifikasi kode SMS tersedia. Sistem tidak menggunakan OTP WhatsApp.</p>
     </form>
   );
 }
