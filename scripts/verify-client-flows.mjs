@@ -191,13 +191,14 @@ console.log('PASS files: rename failure retains draft; duplicate request blocked
 class FieldsFixture extends Map {constructor(form){super(Object.entries(form.fields));}}
 let accountPost=deferred(),accountPosts=0;
 const accountForm={dataset:{unsaved:'true'},fields:{memberId:'member',email:'isolated@example.test'},reset(){this.didReset=true;}};
-const accountPayload={users:[{id:'u',email:'isolated@example.test',full_name:'Fixture',role:'anggota',position:'',program_ids:'[]',member_id:'linked',enabled:true}],members:[{id:'member',name:'Fixture',status:'Aktif',verification:'Terverifikasi'}],invitations:[],audit:[]};
+const accountPayload={users:[{id:'u',email:'isolated@example.test',full_name:'Fixture',role:'anggota',position:'',program_ids:'[]',member_id:'linked',enabled:true}],members:[{id:'member',name:'Fixture',status:'Aktif',verification:'Terverifikasi',activationReady:true}],invitations:[],audit:[]};
 const accounts=await harness('src/app/_components/access/accounts.tsx',{
  FormData:FieldsFixture,document:{querySelector:()=>accountForm.dataset.unsaved?accountForm:null},window:{confirm:()=>false},
  fetch:(_url,options)=>{if(options?.method){accountPosts++;return accountPost.promise;}return Promise.resolve(response(200,accountPayload));},
 });
 const accountsRender=()=>accounts.render(()=>accounts.exports.default({}));
 let accountTree=accountsRender();accounts.effects();await new Promise(r=>setImmediate(r));accountTree=accountsRender();
+find(accountTree,n=>n.props?.id==='invite-member').props.onChange({target:{value:'member'}});accountTree=accountsRender();
 const inviteSubmit=find(accountTree,n=>n.type==='form').props.onSubmit;
 const invitation=inviteSubmit({preventDefault(){},currentTarget:accountForm});await inviteSubmit({preventDefault(){},currentTarget:accountForm});assert.equal(accountPosts,1);
 accountPost.resolve(response(409,{error:'Undangan sudah ada.'}));await invitation;assert.equal(accountForm.dataset.unsaved,'true');assert(!accountForm.didReset);
