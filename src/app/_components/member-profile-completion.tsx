@@ -6,7 +6,7 @@ import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {CheckCircle2,ChevronDown,LoaderCircle,UserRoundPen} from "lucide-react";
 
-const fields=[
+const fields:{key:string;label:string;placeholder:string;multiline?:boolean}[]=[
  {key:"education",label:"Pendidikan terakhir",placeholder:"Contoh: SMP / SMA / sederajat"},
  {key:"occupation",label:"Pekerjaan atau kegiatan utama",placeholder:"Contoh: Petani, pengolah hasil, usaha rumahan"},
  {key:"skills",label:"Keahlian",placeholder:"Keahlian yang dimiliki",multiline:true},
