@@ -196,7 +196,7 @@ const tones = {
   success:
     "border-green-200 bg-green-500/10 text-green-700 dark:border-green-900/40 dark:bg-green-500/15 dark:text-green-300",
   active:
-    "border-blue-200 bg-blue-500/10 text-blue-700 dark:border-blue-900/40 dark:bg-blue-500/15 dark:text-blue-300",
+    "border-primary/20 bg-primary/10 text-primary",
   warning:
     "border-amber-200 bg-amber-500/10 text-amber-800 dark:border-amber-900/40 dark:bg-amber-500/15 dark:text-amber-300",
   danger: "border-destructive/20 bg-destructive/10 text-destructive",
