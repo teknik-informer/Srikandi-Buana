@@ -5,6 +5,7 @@ import {transform} from 'esbuild';
 const read=path=>readFileSync(path,'utf8');
 const migration=read('migrations/012_whatsapp_login_identity.sql');
 const memberIdentityMigration=read('migrations/021_member_self_service_identity.sql');
+const memberEmailBackfill=read('migrations/022_member_email_backfill.sql');
 const multiOfficerMigration=read('migrations/013_multi_officer_positions.sql');
 const roleFields=read('src/app/_components/access/role-fields.tsx');
 const memberModel=read('src/lib/srikandi.ts');
@@ -30,6 +31,10 @@ assert.match(memberIdentityMigration,/ADD COLUMN IF NOT EXISTS email_verified_at
 assert.match(memberIdentityMigration,/ADD COLUMN IF NOT EXISTS last_seen_at TEXT/);
 assert.match(memberIdentityMigration,/users_last_seen_at/);
 assert.doesNotMatch(memberIdentityMigration,/DROP TABLE|DELETE FROM users|TRUNCATE/i);
+assert.match(memberEmailBackfill,/JOIN public\.users u/);
+assert.match(memberEmailBackfill,/jsonb_set\(r\.data::jsonb, '\{email\}'/);
+assert.match(memberEmailBackfill,/coalesce\(r\.data::jsonb ->> 'email', ''\) = ''/);
+assert.doesNotMatch(memberEmailBackfill,/DELETE FROM|DROP TABLE|TRUNCATE/i);
 assert.match(multiOfficerMigration,/DROP INDEX IF EXISTS users_one_active_chair_per_workspace/);
 assert.match(multiOfficerMigration,/DROP INDEX IF EXISTS account_invitations_one_pending_chair_per_workspace/);
 assert.doesNotMatch(multiOfficerMigration,/DROP TABLE|DELETE FROM users|TRUNCATE/i);
