@@ -27,8 +27,8 @@ type MailCopy = {
 
 const mailCopy: Record<AccountMailPurpose, MailCopy> = {
   activate: {
-    subject: 'Undangan akses | KWT Srikandi Buana',
-    eyebrow: 'UNDANGAN AKSES RESMI',
+    subject: 'Aktivasi akses | KWT Srikandi Buana',
+    eyebrow: 'AKTIVASI AKUN RESMI',
     heading: 'Selamat datang di Srikandi Buana',
     intro: 'Akses sistem informasi organisasi Anda telah disiapkan. Selesaikan aktivasi untuk mulai menggunakan akun dengan aman.',
     action: 'Aktifkan akun',
