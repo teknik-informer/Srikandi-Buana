@@ -43,7 +43,7 @@ export default function LoginForm() {
           {notice}
         </p>
       )}
-      <label htmlFor="login-identity">Email atau nomor WhatsApp</label>
+      <label htmlFor="login-identity">Email atau nomor telepon</label>
       <input
         id="login-identity"
         name="identity"
@@ -97,7 +97,7 @@ export default function LoginForm() {
           </>
         )}
       </button>
-      <p className="login-session-note">Gunakan perangkat pribadi untuk menyimpan sesi masuk.</p>
+      <p className="login-session-note">Nomor telepon harus sudah tercatat dan diverifikasi pada akun anggota. Login dengan nomor telepon tidak memerlukan OTP WhatsApp.</p>
     </form>
   );
 }
