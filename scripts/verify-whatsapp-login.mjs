@@ -31,7 +31,7 @@ assert.match(multiOfficerMigration,/DROP INDEX IF EXISTS users_one_active_chair_
 assert.match(multiOfficerMigration,/DROP INDEX IF EXISTS account_invitations_one_pending_chair_per_workspace/);
 assert.doesNotMatch(multiOfficerMigration,/DROP TABLE|DELETE FROM users|TRUNCATE/i);
 assert.doesNotMatch(accounts,/existingChair|pendingChair|users_one_active_chair_per_workspace/);
-assert.match(accounts,/access\.role==='ketua'&&u\.role!=='admin'/);
+assert.match(accounts,/u\.role==='ketua'&&raw\.action==='activate_member'&&raw\.role==='ketua'/);
 assert.match(accountUi,/allowChair=\{architectMode\}/);
 assert.match(accountUi,/Beberapa akun dapat menggunakan profil hak akses yang sama/);
 assert.match(roleFields,/Profil hak akses akun/);
