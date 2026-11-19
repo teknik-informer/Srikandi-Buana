@@ -20,11 +20,11 @@ export async function GET(){
   const scopedMemberIdSet=new Set(memberIds);
   const memberPhones=new Map(members.results.map(row=>{try{return [String(row.id),String(JSON.parse(String(row.data)).phone||'')]}catch{return [String(row.id),'']}}));
   const linkedAccounts=memberIds.length
-   ? await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
+   ? await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,phone_verified_by,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
    : {results:[]};
   const accountRows:Record<string,unknown>[]=[...new Map<string,Record<string,unknown>>(linkedAccounts.results.filter(row=>String(row.workspace_owner)===u.userId).map(({workspace_owner,...row})=>[String(row.id),{...row,member_phone:memberPhones.get(String(row.member_id))||''} as Record<string,unknown>])).values()];
   if(u.role==='admin'){
-   const self=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
+   const self=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,phone_verified_by,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
    if(self)accountRows.unshift({...self,member_phone:''} as Record<string,unknown>);
   }
   const users={results:accountRows};
@@ -33,7 +33,7 @@ export async function GET(){
   const auditRows=await env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
   const qaAuditTargets=new Set([...memberIds,...users.results.flatMap(row=>[String(row.id||''),String(row.email||'')]),...invitations.results.map(row=>String(row.email||''))]);
   const audit={results:u.role==='admin'&&qaPreview()?auditRows.results.filter(row=>qaAuditTargets.has(String(row.target||''))).slice(0,50):auditRows.results.slice(0,50)};
-  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:scopedMembers.flatMap(r=>{try{const data=JSON.parse(String(r.data));if(u.role==='admin'&&qaPreview()&&data.qaFixture!==true)return [];return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
+  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,phone_verified_by,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,phone_verified_by:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:scopedMembers.flatMap(r=>{try{const data=JSON.parse(String(r.data));if(u.role==='admin'&&qaPreview()&&data.qaFixture!==true)return [];return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
  }catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}
 }
 export async function POST(request:Request){
