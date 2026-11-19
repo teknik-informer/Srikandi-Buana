@@ -843,3 +843,32 @@ body:has(.workspace-shell) {
 .workspace:has(.workspace-overview) .workspace-page-heading .heading-actions{align-items:center}
 .workspace:has(.workspace-overview) .workspace-page-heading .heading-actions button{min-height:36px}
 @media(max-width:767px){.workspace:has(.workspace-overview) .workspace-page-heading{align-items:flex-start;flex-direction:column;gap:12px;padding:15px}.workspace:has(.workspace-overview) .workspace-page-heading .heading-actions{width:100%;flex-wrap:wrap}}
+
+
+/* Unified table treatment across operational workspaces. */
+[data-slot="table-container"]{border:1px solid var(--border);border-radius:11px;background:var(--card);overscroll-behavior-x:contain}
+[data-slot="table"]{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+[data-slot="table-header"]{background:var(--muted)}
+[data-slot="table-head"]{height:40px;padding:9px 12px;color:var(--muted-foreground);font-size:11px;font-weight:600;letter-spacing:.01em}
+[data-slot="table-body"] [data-slot="table-row"]{background:var(--card);transition:none}
+[data-slot="table-body"] [data-slot="table-row"]:nth-child(even){background:color-mix(in oklab,var(--muted) 22%,var(--card))}
+[data-slot="table-body"] [data-slot="table-row"]:hover{background:color-mix(in oklab,var(--muted) 48%,var(--card))}
+[data-slot="table-cell"]{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;line-height:1.45;vertical-align:middle}
+[data-slot="table-body"] [data-slot="table-row"]:last-child [data-slot="table-cell"]{border-bottom:0}
+[data-slot="table-caption"]{padding:8px 12px;color:var(--muted-foreground);font-size:11px}
+.agriculture-data-table{width:100%;min-width:760px;border-collapse:separate;border-spacing:0;font-size:12px;font-variant-numeric:tabular-nums}
+.agriculture-data-table thead{background:var(--muted);color:var(--muted-foreground);font-size:11px}
+.agriculture-data-table th{height:40px;padding:9px 12px;font-weight:600;white-space:nowrap}
+.agriculture-data-table td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.agriculture-data-table tbody tr:nth-child(even){background:color-mix(in oklab,var(--muted) 22%,var(--card))}
+.agriculture-data-table tbody tr:hover{background:color-mix(in oklab,var(--muted) 48%,var(--card))}
+.agriculture-data-table tbody tr:last-child td{border-bottom:0}
+.workspace-table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:11px;background:var(--card);overscroll-behavior-x:contain}
+.workspace-table-scroll table{border-collapse:separate;border-spacing:0;font-size:12px;font-variant-numeric:tabular-nums}
+.workspace-table-scroll thead{background:var(--muted);color:var(--muted-foreground);font-size:11px}
+.workspace-table-scroll th{height:40px;padding:9px 12px;font-weight:600;white-space:nowrap}
+.workspace-table-scroll td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.workspace-table-scroll tbody tr:nth-child(even){background:color-mix(in oklab,var(--muted) 22%,var(--card))}
+.workspace-table-scroll tbody tr:hover{background:color-mix(in oklab,var(--muted) 48%,var(--card))}
+.workspace-table-scroll tbody tr:last-child td{border-bottom:0}
+@media(max-width:767px){[data-slot="table-head"],[data-slot="table-cell"]{padding-right:10px;padding-left:10px}.workspace-table-scroll,[data-slot="table-container"]{-webkit-overflow-scrolling:touch}}
