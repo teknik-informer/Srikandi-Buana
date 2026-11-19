@@ -1,7 +1,7 @@
 "use client";
 import { Children, Fragment, cloneElement, isValidElement, type ComponentType, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, X, Files } from "lucide-react";
+import { Search, X, Files, AppWindow } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -63,18 +63,23 @@ export function WorkspacePageHeader({
 }) {
   return (
     <div className="page-heading workspace-page-heading" data-workspace-hero="true">
-      <div className="min-w-0 space-y-1">
-        {eyebrow && (
-          <p className="text-xs font-medium tracking-wide text-muted-foreground">
-            {eyebrow}
-          </p>
-        )}
-        <h1 id="workspace-title">{title}</h1>
-        {description && (
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {description}
-          </p>
-        )}
+      <div className="workspace-hero-identity">
+        <span className="workspace-hero-icon" aria-hidden="true">
+          <AppWindow />
+        </span>
+        <div className="min-w-0 space-y-1">
+          {eyebrow && (
+            <p className="text-xs font-medium tracking-wide text-muted-foreground">
+              {eyebrow}
+            </p>
+          )}
+          <h1 id="workspace-title">{title}</h1>
+          {description && (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          )}
+        </div>
       </div>
       {actions && (
         <div className="heading-actions workspace-page-actions">{actions}</div>
