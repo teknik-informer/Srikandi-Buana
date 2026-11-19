@@ -14,7 +14,7 @@
 .login-panel{min-width:0;min-height:100svh;padding:clamp(20px,3vw,42px) clamp(22px,5vw,68px) 20px;display:flex;flex-direction:column}
 .login-back{align-self:flex-end;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--color-emerald-800);text-decoration:none}
 .login-form-wrap{width:100%;max-width:390px;margin:auto;padding:22px 0}
-.login-lock{display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--color-stone-200);background:var(--color-emerald-50);border-radius:14px;margin-bottom:18px;color:var(--color-emerald-900}
+.login-lock{display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--color-stone-200);background:var(--color-emerald-50);border-radius:14px;margin-bottom:18px;color:var(--color-emerald-900)}
 .login-form-wrap>.login-eyebrow{color:var(--color-emerald-700);font-size:9px}
 .login-form-wrap h2{font-family:Georgia,serif;font-size:clamp(30px,3vw,38px);font-weight:400;line-height:1.15;letter-spacing:-.8px;margin:10px 0}
 .login-intro{font-size:13px;color:var(--color-stone-500);line-height:1.65;margin-bottom:22px}
