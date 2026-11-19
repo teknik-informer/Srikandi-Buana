@@ -749,16 +749,17 @@ body:has(.workspace-shell) {
 }
 
 
-/* Search interactions: restrained focus, neutral hover and no decorative glow. */
+/* Workspace search: keep the field visually steady, matching other search inputs. */
 .workspace-global-search,
 .workspace-search {
-  box-shadow: none;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  box-shadow: none !important;
+  transition: none !important;
 }
 .workspace-global-search:focus-within,
 .workspace-search:focus-within {
-  border-color: color-mix(in oklab, var(--ring) 42%, var(--border));
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 8%, transparent);
+  border-color: var(--border) !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 .dashboard-mega-search {
   min-height: 44px;
