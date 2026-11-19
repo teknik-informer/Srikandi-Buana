@@ -22,7 +22,7 @@ export default function WorkspaceShell({
   defaultSidebarOpen?: boolean; qaPreviewEnabled?: boolean;
 }) {
   return (
-    <SidebarProvider defaultOpen={defaultSidebarOpen} className="workspace-shell" style={{ "--sidebar-width": "calc(var(--spacing) * 68)" } as CSSProperties}>
+    <SidebarProvider defaultOpen={defaultSidebarOpen} className="workspace-shell" data-workspace-theme="tahoe" style={{ "--sidebar-width": "calc(var(--spacing) * 68)" } as CSSProperties}>
       <UnsavedChangesGuard />
       <PresenceHeartbeat />
       <a href="#workspace-content" className="skip-link">Langsung ke isi dashboard</a>
