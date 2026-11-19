@@ -440,18 +440,22 @@ export default function Workspace({
                 <>
                   <Button
                     variant="outline"
+                    size="icon"
                     onClick={exportCSV}
                     disabled={loading || !!error}
+                    aria-label="Ekspor CSV"
+                    title="Ekspor CSV"
                   >
-                    <Download data-icon="inline-start" />
-                    Ekspor CSV
+                    <Download />
                   </Button>
                   <Button
+                    size="icon"
                     onClick={() => openEditor(section)}
                     disabled={loading || !!error}
+                    aria-label={`Tambah ${module.singular}`}
+                    title={`Tambah ${module.singular}`}
                   >
-                    <Plus data-icon="inline-start" />
-                    Tambah {module.singular}
+                    <Plus />
                   </Button>
                 </>
               ) : section === "ringkasan" ? (
