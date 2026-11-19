@@ -1,5 +1,5 @@
 type BrandLogoProps={className?:string;iconOnly?:boolean;priority?:boolean;src?:string};
-export default function BrandLogo({className='',iconOnly=false,priority=false,src='/brand/wordmark.webp'}:BrandLogoProps){
+export default function BrandLogo({className='',iconOnly=false,priority=false,src='/brand/wordmark.png'}:BrandLogoProps){
   return (
     <span className={'site-brand '+className}>
       {iconOnly ? (
