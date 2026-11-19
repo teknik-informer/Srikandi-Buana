@@ -82,7 +82,7 @@ export default function MemberProfileCompletion({ profile, onSaved }: { profile:
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><UserRoundPen className="size-5" /></span>
           <div>
-            <h3 id="member-cv-title" className="font-semibold">Profil pribadi & CV</h3>
+            <h3 id="member-cv-title" className="font-semibold">Lengkapi profil & CV</h3>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">Kenalkan pengalaman, keahlian, dan potensi Anda.</p>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function MemberProfileCompletion({ profile, onSaved }: { profile:
             </fieldset>
           ))}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          <p className="text-xs leading-5 text-muted-foreground">Data login, kontak, dan verifikasi tetap dikelola melalui pengurus.</p>
+          <p className="text-xs leading-5 text-muted-foreground">Email, nomor telepon, status, dan data verifikasi dikelola pengurus.</p>
           <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(false)}>Batal</Button>
             <Button type="submit" disabled={saving}>{saving ? <><LoaderCircle className="mr-2 size-4 animate-spin" />Menyimpan…</> : <><CheckCircle2 className="mr-2 size-4" />Simpan profil</>}</Button>

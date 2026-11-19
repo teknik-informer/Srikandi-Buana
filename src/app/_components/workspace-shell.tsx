@@ -59,7 +59,7 @@ export default function WorkspaceShell({
           <footer className="workspace-footer">
             <small>© {new Date().getFullYear()} Srikandi Buana</small>
             <nav aria-label="Tautan bantuan">
-              <Link href="/bantuan" target="_blank" rel="noopener noreferrer">Bantuan</Link>
+              <Link href="/bantuan" target="_blank" rel="noopener noreferrer">Bantuan dashboard</Link>
               <Link href="/privasi" target="_blank" rel="noopener noreferrer">Privasi</Link>
               <Link href="/" target="_blank" rel="noopener noreferrer">Situs publik</Link>
             </nav>

@@ -46,6 +46,7 @@ export default function LoginForm() {
       {notice && <p role="status" className="login-session-note">{notice}</p>}
       <label htmlFor="login-identity">Email atau nomor telepon</label>
       <input id="login-identity" name="identity" type="text" autoComplete="username" placeholder="Email atau nomor telepon" maxLength={180} required disabled={busy} />
+      <p className="login-session-note">Login nomor telepon menunggu verifikasi kode SMS tersedia.</p>
       <label htmlFor="login-password">Kata sandi</label>
       <div className="login-password">
         <input id="login-password" name="password" type={visible ? "text" : "password"} autoComplete="current-password" placeholder="Masukkan kata sandi" maxLength={128} required disabled={busy} />
