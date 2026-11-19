@@ -39,8 +39,9 @@ export default function WorkspaceShell({
     <SidebarProvider
       defaultOpen={defaultSidebarOpen}
       className="workspace-shell"
+      data-workspace-theme="gentelella"
       style={
-        { "--sidebar-width": "calc(var(--spacing) * 68)" } as CSSProperties
+        { "--sidebar-width": "252px" } as CSSProperties
       }
     >
       <UnsavedChangesGuard />
