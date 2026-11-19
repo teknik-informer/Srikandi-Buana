@@ -750,11 +750,13 @@ body:has(.workspace-shell) {
 
 
 /* Search interactions: restrained focus, neutral hover and no decorative glow. */
-.workspace-global-search {
+.workspace-global-search,
+.workspace-search {
   box-shadow: none;
   transition: border-color 140ms ease, background-color 140ms ease;
 }
-.workspace-global-search:focus-within {
+.workspace-global-search:focus-within,
+.workspace-search:focus-within {
   border-color: color-mix(in oklab, var(--ring) 42%, var(--border));
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 8%, transparent);
 }
