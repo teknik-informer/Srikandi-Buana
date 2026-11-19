@@ -150,3 +150,15 @@
     flex:0 0 auto; min-width:36px;
   }
 }
+
+
+/* Touch devices retain a comfortable 44px target for every topbar action. */
+@media (pointer:coarse) {
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-icon-button,
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-header-actions > div > button {
+    width:44px; min-width:44px; height:44px; min-height:44px; padding:0; flex:0 0 44px;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-account-trigger {
+    width:44px; min-width:44px; height:44px; min-height:44px; padding:3px;
+  }
+}
