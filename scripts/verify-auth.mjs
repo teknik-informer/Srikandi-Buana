@@ -28,7 +28,7 @@ assert.equal((await login.POST(request({email:'admin@example.test',password:'sal
 const valid={email:'admin@example.test',password:'Password-uji-aman-123',remember:true,returnTo:'/dashboard/kas'};const result=await login.POST(request(valid));assert.equal(result.status,200);assert.equal((await result.json()).redirect,'/dashboard/kas');assert.equal(cookieOptions.httpOnly,true);assert.equal(cookieOptions.secure,true);assert.equal(cookieOptions.sameSite,'lax');assert.equal(cookieOptions.maxAge,30*86400);assert.ok(cookieValues.has('__Host-srikandi_session'));assert.equal((await auth.getAuthenticatedUser()).userId,adminRow.id);
 const phoneUnavailable=await login.POST(request({identity:'081234567890',password:'Password-uji-aman-123'}));
 assert.equal(phoneUnavailable.status,503,'WhatsApp login must fail closed until its additive schema migration is installed');
-assert.match((await phoneUnavailable.json()).error,/belum diaktifkan.*email akun/i);assert.equal(auth.safeReturn('https://evil.test'),'/dashboard');assert.equal(auth.safeReturn('//evil.test'),'/dashboard');
+assert.match((await phoneUnavailable.json()).error,/belum tersedia.*migrasi identitas telepon/i);assert.equal(auth.safeReturn('https://evil.test'),'/dashboard');assert.equal(auth.safeReturn('//evil.test'),'/dashboard');
 const logoutRequest=(origin='https://test.local')=>new Request('https://test.local/api/auth/logout',{method:'POST',headers:{origin,accept:'application/json'}});
 assert.equal((await logout.GET(new Request('https://test.local/api/auth/logout'))).status,303);
 assert(cookieValues.has('__Host-srikandi_session'),'GET must not log out');
