@@ -42,7 +42,7 @@ import {
 import { jakartaDate, taskIsOpen, validDate } from "@/lib/management-insights";
 import { buildProgramEvaluations } from "@/lib/program-evaluation";
 import CashReports from "./reports";
-import { StatusBadge, WorkspaceMetric } from "./workspace-ui";
+import { StatusBadge, WorkspaceMetric, WorkspacePageHeader } from "./workspace-ui";
 
 const kindLabels: Record<string, string> = {
   program: "Program",
@@ -451,16 +451,12 @@ export default function EnterpriseReports({
 
   return (
     <div className="workspace-page min-w-0">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Pusat pelaporan</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Laporan</h1>
-          <Badge variant="outline">{groups.length} kelompok laporan tersedia</Badge>
-        </div>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Rekap berdasarkan catatan aplikasi yang tersimpan. Cakupan laporan mengikuti peran, kepemilikan data, dan penugasan pengguna.
-        </p>
-      </header>
+      <WorkspacePageHeader
+        eyebrow="Pusat pelaporan"
+        title="Laporan"
+        description="Rekap berdasarkan catatan aplikasi yang tersimpan. Cakupan laporan mengikuti peran, kepemilikan data, dan penugasan pengguna."
+        actions={<Badge variant="outline">{groups.length} kelompok laporan tersedia</Badge>}
+      />
 
       <Card>
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
