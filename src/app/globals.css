@@ -1220,3 +1220,28 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
     white-space: normal;
   }
 }
+
+
+.workspace-direct-header-action {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.workspace-direct-header-action svg {
+  flex: 0 0 auto;
+}
+@media (max-width: 767px) {
+  .workspace-direct-header-action {
+    min-height: 2.5rem;
+    height: auto;
+    padding-block: 0.5rem;
+    line-height: 1.25;
+  }
+  .workspace-shell .workspace-main > :is(header,div) > :first-child {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
