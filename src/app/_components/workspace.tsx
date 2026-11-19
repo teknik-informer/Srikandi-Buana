@@ -208,6 +208,7 @@ export default function Workspace({
   const { rows, files, audit, loading, error, unauthorized, load } =
     useWorkspaceData();
   const [page, setPage] = useState(1);
+  const [showMembershipAccess, setShowMembershipAccess] = useState(false);
   const [ledgerAccounts, setLedgerAccounts] = useState<Array<{id:string;code:string;name:string;category:string;active:boolean}>>([]);
   const [ledgerAccountsError, setLedgerAccountsError] = useState("");
   const imageUploadPending = useRef(false);
@@ -267,6 +268,7 @@ export default function Workspace({
   useEffect(() => {
     setPage(1);
   }, [query, filter, month, fund, section]);
+  useEffect(() => { setShowMembershipAccess(false); }, [section]);
   useEffect(() => {
     setQuery(
       new URLSearchParams(window.location.search).get("cari")?.slice(0, 200) ||
@@ -446,6 +448,7 @@ export default function Workspace({
       defaultSidebarOpen={defaultSidebarOpen}
     >
       {" "}
+      {section === "anggota" && showMembershipAccess ? <Accounts userRole={principal.role} /> : (
       <section
         className="workspace workspace-page"
         aria-labelledby="workspace-title"
@@ -476,23 +479,29 @@ export default function Workspace({
           }
           actions={
             <>
+              {section === "anggota" && ["admin", "ketua"].includes(principal.role) && (
+                <Button variant={showMembershipAccess ? "default" : "outline"} onClick={() => setShowMembershipAccess((value) => !value)}>
+                  <ShieldCheck data-icon="inline-start" />
+                  {showMembershipAccess ? "Kembali ke data anggota" : "Aktivasi & akses akun"}
+                </Button>
+              )}
               {module ? (
                 <>
-                  <Button
+                  {!showMembershipAccess && <Button
                     variant="outline"
                     onClick={exportCSV}
                     disabled={loading || !!error}
                   >
                     <Download data-icon="inline-start" />
                     Ekspor CSV
-                  </Button>
-                  <Button
+                  </Button>}
+                  {!showMembershipAccess && <Button
                     onClick={() => openEditor(section)}
                     disabled={loading || !!error}
                   >
                     <Plus data-icon="inline-start" />
                     Tambah {module.singular}
-                  </Button>
+                  </Button>}
                 </>
               ) : section === "ringkasan" ? (
                 <Button
@@ -1091,6 +1100,7 @@ export default function Workspace({
             />
           )}
       </section>
+      )}
       <Dialog
         open={!!editor}
         onOpenChange={(v) => {
