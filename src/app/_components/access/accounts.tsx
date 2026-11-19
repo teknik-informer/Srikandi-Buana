@@ -38,7 +38,7 @@ export default function Accounts({userRole='ketua'}:{userRole?:Role}){const boot
   finally{if(!request.signal.aborted)setLoading(false);}
  }
  useEffect(()=>{load();return()=>current.current?.abort()},[]);
- useEffect(()=>{const timer=window.setInterval(()=>setClock(Date.now()),60000);return()=>window.clearInterval(timer)},[]);
+ useEffect(()=>{const timer=typeof window.setInterval==='function'?window.setInterval(()=>setClock(Date.now()),60000):null;return()=>{if(timer!==null&&typeof window.clearInterval==='function')window.clearInterval(timer)}},[]);
  async function send(method:string,body:unknown){
   if(pending.current||loading||error)return null;
   pending.current=true;setBusy(true);setMutationError('');
