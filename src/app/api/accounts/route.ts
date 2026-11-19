@@ -20,11 +20,11 @@ export async function GET(){
   const scopedMemberIdSet=new Set(memberIds);
   const memberPhones=new Map(members.results.map(row=>{try{return [String(row.id),String(JSON.parse(String(row.data)).phone||'')]}catch{return [String(row.id),'']}}));
   const linkedAccounts=memberIds.length
-   ? await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
+   ? await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,phone_verified_by,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
    : {results:[]};
   const accountRows:Record<string,unknown>[]=[...new Map<string,Record<string,unknown>>(linkedAccounts.results.filter(row=>String(row.workspace_owner)===u.userId).map(({workspace_owner,...row})=>[String(row.id),{...row,member_phone:memberPhones.get(String(row.member_id))||''} as Record<string,unknown>])).values()];
   if(u.role==='admin'){
-   const self=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
+   const self=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,phone_verified_by,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
    if(self)accountRows.unshift({...self,member_phone:''} as Record<string,unknown>);
   }
   const users={results:accountRows};
@@ -33,7 +33,7 @@ export async function GET(){
   const auditRows=await env.DB.prepare('SELECT actor,action,target,created FROM access_audit WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
   const qaAuditTargets=new Set([...memberIds,...users.results.flatMap(row=>[String(row.id||''),String(row.email||'')]),...invitations.results.map(row=>String(row.email||''))]);
   const audit={results:u.role==='admin'&&qaPreview()?auditRows.results.filter(row=>qaAuditTargets.has(String(row.target||''))).slice(0,50):auditRows.results.slice(0,50)};
-  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:scopedMembers.flatMap(r=>{try{const data=JSON.parse(String(r.data));if(u.role==='admin'&&qaPreview()&&data.qaFixture!==true)return [];return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
+  return json({users:u.role==='admin'?users.results:users.results.map(({login_phone,phone_verified_at,phone_verified_by,member_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null,phone_verified_at:null,phone_verified_by:null,member_phone:''})),invitations:u.role==='admin'?invitations.results:invitations.results.map(({login_phone,...row})=>({...row,email:String(row.email).endsWith('.invalid')?'':row.email,login_phone:null})),audit:audit.results,members:scopedMembers.flatMap(r=>{try{const data=JSON.parse(String(r.data));if(u.role==='admin'&&qaPreview()&&data.qaFixture!==true)return [];return [{id:String(r.id),name:String(data.name||'Anggota'),status:String(data.status||''),verification:String(data.verification||''),...(u.role==='admin'?{phone:String(data.phone||'')}:{})}];}catch{return []}}),firstChairAvailable:true});
  }catch{return json({error:'Daftar akun belum dapat dimuat.'},503)}
 }
 export async function POST(request:Request){
@@ -43,22 +43,22 @@ export async function POST(request:Request){
  if(!env.DB)return json({error:'Database belum tersedia.'},503);
  try{
   const raw=await readJsonObject(request,8000);
-  if((raw.channel==='whatsapp'||raw.action==='reset_wa'||raw.action==='verify_phone')&&u.role!=='admin')return json({error:'Konfirmasi dan pemulihan WhatsApp manual hanya dapat dilakukan oleh Administrator Sistem.'},403);
+  if((raw.channel==='whatsapp'||raw.action==='reset_wa'||raw.action==='verify_phone')&&u.role!=='admin')return json({error:'Verifikasi kepemilikan nomor telepon secara manual hanya dapat dilakukan oleh Administrator Sistem.'},403);
   if(u.role==='admin'&&!['invite','reset','reset_wa','change_email','verify_phone','test_email','test_openwa'].includes(String(raw.action)))return json({error:'Administrator Sistem hanya dapat mengundang akun struktural, memulihkan akses, dan mengelola hak akses teknis.'},403);
   if(raw.action==='test_email'){if(u.role!=='admin')return json({error:'Uji pengiriman Gmail hanya dapat dilakukan Administrator Sistem.'},403);try{await sendAccountEmailTest();return json({ok:true,sent:true,message:'Email uji berhasil dikirim ke kotak Gmail organisasi.'});}catch(error){const failure=error as {code?:string;responseCode?:number;command?:string};const code=String(failure?.code||'UNKNOWN');const responseCode=Number(failure?.responseCode||0)||null;console.error('[account-mailer:test]',{code,responseCode,command:String(failure?.command||'').slice(0,40)});const message=code==='EAUTH'?'Gmail menolak autentikasi. Periksa App Password, akun pengirim, dan verifikasi 2 langkah.':code==='ETIMEDOUT'||code==='ECONNECTION'||code==='ESOCKET'?'Koneksi dari deployment ke server SMTP Gmail gagal atau melewati batas waktu.':code==='EENVELOPE'?'Gmail menolak alamat penerima atau pengirim.':'Layanan Gmail belum berhasil mengirim email. Periksa konfigurasi dan log pengiriman.';return json({error:message,code,responseCode},503)}}
   if(raw.action==='test_openwa'){if(u.role!=='admin')return json({error:'Pemeriksaan OpenWA hanya dapat dilakukan Administrator Sistem.'},403);try{const status=await getOpenWaStatus();return json({ok:true,...status,message:status.connected?'OpenWA terhubung dan sesi siap.':'OpenWA dapat dijangkau, tetapi sesi WhatsApp belum siap.'});}catch(error){const failure=error as {code?:string};const code=String(failure?.code||'OPENWA_UNAVAILABLE');const message=code==='OPENWA_DISABLED'?'Pengiriman WhatsApp belum diaktifkan. Aktivasi ditunda sampai infrastruktur dan anggaran disetujui.':code==='OPENWA_NOT_CONFIGURED'?'OpenWA belum dikonfigurasi pada lingkungan Preview.':code==='OPENWA_SESSION_NOT_READY'?'Sesi OpenWA belum siap.':'Layanan OpenWA belum dapat dihubungi. Periksa konfigurasi dan status server.';return json({error:message,code},503)}}
   if(raw.action==='verify_phone'){
    const target=await env.DB.prepare('SELECT id,member_id,role,enabled FROM users WHERE id=? AND workspace_owner=?').bind(String(raw.userId||''),u.userId).first();
-   if(!target||target.role==='admin'||(target.role==='ketua'&&u.role!=='admin')||target.id===u.accountId||!target.enabled)return json({error:'Akun ini tidak dapat diubah melalui verifikasi WhatsApp biasa.'},403);
-   if(raw.whatsappConfirmed!==true)return json({error:'Admin harus menghubungi anggota dan mengonfirmasi kepemilikan nomor WhatsApp secara manual.'},400);
+   if(!target||target.role==='admin'||(target.role==='ketua'&&u.role!=='admin')||target.id===u.accountId||!target.enabled)return json({error:'Akun ini tidak dapat diverifikasi melalui alur nomor telepon biasa.'},403);
+   if(raw.whatsappConfirmed!==true)return json({error:'Administrator harus memastikan kepemilikan atau penggunaan nomor telepon oleh anggota melalui pemeriksaan langsung atau saluran komunikasi yang tersedia.'},400);
    const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(String(target.member_id||''),u.userId).first();
    if(!member)return json({error:'Data anggota tidak ditemukan.'},404);
    const data=JSON.parse(String(member.data)),phone=normalizeIndonesianMobilePhone(data.phone);
-   if(data.status!=='Aktif'||data.verification!=='Terverifikasi'||!phone)return json({error:'Data anggota harus aktif, terverifikasi, dan memiliki nomor WhatsApp yang valid.'},409);
+   if(data.status!=='Aktif'||data.verification!=='Terverifikasi'||!phone)return json({error:'Data anggota harus aktif, terverifikasi, dan memiliki nomor telepon seluler yang valid.'},409);
    const duplicate=await env.DB.prepare('SELECT id FROM users WHERE login_phone=? AND id<>?').bind(phone,target.id).first();
-   if(duplicate)return json({error:'Nomor WhatsApp sudah digunakan akun lain.'},409);
+   if(duplicate)return json({error:'Nomor telepon sudah digunakan akun lain.'},409);
    const now=new Date().toISOString();
-   await env.DB.batch([env.DB.prepare('UPDATE users SET login_phone=?,phone_verified_at=?,phone_verified_by=? WHERE id=? AND workspace_owner=?').bind(phone,now,u.accountId,target.id,u.userId),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(target.id),await accessAudit(u.userId,u.accountId,'Nomor WhatsApp akun dikonfirmasi ulang; sesi dicabut',String(target.id))]);
+   await env.DB.batch([env.DB.prepare('UPDATE users SET login_phone=?,phone_verified_at=?,phone_verified_by=? WHERE id=? AND workspace_owner=?').bind(phone,now,u.accountId,target.id,u.userId),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(target.id),await accessAudit(u.userId,u.accountId,'Nomor telepon diverifikasi secara manual; sesi dicabut',String(target.id))]);
    return json({ok:true,verified:true,phone});
   }
   if(u.role==='ketua'&&raw.action==='invite'&&raw.role==='ketua')return json({error:'Peran Ketua hanya ditetapkan melalui bootstrap Ketua pertama. Penyerahan kewenangan Ketua berikutnya memerlukan prosedur serah-terima resmi dan tidak melalui undangan biasa.'},403);
