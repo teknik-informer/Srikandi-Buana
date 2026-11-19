@@ -41,7 +41,7 @@ export default function WorkspaceShell({
       className="workspace-shell"
       data-workspace-theme="gentelella"
       style={
-        { "--sidebar-width": "252px" } as CSSProperties
+        { "--sidebar-width": "252px", "--sidebar-width-icon": "64px" } as CSSProperties
       }
     >
       <UnsavedChangesGuard />
