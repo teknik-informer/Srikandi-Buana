@@ -926,6 +926,7 @@ body:has(.workspace-shell) {
 .workspace-shell :is(button,a,input,select,textarea,[role="button"],[role="combobox"]):focus-visible {
   outline: 2px solid color-mix(in oklab,var(--primary) 78%,var(--border)) !important;
   outline-offset: 2px;
+  border-color: var(--primary) !important;
   box-shadow: none !important;
 }
 .workspace-page [data-slot="badge"],
