@@ -32,7 +32,7 @@ assert.equal(policy.canReviewFollowup({role:'admin'},taskBefore,taskAfter),true,
 assert.equal(policy.canReviewFollowup(chair,taskBefore,taskAfter),false,'Chair does not approve individual task rows');
 assert.equal(policy.canReviewFollowup(secretary,taskBefore,{...taskAfter,data:{...taskAfter.data,name:'Tampered task'}}),false,'Secretariat cannot rewrite task source data during verification');
 const galleryDraft={id:'gallery-1',kind:'galeri',data:{name:'Gallery',status:'Draf',fileId:'file-1',publicationPermission:'Dikonfirmasi'}};
-const memberFixture={id:'member-1',kind:'anggota',data:{name:'Nama uji',dusun:'Alamat uji',phone:'081234567890',potential:'Kebutuhan pribadi',role:'Anggota',status:'Aktif',verification:'Terverifikasi'}};
+const memberFixture={id:'member-1',kind:'anggota',data:{name:'Nama uji',dusun:'Alamat uji',email:'anggota@example.test',phone:'081234567890',education:'SMA',occupation:'Petani',skills:'Budidaya kopi',farmArea:'0,25 ha',commodities:'Kopi',experience:'5 tahun',trainingHistory:'Pelatihan budidaya',bio:'Profil anggota',potential:'Kebutuhan pribadi',ktp:'PRIVATE-KTP',kk:'PRIVATE-KK',role:'Anggota',status:'Aktif',verification:'Terverifikasi'}};
 const memberSelf={role:'anggota',memberId:'member-1',programIds:[]};
 assert.equal(policy.canWriteKind(secretary,'anggota'),true,'Secretariat manages the membership register and verification data');
 assert.equal(policy.canWriteKind(chair,'anggota'),false,'Chair oversees membership but does not edit source register rows');
@@ -41,6 +41,11 @@ assert.equal(policy.canWriteKind(memberSelf,'anggota'),false,'Members cannot dir
 assert.equal(policy.canReadRecord(memberSelf,memberFixture),true,'Members can read their own membership record');
 assert.equal(policy.canReadRecord(memberSelf,{...memberFixture,id:'member-2'}),false,'Members cannot read another member record');
 assert.equal(policy.canReadRecord({role:'koordinator',programIds:[]},memberFixture),false,'Coordinators do not receive unrestricted membership records');
+const memberSelfView=policy.visibleRecord(memberSelf,memberFixture);
+assert.equal(memberSelfView.data.education,'SMA','Members can read their own CV fields after activation');
+assert.equal(memberSelfView.data.email,'anggota@example.test','Members can see their own registered email');
+assert.equal(memberSelfView.data.ktp,undefined,'KTP data remains hidden from the member profile view');
+assert.equal(memberSelfView.data.kk,undefined,'KK data remains hidden from the member profile view');
 const chairMember=policy.visibleRecord(chair,memberFixture);
 const secretaryMember=policy.visibleRecord(secretary,memberFixture);
 assert.equal(chairMember.data.phone,undefined,'Chair oversight does not expose private contact details by default');
