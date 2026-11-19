@@ -108,7 +108,7 @@ function getApplicationNavigation(user: Principal, fullAccess: boolean, includeC
   };
   const modulesByApplication: Record<string, ApplicationNavigation["items"]> = {
     "platform-core": utilities,
-    organization: [...features("hrm"), ...select(projectFeatures, ["surat-resmi", "surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen"])],
+    organization: [...features("hrm").filter((item) => item.id !== "akun"), ...select(projectFeatures, ["surat-resmi", "surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen"])],
     agriculture: [...select(projectFeatures, ["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "alsintan", "survei"]), ...select(pointOfSaleFeatures, ["lotkopi"])],
     business: [...features("accounting"), ...select(projectFeatures, ["usaha", "pengajuan", "enterprise"]), ...select(pointOfSaleFeatures, ["penjualan"])],
     "bi-analytics": features("analytics"),

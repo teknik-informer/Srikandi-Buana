@@ -1,0 +1,7 @@
+import BrandLogo from "@/components/brand-logo";
+import Link from "next/link";
+import {ShieldCheck,ArrowUpRight} from "lucide-react";
+import ForgotPasswordForm from "./forgot-password-form";
+import "../masuk/login.css";
+export const metadata={title:"Pemulihan Kata Sandi | Srikandi Buana",robots:{index:false,follow:false},referrer:"no-referrer" as const};
+export default function ForgotPasswordPage(){return <main className="login-shell"><section className="login-story"><img src="/images/pertanian-premium-v1.webp" alt="Ilustrasi pertanian"/><div className="login-story-shade"/><Link href="/" className="login-brand"><BrandLogo priority/></Link><div className="login-story-copy"><p className="login-eyebrow">AKSES ANGGOTA</p><h1>Akses kembali.<br/><em>Tanpa menunggu admin.</em></h1><p>Pemulihan akun dilakukan langsung oleh pemilik melalui email terdaftar.</p></div></section><section className="login-panel"><Link href="/masuk" className="login-back">Halaman masuk <ArrowUpRight size={15}/></Link><div className="login-form-wrap"><span className="login-lock"><ShieldCheck size={24}/></span><p className="login-eyebrow">PEMULIHAN AKUN</p><h2>Atur ulang kata sandi.</h2><p className="login-intro">Masukkan email yang tercatat pada data keanggotaan. Jika akun memenuhi syarat, sistem mengirim tautan pemulihan secara otomatis.</p><ForgotPasswordForm/></div><div className="login-assistance"><p><Link href="/privasi">Privasi</Link> · <Link href="/bantuan">Bantuan</Link></p></div><footer>© {new Date().getFullYear()} KWT Srikandi Buana</footer></section></main>}

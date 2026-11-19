@@ -250,7 +250,7 @@ export function visibleRecord(user: Principal, record: AccessRecord): AccessReco
   }
   if (user.role === "anggota") {
     const keys = record.kind === "anggota"
-      ? ["name", "dusun", "phone", "role", "status", "verification"]
+      ? ["name", "dusun", "email", "phone", "role", "status", "verification", "education", "occupation", "skills", "farmArea", "commodities", "experience", "trainingHistory", "bio"]
       : ["name", "date", "location", "status"];
     return { ...record, data: Object.fromEntries(keys.filter((key) => key in record.data).map((key) => [key, record.data[key]])) };
   }

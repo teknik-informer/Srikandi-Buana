@@ -15,6 +15,8 @@ export async function getAuthenticatedUser():Promise<Principal|null>{
  if(!user||!user.owner_enabled||user.owner_role!=='admin'||String(user.owner_email).toLowerCase()!==process.env.ADMIN_EMAIL.trim().toLowerCase()||!(String(user.role) in roles))return null;
  if(user.role==='admin'&&(user.id!==user.workspace_owner||String(user.email).toLowerCase()!==process.env.ADMIN_EMAIL.trim().toLowerCase()))return null;
  if(user.role!=='admin'){const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(user.member_id,user.workspace_owner).first();if(!member)return null;const d=JSON.parse(String(member.data));if(d.status!=='Aktif'||d.verification!=='Terverifikasi')return null;}
+ const seenAt=new Date().toISOString();
+ await env.DB.prepare("UPDATE users SET last_seen_at=? WHERE id=? AND (last_seen_at IS NULL OR last_seen_at<?)").bind(seenAt,user.id,new Date(Date.now()-60000).toISOString()).run().catch(()=>{});
  let programIds:string[]=[];try{const v=JSON.parse(String(user.program_ids));if(Array.isArray(v))programIds=v.filter((p:unknown)=>typeof p==='string')}catch{return null}
  let moduleAccess: ModuleAccessState | undefined;
  try {
