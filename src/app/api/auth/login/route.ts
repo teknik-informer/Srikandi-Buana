@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const isPhone = /^\+628[0-9]{7,12}$/.test(phone);
     const password = String(raw.password || "");
     if ((!isEmail && !isPhone) || !password || identity.length > 180 || password.length > 128) {
-      return json({ error: "Masukkan email atau nomor WhatsApp terdaftar dan kata sandi Anda." }, 400);
+      return json({ error: "Masukkan email atau nomor telepon terdaftar dan kata sandi Anda." }, 400);
     }
     const ip = request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim()
       || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       try {
         await env.DB.prepare("SELECT login_phone,phone_verified_at FROM users LIMIT 0").all();
       } catch {
-        return json({ error: "Login WhatsApp belum diaktifkan pada server. Silakan masuk menggunakan email akun." }, 503);
+        return json({ error: "Login nomor telepon belum tersedia pada skema database lingkungan ini. Administrator perlu menerapkan migrasi identitas telepon terlebih dahulu." }, 503);
       }
     }
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
           currentPhone = normalizeIndonesianMobilePhone(data.phone);
         } catch { currentPhone = ""; }
         if (!internal.phone_verified_at || currentPhone !== phone) {
-          return json({ error: "Nomor WhatsApp belum dikonfirmasi Admin atau sudah berubah pada data anggota." }, 401);
+          return json({ error: "Nomor telepon belum diverifikasi pengelola atau tidak lagi cocok dengan data anggota." }, 401);
         }
       }
       await createSession(String(internal.id), raw.remember === true);
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
     // External identities are stored separately and never receive an internal RBAC role.
     const now = new Date().toISOString();
-    if (isPhone) return json({ error: "Nomor WhatsApp atau kata sandi tidak sesuai, atau nomor belum dikonfirmasi Admin." }, 401);
+    if (isPhone) return json({ error: "Nomor telepon atau kata sandi tidak sesuai, atau nomor belum diverifikasi." }, 401);
 
     const external = await env.DB.prepare(
       "SELECT a.id,a.password_hash,a.email FROM external_portal_accounts a " +
