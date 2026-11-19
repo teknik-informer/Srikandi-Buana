@@ -8,6 +8,7 @@ WITH linked_member_emails AS (
    AND u.workspace_owner = r.owner
   WHERE r.kind = 'anggota'
     AND u.role <> 'admin'
+    AND u.email_verified_at IS NOT NULL
     AND coalesce(r.data::jsonb ->> 'email', '') = ''
     AND lower(u.email) NOT LIKE '%.invalid'
     AND position('@' in u.email) > 1
