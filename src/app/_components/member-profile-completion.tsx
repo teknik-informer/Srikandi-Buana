@@ -17,7 +17,7 @@ const fields:{key:string;label:string;placeholder:string;multiline?:boolean}[]=[
  {key:"bio",label:"Profil singkat",placeholder:"Ceritakan minat, pengalaman, dan tujuan pengembangan diri",multiline:true},
 ] as const;
 
-export default function MemberProfileCompletion({profile,onSaved}:{profile:Record<string,unknown>;onSaved:()=>Promise<unknown>}){
+export default function MemberProfileCompletion({profile,onSaved}:{profile:Record<string,unknown>;onSaved:()=>unknown}){
  const [editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(""),[success,setSuccess]=useState("");
  const completed=fields.filter(field=>String(profile[field.key]||"").trim()).length;
  const percent=Math.round(completed/fields.length*100);
