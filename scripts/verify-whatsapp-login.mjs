@@ -38,6 +38,8 @@ assert.match(login,/normalizeIndonesianMobilePhone\(data\.phone\)/);
 assert.match(phone,/digits\.startsWith\("62"\)/);
 assert.match(phone,/return \/\^8\[0-9\]\{7,12\}\$\/\.test\(national\) \? "\+62" \+ national : ""/);
 assert.match(login,/u\.login_phone=\?/);
+assert.match(login,/phone_verified_by IS NOT NULL/);
+assert.match(login,/!internal\.phone_verified_by/);
 assert.match(login,/isPhone/);
 assert.match(login,/consumeRateLimit/);
 assert.match(login,/if \(isPhone\) return json/);
