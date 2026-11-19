@@ -36,8 +36,8 @@ export function WorkspacePageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="page-heading workspace-page-heading">
-      <div className="min-w-0 space-y-1">
+    <div className="page-heading workspace-page-heading" data-ui="gentelella-page-heading">
+      <div className="workspace-page-heading-copy min-w-0 space-y-1">
         {eyebrow && (
           <p className="text-xs font-medium tracking-wide text-muted-foreground">
             {eyebrow}
@@ -51,7 +51,7 @@ export function WorkspacePageHeader({
         )}
       </div>
       {actions && (
-        <div className="heading-actions workspace-page-actions">{actions}</div>
+        <div className="heading-actions workspace-page-actions" data-ui="gentelella-page-actions">{actions}</div>
       )}
     </div>
   );
@@ -196,7 +196,7 @@ const tones = {
   success:
     "border-green-200 bg-green-500/10 text-green-700 dark:border-green-900/40 dark:bg-green-500/15 dark:text-green-300",
   active:
-    "border-blue-200 bg-blue-500/10 text-blue-700 dark:border-blue-900/40 dark:bg-blue-500/15 dark:text-blue-300",
+    "border-primary/20 bg-primary/10 text-primary",
   warning:
     "border-amber-200 bg-amber-500/10 text-amber-800 dark:border-amber-900/40 dark:bg-amber-500/15 dark:text-amber-300",
   danger: "border-destructive/20 bg-destructive/10 text-destructive",
