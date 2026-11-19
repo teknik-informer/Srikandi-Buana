@@ -38,6 +38,14 @@ function containsActionIcon(node: ReactNode): boolean {
   if (node.type !== Fragment && typeof node.type !== "string") return true;
   return containsActionIcon(node.props.children);
 }
+function labelActionNodes(node: ReactNode): ReactNode {
+  if (typeof node === "string" || typeof node === "number") return <span className="workspace-action-label">{node}</span>;
+  if (Array.isArray(node)) return node.map((child, index) => <Fragment key={index}>{labelActionNodes(child)}</Fragment>);
+  if (isValidElement<{ children?: ReactNode }>(node) && node.props.children !== undefined) {
+    return cloneElement(node, { children: labelActionNodes(node.props.children) });
+  }
+  return node;
+}
 function normalizeWorkspaceActions(node: ReactNode): ReactNode[] {
   if (Array.isArray(node)) return node.flatMap(normalizeWorkspaceActions);
   if (node == null || typeof node === "boolean") return [];
@@ -57,7 +65,7 @@ function normalizeWorkspaceActions(node: ReactNode): ReactNode[] {
       className: cn("workspace-header-action", node.props.className),
       "aria-label": node.props["aria-label"] || label,
       title: node.props.title || label,
-      children: <>{!hasIcon && icon}{hasIcon ? original : <span className="workspace-action-label">{original}</span>}</>,
+      children: <>{!hasIcon && icon}{labelActionNodes(original)}</>,
     })];
   }
   if (node.props.children !== undefined) {
