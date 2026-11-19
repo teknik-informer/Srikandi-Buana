@@ -100,7 +100,7 @@ assert.match(form,/!emailChange\.current&&/);
 assert.match(page,/architectMode&&u\.enabled/);
 assert.match(page,/action:'change_email'/);
 assert.match(page,/Email berhasil dikirim kepada penerima/);
-assert.match(page,/Kirim undangan melalui email/);
+assert.match(page,/Aktifkan akses & kirim email/);
 assert.doesNotMatch(page,/Tautan pribadi siap disalin/);
 await transform(mailer,{loader:'ts'});
 
