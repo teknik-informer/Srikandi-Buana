@@ -1035,3 +1035,17 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
 .workspace-shell .workspace-main button span {
   overflow-wrap: normal;
 }
+
+
+/* Search fields intentionally stay quiet: no blue/green halo or animated focus frame. */
+.workspace-shell :is(.workspace-search,.dashboard-mega-search,.workspace-global-search):focus-within {
+  border-color: var(--border) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+.workspace-shell :is(.workspace-search,.dashboard-mega-search,.workspace-global-search) :is(input,[data-slot="input-group-control"]):focus-visible {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
