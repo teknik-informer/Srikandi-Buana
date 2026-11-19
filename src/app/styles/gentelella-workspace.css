@@ -95,3 +95,23 @@
 .workspace-shell[data-workspace-theme="gentelella"] .workspace-search input {font-size:13px}
 .workspace-shell[data-workspace-theme="gentelella"] .workspace-search:focus-within {border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 12%,transparent)}
 .workspace-shell[data-workspace-theme="gentelella"] .record-actions [data-slot="button"] {width:32px;min-width:32px;height:32px;min-height:32px;padding:0;border-radius:5px}
+
+
+/* Root-level tokens are mirrored for Radix portals (dialogs, menus and popovers),
+   which render outside .workspace-shell but must retain the active workspace palette. */
+:root:has(.workspace-shell[data-workspace-theme="gentelella"]) {
+  --primary:#176b4b; --primary-foreground:#fff; --background:#f3f6f4; --foreground:#1e2b24;
+  --card:#fff; --card-foreground:#1e2b24; --popover:#fff; --popover-foreground:#1e2b24;
+  --secondary:#edf2ee; --secondary-foreground:#34463b; --muted:#edf2ee; --muted-foreground:#69766e;
+  --accent:#f5efdf; --accent-foreground:#70551b; --border:#dfe7e1; --input:#d6e0d9; --ring:#398b69;
+  --sidebar:#153b2d; --sidebar-foreground:#e7f0ea; --sidebar-primary:#d5b45c; --sidebar-primary-foreground:#1d3327;
+  --sidebar-accent:#214b39; --sidebar-accent-foreground:#fff; --sidebar-border:rgb(255 255 255 / 9%); --sidebar-ring:#d5b45c;
+}
+.dark:root:has(.workspace-shell[data-workspace-theme="gentelella"]) {
+  --primary:#65b58d; --primary-foreground:#102b20; --background:#151d19; --foreground:#e7eee9;
+  --card:#1d2922; --card-foreground:#e7eee9; --popover:#1d2922; --popover-foreground:#e7eee9;
+  --secondary:#27362d; --secondary-foreground:#e7eee9; --muted:#27362d; --muted-foreground:#aab9af;
+  --accent:#3c3421; --accent-foreground:#ead7a3; --border:#34453a; --input:#405347; --ring:#65b58d;
+  --sidebar:#102c21; --sidebar-foreground:#e7eee9; --sidebar-primary:#d5b45c; --sidebar-primary-foreground:#1d3327;
+  --sidebar-accent:#1e4332; --sidebar-accent-foreground:#fff; --sidebar-border:rgb(255 255 255 / 8%); --sidebar-ring:#d5b45c;
+}
