@@ -33,7 +33,7 @@ export async function POST(request:Request){
   await env.DB.batch([
    env.DB.prepare("UPDATE account_invitations SET revoked_at=? WHERE owner=? AND member_id=? AND consumed_at IS NULL AND revoked_at IS NULL").bind(now,account.workspace_owner,account.id),
    env.DB.prepare("INSERT INTO account_invitations(id,token_hash,owner,member_id,email,full_name,role,position,program_ids,purpose,target_user_id,expires,created_by,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,hash,account.workspace_owner,account.member_id,email,account.full_name,account.role,account.position,String(account.program_ids||'[]'),'reset',account.id,expires,account.id,now),
-   accessAudit(String(account.workspace_owner),String(account.id),'Permintaan pemulihan mandiri diterima',email)
+   await accessAudit(String(account.workspace_owner),String(account.id),'Permintaan pemulihan mandiri diterima',email)
   ]);
   try{
    await sendAccountEmail({to:email,name:String(account.full_name||memberData.name||'Anggota'),url,expires,purpose:'reset'});
@@ -41,7 +41,7 @@ export async function POST(request:Request){
    const failedAt=new Date().toISOString();
    await env.DB.batch([
     env.DB.prepare('UPDATE account_invitations SET revoked_at=? WHERE id=? AND owner=? AND consumed_at IS NULL').bind(failedAt,id,account.workspace_owner),
-    accessAudit(String(account.workspace_owner),String(account.id),'Pengiriman pemulihan mandiri gagal; tautan dicabut',email)
+    await accessAudit(String(account.workspace_owner),String(account.id),'Pengiriman pemulihan mandiri gagal; tautan dicabut',email)
    ]);
    console.error('[account-recovery:email]',error instanceof Error?error.message:'email delivery failed');
   }
