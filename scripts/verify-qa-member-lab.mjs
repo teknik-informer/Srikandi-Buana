@@ -22,5 +22,5 @@ assert.match(center,/\/dashboard\/qa-members/);
 assert.match(accounts,/data\.qaFixture!==true/);
 assert.match(accounts,/qaPreview\(\)/);
 assert.match(accounts,/isArchitectQaPreview\(process\.env\)/);
-assert.match(accounts,/Di Preview QA, undangan hanya dapat dibuat untuk anggota uji sintetis/);
+assert.match(accounts,/Di Preview QA, aktivasi hanya dapat dibuat untuk anggota uji sintetis/);
 console.log("PASS QA member lab: Preview-branch and technical-admin guards, synthetic-only fixture data, shared phone normalization, isolated storage, QA UI route, and synthetic-only account invitations.");

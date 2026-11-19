@@ -35,7 +35,7 @@ assert.ok(mailer.includes('/^kwt' + String.fromCharCode(92) + '.srikandibuana@gm
 assert.match(mailer,/sendMail/);
 assert.match(mailer,/replyTo: senderEmail/);
 assert.match(mailer,/KELOMPOK WANITA TANI/);
-assert.match(mailer,/UNDANGAN AKSES RESMI/);
+assert.match(mailer,/AKTIVASI AKUN RESMI/);
 assert.match(mailer,/KEAMANAN AKUN/);
 assert.match(mailer,/KONFIRMASI ALAMAT EMAIL/);
 assert.match(mailer,/INFORMASI KEAMANAN/);
@@ -100,7 +100,7 @@ assert.match(form,/!emailChange\.current&&/);
 assert.match(page,/architectMode&&u\.enabled/);
 assert.match(page,/action:'change_email'/);
 assert.match(page,/Email berhasil dikirim kepada penerima/);
-assert.match(page,/Kirim undangan melalui email/);
+assert.match(page,/Aktifkan akses & kirim email/);
 assert.doesNotMatch(page,/Tautan pribadi siap disalin/);
 await transform(mailer,{loader:'ts'});
 
