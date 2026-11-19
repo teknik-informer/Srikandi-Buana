@@ -1,0 +1,338 @@
+/* Srikandi Buana workspace skin — adapted from Gentelella v4 design language.
+ * Copyright notice for the upstream MIT-licensed project is retained in vendor/gentelella/LICENSE.txt.
+ * React/Next.js components remain native to this application.
+ */
+.workspace-shell[data-workspace-theme="gentelella"] {
+  --primary: #176b4b;
+  --primary-foreground: #ffffff;
+  --background: #f3f6f4;
+  --foreground: #1e2b24;
+  --card: #ffffff;
+  --card-foreground: #1e2b24;
+  --popover: #ffffff;
+  --popover-foreground: #1e2b24;
+  --secondary: #edf2ee;
+  --secondary-foreground: #34463b;
+  --muted: #edf2ee;
+  --muted-foreground: #69766e;
+  --accent: #f5efdf;
+  --accent-foreground: #70551b;
+  --border: #dfe7e1;
+  --input: #d6e0d9;
+  --ring: #398b69;
+  --sidebar: #153b2d;
+  --sidebar-foreground: #e7f0ea;
+  --sidebar-primary: #d5b45c;
+  --sidebar-primary-foreground: #1d3327;
+  --sidebar-accent: #214b39;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-ring: #d5b45c;
+  --sb-gold: #c7a451;
+  --sb-sidebar-muted: #b4c7bb;
+  --sb-surface: #ffffff;
+  --sb-shadow: 0 1px 2px rgb(24 45 33 / 5%), 0 8px 24px rgb(24 45 33 / 3%);
+  background: var(--background);
+  color: var(--foreground);
+  min-width: 0;
+}
+.dark .workspace-shell[data-workspace-theme="gentelella"] {
+  --primary: #65b58d;
+  --primary-foreground: #102b20;
+  --background: #151d19;
+  --foreground: #e7eee9;
+  --card: #1d2922;
+  --card-foreground: #e7eee9;
+  --popover: #1d2922;
+  --popover-foreground: #e7eee9;
+  --secondary: #27362d;
+  --secondary-foreground: #e7eee9;
+  --muted: #27362d;
+  --muted-foreground: #aab9af;
+  --accent: #3c3421;
+  --accent-foreground: #ead7a3;
+  --border: #34453a;
+  --input: #405347;
+  --ring: #65b58d;
+  --sidebar: #102c21;
+  --sidebar-foreground: #e7eee9;
+  --sidebar-primary: #d5b45c;
+  --sidebar-primary-foreground: #1d3327;
+  --sidebar-accent: #1e4332;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: #d5b45c;
+  --sb-surface: #1d2922;
+  --sb-shadow: 0 1px 2px rgb(0 0 0 / 18%);
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] {
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-color: var(--sidebar-border);
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-container"] {
+  border-color: var(--sidebar-border);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-sidebar-brand {
+  min-height: 76px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-sidebar-brand .site-wordmark {
+  max-width: 172px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-group-label"] {
+  color: var(--sb-sidebar-muted);
+  opacity: .8;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .11em;
+  padding: 18px 20px 8px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-button"] {
+  min-height: 40px;
+  margin-block: 2px;
+  border-radius: 5px;
+  color: var(--sb-sidebar-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-button"]:hover {
+  background: rgb(255 255 255 / 6%);
+  color: #ffffff;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-button"][data-active="true"],
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-button"][aria-current="page"] {
+  background: rgb(199 164 81 / 16%);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 var(--sb-gold);
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-button"] svg {
+  color: currentColor;
+  width: 17px;
+  height: 17px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-sub"] {
+  border-color: rgb(255 255 255 / 12%);
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-sub-button"] {
+  min-height: 34px;
+  color: #c3d1c8;
+  font-size: 12px;
+  border-radius: 4px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-sub-button"]:hover,
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-menu-sub-button"][data-active="true"] {
+  color: #ffffff;
+  background: rgb(255 255 255 / 7%);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .account {
+  color: #ffffff;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .account small {
+  color: var(--sb-sidebar-muted);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-header {
+  height: 56px;
+  min-height: 56px;
+  padding-inline: 22px;
+  gap: 12px;
+  background: color-mix(in srgb, var(--card) 96%, transparent);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgb(20 45 30 / 3%);
+  backdrop-filter: blur(12px);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-header-title {
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-header-actions {
+  gap: 5px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-icon-button,
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-header-actions [data-slot="button"] {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  border-radius: 5px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-content {
+  min-height: calc(100dvh - 56px);
+  background: var(--background);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-main {
+  width: 100%;
+  max-width: 1640px;
+  margin-inline: auto;
+  padding: 28px 30px 34px;
+  gap: 22px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .page-heading.workspace-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;
+  padding: 0 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-hero-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: var(--primary);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-hero-identity h1 {
+  color: var(--foreground);
+  font-size: clamp(20px, 2vw, 25px);
+  font-weight: 650;
+  letter-spacing: -.035em;
+  line-height: 1.25;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-hero-identity p {
+  font-size: 12px;
+  line-height: 1.55;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"][data-variant="default"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"][data-variant="outline"] {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="card"] {
+  border-color: var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  box-shadow: var(--sb-shadow);
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="card-header"] {
+  gap: 7px;
+  padding: 17px 18px 10px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="card-content"] {
+  padding: 10px 18px 18px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="input"],
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="textarea"],
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="select-trigger"] {
+  min-height: 36px;
+  border-radius: 5px;
+  border-color: var(--input);
+  background: var(--card);
+  font-size: 13px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="button"]:focus-visible,
+.workspace-shell[data-workspace-theme="gentelella"] a:focus-visible,
+.workspace-shell[data-workspace-theme="gentelella"] input:focus-visible,
+.workspace-shell[data-workspace-theme="gentelella"] select:focus-visible,
+.workspace-shell[data-workspace-theme="gentelella"] textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 72%, transparent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-footer {
+  max-width: 1640px;
+  border-color: var(--border);
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-footer a:hover {
+  color: var(--primary);
+}
+@media (max-width: 900px) {
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-main {
+    padding: 22px 20px 28px;
+  }
+}
+@media (max-width: 767px) {
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header {
+    height: 54px;
+    min-height: 54px;
+    padding-inline: 10px;
+    gap: 6px;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header-actions {
+    gap: 2px;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-main {
+    padding: 18px 14px 26px;
+    gap: 18px;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .page-heading.workspace-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 13px;
+    padding-bottom: 15px;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-hero-identity {
+    width: 100%;
+    align-items: flex-start;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"] {
+    min-height: 36px;
+    max-width: 100%;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-footer {
+    padding: 12px 14px;
+    align-items: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-shell[data-workspace-theme="gentelella"] *,
+  .workspace-shell[data-workspace-theme="gentelella"] *::before,
+  .workspace-shell[data-workspace-theme="gentelella"] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
