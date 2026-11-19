@@ -914,12 +914,12 @@ body:has(.workspace-shell) {
 .workspace-shell [data-slot="sidebar-inset"],
 .workspace-content,
 .workspace-main,
-.workspace-page,
-.workspace-page > *,
-.workspace-page :is(.grid,.flex),
-.workspace-page [data-slot="card"],
-.workspace-page [data-slot="card-content"],
-.workspace-page [data-slot="card-header"] {
+.workspace-shell .workspace-main,
+.workspace-shell .workspace-main > *,
+.workspace-shell .workspace-main :is(.grid,.flex),
+.workspace-shell .workspace-main [data-slot="card"],
+.workspace-shell .workspace-main [data-slot="card-content"],
+.workspace-shell .workspace-main [data-slot="card-header"] {
   min-width: 0;
   max-width: 100%;
 }
@@ -929,8 +929,8 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
   border-color: var(--primary) !important;
   box-shadow: none !important;
 }
-.workspace-page [data-slot="badge"],
-.workspace-page .status-badge {
+.workspace-shell .workspace-main [data-slot="badge"],
+.workspace-shell .workspace-main .status-badge {
   box-sizing: border-box;
   max-width: 100%;
   height: auto;
@@ -940,10 +940,10 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
   line-height: 1.25;
   text-align: center;
 }
-.workspace-page [data-slot="table-container"],
-.workspace-page .records-table-region,
-.workspace-page .workspace-table-scroll,
-.workspace-page .agriculture-table-scroll {
+.workspace-shell .workspace-main [data-slot="table-container"],
+.workspace-shell .workspace-main .records-table-region,
+.workspace-shell .workspace-main .workspace-table-scroll,
+.workspace-shell .workspace-main .agriculture-table-scroll {
   display: block;
   width: 100%;
   max-width: 100%;
@@ -952,21 +952,21 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
-.workspace-page [data-slot="table-container"] > table,
-.workspace-page .workspace-table-scroll > table,
-.workspace-page .agriculture-table-scroll > table {
+.workspace-shell .workspace-main [data-slot="table-container"] > table,
+.workspace-shell .workspace-main .workspace-table-scroll > table,
+.workspace-shell .workspace-main .agriculture-table-scroll > table {
   max-width: none;
 }
-.workspace-page :is(.workspace-metric,.stat-card) {
+.workspace-shell .workspace-main :is(.workspace-metric,.stat-card) {
   min-width: 0;
   max-width: 100%;
 }
-.workspace-page :is(.workspace-metric,.stat-card) :is(h2,h3,p,span,strong,small) {
+.workspace-shell .workspace-main :is(.workspace-metric,.stat-card) :is(h2,h3,p,span,strong,small) {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.workspace-page .workspace-page-actions,
-.workspace-page .heading-actions {
+.workspace-shell .workspace-main .workspace-shell .workspace-main-actions,
+.workspace-shell .workspace-main .heading-actions {
   display: flex;
   min-width: 0;
   max-width: 100%;
@@ -974,27 +974,27 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
   align-items: center;
   gap: 0.5rem;
 }
-.workspace-page .workspace-page-actions > *,
-.workspace-page .heading-actions > * {
+.workspace-shell .workspace-main .workspace-shell .workspace-main-actions > *,
+.workspace-shell .workspace-main .heading-actions > * {
   min-width: 0;
   max-width: 100%;
 }
 @media (max-width: 767px) {
-  .workspace-page [data-slot="card"] {
+  .workspace-shell .workspace-main [data-slot="card"] {
     min-width: 0;
     max-width: 100%;
   }
-  .workspace-page :is(.workspace-metric-grid,.stats-grid) {
+  .workspace-shell .workspace-main :is(.workspace-metric-grid,.stats-grid) {
     grid-template-columns: repeat(2,minmax(0,1fr));
     gap: 0.625rem;
   }
-  .workspace-page [data-slot="badge"],
-  .workspace-page .status-badge {
+  .workspace-shell .workspace-main [data-slot="badge"],
+  .workspace-shell .workspace-main .status-badge {
     font-size: 0.6875rem;
     padding-inline: 0.5rem;
   }
-  .workspace-page .workspace-page-actions > [data-slot="button"],
-  .workspace-page .heading-actions > [data-slot="button"] {
+  .workspace-shell .workspace-main .workspace-shell .workspace-main-actions > [data-slot="button"],
+  .workspace-shell .workspace-main .heading-actions > [data-slot="button"] {
     flex: 0 1 auto;
   }
   .workspace-shell [data-slot="button"]:not([data-size^="icon"]) {
@@ -1005,29 +1005,33 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
   }
 }
 @media (max-width: 359px) {
-  .workspace-page :is(.workspace-metric-grid,.stats-grid) {
+  .workspace-shell .workspace-main :is(.workspace-metric-grid,.stats-grid) {
     grid-template-columns: minmax(0,1fr);
   }
 }
 
-.workspace-page [class*="overflow-x-auto"] {
+.workspace-shell .workspace-main [class*="overflow-x-auto"] {
   max-width: 100%;
   min-width: 0;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
-.workspace-page [data-slot="table-cell"] {
+.workspace-shell .workspace-main [data-slot="table-cell"] {
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.workspace-page [data-slot="button"]:not([data-size^="icon"]) {
+.workspace-shell .workspace-main [data-slot="button"]:not([data-size^="icon"]) {
   min-width: 0;
   max-width: 100%;
   flex-shrink: 1;
 }
-.workspace-page .flex:has(> [data-slot="button"] + [data-slot="button"]) {
+.workspace-shell .workspace-main .flex:has(> [data-slot="button"] + [data-slot="button"]) {
   min-width: 0;
   max-width: 100%;
   flex-wrap: wrap;
+}
+
+.workspace-shell .workspace-main button span {
+  overflow-wrap: normal;
 }
