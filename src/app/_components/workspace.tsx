@@ -479,7 +479,7 @@ export default function Workspace({
           }
           actions={
             <>
-              {section === "anggota" && principal.role === "admin" && (
+              {section === "anggota" && ["admin", "ketua"].includes(principal.role) && (
                 <Button variant={showMembershipAccess ? "default" : "outline"} onClick={() => setShowMembershipAccess((value) => !value)}>
                   <ShieldCheck data-icon="inline-start" />
                   {showMembershipAccess ? "Kembali ke data anggota" : "Aktivasi & akses akun"}
