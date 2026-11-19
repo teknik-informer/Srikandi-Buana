@@ -120,7 +120,7 @@
 /* Keep legacy module accents inside the same forest-green / warm-gold system. */
 .workspace-shell[data-workspace-theme="gentelella"] :is(.text-emerald-800,.text-emerald-700,.text-emerald-900) {color:var(--primary)}
 .workspace-shell[data-workspace-theme="gentelella"] :is(.bg-emerald-800,.bg-emerald-900) {background-color:var(--primary)}
-.workspace-shell[data-workspace-theme="gentelella"] .hover\\:bg-emerald-900:hover {background-color:color-mix(in srgb,var(--primary) 84%,#000)}
+.workspace-shell[data-workspace-theme="gentelella"] .hover\:bg-emerald-900:hover {background-color:color-mix(in srgb,var(--primary) 84%,#000)}
 .workspace-shell[data-workspace-theme="gentelella"] :is(.bg-emerald-50,.bg-emerald-100) {background-color:color-mix(in srgb,var(--primary) 7%,var(--card))}
 .workspace-shell[data-workspace-theme="gentelella"] :is(.border-emerald-200,.border-emerald-300) {border-color:color-mix(in srgb,var(--primary) 22%,var(--border))}
 .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="badge"] {white-space:normal;line-height:1.35}
