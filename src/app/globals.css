@@ -1245,3 +1245,442 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
     max-width: 100%;
   }
 }
+
+
+/* =========================================================
+   SRIKANDI BUANA — TAHOE EDITORIAL WORKSPACE SYSTEM
+   One global visual contract for every operational workspace.
+   Content-first surfaces, quiet materials, emerald + warm gold.
+   ========================================================= */
+.workspace-shell[data-workspace-theme="tahoe"] {
+  --background: #f4f6f3;
+  --foreground: #202a23;
+  --card: #ffffff;
+  --card-foreground: #202a23;
+  --popover: #ffffff;
+  --popover-foreground: #202a23;
+  --primary: #176b49;
+  --primary-foreground: #ffffff;
+  --secondary: #e9f1eb;
+  --secondary-foreground: #214c37;
+  --muted: #edf1ed;
+  --muted-foreground: #68756c;
+  --accent: #f4eedf;
+  --accent-foreground: #765b27;
+  --destructive: #b84b4b;
+  --border: #dce4dc;
+  --input: #d4ded5;
+  --ring: #3b8a63;
+  --sidebar: #f8faf7;
+  --sidebar-foreground: #46534a;
+  --sidebar-primary: #176b49;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9f1eb;
+  --sidebar-accent-foreground: #214c37;
+  --sidebar-border: #e0e7e0;
+  --sidebar-ring: #3b8a63;
+  --sb-card-radius: 1.25rem;
+  --sb-control-radius: 0.8rem;
+  --sb-shadow-card: 0 1px 2px rgb(28 44 33 / 4%), 0 8px 24px rgb(28 44 33 / 3%);
+  color: var(--foreground);
+  color-scheme: light;
+}
+.dark .workspace-shell[data-workspace-theme="tahoe"] {
+  --background: #111713;
+  --foreground: #edf3ed;
+  --card: #19211b;
+  --card-foreground: #edf3ed;
+  --popover: #1b241e;
+  --popover-foreground: #edf3ed;
+  --primary: #66bd91;
+  --primary-foreground: #102318;
+  --secondary: #202e24;
+  --secondary-foreground: #dceee1;
+  --muted: #202923;
+  --muted-foreground: #a0ada2;
+  --accent: #342f20;
+  --accent-foreground: #e6d39c;
+  --destructive: #ef7777;
+  --border: #303b32;
+  --input: #39463b;
+  --ring: #70c99a;
+  --sidebar: #151c17;
+  --sidebar-foreground: #d0d9d1;
+  --sidebar-primary: #70c99a;
+  --sidebar-primary-foreground: #102318;
+  --sidebar-accent: #202e24;
+  --sidebar-accent-foreground: #dceee1;
+  --sidebar-border: #2b362d;
+  --sidebar-ring: #70c99a;
+  --sb-shadow-card: 0 1px 2px rgb(0 0 0 / 18%), 0 10px 28px rgb(0 0 0 / 12%);
+  color-scheme: dark;
+}
+
+/* Window chrome and navigation: translucent only where it improves context. */
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="sidebar"],
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="sidebar-container"] {
+  background: color-mix(in srgb, var(--sidebar) 94%, transparent);
+  border-color: var(--sidebar-border);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  min-height: 3.75rem;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-header-actions {
+  gap: 0.4rem;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-header :is(button,[data-slot="button"]) {
+  flex-shrink: 0;
+}
+
+/* Content frame and product-detail style page hero. */
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-main {
+  width: 100%;
+  max-width: 1560px;
+  padding: clamp(1rem, 2.5vw, 2.25rem) clamp(0.875rem, 2.4vw, 2.5rem) 2.5rem;
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page {
+  width: 100%;
+  max-width: 100%;
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+.workspace-shell[data-workspace-theme="tahoe"] :is(.workspace-page-heading,.page-heading) {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: clamp(1.125rem, 2.4vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: clamp(1.125rem, 2vw, 1.5rem);
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--primary) 7%, var(--card)), var(--card) 66%);
+  box-shadow: var(--sb-shadow-card);
+}
+.dark .workspace-shell[data-workspace-theme="tahoe"] :is(.workspace-page-heading,.page-heading) {
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--primary) 10%, var(--card)), var(--card) 68%);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-heading > :first-child,
+.workspace-shell[data-workspace-theme="tahoe"] .page-heading > :first-child {
+  min-width: 0;
+  flex: 1 1 20rem;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-heading .eyebrow,
+.workspace-shell[data-workspace-theme="tahoe"] .page-heading .eyebrow,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-heading > div > p:first-child {
+  color: var(--primary);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  line-height: 1.4;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-heading h1,
+.workspace-shell[data-workspace-theme="tahoe"] .page-heading h1 {
+  max-width: 100%;
+  color: var(--foreground);
+  font-size: clamp(1.5rem, 2.7vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-heading p,
+.workspace-shell[data-workspace-theme="tahoe"] .page-heading p {
+  max-width: 66ch;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions,
+.workspace-shell[data-workspace-theme="tahoe"] .heading-actions {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions > *,
+.workspace-shell[data-workspace-theme="tahoe"] .heading-actions > * {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Cards and indicators: quiet surfaces, clear hierarchy, no decorative motion. */
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="card"],
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .workspace-metric,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .stat-card {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--sb-card-radius);
+  background: var(--card);
+  box-shadow: var(--sb-shadow-card);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="card"]:hover,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .stat-card:hover {
+  box-shadow: var(--sb-shadow-card);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="card-header"] {
+  gap: 0.625rem;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="card-title"] {
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="card-description"] {
+  color: var(--muted-foreground);
+  line-height: 1.55;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page :is(.workspace-metric-grid,.stats-grid,.inbox-stats) {
+  gap: 0.75rem;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .workspace-metric-grid .workspace-metric .text-2xl,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .stat-card [data-slot="card-title"] {
+  color: var(--foreground);
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page :is(.workspace-hero,.welcome-banner,[data-slot="hero"]) {
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background: linear-gradient(120deg, var(--secondary), var(--card) 78%);
+  color: var(--foreground);
+  box-shadow: none;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .welcome-banner h2 {
+  color: var(--foreground);
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+}
+
+/* Tables and search: clean table headers, contained scrolling, no blue glow. */
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="table-container"],
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .workspace-table-scroll,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .agriculture-table-scroll {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="table-head"],
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region thead th {
+  height: 2.75rem;
+  padding: 0.75rem 0.875rem;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="table-cell"],
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region tbody td {
+  border-color: var(--border);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--muted) 42%, var(--card));
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region tbody tr:hover {
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region .records-first-column {
+  background: var(--card);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region thead .records-first-column {
+  background: var(--muted);
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page :is(.workspace-search,.dashboard-mega-search,.workspace-global-search):focus-within {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border)) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page :is(.workspace-search,.dashboard-mega-search,.workspace-global-search) :is(input,[data-slot="input-group-control"]):focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Every action stays visible. Text actions wrap; icon actions keep a real hit target. */
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions :is(button,[data-slot="button"]),
+.workspace-shell[data-workspace-theme="tahoe"] .heading-actions :is(button,[data-slot="button"]) {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-width: 2.5rem;
+  max-width: 100%;
+  min-height: 2.5rem;
+  height: auto;
+  padding: 0.625rem 0.875rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  box-shadow: none;
+  transform: none;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions [data-slot="button"][data-size^="icon"],
+.workspace-shell[data-workspace-theme="tahoe"] .heading-actions [data-slot="button"][data-size^="icon"] {
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  max-width: 2.5rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions .workspace-action-label,
+.workspace-shell[data-workspace-theme="tahoe"] .heading-actions .workspace-action-label {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border: 0;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions :is(button,[data-slot="button"]) svg,
+.workspace-shell[data-workspace-theme="tahoe"] .heading-actions :is(button,[data-slot="button"]) svg {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Neutral focus treatment. Keyboard focus remains visible, without blue frames/glows. */
+.workspace-shell[data-workspace-theme="tahoe"] :is(button,a,input,select,textarea,[role="button"],[role="combobox"],[role="tab"]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 58%, transparent) !important;
+  outline-offset: 2px;
+  border-color: var(--primary) !important;
+  box-shadow: none !important;
+}
+.workspace-shell[data-workspace-theme="tahoe"] :is(.workspace-search,.dashboard-mega-search,.workspace-global-search):focus-within {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border)) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Mobile: stack the detail hero, preserve all actions, and scroll only the table. */
+@media (max-width: 767px) {
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-main {
+    padding: 1rem 0.875rem 2rem;
+    gap: 1rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] :is(.workspace-page-heading,.page-heading) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.875rem;
+    padding: 1rem;
+    border-radius: 1.125rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] :is(.workspace-page-heading,.page-heading) > :first-child {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions,
+  .workspace-shell[data-workspace-theme="tahoe"] .heading-actions {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions > *,
+  .workspace-shell[data-workspace-theme="tahoe"] .heading-actions > * {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions :is(button,[data-slot="button"]),
+  .workspace-shell[data-workspace-theme="tahoe"] .heading-actions :is(button,[data-slot="button"]) {
+    min-height: 2.5rem;
+    height: auto;
+    max-width: 100%;
+    padding: 0.625rem 0.75rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page-actions [data-slot="button"][data-size^="icon"],
+  .workspace-shell[data-workspace-theme="tahoe"] .heading-actions [data-slot="button"][data-size^="icon"] {
+    flex: 0 0 2.5rem;
+    width: 2.5rem;
+    min-width: 2.5rem;
+    max-width: 2.5rem;
+    padding: 0;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page :is(.workspace-metric-grid,.stats-grid,.inbox-stats) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page .workspace-metric-grid .workspace-metric .text-2xl,
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page .stat-card [data-slot="card-title"] {
+    font-size: 1.375rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page [data-slot="table-container"] > table,
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page .records-table-region > table,
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page .workspace-table-scroll > table,
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page .agriculture-table-scroll > table {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page .workspace-activity-strip {
+    align-items: center;
+    flex-direction: row;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page .workspace-activity-items {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-direction: row;
+    scrollbar-width: thin;
+  }
+}
+@media (max-width: 359px) {
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-page :is(.workspace-metric-grid,.stats-grid,.inbox-stats) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-shell[data-workspace-theme="tahoe"] *,
+  .workspace-shell[data-workspace-theme="tahoe"] *::before,
+  .workspace-shell[data-workspace-theme="tahoe"] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
