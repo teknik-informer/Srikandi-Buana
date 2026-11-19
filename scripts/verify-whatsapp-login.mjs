@@ -69,7 +69,8 @@ assert.match(accounts,/Pengiriman WhatsApp melalui OpenWA gagal; tautan dicabut/
 assert.match(accounts,/sendAccountEmail/);
 assert.match(accounts,/raw\.action==='activate_member'/);
 assert.match(accounts,/raw\.action==='activate_member'/);
-assert.match(accounts,/phone_verified_by,email_verified_at,last_seen_at/);
+assert.match(accounts,/SELECT \* FROM users WHERE member_id IN/);
+assert.match(accounts,/SELECT \* FROM users WHERE id=\?/);
 assert.match(accounts,/phone_verified:Boolean\(row\.phone_verified_at&&row\.phone_verified_by\)/);
 assert.doesNotMatch(accounts,/verify_phone/);
 assert.doesNotMatch(accounts,/\['invite','activate_member'\]/);
