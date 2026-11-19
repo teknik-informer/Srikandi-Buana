@@ -20,7 +20,7 @@ import ListPagination from '../list-pagination';
 import {listPage} from '@/lib/list-page';
 import {Empty,EmptyHeader,EmptyTitle,EmptyDescription} from '@/components/ui/empty';
 import {canDiscardChanges,markFormSaved} from '@/lib/unsaved-changes';
-type User={id:string;email:string;login_phone?:string|null;phone_verified_at?:string|null;phone_verified_by?:string|null;member_phone?:string;full_name:string;role:Role;position:string;program_ids:string;member_id:string;enabled:boolean};
+type User={id:string;email:string;login_phone?:string|null;phone_verified_at?:string|null;phone_verified_by?:string|null;phone_verified?:boolean;email_verified_at?:string|null;last_seen_at?:string|null;member_phone?:string;full_name:string;role:Role;position:string;program_ids:string;member_id:string;enabled:boolean};
 type Invite={id:string;email:string;login_phone?:string|null;full_name:string;role:Role;expires:string;consumed_at:string|null;revoked_at:string|null;purpose:string};
 type Member={id:string;name:string;status:string;verification:string;phone?:string;email?:string};
 type Audit={action:string;target:string;created:string};
