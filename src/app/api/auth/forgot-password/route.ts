@@ -22,7 +22,7 @@ export async function POST(request:Request){
    consumeRateLimit(env.DB,'forgot-password-email:'+digest(email),3,3600000)
   ]);
   if(!ipAllowed||!emailAllowed)return json({ok:true,message:genericMessage});
-  const account=await env.DB.prepare("SELECT u.id,u.email,u.full_name,u.member_id,u.workspace_owner,u.role,u.position,u.program_ids,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role FROM users u JOIN users o ON o.id=u.workspace_owner WHERE lower(u.email)=lower(?) AND u.enabled=TRUE AND u.role NOT IN ('admin','ketua')").bind(email).first();
+  const account=await env.DB.prepare("SELECT u.id,u.email,u.full_name,u.member_id,u.workspace_owner,u.role,u.position,u.program_ids,o.email AS owner_email,o.enabled AS owner_enabled,o.role AS owner_role FROM users u JOIN users o ON o.id=u.workspace_owner WHERE lower(u.email)=lower(?) AND u.enabled=TRUE AND u.role!='admin'").bind(email).first();
   if(!account||!account.member_id||!account.owner_enabled||account.owner_role!=='admin'||String(account.owner_email).toLowerCase()!==(process.env.ADMIN_EMAIL||'').trim().toLowerCase())return json({ok:true,message:genericMessage});
   const member=await env.DB.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(account.member_id,account.workspace_owner).first();
   if(!member)return json({ok:true,message:genericMessage});
