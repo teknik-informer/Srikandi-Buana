@@ -54,8 +54,6 @@ assert.match(accounts,/login_phone,phone_verified_at,phone_verified_by/);
 assert.match(accounts,/phone_verified_by:null/);
 assert.match(accounts,/purpose==='activate_wa'/);
 assert.match(accounts,/purpose==='reset_wa'/);
-assert.match(accounts,/raw\.action==='verify_phone'/);
-assert.match(accounts,/target\.role==='ketua'&&u\.role!=='admin'/);
 assert.match(accounts,/Nomor telepon diverifikasi secara manual/);
 assert.match(accounts,/member_phone/);
 assert.match(accounts,/sendOpenWaText\(phone,message,'srikandi-account-\'\+id\)/);
@@ -63,6 +61,8 @@ assert.match(accounts,/whatsappSent:true/);
 assert.match(accounts,/Pengiriman WhatsApp melalui OpenWA gagal; tautan dicabut/);
 assert.match(accounts,/sendAccountEmail/);
 assert.match(accounts,/raw\.action==='activate_member'/);
+assert.doesNotMatch(accounts,/verify_phone/);
+assert.match(accounts,/\['invite','activate_member'\]\.includes\(String\(raw\.action\)\)/);
 assert.match(accounts,/Lengkapi alamat email pribadi pada data anggota/);
 assert.match(accounts,/Lengkapi nomor telepon Indonesia yang valid pada data anggota/);
 assert.match(accounts,/Aktivasi akun anggota dikirim ke email terdaftar/);
@@ -83,9 +83,9 @@ assert.doesNotMatch(activationForm,/whatsapp\.current\?\{phone:data\.get\("phone
 assert.match(accountUi,/Aktifkan akses & kirim email/);
 assert.match(accountUi,/email dan nomor telepon diambil langsung dari satu data keanggotaan/);
 assert.match(accountUi,/Menunggu verifikasi telepon/);
+assert.doesNotMatch(accountUi,/verify_phone/);
 assert.ok(!accountUi.includes('wa.me/'));
 assert.ok(!accountUi.includes('manualPhone'));
-assert.match(accountUi,/whatsappConfirmed/);
 assert.ok(!accountUi.includes('wa.me/'));
 assert.doesNotMatch(accountUi,/Pulihkan via WhatsApp/);
 const accountMailer=read('src/lib/account-mailer.ts');
@@ -102,10 +102,8 @@ assert.match(read('src/lib/open-wa.ts'),/OPENWA_OUTBOUND_ENABLED!=='true'/);
 
 assert.match(accountUi,/terverifikasi/i);
 assert.match(accountUi,/reset_wa/);
-assert.match(accountUi,/Verifikasi nomor telepon/);
 assert.match(accountUi,/!u\.phone_verified_by/);
 assert.match(accountUi,/u\.phone_verified_at&&u\.phone_verified_by/);
-assert.match(accountUi,/OTP WhatsApp tidak diperlukan/);
 assert.match(accountUi,/login dengan nomor dan kata sandi/);
 
 
