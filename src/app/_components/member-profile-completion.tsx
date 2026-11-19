@@ -112,7 +112,7 @@ export default function MemberProfileCompletion({ profile, onSaved }: { profile:
             </fieldset>
           ))}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          <p className="text-xs leading-5 text-muted-foreground">Data login, kontak, dan verifikasi tetap dikelola melalui pengurus.</p>
+          <p className="text-xs leading-5 text-muted-foreground">Email, nomor telepon, status, dan data verifikasi dikelola pengurus.</p>
           <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" disabled={saving} onClick={() => setEditing(false)}>Batal</Button>
             <Button type="submit" disabled={saving}>{saving ? <><LoaderCircle className="mr-2 size-4 animate-spin" />Menyimpan…</> : <><CheckCircle2 className="mr-2 size-4" />Simpan profil</>}</Button>
