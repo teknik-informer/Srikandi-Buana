@@ -84,7 +84,7 @@ export default function RecordTable({
                   {field.key === "fileId" ? "Berkas" : field.label}
                 </TableHead>
               ))}
-              <TableHead className="w-0 text-right">Tindakan</TableHead>
+              <TableHead className="record-actions-cell w-[132px] min-w-[132px] text-right">Tindakan</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,8 +128,8 @@ export default function RecordTable({
                     )}
                   </TableCell>
                 ))}
-                <TableCell className="align-middle">
-                  <div className="record-actions flex items-center justify-end gap-1.5">
+                <TableCell className="record-actions-cell w-[132px] min-w-[132px] align-middle">
+                  <div className="record-actions inline-flex flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap">
                     {actions(row)}
                   </div>
                 </TableCell>
