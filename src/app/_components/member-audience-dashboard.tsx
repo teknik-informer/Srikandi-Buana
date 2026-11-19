@@ -111,6 +111,7 @@ export default function MemberAudienceDashboard({ user }: { user: Principal }) {
                 <div><dt className="text-xs text-muted-foreground">Verifikasi data</dt><dd className="mt-1"><Badge variant={profile.data.verification === "Terverifikasi" ? "default" : "secondary"}>{String(profile.data.verification || "Belum tersedia")}</Badge></dd></div>
               </dl>
               <MemberProfileCompletion profile={profile.data} onSaved={load}/>
+              </>
             ) : (
               <div className="rounded-xl border border-dashed p-4 text-sm leading-6 text-muted-foreground">Profil keanggotaan belum dapat ditampilkan. Hubungi pengurus untuk memeriksa hubungan akun dengan data anggota.</div>
             )}
