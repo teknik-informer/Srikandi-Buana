@@ -17,14 +17,14 @@ export default function ActivationForm(){
     const data=new FormData(event.currentTarget);
     try{
       const endpoint=external.current?"/api/auth/activate-external":"/api/auth/activate";
-      const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:token.current,channel:whatsapp.current?"whatsapp":undefined,...(whatsapp.current?{phone:data.get("phone")}:{email:data.get("email")}),...(emailChange.current?{}:{password:data.get("password"),confirmation:data.get("confirmation")})})});
+      const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:token.current,channel:whatsapp.current?"whatsapp":undefined,...(whatsapp.current?{phone:data.get("phone")}:{ }),...(emailChange.current?{}:{password:data.get("password"),confirmation:data.get("confirmation")})})});
       const result=await response.json();if(!response.ok)throw Error(result.error||"Aktivasi gagal.");
       location.assign(result.redirect);
     }catch(e){setError(e instanceof Error?e.message:"Koneksi terputus. Coba lagi.");setBusy(false);}
   }
   if(!ready)return <p role="status" className="login-error">Buka tautan aktivasi pribadi yang diberikan pengelola. Jika tautan kedaluwarsa atau sudah digunakan, minta undangan baru.</p>;
   return <form className="login-form" onSubmit={submit} aria-busy={busy}>
-    {whatsapp.current?<><label htmlFor="setup-phone">Nomor WhatsApp yang dikonfirmasi Admin</label><input id="setup-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="08xxxxxxxxxx" required maxLength={24} disabled={busy}/></>:<><label htmlFor="setup-email">{emailChange.current?"Alamat email baru":recovery.current?"Email akun":"Email penerima undangan"}</label><input id="setup-email" name="email" type="email" autoComplete="username" required maxLength={180} disabled={busy}/></>}
+    {whatsapp.current?<><label htmlFor="setup-phone">Nomor WhatsApp yang dikonfirmasi Admin</label><input id="setup-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="08xxxxxxxxxx" required maxLength={24} disabled={busy}/></>:<p className="login-session-note">Alamat email tujuan telah ditetapkan pada tautan pribadi ini. Anda tidak perlu memasukkannya kembali.</p>}
     {!emailChange.current&&<><label htmlFor="setup-password">Password baru</label>
     <div className="login-password"><input id="setup-password" name="password" type={visible?"text":"password"} autoComplete="new-password" minLength={12} maxLength={128} required disabled={busy}/><button type="button" onClick={()=>setVisible(v=>!v)} aria-label={visible?"Sembunyikan password":"Tampilkan password"}>{visible?<EyeOff size={18}/>:<Eye size={18}/>}</button></div>
     <label htmlFor="setup-confirm">Ulangi password</label>
