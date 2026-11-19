@@ -67,6 +67,7 @@ import {
   ClipboardList,
   Download,
   FileText,
+  Eye,
   Leaf,
   LogIn,
   MapPin,
@@ -97,6 +98,7 @@ import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
 import {
   WorkspacePageHeader,
+  WorkspaceMetric,
   WorkspaceSearch,
   WorkspaceEmptyState,
   StatusBadge,
@@ -222,6 +224,7 @@ export default function Workspace({
       kind: string;
       row?: Row;
       initial?: Data;
+      readOnly?: boolean;
     } | null>(null),
     [deleteRow, setDeleteRow] = useState<Row | null>(null),
     [selectedProgram, setSelectedProgram] = useState<string | null>(null),
@@ -332,14 +335,14 @@ export default function Workspace({
     clearError,
     mutate,
   } = useRecordMutation(load);
-  const openEditor = (kind: string, row?: Row, initial?: Data) => {
+  const openEditor = (kind: string, row?: Row, initial?: Data, readOnly = false) => {
     if (loading || error) return;
     clearError();
-    setEditor({ kind, row, initial });
+    setEditor({ kind, row, initial, readOnly });
   };
   async function saveForm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!editor || imageUploadPending.current) return;
+    if (!editor || editor.readOnly || imageUploadPending.current) return;
     const form = e.currentTarget;
     const data = Object.fromEntries(new FormData(form));
     if (
@@ -440,6 +443,16 @@ export default function Workspace({
   const statusFields = module?.fields.find(
     (f) => f.key === "status" || f.key === "type",
   )?.options;
+  const moduleRows = module ? records(section) : [];
+  const activeCount = moduleRows.filter((row) =>
+    ["Aktif", "Berjalan", "Dalam proses", "Diterima", "Terbit", "Siap", "Terverifikasi"].includes(String(row.data.status || "")),
+  ).length;
+  const reviewCount = moduleRows.filter((row) =>
+    ["Perlu verifikasi", "Perlu perbaikan", "Perlu diperiksa", "Ditahan", "Lewat tenggat", "Belum diperiksa"].includes(String(row.data.status || "")),
+  ).length;
+  const recentActivity = [...audit]
+    .sort((a, b) => String(b.created).localeCompare(String(a.created)))
+    .slice(0, 3);
   return (
     <WorkspaceShell
       user={principal}
@@ -515,6 +528,29 @@ export default function Workspace({
             </>
           }
         />
+        )}
+        {module && !showMembershipAccess && (
+          <section className="workspace-overview" aria-label={"Ringkasan " + module.title}>
+            <div className="workspace-metric-grid">
+              <WorkspaceMetric title="Total catatan" value={moduleRows.length} note="Seluruh data pada modul ini" icon={Users} />
+              <WorkspaceMetric title="Aktif / terverifikasi" value={activeCount} note="Status yang tercatat berjalan atau valid" icon={CheckCircle2} />
+              <WorkspaceMetric title="Perlu perhatian" value={reviewCount} note="Perlu diperiksa atau ditindaklanjuti" icon={ShieldCheck} />
+            </div>
+            {recentActivity.length > 0 && (
+              <div className="workspace-activity-strip" aria-label="Aktivitas terbaru">
+                <div className="workspace-activity-heading"><Activity className="size-4" /><span>Aktivitas terbaru</span></div>
+                <div className="workspace-activity-items">
+                  {recentActivity.map((item, index) => (
+                    <div className="workspace-activity-item" key={item.created + item.title + index}>
+                      <span className="workspace-activity-dot" aria-hidden="true" />
+                      <span className="workspace-activity-title">{item.title || item.action}</span>
+                      <time dateTime={item.created}>{dateID(item.created)}</time>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
         )}
         {error && (
           <Alert variant="destructive">
@@ -693,9 +729,9 @@ export default function Workspace({
                   )}
                   fields={module.fields.slice(0, section === "kas" ? 5 : 4)}
                   files={files}
-                  onView={(row) => openEditor(section, row)}
+                  onView={(row) => openEditor(section, row, undefined, true)}
                   actions={(r) => (
-                    <div className="flex gap-1">
+                    <div className="record-actions inline-flex flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap">
                       {section === "musyawarah" && (
                         <Button asChild variant="outline" size="sm">
                           <Link href={"/dashboard/cetak-notulen/" + encodeURIComponent(r.id)} target="_blank" rel="noopener noreferrer" aria-label={"Cetak notulen " + r.data.name}>
@@ -713,9 +749,13 @@ export default function Workspace({
                           </a>
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" title={`Lihat ${r.data.name}`} aria-label={`Lihat ${r.data.name}`} onClick={() => openEditor(section, r, undefined, true)}>
+                        <Eye />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
+                        title={`Edit ${r.data.name}`}
                         aria-label={`Edit ${r.data.name}`}
                         onClick={() => openEditor(section, r)}
                       >
@@ -725,6 +765,7 @@ export default function Workspace({
                         <Button
                           variant="ghost"
                           size="icon"
+                          title={`Buat draf publikasi ${r.data.name}`}
                           aria-label={`Buat draf publikasi ${r.data.name}`}
                           onClick={() =>
                             openEditor("publikasi", undefined, {
@@ -758,6 +799,7 @@ export default function Workspace({
                       <Button
                         variant="ghost"
                         size="icon"
+                        title={`Hapus ${r.data.name}`}
                         aria-label={`Hapus ${r.data.name}`}
                         onClick={() => {
                           clearError();
@@ -1110,7 +1152,7 @@ export default function Workspace({
         <DialogContent className="workspace-dialog sm:max-w-xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editor?.row ? "Perbarui" : "Tambah"}{" "}
+              {editor?.readOnly ? "Rincian" : editor?.row ? "Perbarui" : "Tambah"}{" "}
               {editor && modules[editor.kind]?.singular}
             </DialogTitle>
             <DialogDescription>
@@ -1128,7 +1170,7 @@ export default function Workspace({
                 <AlertDescription>{mutationError}</AlertDescription>
               </Alert>
             )}
-            <fieldset disabled={saving || imageUploading} className="min-w-0">
+            <fieldset disabled={saving || imageUploading || Boolean(editor?.readOnly)} className="min-w-0">
               <FieldGroup>
                 {editor &&
                   modules[editor.kind]?.fields.map((f) => (
@@ -1272,11 +1314,13 @@ export default function Workspace({
                       if (canDiscardChanges()) setEditor(null);
                     }}
                   >
-                    Batal
+                    {editor?.readOnly ? "Tutup" : "Batal"}
                   </Button>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? "Menyimpan…" : "Simpan catatan"}
-                  </Button>
+                  {!editor?.readOnly && (
+                    <Button type="submit" disabled={saving}>
+                      {saving ? "Menyimpan…" : "Simpan catatan"}
+                    </Button>
+                  )}
                 </div>
               </FieldGroup>
             </fieldset>

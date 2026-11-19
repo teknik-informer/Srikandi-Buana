@@ -2,16 +2,19 @@
 import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, ArrowRight, LoaderCircle } from "lucide-react";
+
 export default function LoginForm() {
-  const [visible, setVisible] = useState(false),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
   useEffect(() => {
-    const q = new URLSearchParams(location.search);
-    if (q.has("logged_out")) setNotice("Anda sudah keluar. Sesi akun pada perangkat ini telah diakhiri.");
-    else if (q.has("expired")) setNotice("Sesi masuk telah berakhir. Silakan masuk kembali.");
+    const query = new URLSearchParams(location.search);
+    if (query.has("logged_out")) setNotice("Anda telah keluar.");
+    else if (query.has("expired")) setNotice("Sesi berakhir. Silakan masuk kembali.");
   }, []);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -32,74 +35,31 @@ export default function LoginForm() {
       const data = await response.json();
       if (!response.ok) throw Error(data.error || "Gagal masuk.");
       location.assign(data.redirect);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Koneksi terputus. Periksa jaringan Anda.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Koneksi terputus. Coba lagi.");
       setBusy(false);
     }
   }
+
   return (
     <form className="login-form" onSubmit={submit} aria-busy={busy}>
-      {notice && (
-        <p role="status" className="login-session-note">
-          {notice}
-        </p>
-      )}
+      {notice && <p role="status" className="login-session-note">{notice}</p>}
       <label htmlFor="login-identity">Email atau nomor telepon</label>
-      <input
-        id="login-identity"
-        name="identity"
-        type="text"
-        autoComplete="username"
-        placeholder="nama@email.com atau 08xxxxxxxxxx"
-        maxLength={180}
-        required
-        disabled={busy}
-      />
-      <label htmlFor="login-password">Password</label>
+      <input id="login-identity" name="identity" type="text" autoComplete="username" placeholder="Email atau nomor telepon" maxLength={180} required disabled={busy} />
+      <p className="login-session-note">Login nomor telepon menunggu verifikasi kode SMS tersedia.</p>
+      <label htmlFor="login-password">Kata sandi</label>
       <div className="login-password">
-        <input
-          id="login-password"
-          name="password"
-          type={visible ? "text" : "password"}
-          autoComplete="current-password"
-          placeholder="Masukkan password Anda"
-          maxLength={128}
-          required
-          disabled={busy}
-        />
-        <button
-          type="button"
-          onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? "Sembunyikan password" : "Tampilkan password"}
-          aria-pressed={visible}
-        >
+        <input id="login-password" name="password" type={visible ? "text" : "password"} autoComplete="current-password" placeholder="Masukkan kata sandi" maxLength={128} required disabled={busy} />
+        <button type="button" onClick={() => setVisible(value => !value)} aria-label={visible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} aria-pressed={visible}>
           {visible ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
-      <label className="login-remember">
-        <input name="remember" type="checkbox" disabled={busy} />
-        <span>Ingat saya selama 30 hari</span>
-      </label>
-      {error && (
-        <p className="login-error" role="alert">
-          {error}
-        </p>
-      )}
+      <label className="login-remember"><input name="remember" type="checkbox" disabled={busy} /><span>Ingat saya</span></label>
+      {error && <p className="login-error" role="alert">{error}</p>}
       <button className="login-submit" type="submit" disabled={busy}>
-        {busy ? (
-          <>
-            <LoaderCircle className="login-spin" size={18} />
-            Memverifikasi…
-          </>
-        ) : (
-          <>
-            Masuk ke dashboard
-            <ArrowRight size={18} />
-          </>
-        )}
+        {busy ? <><LoaderCircle className="login-spin" size={18} />Memverifikasi…</> : <>Masuk <ArrowRight size={18} /></>}
       </button>
-      <p className="login-session-note"><Link href="/lupa-password">Lupa kata sandi? Pulihkan melalui email</Link></p>
-      <p className="login-session-note">Login dengan nomor telepon baru dapat digunakan setelah verifikasi kode SMS tersedia. Sistem tidak menggunakan OTP WhatsApp.</p>
+      <p className="login-session-note"><Link href="/lupa-password">Lupa kata sandi?</Link></p>
     </form>
   );
 }

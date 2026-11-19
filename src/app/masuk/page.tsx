@@ -1,7 +1,49 @@
 import BrandLogo from "@/components/brand-logo";
-import Link from 'next/link';
-import {Sprout,ArrowUpRight,ShieldCheck,Leaf} from 'lucide-react';
-import LoginForm from './login-form';
-import './login.css';
-export const metadata={robots:{index:false,follow:false},title:'Masuk Administrasi | Srikandi Buana'};
-export default function Login(){return <main className="login-shell"><section className="login-story"><img src="/images/pertanian-premium-v1.webp" alt="Ilustrasi lanskap pertanian"/><div className="login-story-shade"/><Link href="/" className="login-brand"><BrandLogo priority/></Link><div className="login-story-copy"><span className="login-eyebrow"><Leaf size={14}/>NGADIMULYO · KEDU · TEMANGGUNG</span><h1>Administrasi tertib.<br/><em>Organisasi lebih kuat.</em></h1><p>Ruang pengelolaan anggota, program kerja, kegiatan, keuangan, dan dokumen Srikandi Buana.</p><div className="login-story-tags"><span>Keanggotaan</span><span>Program</span><span>Keuangan</span></div></div><div className="login-story-bottom"><span>PERTANIAN · PEMBERDAYAAN · KEMANDIRIAN</span><small>Visual ilustrasi pertanian</small></div></section><section className="login-panel"><Link className="login-back" href="/">Kembali ke situs <ArrowUpRight size={15}/></Link><div className="login-form-wrap"><span className="login-lock"><ShieldCheck size={24}/></span><p className="login-eyebrow">ADMINISTRASI SRIKANDI BUANA</p><h2>Selamat datang kembali.</h2><p className="login-intro">Pilih jalur masuk yang tersedia: email atau nomor telepon dan kata sandi. Nomor telepon harus tercatat serta diverifikasi pada akun anggota; OTP WhatsApp tidak diperlukan.</p><LoginForm/><div className="login-assistance"><strong>Memerlukan bantuan akses?</strong><p>Belum aktif? Pengurus dapat mengirim tautan aktivasi dari Workspace Keanggotaan. Lupa kata sandi? Pulihkan sendiri melalui email terdaftar.</p><Link href="/kontak">Hubungi pengelola <ArrowUpRight size={14}/></Link></div></div><div className="login-assistance"><p><Link href="/syarat-ketentuan">Syarat & ketentuan</Link> · <Link href="/privasi">Privasi</Link> · <Link href="/bantuan">Bantuan</Link></p></div><footer>© {new Date().getFullYear()} KWT Srikandi Buana <Link href="/privasi">Privasi</Link></footer></section></main>}
+import Link from "next/link";
+import { ArrowUpRight, Leaf, ShieldCheck } from "lucide-react";
+import LoginForm from "./login-form";
+import "./login.css";
+
+export const metadata = {
+  robots: { index: false, follow: false },
+  title: "Masuk | Srikandi Buana",
+};
+
+export default function Login() {
+  return (
+    <main className="login-shell">
+      <section className="login-story" aria-label="Srikandi Buana">
+        <img src="/images/pertanian-premium-v1.webp" alt="Lanskap pertanian" />
+        <div className="login-story-shade" />
+        <Link href="/" className="login-brand" aria-label="Srikandi Buana beranda">
+          <BrandLogo priority />
+        </Link>
+        <div className="login-story-copy">
+          <span className="login-eyebrow"><Leaf size={14} /> NGADIMULYO · KEDU · TEMANGGUNG</span>
+          <h1>Tumbuh bersama.<br /><em>Berdaya bersama.</em></h1>
+          <p>Ruang kerja dan layanan anggota Srikandi Buana.</p>
+        </div>
+        <div className="login-story-bottom">PERTANIAN · PEMBERDAYAAN · KEMANDIRIAN</div>
+      </section>
+
+      <section className="login-panel">
+        <Link className="login-back" href="/">Kembali ke situs <ArrowUpRight size={15} /></Link>
+        <div className="login-form-wrap">
+          <span className="login-lock"><ShieldCheck size={23} /></span>
+          <p className="login-eyebrow">PORTAL SRIKANDI BUANA</p>
+          <h2>Selamat datang.</h2>
+          <p className="login-intro">Masuk untuk melanjutkan ke ruang kerja Anda.</p>
+          <LoginForm />
+          <p className="login-help">Butuh bantuan akses? <Link href="/kontak">Hubungi pengelola</Link></p>
+        </div>
+        <footer className="login-footer">
+          <span>© {new Date().getFullYear()} Srikandi Buana</span>
+          <nav aria-label="Informasi legal">
+            <Link href="/privasi">Privasi</Link>
+            <Link href="/syarat-ketentuan">Ketentuan</Link>
+          </nav>
+        </footer>
+      </section>
+    </main>
+  );
+}
