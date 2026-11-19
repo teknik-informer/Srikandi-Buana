@@ -15,7 +15,7 @@ export async function POST(request:Request){
  try{
   const raw=await readJsonObject(request,2000);
   const email=String(raw.email||'').trim().toLowerCase();
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan alamat email yang valid.'},400);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>180)return json({error:'Masukkan alamat email yang valid.'},400);
   const ip=request.headers.get('x-vercel-forwarded-for')?.split(',')[0]||request.headers.get('x-forwarded-for')?.split(',')[0]||'local';
   const [ipAllowed,emailAllowed]=await Promise.all([
    consumeRateLimit(env.DB,'forgot-password-ip:'+digest(ip),5,900000),
