@@ -42,7 +42,7 @@ assert.match(login,/isPhone/);
 assert.match(login,/consumeRateLimit/);
 assert.match(login,/if \(isPhone\) return json/);
 assert.match(loginForm,/name="identity"/);
-assert.match(loginForm,/Email atau nomor WhatsApp/);
+assert.match(loginForm,/Email atau nomor telepon/);
 
 assert.match(accounts,/normalizeIndonesianMobilePhone\(value\)/);
 assert.match(accounts,/raw\.channel==='whatsapp'\|\|raw\.action==='reset_wa'/);
@@ -105,4 +105,8 @@ await transform(accountUi,{loader:'tsx'});
 await transform(roleFields,{loader:'tsx'});
 await transform(accountAccess,{loader:'ts'});
 
-console.log('PASS WhatsApp identity regression: email-or-phone login, Admin-only manual confirmation, member phone match, one-time activation/recovery links, verified phone binding, multi-user structural roles, and no email dependency in WhatsApp activation UI.');
+assert.match(login,/Nomor telepon belum diverifikasi pengelola/);
+assert.match(login,/Nomor telepon atau kata sandi tidak sesuai/);
+assert.doesNotMatch(login,/OTP WhatsApp/);
+assert.match(loginForm,/Login dengan nomor telepon tidak memerlukan OTP WhatsApp/);
+console.log('PASS identity regression: email-or-phone/password login, phone identity verification, no WhatsApp OTP dependency, member phone match, one-time activation/recovery links, multi-user structural roles, and outbound WhatsApp remains separately deferred.');
