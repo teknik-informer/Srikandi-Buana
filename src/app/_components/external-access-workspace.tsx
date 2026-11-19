@@ -109,7 +109,7 @@ export default function ExternalAccessWorkspace() {
   return <div className="space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">Tata kelola akses</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Akses Pemerintah & Mitra</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Daftarkan organisasi, verifikasi identitas lembaga, undang pengguna, dan tetapkan izin berbasis proyek atau program. Akses tidak pernah diberikan hanya berdasarkan jenis organisasi.</p></div>
-      <button type="button" onClick={() => void load()} disabled={loading || busy} className="inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"><RefreshCw size={15}/> Muat ulang</button>
+      <button type="button" aria-label="Muat ulang data" title="Muat ulang data" onClick={() => void load()} disabled={loading || busy} className="workspace-direct-header-action inline-flex min-h-10 max-w-full items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"><RefreshCw size={15} aria-hidden="true"/> <span>Muat ulang</span></button>
     </div>
 
     {(error || notice) && <div role={error ? "alert" : "status"} className={`rounded-xl border p-3 text-sm ${error ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>{error || notice}</div>}
