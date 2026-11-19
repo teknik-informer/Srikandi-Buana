@@ -26,7 +26,7 @@ export async function GET(){
   const accountRows:Record<string,unknown>[]=[...new Map<string,Record<string,unknown>>(linkedAccounts.results.filter(row=>String(row.workspace_owner)===u.userId).map(({workspace_owner,...row})=>[String(row.id),{...row,phone_verified:Boolean(row.phone_verified_at&&row.phone_verified_by),member_phone:memberPhones.get(String(row.member_id))||'',member_email:memberEmails.get(String(row.member_id))||''} as Record<string,unknown>])).values()];
   if(u.role==='admin'){
    const self=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,phone_verified_by,email_verified_at,last_seen_at,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
-   if(self)accountRows.unshift({...self,member_phone:''} as Record<string,unknown>);
+   if(self)accountRows.unshift({...self,phone_verified:Boolean(self.phone_verified_at&&self.phone_verified_by),member_phone:''} as Record<string,unknown>);
   }
   const users={results:accountRows};
   const invitationRows=await env.DB.prepare('SELECT id,email,full_name,role,position,program_ids,member_id,purpose,login_phone,expires,consumed_at,revoked_at,created FROM account_invitations WHERE owner=? ORDER BY created DESC LIMIT 200').bind(u.userId).all();
