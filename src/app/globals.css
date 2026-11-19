@@ -917,6 +917,7 @@ body:has(.workspace-shell) {
 .workspace-shell .workspace-main,
 .workspace-shell .workspace-main > *,
 .workspace-shell .workspace-main :is(.grid,.flex),
+.workspace-shell .workspace-main :is(.grid,.flex) > *,
 .workspace-shell .workspace-main [data-slot="card"],
 .workspace-shell .workspace-main [data-slot="card-content"],
 .workspace-shell .workspace-main [data-slot="card-header"] {
