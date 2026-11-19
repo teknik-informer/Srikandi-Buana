@@ -109,7 +109,7 @@ async function execute(text,args){
   const result=await pool.query('UPDATE account_invitations SET revoked_at=$1 WHERE id=$2',[at,id]);return {rows:[],rowCount:result.rowCount};
  }
  if(normalized==="update account_invitations set expires=? where owner=? and email=?"){
-  const [expires,ownerId,email]=args;const row=(await pool.query('SELECT id,owner,email FROM account_invitations')).rows.find(item=>String(item.owner)===String(ownerId)&&String(item.email)===String(email));
+  const [expires,ownerId,email]=args;const row=(await pool.query('SELECT id,owner,email,consumed_at,revoked_at FROM account_invitations')).rows.find(item=>String(item.owner)===String(ownerId)&&String(item.email)===String(email)&&!item.consumed_at&&!item.revoked_at);
   if(!row)return {rows:[],rowCount:0};const result=await pool.query('UPDATE account_invitations SET expires=$1 WHERE id=$2',[expires,row.id]);return {rows:[],rowCount:result.rowCount};
  }
  if(normalized==="update account_invitations set revoked_at=? where owner=? and member_id=? and consumed_at is null and revoked_at is null"){
