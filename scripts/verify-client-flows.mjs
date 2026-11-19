@@ -334,6 +334,7 @@ const timedAccounts=await harness('src/app/_components/access/accounts.tsx',{
 });
 const timedAccountRender=()=>timedAccounts.render(()=>timedAccounts.exports.default({}));
 let timedAccountTree=timedAccountRender();timedAccounts.effects();await new Promise(r=>setImmediate(r));timedAccountTree=timedAccountRender();
+find(timedAccountTree,n=>n.props?.id==='invite-member').props.onChange({target:{value:'member'}});timedAccountTree=timedAccountRender();
 const timedInvite=find(timedAccountTree,n=>n.type==='form').props.onSubmit({preventDefault(){},currentTarget:timeoutForm});
 await expire(25000);await timedInvite;timedAccountTree=timedAccountRender();
 assert.equal(timeoutForm.dataset.unsaved,'true');assert(!timeoutForm.didReset);
