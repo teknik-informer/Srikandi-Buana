@@ -1729,3 +1729,103 @@ body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[r
     height: 1.25rem;
   }
 }
+
+
+/* GLOBAL BUTTON CONTRACT — apply to every workspace button, not only hero actions.
+   Overrides utility-level focus rings from the shared Button primitive. */
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"],
+.workspace-shell[data-workspace-theme="tahoe"] button.workspace-icon-button,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-header-actions button {
+  box-sizing: border-box;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: none !important;
+  transform: none;
+  transition: background-color 130ms ease, border-color 130ms ease, color 130ms ease;
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="default"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: transparent;
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="outline"] {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="secondary"] {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: transparent;
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="ghost"] {
+  background: transparent;
+  color: var(--muted-foreground);
+  border-color: transparent;
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="destructive"] {
+  background: color-mix(in srgb, var(--destructive) 10%, var(--card));
+  color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 20%, var(--border));
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"]:not(:disabled):hover {
+  box-shadow: none !important;
+  filter: none;
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="default"]:not(:disabled):hover {
+  background: color-mix(in srgb, var(--primary) 88%, var(--foreground));
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="outline"]:not(:disabled):hover,
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-variant="ghost"]:not(:disabled):hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"]:focus,
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"]:focus-visible,
+.workspace-shell[data-workspace-theme="tahoe"] button.workspace-icon-button:focus-visible,
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-header-actions button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 62%, transparent) !important;
+  outline-offset: 2px !important;
+  border-color: var(--primary) !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-size^="icon"] {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  border-radius: 0.75rem;
+}
+.workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"] svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 1.8;
+}
+.workspace-shell[data-workspace-theme="tahoe"] .workspace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+@media (max-width: 767px) {
+  .workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"] {
+    min-height: 2.5rem;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] [data-slot="button"][data-size^="icon"] {
+    flex: 0 0 2.5rem;
+    width: 2.5rem;
+    min-width: 2.5rem;
+    max-width: 2.5rem;
+  }
+  .workspace-shell[data-workspace-theme="tahoe"] .workspace-header-actions [data-slot="button"] {
+    flex: 0 0 2.5rem;
+  }
+}
