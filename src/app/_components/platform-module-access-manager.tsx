@@ -94,15 +94,15 @@ export default function PlatformModuleAccessManager() {
     try {
       const response = await fetch("/api/platform/modules", { credentials: "same-origin", cache: "no-store" });
       const body = await response.json() as Payload & { error?: string };
-      if (!response.ok) throw new Error(body.error || "Registri modul belum dapat dimuat.");
+      if (!response.ok) throw new Error(body.error || "Periksa koneksi database dan penerapan migrasi platform access.");
       if (!body || !Array.isArray(body.modules) || !Array.isArray(body.accounts) || !Array.isArray(body.grants) || !Array.isArray(body.audit)) {
-        throw new Error("Respons pusat modul belum lengkap.");
+        throw new Error("Periksa respons endpoint /api/platform/modules.");
       }
       setData(body);
       setTargetModule((current) => current || body.modules.find((item) => item.category === "application")?.id || "");
       setTargetUser((current) => current || body.accounts.find((item) => item.assignable)?.id || "");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Koneksi pusat modul gagal.");
+      setError(cause instanceof Error ? cause.message : "Periksa sesi, koneksi jaringan, dan endpoint API.");
       setData(null);
     } finally {
       setLoading(false);
@@ -127,11 +127,11 @@ export default function PlatformModuleAccessManager() {
         body: JSON.stringify({ action, ...body }),
       });
       const result = await response.json() as { error?: string; ok?: boolean; unchanged?: boolean };
-      if (!response.ok) throw new Error(result.error || "Perubahan akses belum tersimpan.");
-      setSuccess(result.unchanged ? "Tidak ada perubahan karena status sudah sesuai." : "Perubahan tersimpan dan masuk ke audit akses.");
+      if (!response.ok) throw new Error(result.error || "Periksa data masukan dan koneksi database, lalu coba kembali.");
+      setSuccess(result.unchanged ? "Status tidak berubah." : "Perubahan tersimpan. Riwayat akses diperbarui.");
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Perubahan belum tersimpan.");
+      setError(cause instanceof Error ? cause.message : "Periksa data masukan dan koneksi database, lalu coba kembali.");
     } finally {
       setBusy(false);
     }
@@ -140,7 +140,7 @@ export default function PlatformModuleAccessManager() {
   function setModuleEnabled(module: Module) {
     const reason = (moduleReasons[module.id] || "").trim();
     if (reason.length < 12) {
-      setError("Alasan perubahan modul wajib diisi minimal 12 karakter.");
+      setError("Isi alasan perubahan minimal 12 karakter.");
       return;
     }
     void submit("set_module_enabled", { moduleId: module.id, enabled: !module.enabled, reason });
@@ -150,18 +150,25 @@ export default function PlatformModuleAccessManager() {
   function saveUserAccess(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!targetUser || !targetModule) {
-      setError("Pilih akun dan aplikasi terlebih dahulu.");
+      setError("Pilih akun dan aplikasi.");
       return;
     }
     if (grantReason.trim().length < 12) {
-      setError("Alasan perubahan akses wajib diisi minimal 12 karakter.");
+      setError("Isi dasar penetapan akses minimal 12 karakter.");
+      return;
+    }
+    const expiryDate = expiresAt ? new Date(expiresAt) : null;
+    if (expiryDate && !Number.isFinite(expiryDate.getTime())) {
+      setError("Masa berlaku tidak valid. Periksa kembali tanggal dan waktu.");
       return;
     }
     void submit("set_user_module_access", {
       userId: targetUser,
       moduleId: targetModule,
       effect,
-      expiresAt: expiresAt || null,
+      // datetime-local is browser-local; send an explicit UTC instant so the API
+      // does not reinterpret a WIB timestamp using the server's timezone.
+      expiresAt: expiryDate ? expiryDate.toISOString() : null,
       reason: grantReason.trim(),
     });
     setGrantReason("");
@@ -185,7 +192,7 @@ export default function PlatformModuleAccessManager() {
             <Badge variant="outline">Tersimpan di database QA</Badge>
           </div>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Aktifkan ruang kerja dan tetapkan akses peluncuran aplikasi untuk akun tertentu. Hak baca, tulis, ekspor dan persetujuan tetap mengikuti role organisasi serta scope record.
+            Atur ketersediaan aplikasi dan akses akun.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || busy}>
@@ -197,7 +204,7 @@ export default function PlatformModuleAccessManager() {
       {error && (
         <Alert variant="destructive">
           <AlertCircle />
-          <AlertTitle>Perubahan belum berhasil</AlertTitle>
+          <AlertTitle>Periksa detail kendala</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -208,13 +215,7 @@ export default function PlatformModuleAccessManager() {
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
-      <Alert>
-        <ShieldCheck />
-        <AlertTitle>Grant aplikasi bukan grant data</AlertTitle>
-        <AlertDescription>
-          “Izinkan aplikasi” hanya membuka ruang kerja. Pengguna tetap tidak dapat membaca atau mengubah data di luar kewenangan role dan penugasan organisasinya. Akun Administrator Sistem tidak dapat diberi hak bisnis melalui pengaturan ini.
-        </AlertDescription>
-      </Alert>
+      <p className="text-xs text-muted-foreground">Periksa peran organisasi dan ruang lingkup penugasan sebelum menetapkan akses aplikasi.</p>
 
       {loading && !data ? (
         <div className="grid gap-3 lg:grid-cols-2">
@@ -226,8 +227,8 @@ export default function PlatformModuleAccessManager() {
           <div className="grid gap-4 xl:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><ToggleLeft className="size-4 text-primary" /> Status ruang aplikasi</CardTitle>
-                <CardDescription>Penonaktifan berlaku untuk seluruh akun pada workspace ini. Modul fondasi tanpa route belum dapat diaktifkan.</CardDescription>
+                <CardTitle className="flex items-center gap-2 text-base"><ToggleLeft className="size-4 text-primary" /> Status aplikasi</CardTitle>
+                <CardDescription>Atur ketersediaan aplikasi pada lingkungan ini.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {applicationModules.map((module) => (
@@ -267,7 +268,7 @@ export default function PlatformModuleAccessManager() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base"><Users className="size-4 text-primary" /> Penetapan akses akun</CardTitle>
-                <CardDescription>Pilih satu akun internal dan satu aplikasi. Akun admin sistem dikecualikan dari grant bisnis.</CardDescription>
+                <CardDescription>Pilih akun, aplikasi, keputusan akses, dan masa berlaku.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={saveUserAccess} className="space-y-4">
@@ -311,7 +312,7 @@ export default function PlatformModuleAccessManager() {
                   <Button type="submit" disabled={busy || !assignableAccounts.length || !targetModule}>
                     {busy ? "Menyimpan…" : "Simpan perubahan akses"}
                   </Button>
-                  {!assignableAccounts.length && <p className="text-xs text-muted-foreground">Belum ada akun struktural/anggota aktif yang dapat diberi override.</p>}
+                  {!assignableAccounts.length && <p className="text-xs text-muted-foreground">Tidak ada akun aktif yang memenuhi kriteria penetapan akses.</p>}
                 </form>
               </CardContent>
             </Card>
@@ -320,7 +321,7 @@ export default function PlatformModuleAccessManager() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Override akses yang tercatat</CardTitle>
-              <CardDescription>Grant kedaluwarsa tetap terlihat sebagai histori; saat kedaluwarsa role kembali menjadi acuan, kecuali ada aturan penolakan aktif lainnya.</CardDescription>
+              <CardDescription>Tinjau penetapan akses khusus per akun.</CardDescription>
             </CardHeader>
             <CardContent>
               {data.grants.length ? (
@@ -339,7 +340,7 @@ export default function PlatformModuleAccessManager() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Belum ada override akses. Semua pengguna mengikuti role dan scope organisasi.</p>
+                <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Tidak ada pengecualian akses yang tercatat.</p>
               )}
             </CardContent>
           </Card>
@@ -347,7 +348,7 @@ export default function PlatformModuleAccessManager() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base"><Clock3 className="size-4 text-primary" /> Riwayat perubahan akses</CardTitle>
-              <CardDescription>Log append-only yang menyimpan pelaku, target, alasan dan waktu perubahan.</CardDescription>
+              <CardDescription>Tinjau pelaku, waktu, dan dasar setiap perubahan.</CardDescription>
             </CardHeader>
             <CardContent>
               {data.audit.length ? (
@@ -366,7 +367,7 @@ export default function PlatformModuleAccessManager() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Belum ada perubahan akses pada workspace ini.</p>
+                <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Belum ada riwayat perubahan.</p>
               )}
             </CardContent>
           </Card>

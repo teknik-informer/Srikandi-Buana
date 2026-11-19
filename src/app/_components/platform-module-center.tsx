@@ -6,10 +6,8 @@ import {
   FileCheck2,
   Layers3,
   LockKeyhole,
-  ShieldCheck,
   Workflow,
 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,16 +42,8 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
       <WorkspacePageHeader
         title="Pusat Modul & Platform"
         eyebrow="PLATFORM CORE · SYSTEM ADMINISTRATION"
-        description="Pusat pemantauan registri aplikasi, kesiapan domain, kepemilikan data dan kebijakan akses yang sedang berjalan."
+        description="Atur status aplikasi, akses akun, dan kebijakan platform."
       />
-
-      <Alert>
-        <ShieldCheck />
-        <AlertTitle>Pusat kendali modul dan hak akses</AlertTitle>
-        <AlertDescription>
-          Registri, status modul dan override akses dibaca dari database Preview. Perubahan memerlukan alasan dan dicatat dalam audit append-only. Grant hanya mengatur akses peluncuran aplikasi; role organisasi tetap menentukan hak data dan tindakan.
-        </AlertDescription>
-      </Alert>
 
       <PlatformModuleAccessManager />
 
@@ -63,35 +53,35 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
             <CardDescription>Aplikasi utama</CardDescription>
             <CardTitle className="text-3xl tabular-nums">{metricLabel(platformApplications.length)}</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Platform Core, Organization, Agriculture, Business, BI, dan Public</CardContent>
+          <CardContent className="text-xs text-muted-foreground">Tinjau susunan aplikasi utama.</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Domain pendukung</CardDescription>
             <CardTitle className="text-3xl tabular-nums">{metricLabel(supportingPlatformModules.length)}</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Pertanian, persediaan, dokumen, kolaborasi, MEL, CMS dan sistem</CardContent>
+          <CardContent className="text-xs text-muted-foreground">Kelola layanan bersama.</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Satu basis data saat ini</CardDescription>
+            <CardDescription>Database utama</CardDescription>
             <CardTitle className="text-2xl">Neon</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">neondb · skema public dan workspace_v14, plus neon_auth</CardContent>
+          <CardContent className="text-xs text-muted-foreground">PostgreSQL · neondb · public · workspace_v14 · neon_auth</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Rute aplikasi utama</CardDescription>
             <CardTitle className="text-3xl tabular-nums">{metricLabel(modulesWithRoutes)}/6</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Route terdaftar; bukan bukti workflow selesai</CardContent>
+          <CardContent className="text-xs text-muted-foreground">Rute tersedia</CardContent>
         </Card>
       </section>
 
       <section className="space-y-3" aria-labelledby="canonical-applications-title">
         <div>
           <h2 id="canonical-applications-title" className="text-lg font-semibold">Arsitektur aplikasi utama · enam pilar</h2>
-          <p className="text-sm text-muted-foreground">Ini adalah katalog produk tingkat platform. Rute saat ini mengarah ke ruang kerja yang sudah tersedia; pemetaan ini tidak mengklaim seluruh aplikasi telah selesai atau memberi hak akses baru.</p>
+          <p className="text-sm text-muted-foreground">Tinjau cakupan dan jalur kerja setiap aplikasi.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {platformApplications.map((application) => (
@@ -132,7 +122,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
       <section className="space-y-3" aria-labelledby="platform-applications-title">
         <div>
           <h2 id="platform-applications-title" className="text-lg font-semibold">Registri enam aplikasi utama</h2>
-          <p className="text-sm text-muted-foreground">Status kesiapan berikut mencerminkan cakupan implementasi yang teridentifikasi, bukan status aktivasi yang tersimpan di database.</p>
+          <p className="text-sm text-muted-foreground">Verifikasi fitur dan UAT sebelum mengubah status.</p>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {coreApplicationModules.map((module) => (
@@ -148,15 +138,15 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Yang sudah tersedia</p>
+                  <p className="text-xs font-medium text-muted-foreground">Cakupan saat ini</p>
                   <p className="mt-1 text-sm leading-6">{module.implemented}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Batas implementasi saat ini</p>
+                  <p className="text-xs font-medium text-muted-foreground">Pekerjaan lanjutan</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{module.limitation}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Jejak data saat ini · masih dalam satu database</p>
+                  <p className="text-xs font-medium text-muted-foreground">Sumber data</p>
                   <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">{module.sourceFootprint}</p>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t pt-3">
@@ -175,8 +165,8 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
 
       <section className="space-y-3" aria-labelledby="module-access-title">
         <div>
-          <h2 id="module-access-title" className="text-lg font-semibold">Matriks keterlihatan fitur per role</h2>
-          <p className="text-sm text-muted-foreground">Diambil langsung dari kebijakan akses server saat ini. “Fitur” berarti setidaknya satu fitur dalam aplikasi dapat dibaca; bukan hak CRUD penuh.</p>
+          <h2 id="module-access-title" className="text-lg font-semibold">Ketersediaan fitur per peran</h2>
+          <p className="text-sm text-muted-foreground">Gunakan matriks ini saat meninjau penugasan akses.</p>
         </div>
         <Card>
           <CardContent className="overflow-x-auto p-0">
@@ -207,14 +197,14 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
           </CardContent>
         </Card>
         <p className="text-xs leading-5 text-muted-foreground">
-          Setiap pembacaan record tetap diperiksa ulang di server. Anggota dibatasi pada profil sendiri dan informasi yang tersedia bagi anggota; Koordinator dibatasi pada program yang ditugaskan. Akses Ketua, Sekretaris dan Bendahara tetap mengikuti policy masing-masing.
+          Tinjau peran organisasi dan ruang lingkup penugasan saat mengevaluasi akses.
         </p>
       </section>
 
       <section className="space-y-3" aria-labelledby="support-domains-title">
         <div>
           <h2 id="support-domains-title" className="text-lg font-semibold">Domain dan layanan pendukung</h2>
-          <p className="text-sm text-muted-foreground">Termasuk domain yang sudah mempunyai sebagian tabel atau route tetapi belum menjadi aplikasi mandiri.</p>
+          <p className="text-sm text-muted-foreground">Kelola layanan yang dipakai bersama oleh aplikasi utama.</p>
         </div>
         <Card>
           <CardContent className="overflow-x-auto p-0">
@@ -253,7 +243,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><Database className="size-4 text-primary" /> Batas database aktual</CardTitle>
-            <CardDescription>Kondisi yang diverifikasi pada database Production saat audit read-only.</CardDescription>
+            <CardDescription>Skema dan sumber data yang terdeteksi pada pemeriksaan terakhir.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>Seluruh domain masih berada di satu database PostgreSQL Neon bernama <strong>neondb</strong>. Skema berbeda adalah pemisahan logis, belum database fisik independen.</p>
@@ -264,7 +254,7 @@ export default function PlatformModuleCenter({ user }: { user: Principal }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><LockKeyhole className="size-4 text-primary" /> Batas kewenangan sistem</CardTitle>
-            <CardDescription>Pengelolaan teknis dipisahkan dari persetujuan dan keputusan organisasi.</CardDescription>
+            <CardDescription>Konfigurasi teknis dan kebijakan organisasi.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p><strong>Administrator Sistem</strong> dapat memeriksa registri, status implementasi dan kebijakan akses. Katalog aplikasi tidak memberikan hak membaca atau mengubah data organisasi.</p>

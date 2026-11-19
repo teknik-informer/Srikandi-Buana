@@ -335,7 +335,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5}butto
 /* Transparent, borderless identity on every surface. */
 .site-brand,.public-brand>.site-brand,.public-footer .site-brand,.login-brand>.site-brand,.dark .site-brand:not(.public-brand .site-brand){background:transparent;padding:0;border:0;border-radius:0;box-shadow:none}
 .site-brand img{border:0;box-shadow:none;background:transparent}
-.dark .site-wordmark,.login-story .site-wordmark,.pub-cta .site-wordmark,.public-mega-feature .site-wordmark{filter:brightness(1.85) saturate(.85) drop-shadow(0 2px 5px var(--color-emerald-950))}
+.dark .site-wordmark,.login-story .site-wordmark,.pub-cta .site-wordmark{filter:brightness(1.85) saturate(.85) drop-shadow(0 2px 5px var(--color-emerald-950))}
 .dark .public-site .site-wordmark{filter:none}
 .brand-stage{position:relative;isolation:isolate;display:grid;place-items:center;overflow:hidden;min-height:42vh;padding:48px 24px;background:var(--color-stone-50);color:var(--color-emerald-900)}
 .brand-stage-content{position:relative;display:flex;flex-direction:column;align-items:center;gap:24px;max-width:100%}

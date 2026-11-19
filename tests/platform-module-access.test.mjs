@@ -44,12 +44,14 @@ test("Architect Full Access is limited to allowlisted Vercel Preview branches", 
     "implementation/five-app-platform-hub-2026-11-17",
     "architecture/v13-modular-platform-foundation-2026-11-17",
     "feat/admin-full-access-six-app-sidebar-2026-11-18",
+    "feat/qa-preview-test-center-access-2026-11-18",
   ];
   for (const branch of branches) {
     assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: branch }), true);
     assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "production", VERCEL_GIT_COMMIT_REF: branch }), false);
   }
   assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "main" }), false);
+  assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "feat/qa-preview-test-center-access-2026-11-18-extra" }), false);
   assert.equal(qaPreview.isArchitectQaPreview({ VERCEL_ENV: "development", VERCEL_GIT_COMMIT_REF: "architecture/v13-modular-platform-foundation-2026-11-17" }), false);
 });
 
@@ -151,10 +153,23 @@ test("platform access schema has a separate workspace setting, user override and
   assert.match(migration, /INSERT INTO platform_modules/);
 });
 
-test("admin UI explains app-launch-only grants and exposes activation, override and audit workflows", () => {
-  assert.match(component, /Grant aplikasi bukan grant data/);
+test("admin UI provides concise access guidance and exposes activation, override and audit workflows", () => {
+  assert.match(component, /Periksa peran organisasi dan ruang lingkup penugasan sebelum menetapkan akses aplikasi/);
   assert.match(component, /set_module_enabled/);
   assert.match(component, /set_user_module_access/);
+  assert.match(component, /expiresAt: expiryDate \? expiryDate\.toISOString\(\) : null/);
+  assert.match(component, /datetime-local is browser-local/);
   assert.match(component, /Ikuti role organisasi/);
   assert.match(component, /Riwayat perubahan akses/);
+});
+
+const accountsApi = readFileSync("src/app/api/accounts/route.ts", "utf8");
+
+test("Preview account directory, invitations and audit are restricted to synthetic QA members", () => {
+  assert.match(accountsApi, /const scopedMembers=u\.role==='admin'&&qaPreview\(\)\?members\.results\.filter/);
+  assert.match(accountsApi, /qaFixture===true/);
+  assert.match(accountsApi, /const memberIds=scopedMembers\.map/);
+  assert.match(accountsApi, /scopedMemberIdSet\.has\(String\(row\.member_id\)\)/);
+  assert.match(accountsApi, /qaAuditTargets\.has\(String\(row\.target\|\|''\)\)/);
+  assert.match(accountsApi, /data\.qaFixture!==true/);
 });

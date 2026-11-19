@@ -67,6 +67,10 @@ test("Platform Module Center exposes persistent access controls through the guar
   assert.match(routes, /active === "module-center"/);
   assert.match(nav, /"platform-core": LockKeyhole/);
   assert.match(center, /PlatformModuleAccessManager/);
+  assert.match(center, /Verifikasi fitur dan UAT sebelum mengubah status/);
+  assert.match(center, /Gunakan matriks ini saat meninjau penugasan akses/);
+  assert.doesNotMatch(center, /Status mengikuti cakupan implementasi saat ini/);
+  assert.match(accessManager, /Periksa detail kendala/);
   assert.match(accessManager, /set_module_enabled/);
   assert.match(accessManager, /set_user_module_access/);
   assert.match(accessManager, /Ikuti role organisasi/);
