@@ -1,5 +1,6 @@
 "use client";
-import type { ComponentType, ReactNode } from "react";
+import { Children, Fragment, cloneElement, isValidElement, type ComponentType, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { Search, X, Files } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,6 +24,31 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { cn } from "@/lib/cn";
+
+
+function normalizeWorkspaceActions(node: ReactNode): ReactNode[] {
+  if (Array.isArray(node)) return node.flatMap(normalizeWorkspaceActions);
+  if (node == null || typeof node === "boolean") return [];
+  if (isValidElement<{ children?: ReactNode; className?: string; "aria-label"?: string; title?: string }>(node)) {
+    if (node.type === Fragment) return normalizeWorkspaceActions(node.props.children);
+    if (node.type === Button) {
+      const parts = Children.toArray(node.props.children);
+      const labels = parts.filter((part): part is string => typeof part === "string").join(" ").trim();
+      const children = parts.map((part, index) =>
+        typeof part === "string"
+          ? <span className="workspace-action-label" key={`label-${index}`}>{part}</span>
+          : part
+      );
+      return [cloneElement(node, {
+        className: cn("workspace-header-action", node.props.className),
+        "aria-label": node.props["aria-label"] || labels || node.props.title,
+        title: node.props.title || labels || undefined,
+        children,
+      })];
+    }
+  }
+  return [node];
+}
 
 export function WorkspacePageHeader({
   title,
