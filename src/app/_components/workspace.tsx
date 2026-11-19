@@ -731,7 +731,7 @@ export default function Workspace({
                   files={files}
                   onView={(row) => openEditor(section, row, undefined, true)}
                   actions={(r) => (
-                    <div className="flex gap-1">
+                    <div className="record-actions inline-flex flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap">
                       {section === "musyawarah" && (
                         <Button asChild variant="outline" size="sm">
                           <Link href={"/dashboard/cetak-notulen/" + encodeURIComponent(r.id)} target="_blank" rel="noopener noreferrer" aria-label={"Cetak notulen " + r.data.name}>
@@ -765,6 +765,7 @@ export default function Workspace({
                         <Button
                           variant="ghost"
                           size="icon"
+                          title={`Buat draf publikasi ${r.data.name}`}
                           aria-label={`Buat draf publikasi ${r.data.name}`}
                           onClick={() =>
                             openEditor("publikasi", undefined, {
@@ -798,6 +799,7 @@ export default function Workspace({
                       <Button
                         variant="ghost"
                         size="icon"
+                        title={`Hapus ${r.data.name}`}
                         aria-label={`Hapus ${r.data.name}`}
                         onClick={() => {
                           clearError();
