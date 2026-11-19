@@ -21,11 +21,11 @@ export async function GET(){
   const memberPhones=new Map(members.results.map(row=>{try{return [String(row.id),String(JSON.parse(String(row.data)).phone||'')]}catch{return [String(row.id),'']}}));
   const memberEmails=new Map(members.results.map(row=>{try{return [String(row.id),String(JSON.parse(String(row.data)).email||'')]}catch{return [String(row.id),'']}}));
   const linkedAccounts=memberIds.length
-   ? await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,phone_verified_by,email_verified_at,last_seen_at,full_name,role,position,program_ids,member_id,enabled,created,workspace_owner FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
+   ? await env.DB.prepare('SELECT * FROM users WHERE member_id IN ('+memberIds.map(()=>'?').join(',')+')').bind(...memberIds).all()
    : {results:[]};
   const accountRows:Record<string,unknown>[]=[...new Map<string,Record<string,unknown>>(linkedAccounts.results.filter(row=>String(row.workspace_owner)===u.userId).map(({workspace_owner,...row})=>[String(row.id),{...row,phone_verified:Boolean(row.phone_verified_at&&row.phone_verified_by),member_phone:memberPhones.get(String(row.member_id))||'',member_email:memberEmails.get(String(row.member_id))||''} as Record<string,unknown>])).values()];
   if(u.role==='admin'){
-   const self=await env.DB.prepare('SELECT id,email,login_phone,phone_verified_at,phone_verified_by,email_verified_at,last_seen_at,full_name,role,position,program_ids,member_id,enabled,created FROM users WHERE id=?').bind(u.accountId).first();
+   const self=await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(u.accountId).first();
    if(self)accountRows.unshift({...self,phone_verified:Boolean(self.phone_verified_at&&self.phone_verified_by),member_phone:''} as Record<string,unknown>);
   }
   const users={results:accountRows};
