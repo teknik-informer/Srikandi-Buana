@@ -9,7 +9,7 @@ WITH linked_member_emails AS (
   WHERE r.kind = 'anggota'
     AND u.role <> 'admin'
     AND coalesce(r.data::jsonb ->> 'email', '') = ''
-    AND u.email NOT LIKE '%.invalid'
+    AND lower(u.email) NOT LIKE '%.invalid'
     AND position('@' in u.email) > 1
     AND position('.' in u.email) > position('@' in u.email) + 1
 )
