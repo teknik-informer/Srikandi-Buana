@@ -69,7 +69,7 @@ export async function POST(request: Request) {
           currentPhone = normalizeIndonesianMobilePhone(data.phone);
         } catch { currentPhone = ""; }
         if (!internal.phone_verified_at || !internal.phone_verified_by || currentPhone !== phone) {
-          return json({ error: "Nomor telepon belum diverifikasi pengelola atau tidak lagi cocok dengan data anggota." }, 401);
+          return json({ error: "Nomor telepon belum diverifikasi melalui kode SMS atau tidak lagi cocok dengan data anggota." }, 401);
         }
       }
       await createSession(String(internal.id), raw.remember === true);
