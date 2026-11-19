@@ -197,7 +197,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Pengelolaan Pertanian</h1>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Catat lahan anggota, komoditas, siklus tanam, dan hasil panen. Data baru belum menjadi angka laporan sebelum diperiksa dan disahkan.</p>
       </div>
-      <button type="button" onClick={() => void load()} disabled={loading || busy} className="inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"><RefreshCw size={15}/> Muat ulang</button>
+      <button type="button" aria-label="Muat ulang data" title="Muat ulang data" onClick={() => void load()} disabled={loading || busy} className="workspace-direct-header-action inline-flex min-h-10 max-w-full items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"><RefreshCw size={15} aria-hidden="true"/> <span>Muat ulang</span></button>
     </header>
 
     {(error || notice) && <div role={error ? "alert" : "status"} className={error ? "flex gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" : "flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"}>
