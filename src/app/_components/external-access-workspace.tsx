@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { programs } from "@/lib/srikandi";
+import { Button } from "@/components/ui/button";
+import { WorkspacePageHeader } from "./workspace-ui";
 import { Building2, CheckCircle2, Clipboard, Clock3, KeyRound, LoaderCircle, Plus, RefreshCw, Shield, ShieldAlert, UserRound, XCircle } from "lucide-react";
 
 type Organization = {
@@ -106,10 +108,12 @@ export default function ExternalAccessWorkspace() {
   }
 
   return <div className="space-y-6">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">Tata kelola akses</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Akses Pemerintah & Mitra</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Daftarkan organisasi, verifikasi identitas lembaga, undang pengguna, dan tetapkan izin berbasis proyek atau program. Akses tidak pernah diberikan hanya berdasarkan jenis organisasi.</p></div>
-      <button type="button" onClick={() => void load()} disabled={loading || busy} className="inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"><RefreshCw size={15}/> Muat ulang</button>
-    </div>
+    <WorkspacePageHeader
+      eyebrow="Tata kelola akses"
+      title="Akses Pemerintah & Mitra"
+      description="Daftarkan organisasi, verifikasi identitas lembaga, undang pengguna, dan tetapkan izin berbasis proyek atau program. Akses tidak pernah diberikan hanya berdasarkan jenis organisasi."
+      actions={<Button type="button" variant="outline" size="icon" aria-label="Muat ulang akses eksternal" title="Muat ulang" onClick={() => void load()} disabled={loading || busy}><RefreshCw className={loading ? "animate-spin" : ""}/></Button>}
+    />
 
     {(error || notice) && <div role={error ? "alert" : "status"} className={`rounded-xl border p-3 text-sm ${error ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>{error || notice}</div>}
     {invitationUrl && <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950"><div className="flex items-center gap-2 font-semibold"><CheckCircle2 size={18}/> Undangan dibuat</div><p className="mt-1 text-sm">Bagikan tautan pribadi ini kepada penerima melalui kanal resmi. Tautan hanya dapat dipakai sekali dan berlaku 48 jam. Organisasi harus berstatus terverifikasi sebelum aktivasi.</p><div className="mt-3 flex flex-wrap gap-2"><input aria-label="Tautan aktivasi eksternal" readOnly value={invitationUrl} className="min-h-10 min-w-0 flex-1 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700"/><button onClick={() => void copyInvitation()} type="button" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-800 px-3 text-sm font-semibold text-white"><Clipboard size={15}/> Salin</button></div></div>}
