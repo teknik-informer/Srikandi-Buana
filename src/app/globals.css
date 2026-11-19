@@ -923,7 +923,7 @@ body:has(.workspace-shell) {
   min-width: 0;
   max-width: 100%;
 }
-.workspace-shell :is(button,a,input,select,textarea,[role="button"],[role="combobox"]):focus-visible {
+body:has(.workspace-shell) :is(button,a,input,select,textarea,[role="button"],[role="combobox"],[role="menuitem"],[role="option"],[role="tab"]):focus-visible {
   outline: 2px solid color-mix(in oklab,var(--primary) 78%,var(--border)) !important;
   outline-offset: 2px;
   border-color: var(--primary) !important;
@@ -956,9 +956,6 @@ body:has(.workspace-shell) {
 .workspace-page .workspace-table-scroll > table,
 .workspace-page .agriculture-table-scroll > table {
   max-width: none;
-}
-.workspace-page :is(.workspace-metric-grid,.stats-grid) {
-  grid-template-columns: repeat(2,minmax(0,1fr));
 }
 .workspace-page :is(.workspace-metric,.stat-card) {
   min-width: 0;
