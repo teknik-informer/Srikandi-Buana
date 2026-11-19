@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
     if (isPhone) {
       try {
-        await env.DB.prepare("SELECT login_phone,phone_verified_at FROM users LIMIT 0").all();
+        await env.DB.prepare("SELECT login_phone,phone_verified_at,phone_verified_by FROM users LIMIT 0").all();
       } catch {
         return json({ error: "Login nomor telepon belum tersedia pada skema database lingkungan ini. Administrator perlu menerapkan migrasi identitas telepon terlebih dahulu." }, 503);
       }
@@ -46,8 +46,8 @@ export async function POST(request: Request) {
 
     const internal = isPhone
       ? await env.DB.prepare(
-          "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.member_id,u.workspace_owner " +
-          "FROM users u WHERE u.login_phone=? AND u.phone_verified_at IS NOT NULL"
+          "SELECT u.id,u.email,u.password_hash,u.enabled,u.login_phone,u.phone_verified_at,u.phone_verified_by,u.member_id,u.workspace_owner " +
+          "FROM users u WHERE u.login_phone=? AND u.phone_verified_at IS NOT NULL AND u.phone_verified_by IS NOT NULL"
         ).bind(phone).first()
       : await env.DB.prepare(
           "SELECT u.id,u.email,u.password_hash,u.enabled,u.member_id,u.workspace_owner FROM users u WHERE lower(u.email)=?"
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
           const data = JSON.parse(String(member?.data || "{}"));
           currentPhone = normalizeIndonesianMobilePhone(data.phone);
         } catch { currentPhone = ""; }
-        if (!internal.phone_verified_at || currentPhone !== phone) {
+        if (!internal.phone_verified_at || !internal.phone_verified_by || currentPhone !== phone) {
           return json({ error: "Nomor telepon belum diverifikasi pengelola atau tidak lagi cocok dengan data anggota." }, 401);
         }
       }
