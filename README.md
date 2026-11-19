@@ -31,6 +31,18 @@ Pembuatan tabel memerlukan migrasi tambahan `005_ecosystem_foundation.sql` dan `
 
 **Publikasi:** kerjakan di branch `feat/ecosystem-v11-5`, lalu pull request ke `main` setelah semua test, build, migrasi dan uji browser berhasil. Vercel Preview harus diuji sebelum promosi ke production. Lihat `docs/RELEASE_v11.5.md`.
 
+## Arsitektur enam aplikasi v1.0
+
+Baseline arsitektur enam aplikasi—Platform Core, Organization, Agriculture, Business & Enterprise, BI & Analytics, serta Public & Partnership—tersedia pada [`docs/MASTER_APPLICATION_ARCHITECTURE_v1.md`](docs/MASTER_APPLICATION_ARCHITECTURE_v1.md). Dokumen ini menetapkan batas domain, sumber kebenaran data, integrasi, akses, standar UX, tahapan implementasi, dan kriteria penerimaan. Statusnya adalah baseline arsitektur/review draft, bukan pengesahan kebijakan organisasi.
+
+## Audit implementasi enam aplikasi v1.0
+
+Kondisi aktual repositori, pemetaan workspace lama ke enam aplikasi target, bukti teknis, risiko lintas domain, dan prioritas perbaikan dicatat pada [`docs/IMPLEMENTATION_AUDIT_MATRIX_v1.md`](docs/IMPLEMENTATION_AUDIT_MATRIX_v1.md). Audit ini bersifat statis; UAT browser terautentikasi, rekonsiliasi database, dan pemeriksaan Production tetap merupakan gerbang terpisah.
+
+## Rilis v13
+
+Fondasi platform modular v13 dan persyaratan keselamatan rilis didokumentasikan pada [`docs/RELEASE_v13.md`](docs/RELEASE_v13.md). **Jangan mempromosikan Preview ke Production sebelum UAT terautentikasi, rekonsiliasi ledger, backup, dan persetujuan rilis selesai.**
+
 ## Keamanan
 
 Jangan commit `.env.local`, backup database, foto/dokumen privat atau API key ke repositori publik. Aplikasi ini baru memiliki fondasi perdagangan/akuntansi, bukan sistem pembayaran dan perpajakan tersertifikasi.

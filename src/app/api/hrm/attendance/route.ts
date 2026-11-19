@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { isModuleAvailableForUser } from "@/features/identity/access-policy";
 import { isArchitectFullAccess, type Principal } from "@/features/identity/access-policy";
 import { env } from "@/lib/runtime";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
@@ -59,6 +60,7 @@ function auditStatement(owner: string, actor: Principal, action: string, title: 
 async function getContext(req: Request, write = false) {
   const user = await getAuthenticatedUser();
   if (!user) return { response: json({ error: "Silakan masuk untuk melanjutkan." }, 401) };
+  if (!isModuleAvailableForUser(user, "hrm")) return { response: json({ error: "Aplikasi HRM sedang dinonaktifkan atau diblokir untuk akun ini." }, 403) };
   if (write && !sameOrigin(req)) return { response: json({ error: "Permintaan lintas situs ditolak." }, 403) };
   if (!env.DB) return { response: json({ error: "Database belum tersedia." }, 503) };
   return { user, db: env.DB };

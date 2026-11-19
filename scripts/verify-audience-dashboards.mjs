@@ -14,10 +14,10 @@ const externalSummary = read("src/lib/external-agriculture-summary.ts");
 
 assert.match(route, /active === "ringkasan"/, "Default internal dashboard route must branch by audience");
 assert.match(route, /admin\.role === "anggota"/, "Member accounts must reach the member dashboard");
-assert.match(route, /ManagementAudienceDashboard/, "Management dashboard must be registered");
+assert.match(route, /ApplicationHub/, "Internal management users must enter the integrated application hub");
 assert.match(route, /MemberAudienceDashboard/, "Member dashboard must be registered");
 assert.match(navigation, /Dashboard Anggota/, "Member navigation must carry its own dashboard name");
-assert.match(navigation, /Dashboard Pengurus/, "Management navigation must carry its own dashboard name");
+assert.match(navigation, /Pusat Aplikasi/, "Management navigation must identify the integrated application hub");
 
 assert.match(management, /buildManagementInsights/, "Management metrics must derive from scoped workspace records");
 assert.match(management, /useWorkspaceData/, "Management dashboard must use live workspace data");

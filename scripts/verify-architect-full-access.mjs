@@ -1,33 +1,95 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+
 const read = (path) => readFileSync(path, "utf8");
 const policy = read("src/features/identity/access-policy.ts");
 const auth = read("src/lib/auth.ts");
-const registry = read("src/features/enterprise/registry.ts");
-const route = read("src/app/dashboard/[[...section]]/page.tsx");
-const shell = read("src/app/_components/workspace-shell.tsx");
 const navigation = read("src/app/_components/dashboard-navigation.tsx");
-const center = read("src/app/_components/architect-qa-test-center.tsx");
-const files = read("src/lib/file-access.ts");
+const shell = read("src/app/_components/workspace-shell.tsx");
+const hub = read("src/app/_components/application-hub.tsx");
+const registry = read("src/features/platform/application-registry.ts");
+const fileAccess = read("src/lib/file-access.ts");
 const fileApi = read("src/app/api/files/route.ts");
-assert(auth.includes('process.env.VERCEL_ENV === "preview"'));
-assert(auth.includes('process.env.VERCEL_GIT_COMMIT_REF === "feat/architect-identity-console-2026-11-15"'));
-assert(policy.includes('"architectFullAccess" in user && user.architectFullAccess === true'));
-assert(policy.includes("if (isArchitectFullAccess(user)) return true;"));
-assert(policy.includes('if (role === "admin") return false;'), "Production role-only policy must not grant organization access");
-for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecord", "canReadSection"]) {
+const operations = read("src/lib/enterprise/operations.ts");
+const operationsApi = read("src/app/api/operations/route.ts");
+const agricultureApi = read("src/app/api/agriculture/route.ts");
+const attendanceApi = read("src/app/api/attendance/route.ts");
+const ledgerApi = read("src/app/api/ecosystem/ledger/route.ts");
+const ordersApi = read("src/app/api/ecosystem/orders/route.ts");
+const productsApi = read("src/app/api/ecosystem/products/route.ts");
+const stockApi = read("src/app/api/ecosystem/stock-history/route.ts");
+const adminAuth = read("src/app/admin-auth.ts");
+const messagesApi = read("src/app/api/messages/route.ts");
+const sourceDocumentApi = read("src/app/api/source-document/route.ts");
+const sourceReviewUi = read("src/app/_components/source-review.tsx");
+
+assert.match(auth, /process\.env\.ADMIN_EMAIL/);
+assert.match(auth, /user\.owner_role!=='admin'/);
+assert.match(auth, /user\.id!==user\.workspace_owner/);
+assert.match(auth, /String\(user\.email\)\.toLowerCase\(\)!==process\.env\.ADMIN_EMAIL\.trim\(\)\.toLowerCase\(\)/,
+  "Only the primary ADMIN_EMAIL account may hold the root Administrator Sistem identity.");
+
+assert.match(auth, /architectFullAccess:user\.role === "admin"/, "The verified root administrator must retain full access in Production as well as Preview.");
+assert.doesNotMatch(auth, /isArchitectQaPreview|VERCEL_ENV/, "Root administrator authority must not depend on a Preview-only environment flag.");
+
+assert.match(policy, /export function isArchitectFullAccess\(user: Pick<Principal, "role">\): boolean \{\s*return user\.role === "admin";/);
+assert.match(policy, /if \(user\.role === "admin"\) return true;/,
+  "System administrator must bypass module availability restrictions.");
+assert.match(policy, /export function canReadKindForRole\(role: Role, kind: string\): boolean \{\s*if \(role === "admin"\) return true;/);
+assert.match(policy, /export function canReadSectionForRole\(role: Role, id: string\): boolean \{\s*if \(role === "admin"\) return true;/);
+
+for (const fn of ["canReadKind", "canWriteKind", "canReadRecord", "canWriteRecord"]) {
   const start = policy.indexOf("export function " + fn + "(");
   assert.notEqual(start, -1, fn + " must exist");
-  assert.ok(policy.slice(start, start + 500).includes("isArchitectFullAccess(user)"), fn + " must enforce the preview capability");
+  assert.ok(policy.slice(start, start + 700).includes("isArchitectFullAccess(user)"),
+    fn + " must enforce System Administrator full access.");
 }
-assert(registry.includes("getVisibleEnterpriseDashboards(role: Role, fullAccess = false)"));
-assert(registry.includes("getVisibleEnterpriseUtilities(role: Role, fullAccess = false)"));
-assert(route.includes("isArchitectFullAccess(admin)"));
-assert(shell.includes("architectFullAccess={user.architectFullAccess === true}"));
-assert(navigation.includes("getVisibleEnterpriseDashboards(user.role, architectFullAccess)"));
-assert(navigation.includes("getVisibleEnterpriseUtilities(user.role, architectFullAccess)"));
-assert(center.includes("canReadSection(principal, section)"));
-assert(center.includes("Full Access QA"));
-assert(files.includes("if(isArchitectFullAccess(user))"));
-assert(fileApi.includes("!isArchitectFullAccess(user)"), "Architect may manage files uploaded by other QA accounts only in the isolated Preview");
-console.log("PASS Architect Full Access: Preview-branch-only CRUD policy, all dashboard navigation, QA inspector, and Production role isolation.");
+
+assert.match(shell, /architectFullAccess=\{isArchitectFullAccess\(user\)\}/);
+assert.match(navigation, /getApplicationNavigation\(user, architectFullAccess, user\.role === "admin"\)/);
+assert.match(navigation, /getVisibleEnterpriseUtilities\(user\.role, fullAccess\)/);
+assert.match(hub, /platformApplications/);
+assert.match(registry, /platform-core[\s\S]*organization[\s\S]*agriculture[\s\S]*business[\s\S]*bi-analytics[\s\S]*public-partnership/);
+
+for (const id of ["platform-core", "organization", "agriculture", "business", "bi-analytics", "public-partnership"]) {
+  const keyPattern = new RegExp("(?:^|\\n)\\s*(?:\\\"" + id + "\\\"|" + id + "):");
+  assert.match(navigation, keyPattern, "Sidebar must define navigation mapping for application " + id);
+}
+assert.match(navigation, /\.map\(\(application\) => \(\{[\s\S]*?id: application\.id[\s\S]*?items: modulesByApplication\[application\.id\]/,
+  "Sidebar must render application groups from the canonical application registry.");
+
+assert.match(policy, /\["admin", "sekretaris"\]\.includes\(user\.role\)/, "System administrator may review task outcomes.");
+assert.match(policy, /\["admin", "ketua"\]\.includes\(user\.role\)/, "System administrator may publish reviewed content.");
+assert.match(operations, /canReview = \(user: Principal\) => user\.role === "admin" \|\| user\.role === "ketua"/);
+assert.match(operations, /canInspectOperations = \(user: Principal\) => user\.role === "admin" \|\| user\.role === "ketua"/);
+assert.match(operations, /return user\.role === "admin" \|\|/);
+assert.doesNotMatch(operations, /if \(user\.role === "admin"\) return false;/);
+assert.doesNotMatch(operationsApi, /user\.role===\x27admin\x27\)return json\(\{error:\x27Administrator Sistem tidak/);
+assert.match(operationsApi, /!\[\x27admin\x27,\x27ketua\x27\]\.includes\(user\.role\)/);
+assert.match(agricultureApi, /user\.role === "admin" \|\| \["ketua", "sekretaris", "bendahara"\]/);
+assert.match(agricultureApi, /user\.role !== "sekretaris" && user\.role !== "admin"/);
+assert.match(attendanceApi, /user\.role!=='sekretaris'&&user\.role!=='admin'/);
+assert.match(ledgerApi, /canRead=\(role:string\)=>\['admin','ketua','sekretaris','bendahara'\]/);
+assert.match(ledgerApi, /canWrite=\(role:string\)=>role==='admin'\|\|role==='bendahara'/);
+assert.match(ordersApi, /canReadAll=\['admin','ketua','bendahara'\]/);
+assert.match(ordersApi, /c\.user\.role!=='bendahara'&&c\.user\.role!=='admin'/);
+assert.match(productsApi, /\['admin','ketua','bendahara'\]\.includes\(user\.role\)/);
+assert.match(productsApi, /c\.user\.role!=='bendahara'&&c\.user\.role!=='admin'/);
+assert.match(stockApi, /\['admin','ketua','bendahara'\]\.includes\(c\.user\.role\)/);
+assert.match(adminAuth, /return u&&\['admin','ketua','sekretaris'\]\.includes\(u\.role\)\?u:null/);
+assert.match(messagesApi, /getMessageManagerUser/);
+assert.match(messagesApi, /accessAudit\(manager\.userId,manager\.accountId/);
+assert.match(messagesApi, /env\.DB\.batch\(\[update,audit\]\)/);
+assert.match(messagesApi, /env\.DB\.batch\(\[remove,audit\]\)/);
+assert.match(sourceDocumentApi, /user\.role===\x27admin\x27&&\(reason\.length<10\|\|reason\.length>500\)/, "Private source documents require a reason for administrator access.");
+assert.match(sourceDocumentApi, /accessAudit\(user\.userId,user\.accountId,action,target\)/, "Private source document access must be audited.");
+assert.match(sourceDocumentApi, /await auditStatement\.run\(\)/, "Source-document audit must commit before the download is returned.");
+assert.match(sourceReviewUi, /sourceAccessReason\.trim\(\)\.length >= 10/, "Administrator source-document access requires an explicit reason in the UI.");
+
+assert.match(fileAccess, /if\(isArchitectFullAccess\(user\)\)/);
+assert.match(fileApi, /file\.uploader_id!==user\.accountId&&!isArchitectFullAccess\(user\)/,
+  "Only the authenticated root administrator may manage another uploader's file.");
+assert.match(fileApi, /WHERE id=\? AND owner=\?/,
+  "File operations must remain constrained to the authenticated workspace owner.");
+
+console.log("PASS: root Administrator Sistem identity, Production-independent application authorization, CRUD policy, six-app navigation, and workspace-scoped file safeguards.");

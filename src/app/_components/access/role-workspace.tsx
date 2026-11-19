@@ -49,7 +49,7 @@ import {
 } from "@/lib/permissions";
 import { modules, programs, type Row } from "@/lib/srikandi";
 import { canDiscardChanges, markFormSaved } from "@/lib/unsaved-changes";
-import { Download, Plus, RefreshCw } from "lucide-react";
+import { ClipboardCheck, Download, Eye, Pencil, Plus, Printer, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Attendance from "../attendance";
@@ -475,43 +475,49 @@ export default function RoleWorkspace({
                   files={files}
                   onView={setDetail}
                   actions={(r) => (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="record-actions inline-flex flex-nowrap items-center justify-end gap-1 whitespace-nowrap">
                       {section === "musyawarah" && (
-                        <Button asChild variant="outline">
-                          <Link href={"/dashboard/cetak-notulen/" + encodeURIComponent(r.id)} target="_blank" rel="noopener noreferrer">Cetak notulen</Link>
+                        <Button asChild variant="ghost" size="icon" title="Cetak notulen" aria-label={"Cetak notulen " + r.data.name}>
+                          <Link href={"/dashboard/cetak-notulen/" + encodeURIComponent(r.id)} target="_blank" rel="noopener noreferrer"><Printer /></Link>
                         </Button>
                       )}
-                      <Button variant="outline" onClick={() => setDetail(r)}>
-                        Rincian
+                      <Button variant="ghost" size="icon" title={"Lihat " + r.data.name} aria-label={"Lihat " + r.data.name} onClick={() => setDetail(r)}>
+                        <Eye />
                       </Button>
                       {section === "tindaklanjut" && user.role === "sekretaris" && (
                         ["Menunggu verifikasi", "Perlu perbaikan"].includes(String(r.data.verification || "")) ||
                         String(r.data.meetingReviewStatus || "Belum dievaluasi") === "Belum dievaluasi"
                       ) && (
-                        <Button variant="outline" onClick={() => { clearError(); setEditor({ kind: section, row: r }); }}>
-                          Periksa hasil
+                        <Button variant="ghost" size="icon" title="Periksa hasil" aria-label={"Periksa hasil " + r.data.name} onClick={() => { clearError(); setEditor({ kind: section, row: r }); }}>
+                          <ClipboardCheck />
                         </Button>
                       )}
                       {canWriteKind(user, section) && (
                         <>
                           <Button
-                            variant="outline"
+                            variant="ghost"
+                            size="icon"
+                            title={"Edit " + r.data.name}
+                            aria-label={"Edit " + r.data.name}
                             onClick={() => {
                               clearError();
                               setEditor({ kind: section, row: r });
                             }}
                           >
-                            Edit
+                            <Pencil />
                           </Button>
                           {user.role !== "ketua" && (
                             <Button
-                              variant="destructive"
+                              variant="ghost"
+                              size="icon"
+                              title={"Hapus " + r.data.name}
+                              aria-label={"Hapus " + r.data.name}
                               onClick={() => {
                                 clearError();
                                 setDeleting(r);
                               }}
                             >
-                              Hapus
+                              <Trash2 />
                             </Button>
                           )}
                         </>

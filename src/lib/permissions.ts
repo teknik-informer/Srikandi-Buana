@@ -18,4 +18,4 @@ export {
   canReadSectionForRole,
   canReadSection,
 } from "../features/identity/access-policy";
-export type { Role, Principal, AccessRecord } from "../features/identity/access-policy";
+export type { Role, Principal, AccessRecord, ModuleAccessState } from "../features/identity/access-policy";

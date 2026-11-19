@@ -8,6 +8,8 @@ import {allowedFileIds} from "@/lib/file-access";
 import { modules, programs, type Data } from "@/lib/srikandi";
 import { taskVerificationError } from "@/lib/enterprise/task-verification";
 import { decisionsPreserveExistingOrder, meetingReviewError, parseMeetingActions, parseMeetingTaskReference } from "@/lib/meeting-cycle";
+import { buildV14RecordSyncStatements } from "@/lib/workspace-v14-sync";
+import { buildCashLedgerPostingStatements } from "@/features/finance/record-posting";
 export const dynamic="force-dynamic";
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store"}});
 async function context(req:Request,write=false){
@@ -20,7 +22,7 @@ export async function GET(req:Request){try{const c=await context(req);if(c.error
  c.db!.prepare("SELECT * FROM records WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT action,title,created FROM audit WHERE owner=? ORDER BY created DESC LIMIT 12").bind(c.user!.userId).all(),
  c.db!.prepare("SELECT id,name,size,mime,created,deleted_at,uploader_id FROM files WHERE owner=? ORDER BY created DESC").bind(c.user!.userId).all()
- ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=await allowedFileIds(u);return json({records:readable,audit:u.role==='ketua'?audit.results.map(row=>({action:row.action,title:'Catatan organisasi diperbarui',created:row.created})):[],files:files.results.filter(f=>fileIds.has(String(f.id))),user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
+ ]);const u=c.user!;const readable=records.results.map(r=>({...r,id:String(r.id),kind:String(r.kind),owner:undefined,data:JSON.parse(String(r.data))})).filter(r=>canReadRecord(u,r)).map(r=>visibleRecord(u,r));const fileIds=await allowedFileIds(u);return json({records:readable,audit:u.role==='ketua'||u.role==='admin'?audit.results.map(row=>({action:row.action,title:'Catatan organisasi diperbarui',created:row.created})):[],files:files.results.filter(f=>fileIds.has(String(f.id))),user:u.displayName});}catch{return json({error:"Data belum dapat dimuat. Silakan coba lagi."},503)}}
 function validate(kind:string,raw:unknown):Data{
  if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("Formulir tidak valid.");
  const d=raw as Data;const out:Data={};
@@ -46,7 +48,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
  const body=await readJsonObject(req,40000) as {kind:string;id?:string;data:unknown;expectedUpdated?:string};const data=validate(body.kind,body.data);if(body.kind==='galeri'&&data.status==='Terbit'&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin publikasi foto sebelum menerbitkan. Simpan sebagai Draf jika izin belum tersedia.'},400);if(body.kind==='publikasi'&&data.status==='Terbit'&&data.fileId&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin foto sampul sebelum menerbitkan konten. Hapus foto sampul jika tidak digunakan.'},400);const mayAttemptExistingReview=edit&&c.user!.role==='sekretaris'&&body.kind==='tindaklanjut';const mayAttemptPublication=edit&&c.user!.role==='ketua'&&['publikasi','galeri'].includes(body.kind);if(!canWriteRecord(c.user!,{id:body.id||'',kind:body.kind,data})&&!mayAttemptExistingReview&&!mayAttemptPublication)return json({error:'Anda tidak memiliki izin mengubah data ini.'},403);const readableFiles=await allowedFileIds(c.user!);if([data.fileId,data.attachmentId].some(id=>id&&!readableFiles.has(String(id))))return json({error:'Berkas di luar hak akses Anda.'},403);if(data.fileId){const file=await c.db!.prepare("SELECT mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.fileId,c.user!.userId).first();if(!file||!["image/png","image/jpeg"].includes(String(file.mime)))return json({error:"Pilih foto JPG/PNG yang tersedia di arsip akun Anda."},400);}
  if(data.attachmentId){const attachment=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.attachmentId,c.user!.userId).first();if(!attachment)return json({error:"Lampiran tidak tersedia di arsip Anda."},400);}
  if(body.kind==="lotkopi"){const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='lotkopi' AND json_extract(data,'$.name')=? AND id!=?").bind(c.user!.userId,data.name,body.id||"").first();if(duplicate)return json({error:"Kode lot sudah digunakan. Gunakan kode unik."},409);}
- const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);
+ const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);if(body.kind==="kas"){const counter=await c.db!.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE id=? AND owner=? AND active=TRUE").bind(String(data.counterAccountId||""),c.user!.userId).first();if(!counter)return json({error:"Pilih akun lawan transaksi yang aktif pada daftar akun kelompok."},400);data.counterAccountName=String(counter.name||"").slice(0,160);data.counterAccountCode=String(counter.code||"").slice(0,8);data.counterAccountCategory=String(counter.category||"").slice(0,20);}
  let previousTaskData:Data|undefined;
  let previousRecordData:Data|undefined;
  if(edit){
@@ -58,7 +60,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
   if(body.kind==="tindaklanjut"){
    previousTaskData=oldData;
-   if(c.user!.role!=="sekretaris"){
+   if(c.user!.role!=="sekretaris"&&c.user!.role!=="admin"){
     for(const key of ["reviewNote","meetingReviewMeeting","meetingReviewDate","meetingReviewNote"]){
      data[key]=String(oldData[key]||"");
     }
@@ -67,7 +69,13 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   }
   if(['kas','aset'].includes(body.kind)){
    await assertRecordUnlocked(c.user!.userId,id,body.kind);
-   await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),`${body.kind}: ${data.name}`);
+   const normalizedWrites=body.kind==="aset" ? await buildV14RecordSyncStatements(c.db!,{
+    owner:c.user!.userId,actorId:c.user!.accountId,id:String(id),kind:body.kind,data,now,previousData:oldData,
+   }) : [];
+   const ledgerWrites=body.kind==="kas" ? await buildCashLedgerPostingStatements(c.db!,{
+    owner:c.user!.userId,actorId:c.user!.accountId,sourceId:String(id),data,now,
+   }) : [];
+   await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),body.kind+": "+String(data.name||""),[...normalizedWrites,...ledgerWrites]);
    return json({ok:true,id});
   }
  }
@@ -166,6 +174,16 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
     : body.kind==="musyawarah"&&edit&&previousRecordData?.status!==data.status&&data.status==="Dievaluasi"
      ? "Evaluasi rapat diselesaikan"
      : edit?"Diperbarui":"Ditambahkan";
- await c.db!.batch([edit?c.db!.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=?").bind(JSON.stringify(data),now,id,c.user!.userId):c.db!.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)").bind(id,c.user!.userId,body.kind,JSON.stringify(data),now,now),c.db!.prepare("INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),c.user!.userId,auditAction,`${body.kind}: ${data.name}`,now)]);
+ const normalizedWrites=await buildV14RecordSyncStatements(c.db!,{
+  owner:c.user!.userId,actorId:c.user!.accountId,id:String(id),kind:body.kind,data,now,previousData:previousRecordData,
+ });
+ const ledgerWrites=body.kind==="kas" ? await buildCashLedgerPostingStatements(c.db!,{
+  owner:c.user!.userId,actorId:c.user!.accountId,sourceId:String(id),data,now,
+ }) : [];
+ await c.db!.batch([
+  edit?c.db!.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=?").bind(JSON.stringify(data),now,id,c.user!.userId):c.db!.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)").bind(id,c.user!.userId,body.kind,JSON.stringify(data),now,now),
+  c.db!.prepare("INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),c.user!.userId,auditAction,`${body.kind}: ${data.name}`,now),
+  ...normalizedWrites,...ledgerWrites,
+ ]);
  return json({ok:true,id,updated:now});}catch(e){if(e instanceof OperationError)return json({error:e.message},e.status);if(e instanceof RequestBodyError)return json({error:e.message},e.status);return json({error:e instanceof SyntaxError?"Formulir tidak valid.":e instanceof Error&& !/D1|SQL|database/i.test(e.message)?e.message:"Perubahan belum tersimpan. Silakan coba lagi."},400)}}
 export async function DELETE(req:Request){try{const c=await context(req,true);if(c.error)return c.error;const id=new URL(req.url).searchParams.get("id");const row=await c.db!.prepare("SELECT kind,data FROM records WHERE id=? AND owner=?").bind(id,c.user!.userId).first();if(!row)return json({error:"Data tidak ditemukan."},404);if(!canWriteRecord(c.user!,{id:String(id),kind:String(row.kind),data:JSON.parse(String(row.data))}))return json({error:'Anda tidak memiliki izin menghapus data ini.'},403);const rowData=JSON.parse(String(row.data)) as Data;if(row.kind==="musyawarah"){const linked=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='tindaklanjut' AND data LIKE ? LIMIT 1").bind(c.user!.userId,"%Sumber rapat: "+String(id)+"%").first();if(linked)return json({error:"Notulen tidak dapat dihapus karena masih menjadi sumber tugas tindak lanjut. Pertahankan notulen sebagai arsip agar jejak keputusan tetap utuh."},409);}if(row.kind==="tindaklanjut"&&parseMeetingTaskReference(rowData.notes))return json({error:"Tugas yang berasal dari keputusan rapat tidak dapat dihapus. Gunakan status Ditunda atau catat perubahan mandat agar riwayat keputusan tetap utuh."},409);if(c.user!.role==="ketua"&&row.kind==="tindaklanjut")return json({error:"Ketua dapat memperbarui status tugas, tetapi tidak menghapus riwayat tindak lanjut."},403);await assertRecordUnlocked(c.user!.userId,String(id),String(row.kind),true);if(row.kind==="anggota"){const workspaceAccounts=await c.db!.prepare('SELECT id,member_id FROM users WHERE workspace_owner=?').bind(c.user!.userId).all();const linked=workspaceAccounts.results.find(account=>String(account.member_id||'')===id);if(linked)return json({error:'Anggota terhubung dengan akun. Nonaktifkan keanggotaan dan akun; riwayat tetap disimpan.'},409);const used=await c.db!.prepare("SELECT r.id FROM records r,json_each(json_extract(r.data,'$.memberIds')) j WHERE r.owner=? AND r.kind='kehadiran' AND j.value=? LIMIT 1").bind(c.user!.userId,id).first();if(used)return json({error:"Anggota memiliki riwayat kehadiran. Ubah status menjadi Tidak aktif, atau perbarui daftar hadir sebelum menghapus."},409);}await c.db!.batch([c.db!.prepare("DELETE FROM records WHERE owner=? AND kind='kehadiran' AND json_extract(data,'$.eventId')=?").bind(c.user!.userId,id),c.db!.prepare("DELETE FROM records WHERE id=? AND owner=?").bind(id,c.user!.userId),c.db!.prepare("INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),c.user!.userId,"Dihapus",`${row.kind}: ${JSON.parse(row.data as string).name}`,new Date().toISOString())]);return json({ok:true});}catch(error){if(error instanceof OperationError)return json({error:error.message},error.status);return json({error:"Data belum dapat dihapus."},500)}}

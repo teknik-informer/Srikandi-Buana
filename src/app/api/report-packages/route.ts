@@ -2,6 +2,7 @@ import {createHash, randomUUID} from "node:crypto";
 import {getAuthenticatedUser} from "@/lib/auth";
 import {env} from "@/lib/runtime";
 import {canReadKindForRole, canReadRecord, visibleRecord, type Principal} from "@/lib/permissions";
+import {isModuleAvailableForUser} from "@/features/identity/access-policy";
 import type {ReportGroupId} from "@/lib/enterprise-reporting";
 import type {Row} from "@/lib/srikandi";
 import {readJsonObject, RequestBodyError} from "@/lib/request-body";
@@ -18,18 +19,32 @@ const groupKinds: Record<ReportGroupId,string[]> = {
   usaha:["aset","lotkopi","usaha","kemitraan"],
   publikasi:["publikasi","galeri"],
 };
+const groupModules: Record<ReportGroupId,string[]> = {
+  operasional:["projects","hrm"],
+  keanggotaan:["hrm"],
+  administrasi:["hrm","documents"],
+  keuangan:["accounting"],
+  usaha:["accounting","pos","crm","projects"],
+  publikasi:["crm"],
+};
+function groupModulesEnabled(user: Principal, group: ReportGroupId) {
+  return groupModules[group].every((moduleId) => isModuleAvailableForUser(user,moduleId));
+}
 function canCreate(user: Principal, group: ReportGroupId) {
+  if (user.role === "admin") return true;
   if (user.role === "sekretaris") return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
   if (user.role === "bendahara") return ["keuangan","usaha"].includes(group);
   return user.role === "koordinator" && group === "operasional";
 }
 function canReadPackage(user: Principal, group: ReportGroupId, createdBy: string) {
+  if (user.role === "admin") return true;
   if (user.role === "ketua") return true;
   if (user.role === "sekretaris") return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
   if (user.role === "bendahara") return ["keuangan","usaha"].includes(group);
   return user.role === "koordinator" && group === "operasional" && createdBy === user.accountId;
 }
 function canVerify(user: Principal, group: ReportGroupId) {
+  if (user.role === "admin") return true;
   if (user.role === "sekretaris") return ["operasional","keanggotaan","administrasi","publikasi"].includes(group);
   return user.role === "bendahara" && ["keuangan","usaha"].includes(group);
 }
@@ -113,7 +128,7 @@ function snapshotRows(group: ReportGroupId, rows: Row[]) {
 async function context() {
   const user = await getAuthenticatedUser();
   if (!user) return {error:json({error:"Silakan masuk untuk mengakses paket laporan."},401)};
-  if (user.role === "admin" || user.role === "anggota") return {error:json({error:"Akses paket laporan tidak tersedia untuk peran ini."},403)};
+  if (user.role === "anggota") return {error:json({error:"Akses paket laporan tidak tersedia untuk peran ini."},403)};
   if (!env.DB) return {error:json({error:"Database belum tersedia."},503)};
   return {user,db:env.DB};
 }
@@ -123,7 +138,7 @@ export async function GET() {
     const result = await c.db!.prepare("SELECT id,group_id,title,period_start,period_end,package_version,status,snapshot_hash,created_by,created_at,verified_by,verified_at,verification_note,approved_by,approved_at,approval_note,rejected_by,rejected_at,rejection_note,snapshot FROM report_packages WHERE owner=? ORDER BY created_at DESC LIMIT 100").bind(c.user!.userId).all();
     const visible = result.results.filter(row =>
       groups.includes(String(row.group_id) as ReportGroupId) &&
-      canReadPackage(c.user!,String(row.group_id) as ReportGroupId,String(row.created_by))
+      groupModulesEnabled(c.user!,String(row.group_id) as ReportGroupId) && canReadPackage(c.user!,String(row.group_id) as ReportGroupId,String(row.created_by))
     ).map(row => c.user!.role === "ketua"
       ? {...row,snapshot:chairSafeSnapshot(row.snapshot)}
       : row);
@@ -143,7 +158,7 @@ export async function POST(req: Request) {
     const start = body.periodStart == null || body.periodStart === "" ? "" : String(body.periodStart);
     const end = body.periodEnd == null || body.periodEnd === "" ? "" : String(body.periodEnd);
     const validDate = (value:string) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value+"T00:00:00Z").toISOString().slice(0,10)===value);
-    if (!groups.includes(group) || !canCreate(c.user!,group)) return json({error:"Anda tidak berwenang menyusun paket untuk domain ini."},403);
+    if (!groups.includes(group) || !groupModulesEnabled(c.user!,group) || !canCreate(c.user!,group)) return json({error:"Anda tidak berwenang menyusun paket untuk domain ini."},403);
     if (c.user!.role === "koordinator" && c.user!.programIds.length === 0) return json({error:"Akun Koordinator belum memiliki penugasan program. Hubungi pengelola organisasi."},403);
     if (title.length < 3 || title.length > 200 || !validDate(start) || !validDate(end) || (start && end && start > end))
       return json({error:"Judul atau rentang periode tidak valid."},400);
@@ -209,9 +224,10 @@ export async function PATCH(req: Request) {
     const note = String(body.note || "").trim();
     if (!id || id.length > 80 || !["verify","approve","reject"].includes(action) || note.length < 3 || note.length > 2000)
       return json({error:"Permintaan perubahan status tidak valid. Catatan minimal 3 karakter."},400);
-    const pkg = await c.db!.prepare("SELECT id,group_id,status,created_by,snapshot_hash,source_manifest FROM report_packages WHERE id=? AND owner=?").bind(id,c.user!.userId).first();
+    const pkg = await c.db!.prepare("SELECT id,group_id,status,created_by,verified_by,snapshot_hash,source_manifest FROM report_packages WHERE id=? AND owner=?").bind(id,c.user!.userId).first();
     if (!pkg || !groups.includes(String(pkg.group_id) as ReportGroupId)) return json({error:"Paket tidak ditemukan."},404);
     const group = String(pkg.group_id) as ReportGroupId;
+    if (!groupModulesEnabled(c.user!,group)) return json({error:"Salah satu aplikasi sumber laporan sedang dinonaktifkan atau diblokir untuk akun ini."},403);
     let from = "", to = "", assignments = "", extraCondition = "";
     if (action === "verify") {
       if (!canVerify(c.user!,group)) return json({error:"Verifikasi hanya dapat dilakukan pemilik domain."},403);
@@ -219,8 +235,9 @@ export async function PATCH(req: Request) {
       assignments = "verified_by=?,verified_at=?,verification_note=?";
       extraCondition = "AND created_by<>?";
     } else {
-      if (c.user!.role !== "ketua") return json({error:"Keputusan akhir paket hanya dapat dilakukan Ketua."},403);
+      if (!["admin","ketua"].includes(c.user!.role)) return json({error:"Keputusan akhir paket hanya dapat dilakukan Ketua atau Administrator Sistem."},403);
       if (String(pkg.created_by) === c.user!.accountId) return json({error:"Penyusun paket tidak dapat mengesahkan paket buatannya sendiri."},403);
+      if (String(pkg.verified_by || "") === c.user!.accountId) return json({error:"Pemeriksa paket tidak dapat menjadi pengesah akhir atas paket yang sama."},403);
       if (action === "approve") {
         from = "verified"; to = "approved";
         assignments = "approved_by=?,approved_at=?,approval_note=?";
