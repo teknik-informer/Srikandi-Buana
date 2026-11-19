@@ -152,10 +152,13 @@
 }
 
 
-/* Touch devices retain a comfortable 44px target for every topbar action. */
+/* Touch devices retain one consistent 44px target for every topbar action,
+   whether the control is rendered directly or inside a small wrapper. */
 @media (pointer:coarse) {
   .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-icon-button,
-  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-header-actions > div > button {
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-header-actions > button,
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-header-actions > div > button,
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-header-actions [data-slot="button"] {
     width:44px; min-width:44px; height:44px; min-height:44px; padding:0; flex:0 0 44px;
   }
   .workspace-shell[data-workspace-theme="gentelella"] .workspace-header .workspace-account-trigger {
