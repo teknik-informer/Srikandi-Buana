@@ -34,13 +34,14 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan"]);
   if (section?.[0] === "profil") redirect("/profil");
   const legacyDashboardRedirects: Record<string, string> = {
-    ecosystem: "/dashboard/organization",
-    management: "/dashboard/organization",
-    publication: "/dashboard/public-partnership",
-    finance: "/dashboard/business",
-    commerce: "/dashboard/business",
-    system: "/dashboard/platform-core",
-    administration: "/dashboard/platform-core",
+    organization: "/dashboard/ecosystem",
+    management: "/dashboard/ecosystem",
+    "public-partnership": "/dashboard/publication",
+    business: "/dashboard/finance",
+    commerce: "/dashboard/finance",
+    "platform-core": "/dashboard/system",
+    administration: "/dashboard/system",
+    "bi-analytics": "/dashboard/finance",
   };
   if (section?.[0] && legacyDashboardRedirects[section[0]]) redirect(legacyDashboardRedirects[section[0]]);
   if (section?.[0] && !allowed.has(section[0])) notFound();
