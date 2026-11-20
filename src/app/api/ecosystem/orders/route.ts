@@ -17,9 +17,10 @@ export async function POST(request:Request){const c=await required(request,true)
  const row=await c.db.prepare("SELECT * FROM srikandi_create_order_with_fifo(?,?,?,?,?,?,?,?)")
   .bind(id,c.user.userId,c.user.accountId,c.user.accountId,b.productId,b.quantity,b.clientRequestId,now).first();
  if(!row)return json({error:'Produk tidak tersedia atau stok tidak mencukupi.'},409);
+ const orderId=String(row.order_id||row.orderId||id);
  // No payment assertion; the order is merely submitted for manual processing.
  const treasurers=await c.db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='bendahara' AND enabled=TRUE ORDER BY created,id").bind(c.user.userId).all();
-  for(const treasurer of treasurers.results)await notifyOwner(c.user.userId,String(treasurer.id),'order:'+id,'Pesanan baru','Pesanan baru menunggu pemeriksaan Bendahara.','/dashboard/penjualan','pesanan');return json({ok:true,id:String(row.order_id||row.orderId||id),total:row.total,status:'submitted',reused:Boolean(row.reused)},row.reused?200:201);
+  for(const treasurer of treasurers.results)await notifyOwner(c.user.userId,String(treasurer.id),'order:'+orderId,'Pesanan baru','Pesanan baru menunggu pemeriksaan Bendahara.','/dashboard/penjualan','pesanan');return json({ok:true,id:orderId,total:row.total,status:'submitted',reused:Boolean(row.reused)},row.reused?200:201);
  }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);return errorReply(e)}}
 /** Treasurer fulfils or cancels an order; cancellation restores reserved stock exactly once. */
 export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(c.user.role!=='bendahara')return json({error:'Hanya Bendahara yang dapat mengubah status pesanan.'},403);
