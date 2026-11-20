@@ -87,3 +87,42 @@ test("Gentelella is a visual layer and does not replace the canonical six-applic
   assert.match(shell, /variant=\{sidebarVariant\}/);
   assert.match(globalStyles, /gentelella-workspace\.css/);
 });
+
+test("canonical landing routes resolve through the existing dashboard router without replacing legacy workspace IDs", () => {
+  const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
+  const enterpriseRegistry = readFileSync("src/features/enterprise/registry.ts", "utf8");
+  const canonicalRoutes = new Map(platformApplications.map((app) => [app.id, app.route]));
+
+  assert.equal(canonicalRoutes.get("platform-core"), "/dashboard/module-center");
+  assert.equal(canonicalRoutes.get("organization"), "/dashboard/hrm");
+  assert.equal(canonicalRoutes.get("agriculture"), "/dashboard/pertanian");
+  assert.equal(canonicalRoutes.get("business"), "/dashboard/accounting");
+  assert.equal(canonicalRoutes.get("bi-analytics"), "/dashboard/analytics");
+  assert.equal(canonicalRoutes.get("public-partnership"), "/dashboard/crm");
+
+  // Existing dashboard route remains the resolver; this guard intentionally does
+  // not prescribe a new route tree or change any authorization behavior.
+  assert.match(route, /getEnterpriseDashboardById\(active\)/);
+  assert.match(route, /active === "pertanian"/);
+  assert.match(route, /active === "module-center"/);
+  assert.match(route, /dashboardRouteIds/);
+  assert.match(enterpriseRegistry, /id: "hrm"/);
+  assert.match(enterpriseRegistry, /id: "accounting"/);
+  assert.match(enterpriseRegistry, /id: "crm"/);
+  assert.match(enterpriseRegistry, /id: "projects"/);
+  assert.match(enterpriseRegistry, /id: "pos"/);
+  assert.match(enterpriseRegistry, /id: "analytics"/);
+});
+
+test("legacy route aliases remain explicit compatibility redirects", () => {
+  const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
+  for (const [legacy, target] of [
+    ["kehadiran", "/dashboard/presensi"],
+    ["management", "/dashboard/ecosystem"],
+    ["administration", "/dashboard/system"],
+    ["commerce", "/dashboard/finance"],
+  ]) {
+    assert.match(route, new RegExp(`"${legacy}": "${target.replaceAll("/", "\\/")}"`));
+  }
+  assert.match(route, /legacyDashboardRedirects\[section\[0\]\]/);
+});
