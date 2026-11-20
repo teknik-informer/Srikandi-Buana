@@ -12,8 +12,8 @@ test("central settings page brings together existing settings and account contro
   assert.ok(center.includes('<SiteSettingsEditor'));
   assert.ok(center.includes('href="/dashboard/akun-saya"'));
   assert.ok(center.includes('href="/dashboard/akun"'));
-  assert.ok(center.includes('href="#preferensi"'));
-  assert.ok(center.includes('href="#website"'));
+  assert.ok(center.includes('href: "#preferensi"'));
+  assert.ok(center.includes('href: "#website"'));
 });
 
 test("organization settings are administrator-only, validated, persisted, and audited", () => {
