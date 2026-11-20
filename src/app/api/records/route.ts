@@ -181,7 +181,6 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
         ? "Evaluasi rapat diselesaikan"
         : edit?"Diperbarui":"Ditambahkan";
   const normalizedWrites=await buildV14RecordSyncStatements(c.db!,{
-const normalizedWrites=await buildV14RecordSyncStatements(c.db!,{
   owner:c.user!.userId,actorId:c.user!.accountId,id:String(id),kind:body.kind,data,now,previousData:previousRecordData,
  });
  const ledgerWrites=body.kind==="kas" ? await buildCashLedgerPostingStatements(c.db!,{
