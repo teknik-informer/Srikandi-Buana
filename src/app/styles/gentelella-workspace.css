@@ -175,3 +175,93 @@
     width:44px; min-width:44px; height:44px; min-height:44px; padding:3px;
   }
 }
+
+
+/* Sidebar color authority: keep every sidebar surface and state on one palette.
+   These rules deliberately override shadcn defaults and legacy module utilities. */
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] {
+  --sidebar:#153b2d;
+  --sidebar-foreground:#e7f0ea;
+  --sidebar-primary:#d5b45c;
+  --sidebar-primary-foreground:#1d3327;
+  --sidebar-accent:#214b39;
+  --sidebar-accent-foreground:#fff;
+  --sidebar-border:rgb(255 255 255 / 10%);
+  --sidebar-ring:#d5b45c;
+  background-color:#153b2d !important;
+  color:#e7f0ea !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] :is(
+  [data-slot="sidebar-header"],[data-slot="sidebar-content"],[data-slot="sidebar-footer"],
+  [data-slot="sidebar-group"],[data-slot="sidebar-menu"],[data-slot="sidebar-menu-item"]
+) { background-color:transparent !important; color:#e7f0ea; }
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-group-label"] {
+  color:#b4c7bb !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-button"],
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-sub-button"] {
+  color:#c3d1c8 !important;
+  background-color:transparent !important;
+  box-shadow:none;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-button"]:hover,
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-sub-button"]:hover {
+  color:#fff !important;
+  background-color:#214b39 !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-button"][data-active="true"] {
+  color:#fff !important;
+  background-color:rgb(199 164 81 / 18%) !important;
+  box-shadow:inset 3px 0 0 #c7a451 !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-sub-button"][data-active="true"] {
+  color:#f1d98f !important;
+  background-color:rgb(199 164 81 / 13%) !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] :is(.dashboard-category-count,.dashboard-category-chevron,.dashboard-sub-dot) {
+  color:#c7a451 !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] :is(.dashboard-nav-search,.dashboard-nav-search input) {
+  color:#e7f0ea !important;
+  background-color:#1b4433 !important;
+  border-color:rgb(255 255 255 / 13%) !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .dashboard-nav-search input::placeholder {
+  color:#a9bdb0 !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .dashboard-nav-shortcut {
+  color:#b4c7bb !important;
+  border-color:rgb(255 255 255 / 10%) !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .dashboard-nav-shortcut a {
+  color:#c3d1c8 !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .dashboard-nav-shortcut a:hover {
+  color:#f1d98f !important;
+  background-color:#214b39 !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .account {
+  color:#fff !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .account small {
+  color:#b4c7bb !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .sidebar-account-actions [data-slot="button"] {
+  color:#d6e2da !important;
+  background-color:transparent !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] .sidebar-account-actions [data-slot="button"]:hover {
+  color:#f1d98f !important;
+  background-color:#214b39 !important;
+}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] :is(input,button,a):focus-visible {
+  outline-color:#d5b45c !important;
+  box-shadow:0 0 0 2px rgb(213 180 92 / 22%) !important;
+}
+.dark .workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] {
+  background-color:#102c21 !important;
+}
+.dark .workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-button"]:hover,
+.dark .workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-sub-button"]:hover {
+  background-color:#1e4332 !important;
+}
