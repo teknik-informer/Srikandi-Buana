@@ -20,7 +20,6 @@ import Navigation, { DashboardMegaMenu } from "./dashboard-navigation";
 import ConnectionStatus from "./connection-status";
 import UnsavedChangesGuard from "./access/unsaved-changes-guard";
 import AccountMenu from "./access/account-menu";
-import ThemeControl from "./access/theme-control";
 import NotificationCenter from "./notification-center";
 export default function WorkspaceShell({
   user,
@@ -107,7 +106,6 @@ export default function WorkspaceShell({
           >
             <DashboardMegaMenu section={section} user={user} architectFullAccess={user.architectFullAccess === true} compact />
             <NotificationCenter compact />
-            <ThemeControl />
             <AccountMenu user={user} />
           </nav>
         </header>
