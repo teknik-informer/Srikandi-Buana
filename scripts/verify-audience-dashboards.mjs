@@ -24,7 +24,8 @@ assert.match(management, /buildEnterpriseMonitoring/, "Application metrics must 
 assert.match(management, /useWorkspaceData/, "Management dashboard must use live workspace data");
 assert.match(management, /dashboardMetrics/, "Each application must use its own domain metrics");
 assert.match(management, /snapshot.visibleRecords/, "Application overview must show only visible records");
-assert.match(management, /canReadSection\(user, "kas"\)/, "Financial figures must obey role permissions");
+assert.match(management, /buildEnterpriseMonitoring\(rows, files, user\)/, "All application data must be scoped to the signed-in principal");
+assert.match(management, /s\.finance/, "Financial metrics must use the permission-scoped finance snapshot");
 assert.match(member, /user\.memberId/, "Member dashboard must resolve only the signed-in member profile");
 assert.match(member, /Belum terhubung|belum tersedia/i, "Missing member ledger data must be disclosed");
 assert.match(member, /\/kabar/, "Member dashboard must link to published announcements");
