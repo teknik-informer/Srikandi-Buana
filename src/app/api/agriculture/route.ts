@@ -219,9 +219,12 @@ export async function POST(request: Request) {
       const harvestDate = isoDate(raw.harvestDate, "Tanggal panen")!;
       const quantity = numericValue(raw.quantity, "Hasil panen", 0.001, 100000000000, 3);
       const notes = typeof raw.notes === "string" ? raw.notes.trim().slice(0, 2000) : "";
-      const cycle = await db.prepare("SELECT c.id,c.status,a.default_unit FROM crop_cycles c JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner WHERE c.id=? AND c.workspace_owner=?")
+      const cycle = await db.prepare("SELECT c.id,c.status,c.verification_status AS cycle_verification,p.status AS parcel_status,p.verification_status AS parcel_verification,a.default_unit FROM crop_cycles c JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner WHERE c.id=? AND c.workspace_owner=?")
         .bind(cropCycleId, user.userId).first();
-      if (!cycle || cycle.status === "failed") return json({ error: "Siklus tanam tidak tersedia atau sudah dinyatakan gagal." }, 404);
+      if (!cycle || cycle.status === "failed" || cycle.parcel_status !== "active") return json({ error: "Siklus tanam atau lahan aktif tidak ditemukan dalam workspace ini." }, 404);
+      if (cycle.parcel_verification !== "verified" || cycle.cycle_verification !== "verified") {
+        return json({ error: "Hasil panen baru dapat dicatat setelah register lahan dan siklus tanam diverifikasi Sekretariat." }, 409);
+      }
       const unit = String(cycle.default_unit);
       if (!units.has(unit)) return json({ error: "Satuan komoditas perlu diperiksa sebelum panen dicatat." }, 409);
       const id = crypto.randomUUID();
