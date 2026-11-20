@@ -38,10 +38,17 @@ test("every canonical application has a grounded route, description, status and 
 });
 
 test("legacy enterprise workspaces remain mapped without replacing their stable IDs", () => {
-  const mapped = new Set(platformApplications.flatMap((app) => app.legacyWorkspaces));
+  const mapping = Object.fromEntries(platformApplications.map((app) => [app.id, Array.from(app.legacyWorkspaces)]));
+  const mapped = new Set(Object.values(mapping).flat());
   for (const id of ["hrm", "accounting", "crm", "projects", "pos", "analytics"]) {
     assert.ok(mapped.has(id), `legacy workspace ${id} must remain mapped`);
   }
+  assert.deepEqual(mapping.organization, ["hrm"]);
+  assert.deepEqual(mapping.agriculture, ["projects"]);
+  assert.deepEqual(mapping.business, ["accounting", "pos"]);
+  assert.deepEqual(mapping["public-partnership"], ["crm"]);
+  assert.deepEqual(mapping["bi-analytics"], ["analytics"]);
+  assert.deepEqual(mapping["platform-core"], []);
 });
 
 test("administrator module center renders the canonical registry separately from legacy module readiness", () => {
