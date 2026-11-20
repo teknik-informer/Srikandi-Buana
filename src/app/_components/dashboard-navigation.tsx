@@ -74,7 +74,7 @@ function getApplicationLaunches(user: Principal, architectFullAccess: boolean): 
   const business = platformApplications.find((application) => application.id === "business");
   const businessWorkspace = byId.get("accounting")?.features.length ? byId.get("accounting") : byId.get("pos");
   if (business && businessWorkspace?.features.length) {
-    launches.push({ id: business.id, label: business.name, href: businessWorkspace.href, description: business.description, Icon: Wallet });
+    launches.push({ id: business.id, label: business.name, href: business.route, description: business.description, Icon: Wallet });
   }
   const analytics = platformApplications.find((application) => application.id === "bi-analytics");
   if (analytics && byId.get("analytics")?.features.length) {
