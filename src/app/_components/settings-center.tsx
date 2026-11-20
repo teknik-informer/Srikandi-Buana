@@ -42,7 +42,7 @@ function OrganizationEditor() {
   const [loaded, setLoaded] = useState(false), [saving, setSaving] = useState(false), [error, setError] = useState("");
   const pending = useRef(false);
   useEffect(() => {
-    const controller = new AbortController(); request.current = controller;
+    const controller = new AbortController();
     requestJSON<{ settings?: OrganizationSettings; error?: string }>("/api/organization-settings", { cache: "no-store", signal: controller.signal })
       .then(({ response, data: result }) => {
         if (!response.ok || !result?.settings) throw new Error(result?.error || "Data organisasi belum dapat dimuat.");
