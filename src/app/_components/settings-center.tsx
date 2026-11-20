@@ -14,6 +14,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import SiteSettingsEditor from "./site-settings-editor";
+import GlobalSettingsControl from "./global-settings-control";
 
 type FileRow = { id: string; name: string; mime: string; deleted_at?: string | null };
 type OrganizationSettings = {
@@ -104,7 +105,7 @@ export default function SettingsCenter({ files, onSaved }: { files: FileRow[]; o
         </Link>;
       })}
     </div>
-    <Card id="preferensi"><CardHeader><CardTitle>Preferensi tampilan global</CardTitle><CardDescription>Gunakan ikon roda gigi di header ruang kerja untuk mengatur tampilan. Preferensi berlaku lintas halaman pada perangkat dan akun browser yang sama.</CardDescription></CardHeader><CardContent><p className="text-sm text-muted-foreground">Buka ikon roda gigi pada header untuk mengubah preferensi. Perubahan diterapkan langsung dan tersimpan otomatis.</p></CardContent></Card>
+    <Card id="preferensi"><CardHeader><CardTitle>Preferensi tampilan global</CardTitle><CardDescription>Atur tema, warna, tipografi, lebar konten, header, dan navigasi dari menu konfigurasi ini. Preferensi berlaku lintas halaman pada browser yang sama.</CardDescription></CardHeader><CardContent><GlobalSettingsControl /></CardContent></Card>
     <OrganizationEditor />
     <div id="website"><SiteSettingsEditor files={files} onSaved={onSaved} /></div>
     <Card><CardHeader><CardTitle>Kontrol dan keamanan akses</CardTitle><CardDescription>Pengaturan keamanan mengikuti sistem akun dan otorisasi yang sudah berjalan. Administrator dapat mengelola peran; setiap pengguna mengubah kata sandinya sendiri.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href="/dashboard/akun-saya"><ShieldCheck data-icon="inline-start" /> Akun & keamanan</Link></Button><Button asChild variant="outline"><Link href="/dashboard/akun"><UsersRound data-icon="inline-start" /> Pengguna & hak akses</Link></Button></CardContent></Card>
