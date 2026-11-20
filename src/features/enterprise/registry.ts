@@ -1,7 +1,14 @@
 import { dashboardGroups, type NavItem } from "../../lib/navigation-config";
 import { canReadSectionForRole, type Role } from "../identity/access-policy";
 
-export type EnterpriseDashboardId = "ecosystem" | "publication" | "finance" | "system";
+export type EnterpriseDashboardId =
+  | "organization"
+  | "agriculture"
+  | "business"
+  | "analytics"
+  | "public-partnership"
+  | "platform-core";
+
 export type EnterpriseDashboard = {
   id: EnterpriseDashboardId;
   href: string;
@@ -10,7 +17,9 @@ export type EnterpriseDashboard = {
   features: readonly NavItem[];
 };
 
-const legacyFeatures = new Map(dashboardGroups.flatMap((group) => group.items).map((item) => [item.id, item]));
+const legacyFeatures = new Map(
+  dashboardGroups.flatMap((group) => group.items).map((item) => [item.id, item]),
+);
 
 function features(ids: readonly string[]): readonly NavItem[] {
   return ids.map((id) => {
@@ -20,35 +29,53 @@ function features(ids: readonly string[]): readonly NavItem[] {
   });
 }
 
-/** Four user-facing areas; detailed operational modules remain available by role. */
+/**
+ * Canonical six-application architecture.
+ * Existing feature routes remain unchanged; this registry only groups them into
+ * the six application workspaces and preserves role-based visibility.
+ */
 export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
-    id: "ecosystem",
-    href: "/dashboard/ecosystem",
-    label: "Organisasi",
-    description: "Profil, keanggotaan, pengurus, program, kegiatan, dan dokumen organisasi.",
-    features: features(["portal", "notifikasi", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
+    id: "organization",
+    href: "/dashboard/organization",
+    label: "Organization",
+    description: "Identitas kelompok, keanggotaan, tata kelola, program, dan aktivitas organisasi.",
+    features: features(["portal", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
   },
   {
-    id: "publication",
-    href: "/dashboard/publication",
-    label: "Publikasi",
-    description: "Berita, pengumuman, dokumentasi kegiatan, galeri, dan komunikasi publik.",
-    features: features(["publikasi", "galeri", "pesan"]),
+    id: "agriculture",
+    href: "/dashboard/pertanian",
+    label: "Agriculture Management",
+    description: "Data lahan, komoditas, siklus budidaya, produksi, panen, dan tindak lanjut pertanian.",
+    features: features(["pertanian", "laporan_program", "tindaklanjut", "lotkopi"]),
   },
   {
-    id: "finance",
-    href: "/dashboard/finance",
-    label: "Pelaporan",
-    description: "Laporan kegiatan, keuangan, aset, usaha, dan pertanggungjawaban.",
-    features: features(["kas", "laporan", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]),
+    id: "business",
+    href: "/dashboard/business",
+    label: "Business & Enterprise",
+    description: "Kegiatan usaha, katalog, pesanan, transaksi, pembukuan, kas, dan aset produktif.",
+    features: features(["usaha", "penjualan", "kas", "akuntansi", "aset", "laporan"]),
   },
   {
-    id: "system",
-    href: "/dashboard/system",
-    label: "Administrasi",
-    description: "Surat, arsip, referensi, akun, hak akses, dan pengaturan.",
-    features: features(["surat", "sumber", "kelembagaan", "register", "transkripsi", "dokumen", "akses-eksternal", "akun", "akun-saya", "pengaturan", "panduan"]),
+    id: "analytics",
+    href: "/dashboard/analytics",
+    label: "BI & Analytics",
+    description: "Indikator kinerja, laporan lintas bidang, pemeriksaan kualitas data, dan monitoring.",
+    features: features(["transkripsi", "register", "sumber"]),
+  },
+  {
+    id: "public-partnership",
+    href: "/dashboard/public-partnership",
+    label: "Public & Partnership",
+    description: "Publikasi, komunikasi, kemitraan, akses pemerintah, dan kolaborasi eksternal.",
+    features: features(["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"]),
+  },
+  {
+    id: "platform-core",
+    href: "/dashboard/platform-core",
+    label: "Platform Core",
+    description: "Administrasi platform, surat, arsip, akun, hak akses, notifikasi, dan konfigurasi.",
+    features: features(["notifikasi", "surat", "kelembagaan", "dokumen", "akun", "akun-saya", "pengaturan", "panduan"]),
   },
 ];
 
@@ -56,7 +83,10 @@ export const enterpriseUtilities: readonly NavItem[] = [
   { id: "monitoring", label: "Status Sistem", description: "Status layanan dan kelengkapan data.", href: "/dashboard/monitoring" },
 ];
 
-export const dashboardRouteIds = enterpriseDashboards.map((dashboard) => dashboard.id);
+export const dashboardRouteIds = enterpriseDashboards
+  .filter((dashboard) => dashboard.id !== "agriculture")
+  .map((dashboard) => dashboard.id);
+
 export const dashboardSectionIds = [
   ...enterpriseDashboards.flatMap((dashboard) => dashboard.features.map((feature) => feature.id)),
   ...enterpriseUtilities.map((feature) => feature.id),
