@@ -73,13 +73,16 @@ test("Gentelella is a visual layer and does not replace the canonical six-applic
   const registrySource = readFileSync("src/features/platform/application-registry.ts", "utf8");
   const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
   const globalStyles = readFileSync("src/app/globals.css", "utf8");
+  const settings = readFileSync("src/app/_components/workspace.tsx", "utf8");
   assert.doesNotMatch(registrySource, /dashboardId|featureId/);
   assert.match(hub, /application\.legacyWorkspaces/);
   assert.match(navigation, /APLIKASI UTAMA/);
   assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /getVisibleEnterpriseDashboardsForUser/);
   assert.match(shell, /data-workspace-theme="gentelella"/);
-  assert.match(shell, /<ThemeControl\s*\/>/);
+  assert.doesNotMatch(shell, /ThemeControl/);
+  assert.match(settings, /<GlobalSettingsControl\s*\/>/);
+  assert.match(settings, /Preferensi tampilan global/);
   assert.match(shell, /variant=\{sidebarVariant\}/);
   assert.match(globalStyles, /gentelella-workspace\.css/);
 });
