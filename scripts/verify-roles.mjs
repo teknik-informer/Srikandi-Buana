@@ -259,21 +259,31 @@ const pendingBeforeReset=(await pool.query('SELECT id,owner,member_id,purpose,co
 const login=await load('src/app/api/auth/login/route.ts',jar());assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,200,'Member email/password login');
 assert.equal((await accountAdmin.PATCH(req('/api/accounts','PATCH',{userId:owner,role:'anggota',enabled:false}))).status,403,'Owner cannot be demoted');
 assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:principal.accountId,role:'anggota',enabled:false}))).status,200);assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,401);assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:chairAccountId,role:'anggota',position:'Changed',programIds:[],enabled:true}))).status,403,'Chair cannot change or disable their own organizational authority');assert.equal((await chairAuth.getAuthenticatedUser()).role,'ketua','Rejected self-role changes preserve the authenticated Chair session');
-// Membership lifecycle: a verified account loses access immediately when its source member record is deactivated.
+// Membership lifecycle: the actual secretariat workflow disables linked accounts, revokes sessions, and cancels pending invitations.
+ const deactivateMember=async memberId=>{
+  const snapshot=await (await secretaryRecords.GET(req('/api/records'))).json();
+  const row=snapshot.records.find(item=>item.id===memberId);
+  assert(row,'Secretary can read the member record before changing its status');
+  const response=await secretaryRecords.PUT(req('/api/records','PUT',{id:memberId,kind:'anggota',expectedUpdated:row.updated,data:{...row.data,status:'Tidak aktif'}}));
+  assert.equal(response.status,200,await response.clone().text());
+ };
  const lifecycleMember=await member('Lifecycle session fixture'),lifecycleInvite=await invite(lifecycleMember),lifecycleActivation=await activate(lifecycleInvite);
  assert.equal(lifecycleActivation.response.status,200,'Active verified member can activate an account');
  const lifecycleAuth=await load('src/lib/auth.ts',lifecycleActivation.j);
- assert.equal((await lifecycleAuth.getAuthenticatedUser()).memberId,lifecycleMember,'Session resolves the linked member before deactivation');
- const lifecycleRow=await prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(lifecycleMember,owner).first();
- const lifecycleData=JSON.parse(lifecycleRow.data);lifecycleData.status='Tidak aktif';
- await prepare('UPDATE records SET data=$1 WHERE id=$2').bind(JSON.stringify(lifecycleData),lifecycleMember).run();
- assert.equal(await lifecycleAuth.getAuthenticatedUser(),null,'Deactivating a member immediately blocks an already authenticated linked account');
+ const lifecyclePrincipal=await lifecycleAuth.getAuthenticatedUser();
+ assert.equal(lifecyclePrincipal.memberId,lifecycleMember,'Session resolves the linked member before deactivation');
+ await deactivateMember(lifecycleMember);
+ assert.equal(await lifecycleAuth.getAuthenticatedUser(),null,'Deactivation revokes an already authenticated member session');
+ const disabledLifecycleAccount=await prepare('SELECT enabled FROM users WHERE id=?').bind(lifecyclePrincipal.accountId).first();
+ assert.equal(disabledLifecycleAccount.enabled,false,'Deactivation disables the linked account, preventing session resurrection after reactivation');
+ const remainingLifecycleSessions=await prepare('SELECT token_hash FROM sessions WHERE user_id=?').bind(lifecyclePrincipal.accountId).all();
+ assert.equal(remainingLifecycleSessions.results.length,0,'Deactivation deletes every active session for the linked account');
  const pendingLifecycleMember=await member('Lifecycle pending invite'),pendingLifecycleInvite=await invite(pendingLifecycleMember);
- const pendingLifecycleRow=await prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(pendingLifecycleMember,owner).first();
- const pendingLifecycleData=JSON.parse(pendingLifecycleRow.data);pendingLifecycleData.status='Tidak aktif';
- await prepare('UPDATE records SET data=$1 WHERE id=$2').bind(JSON.stringify(pendingLifecycleData),pendingLifecycleMember).run();
- assert.equal((await activate(pendingLifecycleInvite)).response.status,403,'A pending activation cannot be consumed after its member is deactivated');
- console.log('PASS membership lifecycle: deactivation blocks existing sessions and pending account activation immediately.');
+ await deactivateMember(pendingLifecycleMember);
+ const revokedLifecycleInvite=await prepare('SELECT revoked_at FROM account_invitations WHERE owner=? AND email=?').bind(owner,pendingLifecycleInvite.email).first();
+ assert(revokedLifecycleInvite?.revoked_at,'Deactivation revokes the pending activation invitation');
+ assert.equal((await activate(pendingLifecycleInvite)).response.status,400,'A revoked pending activation cannot be consumed');
+ console.log('PASS membership lifecycle: status change disables linked accounts, deletes sessions, and revokes pending invitations.');
  // Public service topics, consent receipts, rejection, and administrator visibility.
 const publicMessages=await load('src/app/api/messages/route.ts',jar());
 const topics=['Informasi kelompok','Keanggotaan','Kemitraan','Dukungan akun','Pengaduan','Koreksi informasi','Permintaan data pribadi','Laporan keamanan','Bantuan aksesibilitas','Lainnya'];
