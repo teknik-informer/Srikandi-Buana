@@ -8,6 +8,7 @@ import {
   FileBarChart,
   Printer,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -465,16 +466,39 @@ export default function EnterpriseReports({
             <Input id="report-period" type="month" value={month} onChange={(event) => setMonth(event.target.value)} className="w-full sm:w-56" />
             <p className="text-xs text-muted-foreground">{month ? "Menampilkan catatan yang tanggal/periodenya sesuai bulan terpilih." : "Semua periode · tanggal mengikuti tanggal catatan atau tenggat yang tersedia."}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {month && <Button variant="outline" onClick={() => setMonth("")}>Semua periode</Button>}
-            <Button variant="outline" onClick={() => window.print()}>
-              <Printer data-icon="inline-start" />
-              Cetak
+          <div className="workspace-compact-actions flex flex-wrap gap-2" aria-label="Tindakan laporan">
+            {month && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setMonth("")}
+                aria-label="Tampilkan semua periode"
+                title="Tampilkan semua periode"
+              >
+                <X />
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => window.print()}
+              aria-label="Cetak laporan"
+              title="Cetak laporan"
+            >
+              <Printer />
             </Button>
             {currentGroup.id !== "keuangan" && (
-              <Button onClick={download} disabled={!reportRows.length}>
-                <Download data-icon="inline-start" />
-                Ekspor CSV
+              <Button
+                type="button"
+                size="icon"
+                onClick={download}
+                disabled={!reportRows.length}
+                aria-label="Ekspor laporan ke CSV"
+                title="Ekspor laporan ke CSV"
+              >
+                <Download />
               </Button>
             )}
           </div>
