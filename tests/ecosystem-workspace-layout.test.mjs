@@ -34,7 +34,8 @@ test("every module workspace opts into the shared page layout", () => {
   assert.ok(management.includes('className="management-dashboard workspace-page min-w-0"'));
   assert.equal((commerce.match(/className="workspace-page"/g) || []).length, 2);
   assert.ok(operations.includes('<div className="workspace-page">'));
-  assert.ok(notifications.includes('className="workspace-page"'));
+  assert.ok(notifications.includes("if(compact)return"));
+  assert.ok(notifications.includes('className="workspace workspace-page"'));
   assert.ok(dashboard.includes('<main className="workspace-page"'));
 });
 
@@ -55,7 +56,8 @@ test("specialized monitoring and report pages render only their own page heading
   assert.ok(adminWorkspace.includes('{!["monitoring", "laporan"].includes(section) && ('));
   assert.ok(roleWorkspace.includes('{!["monitoring", "laporan"].includes(section) && ('));
   assert.ok(monitoring.includes('<WorkspacePageHeader'));
-  assert.ok(reports.includes('<h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Laporan</h1>'));
+  assert.ok(reports.includes("<WorkspacePageHeader"));
+  assert.ok(reports.includes('title="Laporan"'));
 });
 
 test("Pusat Kendali provides a role-scoped action queue from real operational records", () => {
