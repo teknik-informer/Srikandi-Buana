@@ -20,6 +20,7 @@ export async function POST(request:Request){const c=await required(request,true)
  const snapshot=JSON.stringify({id,sku,name,description:String(b.description||''),unit,price:b.price,stock:b.stock,published:b.published});
  await c.db.batch([
   c.db.prepare('INSERT INTO commerce_products(id,owner,sku,name,description,unit,price,stock,published,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(id,c.user.userId,sku,name,String(b.description||''),unit,b.price,b.stock,b.published,now,now),
+  c.db.prepare("INSERT INTO commerce_inventory_lots(owner,product_id,source_type,initial_quantity,remaining_quantity,received_at,created) SELECT ?,?,'opening_balance',?,?,?,? WHERE ?>0").bind(c.user.userId,id,b.stock,b.stock,now,now,b.stock),
   c.db.prepare("INSERT INTO commerce_product_audit(owner,product_id,actor_id,action,before_state,after_state) VALUES(?,?,?,'created',NULL,?)").bind(c.user.userId,id,c.user.userId,snapshot),
   c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Produk ditambahkan',sku+' · '+name,now)
  ]);
@@ -28,11 +29,13 @@ export async function POST(request:Request){const c=await required(request,true)
 export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(c.user.role!=='bendahara')return json({error:'Akses katalog usaha hanya untuk Bendahara.'},403);
  try{const b=await readJsonObject(request,4500);if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id)||typeof b.expectedUpdated!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(b.expectedUpdated)||!textField(b.name,160)||!textField(b.unit,30)||!moneyInteger(b.price)||!moneyInteger(b.stock,1000000)||typeof b.published!=='boolean'||typeof b.description!=='string'||b.description.length>2000)return json({error:'Data produk tidak valid.'},400);
  const now=new Date().toISOString();
+ const current=await c.db.prepare('SELECT stock FROM commerce_products WHERE id=? AND owner=? AND updated=?').bind(b.id,c.user.userId,b.expectedUpdated).first();
+ if(!current||Number(current.stock)!==Number(b.stock))return json({error:'Perubahan jumlah stok harus melalui transaksi penerimaan atau penyesuaian persediaan, bukan penyuntingan katalog.'},409);
  const sql=`WITH before AS MATERIALIZED (
   SELECT id,owner,sku,name,description,unit,price,stock,published,updated
   FROM commerce_products WHERE id=? AND owner=? AND updated=?
  ), changed AS (
-  UPDATE commerce_products p SET name=?,description=?,unit=?,price=?,stock=?,published=?,updated=?
+  UPDATE commerce_products p SET name=?,description=?,unit=?,price=?,stock=p.stock,published=?,updated=?
   FROM before b WHERE p.id=b.id AND p.owner=b.owner AND p.updated=b.updated
   RETURNING p.id,p.owner,p.sku,p.name,p.description,p.unit,p.price,p.stock,p.published,p.updated
  ), logged AS (
@@ -42,6 +45,6 @@ export async function PATCH(request:Request){const c=await required(request,true
   RETURNING product_id
  )
  SELECT product_id FROM logged`;
- const row=await c.db.prepare(sql).bind(b.id,c.user.userId,b.expectedUpdated,String(b.name).trim(),b.description,String(b.unit).trim(),b.price,b.stock,b.published,now,c.user.userId).first();
+ const row=await c.db.prepare(sql).bind(b.id,c.user.userId,b.expectedUpdated,String(b.name).trim(),b.description,String(b.unit).trim(),b.price,b.published,now,c.user.userId).first();
  return row?json({ok:true}):json({error:'Data produk telah berubah atau tidak ditemukan. Muat ulang daftar sebelum menyimpan.'},409);
  }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}}
