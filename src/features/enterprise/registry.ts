@@ -36,6 +36,13 @@ function features(ids: readonly string[]): readonly NavItem[] {
  */
 export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
+    id: "platform-core",
+    href: "/dashboard/platform-core",
+    label: "Platform Core",
+    description: "Administrasi platform, surat, arsip, akun, hak akses, notifikasi, dan konfigurasi.",
+    features: features(["notifikasi", "surat", "kelembagaan", "dokumen", "akun", "akun-saya", "pengaturan", "panduan"]),
+  },
+  {
     id: "organization",
     href: "/dashboard/organization",
     label: "Organization",
@@ -69,13 +76,6 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     label: "Public & Partnership",
     description: "Publikasi, komunikasi, kemitraan, akses pemerintah, dan kolaborasi eksternal.",
     features: features(["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"]),
-  },
-  {
-    id: "platform-core",
-    href: "/dashboard/platform-core",
-    label: "Platform Core",
-    description: "Administrasi platform, surat, arsip, akun, hak akses, notifikasi, dan konfigurasi.",
-    features: features(["notifikasi", "surat", "kelembagaan", "dokumen", "akun", "akun-saya", "pengaturan", "panduan"]),
   },
 ];
 
