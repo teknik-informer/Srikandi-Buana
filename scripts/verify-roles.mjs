@@ -46,6 +46,12 @@ assert.equal(policy.visibleRecord(chair,transcriptFixture).data.notes,undefined,
 assert.equal(policy.visibleRecord(chair,transcriptFixture).data.attachmentId,undefined,'Chair cannot access private identity-bearing source attachments by default');
 const attendanceFixture={id:'attendance-1',kind:'kehadiran',data:{eventId:'event-1',name:'Kegiatan uji',memberIds:['member-1','member-2'],memberNames:['Nama Satu','Nama Dua'],notes:'Catatan pribadi peserta'}};
 const chairAttendance=policy.visibleRecord(chair,attendanceFixture);
+assert.equal(policy.canReadKindForRole('sekretaris','kehadiran'),true,'Secretary can reload the attendance register it manages');
+assert.equal(policy.canReadKindForRole('ketua','kehadiran'),true,'Chair can receive an aggregate attendance view');
+assert.equal(policy.canReadKindForRole('bendahara','kehadiran'),false,'Treasurer cannot browse individual attendance registers');
+assert.equal(policy.canReadKindForRole('koordinator','kehadiran'),false,'Coordinators cannot browse organization-wide attendance registers');
+assert.equal(policy.canReadKindForRole('anggota','kehadiran'),false,'Members cannot browse the organization-wide attendance register');
+assert.equal(policy.canReadKindForRole('sekretaris','attendance_record'),false,'Private attendance implementation records remain inaccessible');
 assert.equal(chairAttendance.data.count,2,'Chair receives an attendance aggregate');
 assert.equal(chairAttendance.data.memberIds,undefined,'Chair cannot receive member IDs in an attendance record');
 assert.equal(chairAttendance.data.memberNames,undefined,'Chair cannot receive individual attendance names');
