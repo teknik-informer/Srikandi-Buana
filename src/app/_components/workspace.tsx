@@ -91,7 +91,7 @@ import FileManager from "./file-manager";
 import Inbox from "./inbox";
 import EnterpriseReports from "./enterprise-reports";
 import EnterpriseMonitoring from "./enterprise-monitoring";
-import SiteSettingsEditor from "./site-settings-editor";
+import SettingsCenter from "./settings-center";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
@@ -279,7 +279,7 @@ export default function Workspace({
       kehadiran: "Kehadiran",
       laporan: "Laporan",
       monitoring: "Monitoring Operasional",
-      pengaturan: "Pengaturan situs",
+      pengaturan: "Pusat Pengaturan",
       sumber: "Referensi Dokumen",
       panduan: "Pusat bantuan",
     }[section] ||
@@ -949,7 +949,7 @@ export default function Workspace({
         )}
         {section === "pesan" && <Inbox />}
         {section === "pengaturan" && (
-          <SiteSettingsEditor
+          <SettingsCenter
             files={files}
             onSaved={() => {
               load();
