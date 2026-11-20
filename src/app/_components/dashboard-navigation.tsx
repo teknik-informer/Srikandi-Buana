@@ -32,6 +32,7 @@ import {
   ChartNoAxesCombined,
   ChevronDown,
   FileText,
+  Files,
   Grid2X2,
   Handshake,
   LayoutDashboard,
