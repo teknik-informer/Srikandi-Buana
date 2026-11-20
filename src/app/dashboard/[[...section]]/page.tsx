@@ -86,6 +86,20 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     );
   }
   const dashboardDefinition = getEnterpriseDashboardById(active);
+  // Business & Enterprise is an application-level entry point. Resolve to the
+  // first operational legacy workspace the authenticated principal can use;
+  // this prevents POS-only accounts from being sent into Accounting RBAC.
+  if (active === "business") {
+    const businessWorkspaces = getVisibleEnterpriseDashboardsForUser(
+      admin,
+      isArchitectFullAccess(admin),
+      admin.role === "admin",
+    ).filter((dashboard) => ["accounting", "pos"].includes(dashboard.id));
+    const operationalWorkspace = businessWorkspaces.find((dashboard) => dashboard.features.length > 0);
+    const shellWorkspace = operationalWorkspace ?? businessWorkspaces.find((dashboard) => dashboard.accessOnly || dashboard.catalogOnly);
+    if (operationalWorkspace || shellWorkspace) redirect(operationalWorkspace?.href ?? shellWorkspace!.href);
+    return notFound();
+  }
   const visibleDashboard = dashboardDefinition
     ? getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin").find((dashboard) => dashboard.id === active)
     : undefined;
