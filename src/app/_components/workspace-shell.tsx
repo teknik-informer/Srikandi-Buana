@@ -1,5 +1,5 @@
 "use client";
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import {
   SidebarInset,
@@ -35,19 +35,37 @@ export default function WorkspaceShell({
   children: ReactNode;
   defaultSidebarOpen?: boolean;
 }) {
+  const [sidebarVariant, setSidebarVariant] = useState<"sidebar" | "inset" | "floating">("sidebar");
+  const [sidebarCollapsible, setSidebarCollapsible] = useState<"icon" | "offcanvas">("icon");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => {
+      const variant = root.getAttribute("data-sidebar-variant");
+      const collapsible = root.getAttribute("data-sidebar-collapsible");
+      setSidebarVariant(variant === "inset" || variant === "floating" ? variant : "sidebar");
+      setSidebarCollapsible(collapsible === "offcanvas" ? "offcanvas" : "icon");
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-sidebar-variant", "data-sidebar-collapsible"] });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <SidebarProvider
       defaultOpen={defaultSidebarOpen}
       className="workspace-shell"
-      style={
-        { "--sidebar-width": "calc(var(--spacing) * 68)" } as CSSProperties
-      }
+      data-workspace-theme="gentelella"
+      data-sidebar-variant={sidebarVariant}
+      data-sidebar-collapsible={sidebarCollapsible}
+      style={{ "--sidebar-width": "252px", "--sidebar-width-icon": "64px" } as CSSProperties}
     >
       <UnsavedChangesGuard />
       <a href="#workspace-content" className="skip-link">
         Langsung ke isi dashboard
       </a>
-      <Navigation user={user} section={section} architectFullAccess={user.architectFullAccess === true} />
+      <Navigation user={user} section={section} architectFullAccess={user.architectFullAccess === true} variant={sidebarVariant} collapsible={sidebarCollapsible} />
       <SidebarInset className="min-w-0 overflow-x-clip">
         <ConnectionStatus />
         <header className="workspace-header">
