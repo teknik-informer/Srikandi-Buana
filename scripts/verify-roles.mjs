@@ -278,6 +278,15 @@ assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:prin
  assert.equal(disabledLifecycleAccount.enabled,false,'Deactivation disables the linked account, preventing session resurrection after reactivation');
  const remainingLifecycleSessions=await prepare('SELECT token_hash FROM sessions WHERE user_id=?').bind(lifecyclePrincipal.accountId).all();
  assert.equal(remainingLifecycleSessions.results.length,0,'Deactivation deletes every active session for the linked account');
+ const blockedReenable=await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:lifecyclePrincipal.accountId,role:'anggota',position:'',programIds:[],enabled:true}));
+ assert.equal(blockedReenable.status,409,'Account manager cannot re-enable an account while its membership remains inactive');
+ const inactiveSnapshot=await (await secretaryRecords.GET(req('/api/records'))).json();
+ const inactiveRow=inactiveSnapshot.records.find(item=>item.id===lifecycleMember);
+ assert(inactiveRow,'Secretary can read the inactive member before reactivation');
+ const reactivate=await secretaryRecords.PUT(req('/api/records','PUT',{id:lifecycleMember,kind:'anggota',expectedUpdated:inactiveRow.updated,data:{...inactiveRow.data,status:'Aktif',verification:'Terverifikasi'}}));
+ assert.equal(reactivate.status,200,await reactivate.clone().text());
+ assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:lifecyclePrincipal.accountId,role:'anggota',position:'',programIds:[],enabled:true}))).status,200,'Account manager may explicitly re-enable access after verified membership restoration');
+ assert.equal(await lifecycleAuth.getAuthenticatedUser(),null,'Reactivation and account enablement do not restore a previously revoked session');
  const pendingLifecycleMember=await member('Lifecycle pending invite'),pendingLifecycleInvite=await invite(pendingLifecycleMember);
  await deactivateMember(pendingLifecycleMember);
  const revokedLifecycleInvite=await prepare('SELECT revoked_at FROM account_invitations WHERE owner=? AND email=?').bind(owner,pendingLifecycleInvite.email).first();
