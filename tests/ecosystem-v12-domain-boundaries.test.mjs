@@ -65,6 +65,10 @@ test("generic commodity receipts are writable only by the Treasurer and require 
   }
   const records = readFileSync("src/app/api/records/route.ts", "utf8");
   assert.ok(records.includes('kind==="lotkopi"&&f.key==="quantity"&&n<=0'));
+  const modules = readFileSync("src/lib/srikandi.ts", "utf8");
+  assert.ok(modules.includes('title:"Penerimaan Hasil"'));
+  assert.ok(modules.includes('label:"Nama komoditas / produk"'));
+  assert.ok(modules.includes('label:"Asal penerimaan"'));
 });
 
 test("commerce validation owns SKU format rules", () => {
