@@ -39,10 +39,11 @@ export default function ApplicationHub({
   const applications = platformApplications
     .filter((application) => application.id !== "platform-core" || canOpenPlatformCore)
     .map((application) => {
-      const dashboard = byId.get(application.id);
+      const dashboard = byId.get(application.dashboardId);
+      const feature = dashboard?.features.find((item) => item.id === application.featureId);
       const enabled = application.id === "platform-core"
-        ? canOpenPlatformCore
-        : Boolean(dashboard?.features.length);
+        ? canOpenPlatformCore && Boolean(feature)
+        : Boolean(feature);
       return {
         application,
         Icon: applicationIcons[application.id],
@@ -69,7 +70,7 @@ export default function ApplicationHub({
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="application-list-title" className="text-lg font-semibold tracking-tight">Enam Aplikasi Srikandi Buana</h2>
-            <p className="text-sm text-muted-foreground">Satu platform terpadu dengan enam ruang aplikasi utama.</p>
+            <p className="text-sm text-muted-foreground">Enam pintasan aplikasi di atas empat ruang dashboard inti. Data dan hak akses tetap mengikuti modul yang sudah berjalan.</p>
           </div>
           <span className="text-xs tabular-nums text-muted-foreground">{applications.length} aplikasi tersedia</span>
         </div>
