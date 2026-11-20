@@ -47,12 +47,10 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
 const dashboardIcons: Record<string, typeof Grid2X2> = {
-  organization: Users,
-  agriculture: Sprout,
-  business: Store,
-  "bi-analytics": ChartNoAxesCombined,
-  "public-partnership": Handshake,
-  "platform-core": Blocks,
+  ecosystem: Users,
+  publication: Megaphone,
+  finance: Store,
+  system: Blocks,
 };
 export default function DashboardNavigation({ section, user, variant = "sidebar", collapsible = "icon" }: { section: string; user: Principal; variant?: "sidebar" | "inset" | "floating"; collapsible?: "icon" | "offcanvas" }) {
   const identity = useProfileIdentity(user);
@@ -139,7 +137,7 @@ export default function DashboardNavigation({ section, user, variant = "sidebar"
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>ENAM APLIKASI</SidebarGroupLabel>
+          <SidebarGroupLabel>RUANG KERJA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -292,7 +290,7 @@ export function DashboardMegaMenu({
           </DialogClose>
           <DialogTitle>Pusat Aplikasi</DialogTitle>
           <DialogDescription>
-            Enam aplikasi utama Srikandi Buana. Fitur yang tampil mengikuti hak akses akun Anda.
+            Empat ruang kerja utama Srikandi Buana. Fitur yang tampil mengikuti hak akses akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -324,7 +322,7 @@ export function DashboardMegaMenu({
               </div>
             </section>
           )}
-          <div className="dashboard-mega-grid" aria-label="Enam aplikasi utama">
+          <div className="dashboard-mega-grid" aria-label="Empat ruang kerja utama">
             {groups.map((g) => (
               <section key={g.id}>
                 <h3>
