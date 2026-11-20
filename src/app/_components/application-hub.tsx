@@ -21,8 +21,20 @@ export default function ApplicationHub({ dashboards, displayName, canOpenPlatfor
     const presentation = applicationPresentation[application.id];
     const matched = presentation.legacy.map((id) => byId.get(id)).filter(Boolean);
     const dashboard = matched.find((item) => !item?.catalogOnly && !item?.accessOnly) ?? matched[0];
-    const enabled = application.id === "platform-core" ? canOpenPlatformCore : matched.length > 0;
-    const href = ["platform-core", "agriculture", "public-partnership"].includes(application.id) ? application.route : dashboard?.href ?? application.route;
+    const enabled = application.id === "platform-core"
+      ? canOpenPlatformCore
+      : application.id === "agriculture"
+        ? Boolean(byId.get("projects")?.features.some((feature) => feature.id === "pertanian"))
+        : application.id === "business"
+          ? Boolean(matched.some((item) => (item?.features.length ?? 0) > 0))
+          : application.id === "bi-analytics"
+            ? Boolean(byId.get("analytics")?.features.some((feature) => feature.id === "analytics"))
+            : application.id === "public-partnership"
+              ? Boolean(byId.get("crm")?.features.some((feature) => ["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"].includes(feature.id)))
+              : matched.some((item) => (item?.features.length ?? 0) > 0);
+    // Canonical application routes own app-level launches; legacy dashboards remain
+    // compatibility workspaces and must not override the application destination.
+    const href = application.route;
     const restricted = !enabled || Boolean(dashboard?.catalogOnly || dashboard?.accessOnly);
     return { application, presentation, href, enabled, restricted, dashboard };
   });

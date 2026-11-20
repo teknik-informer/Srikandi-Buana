@@ -46,6 +46,12 @@ assert.equal(policy.visibleRecord(chair,transcriptFixture).data.notes,undefined,
 assert.equal(policy.visibleRecord(chair,transcriptFixture).data.attachmentId,undefined,'Chair cannot access private identity-bearing source attachments by default');
 const attendanceFixture={id:'attendance-1',kind:'kehadiran',data:{eventId:'event-1',name:'Kegiatan uji',memberIds:['member-1','member-2'],memberNames:['Nama Satu','Nama Dua'],notes:'Catatan pribadi peserta'}};
 const chairAttendance=policy.visibleRecord(chair,attendanceFixture);
+assert.equal(policy.canReadKindForRole('sekretaris','kehadiran'),true,'Secretary can reload the attendance register it manages');
+assert.equal(policy.canReadKindForRole('ketua','kehadiran'),true,'Chair can receive an aggregate attendance view');
+assert.equal(policy.canReadKindForRole('bendahara','kehadiran'),false,'Treasurer cannot browse individual attendance registers');
+assert.equal(policy.canReadKindForRole('koordinator','kehadiran'),false,'Coordinators cannot browse organization-wide attendance registers');
+assert.equal(policy.canReadKindForRole('anggota','kehadiran'),false,'Members cannot browse the organization-wide attendance register');
+assert.equal(policy.canReadKindForRole('sekretaris','attendance_record'),false,'Private attendance implementation records remain inaccessible');
 assert.equal(chairAttendance.data.count,2,'Chair receives an attendance aggregate');
 assert.equal(chairAttendance.data.memberIds,undefined,'Chair cannot receive member IDs in an attendance record');
 assert.equal(chairAttendance.data.memberNames,undefined,'Chair cannot receive individual attendance names');
@@ -253,7 +259,41 @@ const pendingBeforeReset=(await pool.query('SELECT id,owner,member_id,purpose,co
 const login=await load('src/app/api/auth/login/route.ts',jar());assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,200,'Member email/password login');
 assert.equal((await accountAdmin.PATCH(req('/api/accounts','PATCH',{userId:owner,role:'anggota',enabled:false}))).status,403,'Owner cannot be demoted');
 assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:principal.accountId,role:'anggota',enabled:false}))).status,200);assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,401);assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:chairAccountId,role:'anggota',position:'Changed',programIds:[],enabled:true}))).status,403,'Chair cannot change or disable their own organizational authority');assert.equal((await chairAuth.getAuthenticatedUser()).role,'ketua','Rejected self-role changes preserve the authenticated Chair session');
-// Public service topics, consent receipts, rejection, and administrator visibility.
+// Membership lifecycle: the actual secretariat workflow disables linked accounts, revokes sessions, and cancels pending invitations.
+ const deactivateMember=async memberId=>{
+  const snapshot=await (await secretaryRecords.GET(req('/api/records'))).json();
+  const row=snapshot.records.find(item=>item.id===memberId);
+  assert(row,'Secretary can read the member record before changing its status');
+  const response=await secretaryRecords.PUT(req('/api/records','PUT',{id:memberId,kind:'anggota',expectedUpdated:row.updated,data:{...row.data,status:'Tidak aktif'}}));
+  assert.equal(response.status,200,await response.clone().text());
+ };
+ const lifecycleMember=await member('Lifecycle session fixture'),lifecycleInvite=await invite(lifecycleMember),lifecycleActivation=await activate(lifecycleInvite);
+ assert.equal(lifecycleActivation.response.status,200,'Active verified member can activate an account');
+ const lifecycleAuth=await load('src/lib/auth.ts',lifecycleActivation.j);
+ const lifecyclePrincipal=await lifecycleAuth.getAuthenticatedUser();
+ assert.equal(lifecyclePrincipal.memberId,lifecycleMember,'Session resolves the linked member before deactivation');
+ await deactivateMember(lifecycleMember);
+ assert.equal(await lifecycleAuth.getAuthenticatedUser(),null,'Deactivation revokes an already authenticated member session');
+ const disabledLifecycleAccount=await prepare('SELECT enabled FROM users WHERE id=?').bind(lifecyclePrincipal.accountId).first();
+ assert.equal(disabledLifecycleAccount.enabled,false,'Deactivation disables the linked account, preventing session resurrection after reactivation');
+ const remainingLifecycleSessions=await prepare('SELECT token_hash FROM sessions WHERE user_id=?').bind(lifecyclePrincipal.accountId).all();
+ assert.equal(remainingLifecycleSessions.results.length,0,'Deactivation deletes every active session for the linked account');
+ const blockedReenable=await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:lifecyclePrincipal.accountId,role:'anggota',position:'',programIds:[],enabled:true}));
+ assert.equal(blockedReenable.status,409,'Account manager cannot re-enable an account while its membership remains inactive');
+ const inactiveSnapshot=await (await secretaryRecords.GET(req('/api/records'))).json();
+ const inactiveRow=inactiveSnapshot.records.find(item=>item.id===lifecycleMember);
+ assert(inactiveRow,'Secretary can read the inactive member before reactivation');
+ const reactivate=await secretaryRecords.PUT(req('/api/records','PUT',{id:lifecycleMember,kind:'anggota',expectedUpdated:inactiveRow.updated,data:{...inactiveRow.data,status:'Aktif',verification:'Terverifikasi'}}));
+ assert.equal(reactivate.status,200,await reactivate.clone().text());
+ assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:lifecyclePrincipal.accountId,role:'anggota',position:'',programIds:[],enabled:true}))).status,200,'Account manager may explicitly re-enable access after verified membership restoration');
+ assert.equal(await lifecycleAuth.getAuthenticatedUser(),null,'Reactivation and account enablement do not restore a previously revoked session');
+ const pendingLifecycleMember=await member('Lifecycle pending invite'),pendingLifecycleInvite=await invite(pendingLifecycleMember);
+ await deactivateMember(pendingLifecycleMember);
+ const revokedLifecycleInvite=await prepare('SELECT revoked_at FROM account_invitations WHERE owner=? AND email=?').bind(owner,pendingLifecycleInvite.email).first();
+ assert(revokedLifecycleInvite?.revoked_at,'Deactivation revokes the pending activation invitation');
+ assert.equal((await activate(pendingLifecycleInvite)).response.status,400,'A revoked pending activation cannot be consumed');
+ console.log('PASS membership lifecycle: status change disables linked accounts, deletes sessions, and revokes pending invitations.');
+ // Public service topics, consent receipts, rejection, and administrator visibility.
 const publicMessages=await load('src/app/api/messages/route.ts',jar());
 const topics=['Informasi kelompok','Keanggotaan','Kemitraan','Dukungan akun','Pengaduan','Koreksi informasi','Permintaan data pribadi','Laporan keamanan','Bantuan aksesibilitas','Lainnya'];
 for(let i=0;i<topics.length;i++){const request=req('/api/messages','POST',{name:'Synthetic visitor',contact:'visitor@example.test',topic:topics[i],message:'Synthetic request for '+topics[i],consent:true});request.headers.set('x-vercel-forwarded-for','198.51.100.'+(70+i));const response=await publicMessages.POST(request);assert.equal(response.status,200,await response.text())}

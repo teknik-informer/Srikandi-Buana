@@ -39,7 +39,7 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   if ((section?.length || 0) > 1) notFound();
-  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan", "qa-test-center", "qa-members"]);
+  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan", "business", "qa-test-center", "qa-members"]);
   if (section?.[0] === "profil") redirect("/profil");
   const legacyDashboardRedirects: Record<string, string> = {
     kehadiran: "/dashboard/presensi",
@@ -86,6 +86,20 @@ export default async function Page({ params }: { params: Promise<{ section?: str
     );
   }
   const dashboardDefinition = getEnterpriseDashboardById(active);
+  // Business & Enterprise is an application-level entry point. Resolve to the
+  // first operational legacy workspace the authenticated principal can use;
+  // this prevents POS-only accounts from being sent into Accounting RBAC.
+  if (active === "business") {
+    const businessWorkspaces = getVisibleEnterpriseDashboardsForUser(
+      admin,
+      isArchitectFullAccess(admin),
+      admin.role === "admin",
+    ).filter((dashboard) => ["accounting", "pos"].includes(dashboard.id));
+    const operationalWorkspace = businessWorkspaces.find((dashboard) => dashboard.features.length > 0);
+    const shellWorkspace = operationalWorkspace ?? businessWorkspaces.find((dashboard) => dashboard.accessOnly || dashboard.catalogOnly);
+    if (operationalWorkspace || shellWorkspace) redirect(operationalWorkspace?.href ?? shellWorkspace!.href);
+    return notFound();
+  }
   const visibleDashboard = dashboardDefinition
     ? getVisibleEnterpriseDashboardsForUser(admin, isArchitectFullAccess(admin), admin.role === "admin").find((dashboard) => dashboard.id === active)
     : undefined;

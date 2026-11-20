@@ -92,6 +92,7 @@ import Inbox from "./inbox";
 import EnterpriseReports from "./enterprise-reports";
 import EnterpriseMonitoring from "./enterprise-monitoring";
 import SiteSettingsEditor from "./site-settings-editor";
+import GlobalSettingsControl from "./global-settings-control";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
@@ -985,13 +986,24 @@ export default function Workspace({
         )}
         {section === "pesan" && <Inbox />}
         {section === "pengaturan" && (
-          <SiteSettingsEditor
-            files={files}
-            onSaved={() => {
-              load();
-              router.refresh();
-            }}
-          />
+          <div className="space-y-5">
+            <div className="rounded-xl border bg-card p-4 sm:p-5">
+              <div className="mb-3">
+                <h2 className="text-sm font-semibold">Preferensi tampilan global</h2>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Atur tema, palet warna, tipografi, lebar konten, header, dan perilaku navigasi. Preferensi berlaku lintas halaman pada browser ini.
+                </p>
+              </div>
+              <GlobalSettingsControl />
+            </div>
+            <SiteSettingsEditor
+              files={files}
+              onSaved={() => {
+                load();
+                router.refresh();
+              }}
+            />
+          </div>
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
         {section === "laporan" && !loading && !error && (

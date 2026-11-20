@@ -121,7 +121,7 @@ const secretariatReadOnly = [
   "kas", "aset", "akuntansi", "program", "pertanian",
   "laporan_program", "tindaklanjut", "dokumen", "kemitraan", "usaha",
 ];
-const financeWrite = ["kas", "aset"];
+const financeWrite = ["kas", "aset", "lotkopi"];
 const financeReadOnly = [
   ...secretariatWrite,
   ...secretariatReadOnly,
@@ -132,7 +132,10 @@ const coordinationWrite = ["program", "kegiatan", "tindaklanjut", "laporan_progr
 const privateAttendanceKinds = new Set(["attendance_session", "attendance_record", "attendance_correction", "attendance_qr_token", "attendance_audit"]);
 
 export function canReadKindForRole(role: Role, kind: string): boolean {
-  if (privateAttendanceKinds.has(kind) || kind === "kehadiran") return false;
+  if (privateAttendanceKinds.has(kind)) return false;
+  // Attendance register is visible to the Secretary; the Chair receives only
+  // the aggregate projection produced by visibleRecord below.
+  if (kind === "kehadiran") return role === "ketua" || role === "sekretaris";
   if (role === "admin") return false;
   if (role === "ketua") return true;
   if (role === "sekretaris") return secretariatWrite.includes(kind) || secretariatReadOnly.includes(kind);

@@ -74,7 +74,7 @@ function getApplicationLaunches(user: Principal, architectFullAccess: boolean): 
   const business = platformApplications.find((application) => application.id === "business");
   const businessWorkspace = byId.get("accounting")?.features.length ? byId.get("accounting") : byId.get("pos");
   if (business && businessWorkspace?.features.length) {
-    launches.push({ id: business.id, label: business.name, href: businessWorkspace.href, description: business.description, Icon: Wallet });
+    launches.push({ id: business.id, label: business.name, href: business.route, description: business.description, Icon: Wallet });
   }
   const analytics = platformApplications.find((application) => application.id === "bi-analytics");
   if (analytics && byId.get("analytics")?.features.length) {
@@ -96,7 +96,7 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   projects: Grid2X2,
   pos: ShoppingBag,
 };
-export default function DashboardNavigation({ section, user, architectFullAccess = false }: { section: string; user: Principal; architectFullAccess?: boolean }) {
+export default function DashboardNavigation({ section, user, architectFullAccess = false, variant = "sidebar", collapsible = "icon" }: { section: string; user: Principal; architectFullAccess?: boolean; variant?: "sidebar" | "inset" | "floating"; collapsible?: "icon" | "offcanvas" }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
@@ -122,7 +122,7 @@ export default function DashboardNavigation({ section, user, architectFullAccess
     } else setExpanded((current) => (current === id ? "" : id));
   }
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant={variant} collapsible={collapsible}>
       <SidebarHeader className="workspace-sidebar-brand p-5">
         <Link href="/dashboard" aria-label="Srikandi Buana beranda">
           <BrandLogo />

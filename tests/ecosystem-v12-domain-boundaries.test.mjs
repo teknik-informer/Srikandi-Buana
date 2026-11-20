@@ -34,6 +34,39 @@ test("shared validation keeps safe integer and normalized text contracts", () =>
   assert.equal(shared.textField("   "), null);
 });
 
+test("coffee receipt lots are writable only by the Treasurer and require positive quantity", async () => {
+  const policyBundle = await build({
+    entryPoints: ["src/features/identity/access-policy.ts"],
+    bundle: true,
+    write: false,
+    platform: "node",
+    format: "cjs",
+  });
+  const commonjs = { exports: {} };
+  vm.runInNewContext(policyBundle.outputFiles[0].text, {
+    module: commonjs,
+    exports: commonjs.exports,
+  });
+  const { canWriteKind } = commonjs.exports;
+  const principal = (role) => ({
+    accountId: "account-1",
+    userId: "workspace-1",
+    email: "user@example.test",
+    displayName: "Pengguna Uji",
+    fullName: "Pengguna Uji",
+    role,
+    memberId: null,
+    position: "",
+    programIds: [],
+  });
+  assert.equal(canWriteKind(principal("bendahara"), "lotkopi"), true);
+  for (const role of ["ketua", "sekretaris", "koordinator", "anggota", "admin"]) {
+    assert.equal(canWriteKind(principal(role), "lotkopi"), false, role);
+  }
+  const records = readFileSync("src/app/api/records/route.ts", "utf8");
+  assert.ok(records.includes('kind==="lotkopi"&&f.key==="quantity"&&n<=0'));
+});
+
 test("commerce validation owns SKU format rules", () => {
   assert.equal(commerce.skuValid("SKU-2026"), true);
   assert.equal(commerce.skuValid("A1"), true);

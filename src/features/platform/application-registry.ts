@@ -52,7 +52,7 @@ export const platformApplications: readonly PlatformApplication[] = [
     description: "Data petani dan lahan, komoditas, siklus tanam, panen, lot produksi, serta ketertelusuran hasil pertanian.",
     route: "/dashboard/pertanian",
     status: "partial",
-    legacyWorkspaces: ["projects", "pos"],
+    legacyWorkspaces: ["projects"],
     supportingDomains: ["Inventory & Procurement", "Agriculture records", "Supply lots"],
   },
   {
@@ -60,9 +60,9 @@ export const platformApplications: readonly PlatformApplication[] = [
     name: "Business & Enterprise",
     eyebrow: "FINANCE · COMMERCE · PARTNERSHIPS",
     description: "Keuangan, buku besar, aset, persediaan, usaha, penjualan, transaksi, dan pengelolaan kemitraan.",
-    route: "/dashboard/accounting",
+    route: "/dashboard/business",
     status: "partial",
-    legacyWorkspaces: ["accounting", "crm", "pos"],
+    legacyWorkspaces: ["accounting", "pos"],
     supportingDomains: ["Inventory & Procurement", "CRM", "Commerce", "Accounting"],
   },
   {
