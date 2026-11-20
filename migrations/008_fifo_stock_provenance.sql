@@ -93,6 +93,13 @@ BEGIN
  SELECT id,name,price,stock,published INTO v_product
   FROM commerce_products WHERE id=p_product_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Produk tidak ditemukan.'; END IF;
+ -- Recheck idempotency after the product lock to serialize concurrent retries.
+ SELECT id,status,total INTO v_existing FROM commerce_orders
+  WHERE owner=p_owner AND buyer_id=p_buyer_id AND client_request_id=p_client_request_id;
+ IF FOUND THEN
+  RETURN QUERY SELECT v_existing.id,v_existing.total,TRUE;
+  RETURN;
+ END IF;
  IF NOT v_product.published OR v_product.stock<p_quantity OR v_product.price::numeric*p_quantity>1000000000000 THEN
   RAISE EXCEPTION 'Produk tidak tersedia atau stok tidak mencukupi.';
  END IF;
