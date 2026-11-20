@@ -40,7 +40,7 @@ const fields: { key: keyof OrganizationSettings; label: string; max: number; mul
 function OrganizationEditor() {
   const [data, setData] = useState(defaults), [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false), [saving, setSaving] = useState(false), [error, setError] = useState("");
-  const request = useRef<AbortController | null>(null), pending = useRef(false);
+  const pending = useRef(false);
   useEffect(() => {
     const controller = new AbortController(); request.current = controller;
     requestJSON<{ settings?: OrganizationSettings; error?: string }>("/api/organization-settings", { cache: "no-store", signal: controller.signal })
@@ -68,7 +68,7 @@ function OrganizationEditor() {
     } finally { pending.current = false; setSaving(false); }
   }
   return <Card id="organisasi">
-    <CardHeader><CardTitle>Identitas organisasi</CardTitle><CardDescription>Data induk organisasi yang digunakan sebagai referensi administrasi. Perubahan hanya berlaku setelah disimpan oleh administrator.</CardDescription></CardHeader>
+    <CardHeader><CardTitle>Identitas organisasi</CardTitle><CardDescription>Data identitas induk organisasi. Alamat yang ditampilkan di website publik dikelola terpisah pada bagian Website. Perubahan hanya berlaku setelah disimpan administrator.</CardDescription></CardHeader>
     <CardContent>
       {error && <Alert variant="destructive"><AlertTitle>Pengaturan belum selesai</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       {loading ? <Skeleton className="h-48 w-full" /> : !loaded ? <p className="text-sm text-muted-foreground">Data belum dapat dimuat. Muat ulang halaman untuk mencoba kembali.</p> :
