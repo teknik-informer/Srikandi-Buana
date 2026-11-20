@@ -45,7 +45,7 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
   {
     id: "organization",
     href: "/dashboard/organization",
-    label: "Organization",
+    label: "Organization Management",
     description: "Identitas kelompok, keanggotaan, tata kelola, program, dan aktivitas organisasi.",
     features: features(["portal", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "kegiatan", "kehadiran", "pengajuan", "enterprise"]),
   },
