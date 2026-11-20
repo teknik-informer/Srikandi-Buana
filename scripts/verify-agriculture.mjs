@@ -169,6 +169,9 @@ assert.equal(dateRegex.test("2026-11-1"), false, "A malformed ISO date must fail
 assert(api.includes('.replace(/[\\u0300-\\u036f]/g, "")'), "Commodity slugs must normalize combining Unicode accents");
 assert(api.includes("memberData.status !== \"Aktif\"") && api.includes("memberData.verification !== \"Terverifikasi\""), "Lands must be linked to active, verified members");
 assert(api.includes('user.role !== "sekretaris"'), "Only Secretariat may verify agriculture records");
+assert(api.includes("c.verification_status AS cycle_verification") && api.includes("p.verification_status AS parcel_verification"), "Harvest creation must load the verification state of both its crop cycle and source parcel");
+assert(api.includes('cycle.parcel_verification !== "verified" || cycle.cycle_verification !== "verified"'), "Harvest records must not be created until both the parcel and crop cycle are verified");
+assert(api.includes('cycle.parcel_status !== "active"'), "Harvest records must not be created from archived parcels");
 assert(api.includes('user.programIds.includes("3")'), "Coordinator write access must require agriculture program assignment");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
 assert(api.includes("const memberOptions = isSecretariat ?"), "Only the Secretariat may receive individual member choices");
