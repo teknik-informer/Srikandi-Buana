@@ -121,7 +121,7 @@ const secretariatReadOnly = [
   "kas", "aset", "akuntansi", "program", "pertanian",
   "laporan_program", "tindaklanjut", "dokumen", "kemitraan", "usaha",
 ];
-const financeWrite = ["kas", "aset"];
+const financeWrite = ["kas", "aset", "lotkopi"];
 const financeReadOnly = [
   ...secretariatWrite,
   ...secretariatReadOnly,
