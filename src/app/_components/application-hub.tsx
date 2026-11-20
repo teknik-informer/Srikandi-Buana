@@ -36,22 +36,13 @@ export default function ApplicationHub({
   canOpenPlatformCore: boolean;
 }) {
   const byId = new Map(dashboards.map((dashboard) => [dashboard.id, dashboard]));
-  const applications = platformApplications
-    .filter((application) => application.id !== "platform-core" || canOpenPlatformCore)
-    .map((application) => {
-      const dashboard = byId.get(application.dashboardId);
-      const feature = dashboard?.features.find((item) => item.id === application.featureId);
-      const enabled = application.id === "platform-core"
-        ? canOpenPlatformCore && Boolean(feature)
-        : Boolean(feature);
-      return {
-        application,
-        Icon: applicationIcons[application.id],
-        dashboard,
-        enabled,
-      };
-    })
-    .filter(({ enabled }) => enabled);
+  const applications = platformApplications.flatMap((application) => {
+    if (application.id === "platform-core" && !canOpenPlatformCore) return [];
+    const dashboard = byId.get(application.dashboardId);
+    const feature = dashboard?.features.find((item) => item.id === application.featureId);
+    if (!feature) return [];
+    return [{ application, Icon: applicationIcons[application.id], feature }];
+  });
 
   return (
     <main className="workspace-page min-w-0 space-y-7" aria-labelledby="application-hub-title">
@@ -75,7 +66,7 @@ export default function ApplicationHub({
           <span className="text-xs tabular-nums text-muted-foreground">{applications.length} aplikasi tersedia</span>
         </div>
         <div className="grid min-w-0 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-          {applications.map(({ application, Icon }) => (
+          {applications.map(({ application, Icon, feature }) => (
             <article key={application.id} className="flex min-w-0 min-h-56 flex-col rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -90,7 +81,7 @@ export default function ApplicationHub({
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{application.description}</p>
               <div className="mt-auto flex justify-end pt-5">
                 <Link
-                  href={application.route}
+                  href={feature.href}
                   className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   Buka aplikasi <ArrowUpRight className="size-4" />
