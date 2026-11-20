@@ -39,7 +39,7 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   if ((section?.length || 0) > 1) notFound();
-  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan", "qa-test-center", "qa-members"]);
+  const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan", "business", "qa-test-center", "qa-members"]);
   if (section?.[0] === "profil") redirect("/profil");
   const legacyDashboardRedirects: Record<string, string> = {
     kehadiran: "/dashboard/presensi",
