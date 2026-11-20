@@ -94,17 +94,17 @@ export default function SettingsCenter({ files, onSaved }: { files: FileRow[]; o
     { href: "/dashboard/akun-saya", title: "Akun & keamanan", description: "Profil akun, pembaruan kata sandi, dan sesi login.", icon: KeyRound },
     { href: "/dashboard/akun", title: "Pengguna & hak akses", description: "Akun terdaftar, mandat peran, undangan, dan riwayat keamanan.", icon: UsersRound },
   ];
-  return <div className="flex flex-col gap-5">
+  return <div id="top" className="flex flex-col gap-5">
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {shortcuts.map((item) => {
         const Icon = item.icon;
-        return <a key={item.href} href={item.href} className="group rounded-xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a451]">
+        return <Link key={item.href} href={item.href} className="group rounded-xl border bg-card p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a451]">
           <div className="mb-3 flex items-center justify-between"><span className="grid size-9 place-items-center rounded-lg bg-muted text-foreground"><Icon size={18} /></span><span className="text-muted-foreground" aria-hidden="true">↗</span></div>
           <strong className="block text-sm font-semibold">{item.title}</strong><span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.description}</span>
-        </a>;
+        </Link>;
       })}
     </div>
-    <Card id="preferensi"><CardHeader><CardTitle>Preferensi tampilan global</CardTitle><CardDescription>Gunakan ikon roda gigi di header ruang kerja untuk mengatur tampilan. Preferensi berlaku lintas halaman pada perangkat dan akun browser yang sama.</CardDescription></CardHeader><CardContent><div className="flex flex-wrap items-center gap-3"><Button asChild variant="outline"><Link href="#top">Kembali ke awal</Link></Button><span className="text-xs text-muted-foreground">Pengaturan tersimpan otomatis pada perangkat.</span></div></CardContent></Card>
+    <Card id="preferensi"><CardHeader><CardTitle>Preferensi tampilan global</CardTitle><CardDescription>Gunakan ikon roda gigi di header ruang kerja untuk mengatur tampilan. Preferensi berlaku lintas halaman pada perangkat dan akun browser yang sama.</CardDescription></CardHeader><CardContent><p className="text-sm text-muted-foreground">Buka ikon roda gigi pada header untuk mengubah preferensi. Perubahan diterapkan langsung dan tersimpan otomatis.</p></CardContent></Card>
     <OrganizationEditor />
     <div id="website"><SiteSettingsEditor files={files} onSaved={onSaved} /></div>
     <Card><CardHeader><CardTitle>Kontrol dan keamanan akses</CardTitle><CardDescription>Pengaturan keamanan mengikuti sistem akun dan otorisasi yang sudah berjalan. Administrator dapat mengelola peran; setiap pengguna mengubah kata sandinya sendiri.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href="/dashboard/akun-saya"><ShieldCheck data-icon="inline-start" /> Akun & keamanan</Link></Button><Button asChild variant="outline"><Link href="/dashboard/akun"><UsersRound data-icon="inline-start" /> Pengguna & hak akses</Link></Button></CardContent></Card>
