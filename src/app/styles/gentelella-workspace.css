@@ -154,7 +154,14 @@
 
 /* Touch devices retain one consistent 44px target for every topbar action,
    whether the control is rendered directly or inside a small wrapper. */
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-compact-actions [data-slot="button"][data-size="icon"] {
+  width:36px; min-width:36px; height:36px; min-height:36px; padding:0; flex:0 0 36px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .workspace-compact-actions [data-slot="button"] svg {
+  width:16px; height:16px; flex:0 0 auto;
+}
 @media (pointer:coarse) {
+  .workspace-shell[data-workspace-theme="gentelella"] .workspace-compact-actions [data-slot="button"][data-size="icon"],
   .workspace-shell[data-workspace-theme="gentelella"] .workspace-page-actions [data-slot="button"][data-size="icon"] {
     width:44px; min-width:44px; height:44px; min-height:44px; padding:0; flex:0 0 44px;
   }
