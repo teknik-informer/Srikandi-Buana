@@ -8,6 +8,7 @@ import {
   FileBarChart,
   Printer,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ import {
 import { jakartaDate, taskIsOpen, validDate } from "@/lib/management-insights";
 import { buildProgramEvaluations } from "@/lib/program-evaluation";
 import CashReports from "./reports";
-import { StatusBadge, WorkspaceMetric } from "./workspace-ui";
+import { StatusBadge, WorkspaceMetric, WorkspacePageHeader } from "./workspace-ui";
 
 const kindLabels: Record<string, string> = {
   program: "Program",
@@ -451,16 +452,12 @@ export default function EnterpriseReports({
 
   return (
     <div className="workspace-page min-w-0">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Pusat pelaporan</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Laporan</h1>
-          <Badge variant="outline">{groups.length} kelompok laporan tersedia</Badge>
-        </div>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Rekap berdasarkan catatan aplikasi yang tersimpan. Cakupan laporan mengikuti peran, kepemilikan data, dan penugasan pengguna.
-        </p>
-      </header>
+      <WorkspacePageHeader
+        eyebrow="Pusat pelaporan"
+        title="Laporan"
+        description="Rekap berdasarkan catatan aplikasi yang tersimpan. Cakupan laporan mengikuti peran, kepemilikan data, dan penugasan pengguna."
+        actions={<Badge variant="outline">{groups.length} kelompok laporan tersedia</Badge>}
+      />
 
       <Card>
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
@@ -469,16 +466,39 @@ export default function EnterpriseReports({
             <Input id="report-period" type="month" value={month} onChange={(event) => setMonth(event.target.value)} className="w-full sm:w-56" />
             <p className="text-xs text-muted-foreground">{month ? "Menampilkan catatan yang tanggal/periodenya sesuai bulan terpilih." : "Semua periode · tanggal mengikuti tanggal catatan atau tenggat yang tersedia."}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {month && <Button variant="outline" onClick={() => setMonth("")}>Semua periode</Button>}
-            <Button variant="outline" onClick={() => window.print()}>
-              <Printer data-icon="inline-start" />
-              Cetak
+          <div className="workspace-compact-actions flex flex-wrap gap-2" aria-label="Tindakan laporan">
+            {month && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setMonth("")}
+                aria-label="Tampilkan semua periode"
+                title="Tampilkan semua periode"
+              >
+                <X />
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => window.print()}
+              aria-label="Cetak laporan"
+              title="Cetak laporan"
+            >
+              <Printer />
             </Button>
             {currentGroup.id !== "keuangan" && (
-              <Button onClick={download} disabled={!reportRows.length}>
-                <Download data-icon="inline-start" />
-                Ekspor CSV
+              <Button
+                type="button"
+                size="icon"
+                onClick={download}
+                disabled={!reportRows.length}
+                aria-label="Ekspor laporan ke CSV"
+                title="Ekspor laporan ke CSV"
+              >
+                <Download />
               </Button>
             )}
           </div>

@@ -24,10 +24,10 @@ import { WorkspaceMetric } from "./workspace-ui";
 import { modules } from "@/lib/srikandi";
 
 const eyebrows: Record<EnterpriseDashboardId, string> = {
-  ecosystem: "ORGANISASI",
-  finance: "PELAPORAN",
-  publication: "PUBLIKASI",
-  system: "ADMINISTRASI",
+  ecosystem: "ORGANIZATION & OPERATIONS",
+  publication: "PUBLICATION & COMMUNICATION",
+  finance: "FINANCE & REPORTING",
+  system: "SYSTEM ADMINISTRATION",
 };
 
 const featureIcons: Record<string, LucideIcon> = {
@@ -95,11 +95,16 @@ function dashboardMetrics(id: EnterpriseDashboardId, s: ReturnType<typeof buildE
       { title: "Izin perlu diperiksa", value: s.publication?.permissionNeedsReview ?? "—", note: "Media dengan status izin belum jelas", icon: ShieldCheck },
     ];
     case "system": return [
-      { title: "Temuan kualitas data", value: s.qualityFindings, note: s.warningFindings + " peringatan · " + s.infoFindings + " pengingat", icon: AlertTriangle },
       { title: "Catatan dalam akses", value: s.visibleRecords, note: "Data yang terlihat sesuai kewenangan akun", icon: Files },
+      { title: "Temuan kualitas data", value: s.qualityFindings, note: s.warningFindings + " peringatan · " + s.infoFindings + " pengingat", icon: AlertTriangle },
       { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Perubahan data terbaru yang dapat diakses", icon: CalendarClock },
     ];
   }
+  return [
+    { title: "Catatan dalam akses", value: s.visibleRecords, note: "Data yang terlihat sesuai kewenangan akun", icon: Files },
+    { title: "Temuan kualitas data", value: s.qualityFindings, note: "Hasil pemeriksaan data yang tersedia", icon: AlertTriangle },
+    { title: "Pembaruan terakhir", value: dateLabel(s.latestUpdate), note: "Perubahan data terbaru yang dapat diakses", icon: CalendarClock },
+  ];
 }
 
 export default function EnterpriseDashboardOverview({ dashboard, user }: { dashboard: EnterpriseDashboard; user: Principal }) {

@@ -15,7 +15,7 @@ import {CommerceWorkspace,AccountingWorkspace} from "../../_components/ecosystem
 import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-overview";
 import ExternalAccessWorkspace from "../../_components/external-access-workspace";
 import AgricultureWorkspace from "../../_components/agriculture-workspace";
-import ManagementAudienceDashboard from "../../_components/management-audience-dashboard";
+import ApplicationHub from "../../_components/application-hub";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
@@ -34,9 +34,14 @@ export default async function Page({ params }: { params: Promise<{ section?: str
   const allowed = new Set([...Object.keys(modules), ...dashboardSectionIds, ...dashboardRouteIds, "ringkasan"]);
   if (section?.[0] === "profil") redirect("/profil");
   const legacyDashboardRedirects: Record<string, string> = {
+    organization: "/dashboard/ecosystem",
     management: "/dashboard/ecosystem",
-    administration: "/dashboard/system",
+    "public-partnership": "/dashboard/publication",
+    business: "/dashboard/finance",
     commerce: "/dashboard/finance",
+    "platform-core": "/dashboard/system",
+    administration: "/dashboard/system",
+    "bi-analytics": "/dashboard/finance",
   };
   if (section?.[0] && legacyDashboardRedirects[section[0]]) redirect(legacyDashboardRedirects[section[0]]);
   if (section?.[0] && !allowed.has(section[0])) notFound();
@@ -53,12 +58,12 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       <WorkspaceShell
         user={admin}
         section={active}
-        title={isMember ? "Dashboard Anggota" : "Dashboard Pengurus"}
+        title={isMember ? "Dashboard Anggota" : "Pusat Aplikasi"}
         defaultSidebarOpen={defaultSidebarOpen}
       >
         {isMember
           ? <MemberAudienceDashboard user={admin} />
-          : <ManagementAudienceDashboard user={admin} />}
+          : <ApplicationHub dashboards={getVisibleEnterpriseDashboards(admin.role)} displayName={admin.displayName || admin.fullName} canOpenPlatformCore={admin.role === "admin"} />}
       </WorkspaceShell>
     );
   }

@@ -39,7 +39,9 @@ async function harness(entry, globals = {}) {
   const module = { exports: {} };
   const context = { module, exports: module.exports, AbortController, URL, URLSearchParams, console, setTimeout, clearTimeout,
     require: (name) => name === "react" ? hooks : name === "sonner"
-      ? { toast: { success() {}, error() {} } } : require(name), ...globals };
+      ? { toast: { success() {}, error() {} } } : name === "next/font/google"
+        ? new Proxy({}, { get: (_, font) => (options = {}) => ({ variable: options.variable || "--font-" + String(font).toLowerCase(), className: "font-test" }) })
+        : require(name), ...globals };
   vm.runInNewContext(out.outputFiles[0].text, context);
   return { exports: module.exports, context,
     render(fn) { cursor = 0; return fn(); },
@@ -440,7 +442,7 @@ const enterprise=await harness('src/app/_components/enterprise-workspace.tsx',{c
 const enterpriseUser={accountId:'employee-self',userId:'workspace',displayName:'Employee',fullName:'Employee',role:'anggota',email:'self@example.test',position:'',programIds:[],memberId:null};
 const erender=()=>enterprise.render(()=>enterprise.exports.default({user:enterpriseUser,section:'pengajuan'}));
 let etree=erender();enterprise.effects();await new Promise(r=>setImmediate(r));etree=erender();
-find(find(etree,n=>n.type?.name==='WorkspacePageHeader').props.actions,n=>n.props?.children?.some?.(c=>c==='Buat pengajuan')).props.onClick();etree=erender();
+find(find(etree,n=>n.type?.name==='WorkspacePageHeader').props.actions,n=>n.props?.['aria-label']==='Buat pengajuan').props.onClick();etree=erender();
 find(etree,n=>n.props?.id==='operation-title').props.onChange({target:{value:'Draft that must remain'}});etree=erender();
 let eform=find(etree,n=>n.type==='form');const esave=eform.props.onSubmit({preventDefault(){}});eform.props.onSubmit({preventDefault(){}});assert.equal(enterpriseWrites,1,'No double create');
 etree=erender();assert.equal(find(etree,n=>n.type==='fieldset').props.disabled,true);

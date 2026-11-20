@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { WorkspacePageHeader } from "./workspace-ui";
 import { AlertCircle, CheckCircle2, ClipboardCheck, Leaf, LoaderCircle, Plus, RefreshCw, ShieldCheck, Sprout, Wheat } from "lucide-react";
 
 type Member = { id: string; name: string; dusun: string };
@@ -130,14 +132,24 @@ export default function AgricultureWorkspace() {
   }
 
   return <div className="space-y-6">
-    <header className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">Data lapangan terstruktur</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Pengelolaan Pertanian</h1>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Catat lahan anggota, komoditas, siklus tanam, dan hasil panen. Data baru belum menjadi angka laporan sebelum diperiksa dan disahkan.</p>
-      </div>
-      <button type="button" onClick={() => void load()} disabled={loading || busy} className="inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"><RefreshCw size={15}/> Muat ulang</button>
-    </header>
+    <WorkspacePageHeader
+      eyebrow="Data lapangan terstruktur"
+      title="Pengelolaan Pertanian"
+      description="Catat lahan anggota, komoditas, siklus tanam, dan hasil panen. Data baru belum menjadi angka laporan sebelum diperiksa dan disahkan."
+      actions={
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label="Muat ulang data pertanian"
+          title="Muat ulang"
+          onClick={() => void load()}
+          disabled={loading || busy}
+        >
+          <RefreshCw aria-hidden="true" className={loading ? "animate-spin" : ""} />
+        </Button>
+      }
+    />
 
     {(error || notice) && <div role={error ? "alert" : "status"} className={error ? "flex gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" : "flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"}>
       {error ? <AlertCircle size={17} className="mt-0.5 shrink-0"/> : <CheckCircle2 size={17} className="mt-0.5 shrink-0"/>}{error || notice}

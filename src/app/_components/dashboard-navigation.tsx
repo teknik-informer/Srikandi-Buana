@@ -27,35 +27,33 @@ import { enterpriseDashboards, getVisibleEnterpriseDashboards, getVisibleEnterpr
 import {
   Activity,
   ArrowUpRight,
-  BriefcaseBusiness,
-  ChevronDown,
+  Blocks,
   BookOpen,
-  Files,
+  ChartNoAxesCombined,
+  ChevronDown,
   FileText,
+  Files,
   Grid2X2,
+  Handshake,
   LayoutDashboard,
-  MessagesSquare,
-  ShoppingBag,
   Megaphone,
   Search,
-  Settings2,
   ShieldCheck,
-  Wallet,
+  Sprout,
+  Store,
+  Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
 const dashboardIcons: Record<string, typeof Grid2X2> = {
-  ecosystem: Grid2X2,
-  management: BriefcaseBusiness,
-  administration: Files,
-  finance: Wallet,
-  commerce: ShoppingBag,
+  ecosystem: Users,
   publication: Megaphone,
-  system: Settings2,
+  finance: Store,
+  system: Blocks,
 };
-export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
+export default function DashboardNavigation({ section, user, variant = "sidebar", collapsible = "icon" }: { section: string; user: Principal; variant?: "sidebar" | "inset" | "floating"; collapsible?: "icon" | "offcanvas" }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
@@ -77,7 +75,7 @@ export default function DashboardNavigation({ section, user }: { section: string
     } else setExpanded((current) => (current === id ? "" : id));
   }
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant={variant} collapsible={collapsible}>
       <SidebarHeader className="workspace-sidebar-brand p-5">
         <Link href="/dashboard" aria-label="Srikandi Buana beranda">
           <BrandLogo />
@@ -140,7 +138,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>MENU UTAMA</SidebarGroupLabel>
+          <SidebarGroupLabel>RUANG KERJA</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -291,9 +289,9 @@ export function DashboardMegaMenu({
           <DialogClose className="dashboard-mega-close" aria-label="Tutup menu aplikasi">
             <X size={18} />
           </DialogClose>
-          <DialogTitle>Navigasi aplikasi</DialogTitle>
+          <DialogTitle>Pusat Aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih ruang kerja, monitoring, laporan, atau Pusat Bantuan sesuai kewenangan akun Anda.
+            Empat ruang kerja utama Srikandi Buana. Fitur yang tampil mengikuti hak akses akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -325,7 +323,7 @@ export function DashboardMegaMenu({
               </div>
             </section>
           )}
-          <div className="dashboard-mega-grid">
+          <div className="dashboard-mega-grid" aria-label="Empat ruang kerja utama">
             {groups.map((g) => (
               <section key={g.id}>
                 <h3>

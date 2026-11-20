@@ -18,8 +18,6 @@ import {
   Roboto_Slab,
 } from "next/font/google";
 
-import { GeistPixelSquare } from "geist/font/pixel";
-import { GeistSerif } from "geist/font/serif/variable";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -153,17 +151,9 @@ export const fontRegistry = {
     label: "Geist Mono",
     font: geistMono,
   },
-  geistPixelSquare: {
-    label: "Geist Pixel Square",
-    font: GeistPixelSquare,
-  },
   jetBrainsMono: {
     label: "JetBrains Mono",
     font: jetBrainsMono,
-  },
-  geistSerif: {
-    label: "Geist Serif",
-    font: GeistSerif,
   },
   notoSerif: {
     label: "Noto Serif",
