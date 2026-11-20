@@ -177,6 +177,9 @@ const traceabilityMigration = readFileSync("migrations/007_harvest_receipt_trace
 assert(traceabilityMigration.includes("received_quantity") && traceabilityMigration.includes("CHECK (received_quantity >= 0 AND received_quantity <= quantity)"), "Harvest receipt allocations must be capped by verified harvest quantity");
 assert(traceabilityMigration.includes("FOREIGN KEY (harvest_id, owner)") && traceabilityMigration.includes("REFERENCES harvest_records(id, workspace_owner)"), "Receipt-to-harvest links must enforce workspace ownership");
 assert(traceabilityMigration.includes("FOR UPDATE OF h") && traceabilityMigration.includes("v_harvest.received_quantity + v_quantity > v_harvest.quantity"), "Harvest receipt posting must lock and cap concurrent allocations");
+assert(traceabilityMigration.includes("p.verification_status='verified'") && traceabilityMigration.includes("p.status='active'"), "Receipt posting must recheck verified active source land");
+assert(api.includes("h.received_quantity"), "Agriculture workspace must expose the cumulative quantity already received");
+assert(agricultureWorkspace.includes("harvest.received_quantity"), "Harvest cards must show received versus verified harvest quantity");
 assert(api.includes("srikandi_post_harvest_receipt") && api.includes('data.originType==="Hasil panen kelompok"'), "Accepted group-harvest receipts must use the atomic traceability posting function");
 assert(agricultureWorkspace.includes("ID referensi penerimaan"), "Verified harvest cards must expose a reference that can be linked by the receiving workflow");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
