@@ -70,7 +70,9 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(navigation, /APLIKASI UTAMA/);
   assert.match(readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8"), /canOpenPlatformCore=\{admin\.role === "admin"/);
   assert.match(navigation, /MODUL DALAM APLIKASI/);
-  assert.match(navigation, /getApplicationLaunches/);\n  assert.doesNotMatch(navigation, /href: businessWorkspace\\.href/);\n  assert.match(navigation, /href: business\\.route/);
+  assert.match(navigation, /getApplicationLaunches/);
+  assert.doesNotMatch(navigation, /href: businessWorkspace\.href/);
+  assert.match(navigation, /href: business\.route/);
   assert.match(navigation, /features\.some\(\(feature\) => feature\.id === "pertanian"\)/);
   assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /enam aplikasi utama/);
@@ -95,7 +97,13 @@ test("Gentelella is a visual layer and does not replace the canonical six-applic
   assert.match(globalStyles, /gentelella-workspace\.css/);
 });
 
-test("application hub always launches the canonical application landing route", () => {\n  const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");\n  assert.match(hub, /const href = application\\.route/);\n  assert.doesNotMatch(hub, /dashboard\\?\\.href \\?\\? application\\.route/);\n});\n\ntest("canonical landing routes resolve through the existing dashboard router without replacing legacy workspace IDs", () => {
+test("application hub always launches the canonical application landing route", () => {
+  const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
+  assert.match(hub, /const href = application\.route/);
+  assert.doesNotMatch(hub, /dashboard\?\.href \?\? application\.route/);
+});
+
+test("canonical landing routes resolve through the existing dashboard router without replacing legacy workspace IDs", () => {
   const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
   const enterpriseRegistry = readFileSync("src/features/enterprise/registry.ts", "utf8");
   const canonicalRoutes = new Map(platformApplications.map((app) => [app.id, app.route]));
