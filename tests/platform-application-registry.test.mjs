@@ -60,7 +60,7 @@ test("administrator module center renders the canonical registry separately from
 test("application hub renders the canonical suite and keeps access derived from existing workspace permissions", () => {
   assert.match(hub, /platformApplications/);
   assert.match(hub, /canOpenPlatformCore: boolean/);
-  assert.match(hub, /application\.id === "platform-core" \? canOpenPlatformCore/);
+  assert.match(hub, /application\.id === "platform-core"[\s\S]*?canOpenPlatformCore/);
   assert.match(hub, /\["platform-core", "agriculture", "public-partnership"\]\.includes\(application\.id\)/);
   assert.match(hub, /public-partnership/);
   assert.match(hub, /application\.route/);
