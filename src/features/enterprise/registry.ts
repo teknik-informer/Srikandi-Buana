@@ -5,7 +5,7 @@ export type EnterpriseDashboardId =
   | "organization"
   | "agriculture"
   | "business"
-  | "analytics"
+  | "bi-analytics"
   | "public-partnership"
   | "platform-core";
 
@@ -57,8 +57,8 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     features: features(["usaha", "penjualan", "kas", "akuntansi", "aset", "laporan"]),
   },
   {
-    id: "analytics",
-    href: "/dashboard/analytics",
+    id: "bi-analytics",
+    href: "/dashboard/bi-analytics",
     label: "BI & Analytics",
     description: "Indikator kinerja, laporan lintas bidang, pemeriksaan kualitas data, dan monitoring.",
     features: features(["transkripsi", "register", "sumber"]),
