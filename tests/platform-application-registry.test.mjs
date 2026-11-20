@@ -73,6 +73,9 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(navigation, /getApplicationLaunches/);
   assert.doesNotMatch(navigation, /href: businessWorkspace\.href/);
   assert.match(navigation, /href: business\.route/);
+  for (const routeOwner of ["core", "organization", "agriculture", "business", "analytics", "publicPartnership"]) {
+    assert.match(navigation, new RegExp(`href: ${routeOwner}\\.route`), `${routeOwner} application launch must use its canonical registry route`);
+  }
   assert.match(navigation, /features\.some\(\(feature\) => feature\.id === "pertanian"\)/);
   assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /enam aplikasi utama/);
