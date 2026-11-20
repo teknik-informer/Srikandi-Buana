@@ -148,3 +148,12 @@ test("legacy route aliases remain explicit compatibility redirects", () => {
   }
   assert.match(route, /legacyDashboardRedirects\[section\[0\]\]/);
 });
+
+
+test("application hub visibility requires access to the application's own domain features", () => {
+  const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
+  assert.match(hub, /application\.id === "agriculture"[\s\S]*?feature\.id === "pertanian"/);
+  assert.match(hub, /application\.id === "bi-analytics"[\s\S]*?feature\.id === "analytics"/);
+  assert.match(hub, /application\.id === "public-partnership"[\s\S]*?publikasi/);
+  assert.match(hub, /application\.id === "business"[\s\S]*?matched\.some/);
+});
