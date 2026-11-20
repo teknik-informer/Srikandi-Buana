@@ -114,13 +114,16 @@ test("canonical landing routes resolve through the existing dashboard router wit
   assert.equal(canonicalRoutes.get("platform-core"), "/dashboard/module-center");
   assert.equal(canonicalRoutes.get("organization"), "/dashboard/hrm");
   assert.equal(canonicalRoutes.get("agriculture"), "/dashboard/pertanian");
-  assert.equal(canonicalRoutes.get("business"), "/dashboard/accounting");
+  assert.equal(canonicalRoutes.get("business"), "/dashboard/business");
   assert.equal(canonicalRoutes.get("bi-analytics"), "/dashboard/analytics");
   assert.equal(canonicalRoutes.get("public-partnership"), "/dashboard/crm");
 
   // Existing dashboard route remains the resolver; this guard intentionally does
   // not prescribe a new route tree or change any authorization behavior.
   assert.match(route, /getEnterpriseDashboardById\(active\)/);
+  assert.match(route, /active === "business"/);
+  assert.match(route, /operationalWorkspace\?\.href/);
+  assert.match(route, /\["accounting", "pos"\]\.includes\(dashboard\.id\)/);
   assert.match(route, /active === "pertanian"/);
   assert.match(route, /active === "module-center"/);
   assert.match(route, /dashboardRouteIds/);
