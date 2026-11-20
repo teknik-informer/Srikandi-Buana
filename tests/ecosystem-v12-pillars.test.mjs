@@ -8,6 +8,19 @@ const bundle = await build({ entryPoints: ["src/features/enterprise/registry.ts"
 const commonjs = { exports: {} };
 vm.runInNewContext(bundle.outputFiles[0].text, { module: commonjs, exports: commonjs.exports });
 const registry = commonjs.exports;
+const appBundle = await build({
+  stdin: {
+    contents: "export { platformApplications } from './src/features/platform/application-registry'; export { enterpriseDashboards } from './src/features/enterprise/registry';",
+    resolveDir: process.cwd(),
+  },
+  bundle: true,
+  write: false,
+  platform: "node",
+  format: "cjs",
+});
+const appCommonjs = { exports: {} };
+vm.runInNewContext(appBundle.outputFiles[0].text, { module: appCommonjs, exports: appCommonjs.exports });
+const { platformApplications, enterpriseDashboards } = appCommonjs.exports;
 const permissionBundle = await build({ entryPoints: ["src/lib/permissions.ts"], bundle: true, write: false, platform: "node", format: "cjs" });
 const permissionCommonjs = { exports: {} };
 vm.runInNewContext(permissionBundle.outputFiles[0].text, { module: permissionCommonjs, exports: permissionCommonjs.exports });
@@ -32,6 +45,17 @@ test("seluruh rute fitur lama tetap tersedia tepat satu kali", () => {
   assert.equal(new Set(registry.dashboardSectionIds).size, registry.dashboardSectionIds.length);
   assert.deepEqual([...assigned].sort(), [...expected].filter((id) => id !== "monitoring").sort());
   assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
+});
+
+test("enam pintasan benar-benar menyelesaikan fitur dan rute registry produksi", () => {
+  assert.equal(platformApplications.length, 6);
+  for (const application of platformApplications) {
+    const dashboard = enterpriseDashboards.find((item) => item.id === application.dashboardId);
+    assert.ok(dashboard, application.id + " must reference an existing production dashboard");
+    const feature = dashboard.features.find((item) => item.id === application.featureId);
+    assert.ok(feature, application.id + " must reference an existing production feature");
+    assert.equal(application.route, feature.href, application.id + " legacy route must remain aligned");
+  }
 });
 
 test("enam pintasan aplikasi dipetakan ke fitur pada empat dashboard produksi", () => {
