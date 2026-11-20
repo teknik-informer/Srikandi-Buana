@@ -17,9 +17,9 @@ const legacyRouteIds = [...navigationSource.matchAll(/admin\('([^']+)'/g)].map((
 const assigned = registry.enterpriseDashboards.flatMap((dashboard) => dashboard.features.map((feature) => feature.id));
 const expected = [...legacyRouteIds.filter((id) => id !== "laporan"), "laporan", "monitoring"];
 
-test("dashboard utama disederhanakan menjadi empat area kerja", () => {
-  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["ecosystem", "publication", "finance", "system"]);
-  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["Organisasi", "Publikasi", "Pelaporan", "Administrasi"]);
+test("pusat aplikasi memakai enam aplikasi kanonis", () => {
+  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["platform-core", "organization", "agriculture", "business", "bi-analytics", "public-partnership"]);
+  assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["Platform Core", "Organization Management", "Agriculture Management", "Business & Enterprise", "BI & Analytics", "Public & Partnership"]);
   for (const dashboard of registry.enterpriseDashboards) {
     assert.equal(dashboard.href, "/dashboard/" + dashboard.id);
     assert.equal(registry.getEnterpriseDashboardById(dashboard.id)?.id, dashboard.id);
@@ -33,12 +33,14 @@ test("seluruh rute fitur lama tetap tersedia tepat satu kali", () => {
   assert.equal(registry.getEnterpriseFeature("monitoring")?.href, "/dashboard/monitoring");
 });
 
-test("publikasi dan pelaporan memiliki akses yang jelas", () => {
+test("fitur enam aplikasi terpetakan ke domain yang benar", () => {
   const ids = (area) => Array.from(registry.enterpriseDashboards.find((dashboard) => dashboard.id === area).features, (feature) => feature.id);
-  assert.deepEqual(ids("publication"), ["publikasi", "galeri", "pesan"]);
-  assert.deepEqual(ids("finance"), ["kas", "laporan", "akuntansi", "aset", "penjualan", "lotkopi", "usaha", "kemitraan"]);
-  assert.ok(ids("ecosystem").includes("laporan_program"));
-  assert.ok(ids("system").includes("panduan"));
+  assert.deepEqual(ids("platform-core"), ["notifikasi", "surat", "kelembagaan", "dokumen", "akun", "akun-saya", "pengaturan", "panduan"]);
+  assert.deepEqual(ids("organization"), ["portal", "anggota", "pengurus", "musyawarah", "persetujuan", "program", "kegiatan", "kehadiran", "pengajuan", "enterprise"]);
+  assert.deepEqual(ids("agriculture"), ["pertanian", "laporan_program", "tindaklanjut", "lotkopi"]);
+  assert.deepEqual(ids("business"), ["usaha", "penjualan", "kas", "akuntansi", "aset", "laporan"]);
+  assert.deepEqual(ids("bi-analytics"), ["transkripsi", "register", "sumber"]);
+  assert.deepEqual(ids("public-partnership"), ["publikasi", "galeri", "pesan", "kemitraan", "akses-eksternal"]);
 });
 
 test("pembatasan akses per peran tetap diterapkan", () => {
@@ -57,7 +59,7 @@ test("pembatasan akses per peran tetap diterapkan", () => {
 test("menu navigasi memakai label formal dan ringkas", () => {
   const navigation = readFileSync("src/app/_components/dashboard-navigation.tsx", "utf8");
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
-  assert.match(navigation, /MENU UTAMA/);
+  assert.match(navigation, /ENAM APLIKASI/);
   assert.match(navigation, /Cari halaman/);
   assert.match(overview, /PELAPORAN/);
   assert.doesNotMatch(overview, /LANGKAH 0/);
