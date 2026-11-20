@@ -39,7 +39,7 @@ const featureIcons: Record<string, LucideIcon> = {
   anggota: Users, pengurus: BriefcaseBusiness, persetujuan: ShieldCheck,
   surat: FileText, "surat-resmi": FileText, register: FolderCheck, sumber: BookOpen, kelembagaan: Files,
   transkripsi: FileCheck2, dokumen: Files, kas: Wallet, akuntansi: Landmark,
-  aset: PackageCheck, penjualan: ShoppingBag, lotkopi: Sprout, usaha: Sprout,
+  aset: PackageCheck, penjualan: ShoppingBag, lotkopi: PackageCheck, usaha: Sprout,
   kemitraan: Handshake, publikasi: Megaphone, galeri: Camera,
   pesan: MessagesSquare, akun: ShieldCheck, "akun-saya": Users, pengaturan: Settings2,
 };
