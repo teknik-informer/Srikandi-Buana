@@ -54,7 +54,7 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   "public-partnership": Handshake,
   "platform-core": Blocks,
 };
-export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
+export default function DashboardNavigation({ section, user, variant = "sidebar", collapsible = "icon" }: { section: string; user: Principal; variant?: "sidebar" | "inset" | "floating"; collapsible?: "icon" | "offcanvas" }) {
   const identity = useProfileIdentity(user);
   const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
   const active = enterpriseDashboards.find((dashboard) => dashboard.id === section || dashboard.features.some((feature) => feature.id === section));
@@ -76,7 +76,7 @@ export default function DashboardNavigation({ section, user }: { section: string
     } else setExpanded((current) => (current === id ? "" : id));
   }
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant={variant} collapsible={collapsible}>
       <SidebarHeader className="workspace-sidebar-brand p-5">
         <Link href="/dashboard" aria-label="Srikandi Buana beranda">
           <BrandLogo />
