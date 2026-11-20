@@ -122,7 +122,7 @@ test("legacy route aliases remain explicit compatibility redirects", () => {
     ["administration", "/dashboard/system"],
     ["commerce", "/dashboard/finance"],
   ]) {
-    assert.match(route, new RegExp(`"${legacy}": "${target.replaceAll("/", "\\/")}"`));
+    assert.match(route, new RegExp(`${legacy}:\\s*"${target.replaceAll("/", "\\/")}"`));
   }
   assert.match(route, /legacyDashboardRedirects\[section\[0\]\]/);
 });
