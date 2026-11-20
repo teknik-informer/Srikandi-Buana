@@ -592,3 +592,10 @@
 .workspace-shell .global-settings-footer>span{max-width:170px;color:var(--muted-foreground);font-size:11px;line-height:1.45}
 .workspace-shell .global-settings-footer button{white-space:nowrap}
 @media(max-width:480px){.workspace-shell .global-settings-panel{position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:12px;left:12px;width:auto;max-height:calc(100dvh - 88px)}.workspace-shell .global-settings-field{grid-template-columns:minmax(0,1fr) minmax(124px,1fr);gap:8px}.workspace-shell .global-settings-footer{align-items:flex-start;flex-direction:column}.workspace-shell .global-settings-footer>span{max-width:none}}
+
+
+/* Preferences that alter the actual workspace layout */
+html[data-content-layout="full-width"] .workspace-shell[data-workspace-theme="gentelella"] .workspace-main{max-width:none}
+html[data-content-layout="centered"] .workspace-shell[data-workspace-theme="gentelella"] .workspace-main{max-width:1640px}
+html[data-navbar-style="sticky"] .workspace-shell[data-workspace-theme="gentelella"] .workspace-header{position:sticky;top:0}
+html[data-navbar-style="scroll"] .workspace-shell[data-workspace-theme="gentelella"] .workspace-header{position:relative;top:auto}
