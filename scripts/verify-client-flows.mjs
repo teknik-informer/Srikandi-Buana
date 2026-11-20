@@ -39,7 +39,9 @@ async function harness(entry, globals = {}) {
   const module = { exports: {} };
   const context = { module, exports: module.exports, AbortController, URL, URLSearchParams, console, setTimeout, clearTimeout,
     require: (name) => name === "react" ? hooks : name === "sonner"
-      ? { toast: { success() {}, error() {} } } : require(name), ...globals };
+      ? { toast: { success() {}, error() {} } } : name === "next/font/google"
+        ? new Proxy({}, { get: (_, font) => (options = {}) => ({ variable: options.variable || "--font-" + String(font).toLowerCase(), className: "font-test" }) })
+        : require(name), ...globals };
   vm.runInNewContext(out.outputFiles[0].text, context);
   return { exports: module.exports, context,
     render(fn) { cursor = 0; return fn(); },
