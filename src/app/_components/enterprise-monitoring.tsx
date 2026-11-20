@@ -305,7 +305,7 @@ export default function EnterpriseMonitoring({
     },
     snapshot.business && {
       title: "Usaha & aset",
-      description: snapshot.business.assets + " aset · " + snapshot.business.assetsNeedAttention + " kondisi perlu perhatian · " + snapshot.business.lotsOnHold + " lot menunggu pemeriksaan/ditahan.",
+      description: snapshot.business.assets + " aset · " + snapshot.business.assetsNeedAttention + " kondisi perlu perhatian · " + snapshot.business.lotsOnHold + " penerimaan menunggu pemeriksaan/ditahan.",
       href: canReadSection(user, "aset") ? "/dashboard/aset" : "/dashboard/lotkopi",
       label: "Buka usaha & aset",
       icon: Boxes,
