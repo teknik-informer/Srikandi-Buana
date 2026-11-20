@@ -51,30 +51,15 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
  const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);if(body.kind==="kas"){const counter=await c.db!.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE id=? AND owner=? AND active=TRUE").bind(String(data.counterAccountId||""),c.user!.userId).first();if(!counter)return json({error:"Pilih akun lawan transaksi yang aktif pada daftar akun kelompok."},400);data.counterAccountName=String(counter.name||"").slice(0,160);data.counterAccountCode=String(counter.code||"").slice(0,8);data.counterAccountCategory=String(counter.category||"").slice(0,20);}
  let previousTaskData:Data|undefined;
  let previousRecordData:Data|undefined;
+ let previousRecordUpdated:string|undefined;
  if(edit){
   const old=await c.db!.prepare("SELECT id,updated,data FROM records WHERE id=? AND owner=? AND kind=?").bind(id,c.user!.userId,body.kind).first();
   if(!old)return json({error:"Data tidak ditemukan."},404);
   const oldData=JSON.parse(String(old.data)) as Data;
   previousRecordData=oldData;
+  previousRecordUpdated=String(old.updated);
   const oldRecord={id:String(old.id),kind:body.kind,data:oldData};const nextRecord={id:String(old.id),kind:body.kind,data};if(!canWriteRecord(c.user!,oldRecord)&&!canReviewFollowup(c.user!,oldRecord,nextRecord)&&!canPublishRecord(c.user!,oldRecord,nextRecord))return json({error:'Perubahan ini bukan kewenangan akun atau domain Anda.'},403);
   if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
-  if(body.kind==="lotkopi" && previousRecordData?.status==="Diterima")return json({error:"Penerimaan yang sudah disahkan tidak dapat diubah. Catat koreksi sebagai penerimaan atau penyesuaian persediaan baru agar riwayat stok tetap utuh."},409);
-  if(body.kind==="lotkopi" && data.status==="Diterima"){
-   const sku=String(data.productSku||"").trim().toUpperCase();
-   const quantity=Number(data.quantity);
-   if(!sku)return json({error:"Isi SKU produk persediaan sebelum mengesahkan penerimaan."},400);
-   if(!Number.isSafeInteger(quantity)||quantity<=0)return json({error:"Penerimaan yang masuk ke stok harus menggunakan jumlah satuan bulat yang valid."},400);
-   if(data.basis!=="Hasil timbang terverifikasi")return json({error:"Penerimaan hanya dapat menambah stok setelah hasil timbang terverifikasi."},400);
-   data.productSku=sku;
-   const auditId=crypto.randomUUID();
-   const auditTitle="Penerimaan hasil disahkan; stok persediaan bertambah";
-   const productUpdate="UPDATE commerce_products SET stock=stock+?,updated=? WHERE owner=? AND sku=? AND unit=? AND stock+?<=1000000 RETURNING id";
-   const write=edit
-    ? await c.db!.prepare(`WITH product_update AS (${productUpdate}), record_write AS (UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='lotkopi' AND updated=? AND EXISTS (SELECT 1 FROM product_update) RETURNING id), audit_write AS (INSERT INTO audit(id,owner,action,title,created) SELECT ?,?,'Penerimaan hasil disahkan',?,? FROM record_write RETURNING id) SELECT id FROM record_write`).bind(quantity,now,c.user!.userId,sku,String(data.unit),quantity,JSON.stringify(data),now,id,c.user!.userId,body.kind,previousRecordUpdated,auditId,c.user!.userId,auditTitle,now).first()
-    : await c.db!.prepare(`WITH product_update AS (${productUpdate}), record_write AS (INSERT INTO records(id,owner,kind,data,created,updated) SELECT ?,?,'lotkopi',?,?,? WHERE EXISTS (SELECT 1 FROM product_update) RETURNING id), audit_write AS (INSERT INTO audit(id,owner,action,title,created) SELECT ?,?,'Penerimaan hasil disahkan',?,? FROM record_write RETURNING id) SELECT id FROM record_write`).bind(quantity,now,c.user!.userId,sku,String(data.unit),quantity,id,c.user!.userId,JSON.stringify(data),now,now,auditId,c.user!.userId,auditTitle,now).first();
-   if(!write)return json({error:"Stok tidak berubah. Pastikan SKU tersedia, satuan sama dengan produk, dan kapasitas stok mencukupi."},409);
-   return json({ok:true,id,updated:now});
-  }
   if(body.kind==="tindaklanjut"){
    previousTaskData=oldData;
    if(c.user!.role!=="sekretaris"){
@@ -95,6 +80,23 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
    await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),body.kind+": "+String(data.name||""),[...normalizedWrites,...ledgerWrites]);
    return json({ok:true,id});
   }
+ }
+ if(body.kind==="lotkopi" && previousRecordData?.status==="Diterima")return json({error:"Penerimaan yang sudah disahkan tidak dapat diubah. Catat koreksi sebagai penerimaan atau penyesuaian persediaan baru agar riwayat stok tetap utuh."},409);
+ if(body.kind==="lotkopi" && data.status==="Diterima"){
+  const sku=String(data.productSku||"").trim().toUpperCase();
+  const quantity=Number(data.quantity);
+  if(!sku)return json({error:"Isi SKU produk persediaan sebelum mengesahkan penerimaan."},400);
+  if(!Number.isSafeInteger(quantity)||quantity<=0)return json({error:"Penerimaan yang masuk ke stok harus menggunakan jumlah satuan bulat yang valid."},400);
+  if(data.basis!=="Hasil timbang terverifikasi")return json({error:"Penerimaan hanya dapat menambah stok setelah hasil timbang terverifikasi."},400);
+  data.productSku=sku;
+  const auditId=crypto.randomUUID();
+  const auditTitle="Penerimaan hasil disahkan; stok persediaan bertambah";
+  const productUpdate="UPDATE commerce_products SET stock=stock+?,updated=? WHERE owner=? AND sku=? AND unit=? AND stock+?<=1000000 RETURNING id";
+  const write=edit
+   ? await c.db!.prepare(`WITH product_update AS (${productUpdate}), record_write AS (UPDATE records SET data=?,updated=? WHERE id=? AND owner=? AND kind='lotkopi' AND updated=? AND EXISTS (SELECT 1 FROM product_update) RETURNING id), audit_write AS (INSERT INTO audit(id,owner,action,title,created) SELECT ?,?,'Penerimaan hasil disahkan',?,? FROM record_write RETURNING id) SELECT id FROM record_write`).bind(quantity,now,c.user!.userId,sku,String(data.unit),quantity,JSON.stringify(data),now,id,c.user!.userId,body.kind,previousRecordUpdated,auditId,c.user!.userId,auditTitle,now).first()
+   : await c.db!.prepare(`WITH product_update AS (${productUpdate}), record_write AS (INSERT INTO records(id,owner,kind,data,created,updated) SELECT ?,?,'lotkopi',?,?,? WHERE EXISTS (SELECT 1 FROM product_update) RETURNING id), audit_write AS (INSERT INTO audit(id,owner,action,title,created) SELECT ?,?,'Penerimaan hasil disahkan',?,? FROM record_write RETURNING id) SELECT id FROM record_write`).bind(quantity,now,c.user!.userId,sku,String(data.unit),quantity,id,c.user!.userId,JSON.stringify(data),now,now,auditId,c.user!.userId,auditTitle,now).first();
+  if(!write)return json({error:"Stok tidak berubah. Pastikan SKU tersedia, satuan sama dengan produk, dan kapasitas stok mencukupi."},409);
+  return json({ok:true,id,updated:now});
  }
  if(body.kind==="tindaklanjut"){
   if(!edit){
