@@ -92,8 +92,8 @@ BEGIN
 
  SELECT id,name,price,stock,published INTO v_product
   FROM commerce_products WHERE id=p_product_id AND owner=p_owner FOR UPDATE;
- IF NOT FOUND OR NOT v_product.published OR v_product.stock<p_quantity
-    OR v_product.price::numeric*p_quantity>1000000000000 THEN
+ IF NOT FOUND THEN RAISE EXCEPTION 'Produk tidak ditemukan.'; END IF;
+ IF NOT v_product.published OR v_product.stock<p_quantity OR v_product.price::numeric*p_quantity>1000000000000 THEN
   RAISE EXCEPTION 'Produk tidak tersedia atau stok tidak mencukupi.';
  END IF;
  IF (SELECT COALESCE(SUM(remaining_quantity),0) FROM commerce_inventory_lots
@@ -139,13 +139,13 @@ CREATE OR REPLACE FUNCTION srikandi_cancel_order_restore_fifo(
 DECLARE
  v_order RECORD;
  v_allocation RECORD;
+ v_allocated INTEGER := 0;
 BEGIN
  SELECT id,buyer_id,product_id,quantity,status INTO v_order
   FROM commerce_orders WHERE id=p_order_id AND owner=p_owner
   FOR UPDATE;
- IF NOT FOUND OR v_order.status NOT IN ('submitted','confirmed') THEN
-  RETURN;
- END IF;
+ IF NOT FOUND THEN RETURN; END IF;
+ IF v_order.status NOT IN ('submitted','confirmed') THEN RETURN; END IF;
  PERFORM 1 FROM commerce_products WHERE id=v_order.product_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Produk pesanan tidak ditemukan saat pembatalan.'; END IF;
  SELECT COALESCE(SUM(quantity),0)::INTEGER INTO v_allocated
