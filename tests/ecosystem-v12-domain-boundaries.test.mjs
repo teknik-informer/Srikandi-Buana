@@ -34,7 +34,7 @@ test("shared validation keeps safe integer and normalized text contracts", () =>
   assert.equal(shared.textField("   "), null);
 });
 
-test("coffee receipt lots are writable only by the Treasurer and require positive quantity", async () => {
+test("generic commodity receipts are writable only by the Treasurer and require positive quantity", async () => {
   const policyBundle = await build({
     entryPoints: ["src/features/identity/access-policy.ts"],
     bundle: true,
