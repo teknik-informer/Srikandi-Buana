@@ -27,33 +27,31 @@ import { enterpriseDashboards, getVisibleEnterpriseDashboards, getVisibleEnterpr
 import {
   Activity,
   ArrowUpRight,
-  BriefcaseBusiness,
-  ChevronDown,
+  Blocks,
   BookOpen,
-  Files,
+  ChartNoAxesCombined,
+  ChevronDown,
   FileText,
   Grid2X2,
+  Handshake,
   LayoutDashboard,
-  MessagesSquare,
-  ShoppingBag,
-  Megaphone,
   Search,
-  Settings2,
   ShieldCheck,
-  Wallet,
+  Sprout,
+  Store,
+  Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import LogoutButton from "./access/logout-button";
 const dashboardIcons: Record<string, typeof Grid2X2> = {
-  ecosystem: Grid2X2,
-  management: BriefcaseBusiness,
-  administration: Files,
-  finance: Wallet,
-  commerce: ShoppingBag,
-  publication: Megaphone,
-  system: Settings2,
+  organization: Users,
+  agriculture: Sprout,
+  business: Store,
+  analytics: ChartNoAxesCombined,
+  "public-partnership": Handshake,
+  "platform-core": Blocks,
 };
 export default function DashboardNavigation({ section, user }: { section: string; user: Principal }) {
   const identity = useProfileIdentity(user);
@@ -140,7 +138,7 @@ export default function DashboardNavigation({ section, user }: { section: string
           </div>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>MENU UTAMA</SidebarGroupLabel>
+          <SidebarGroupLabel>ENAM APLIKASI</SidebarGroupLabel>
           <SidebarMenu>
             {groups.map((group) => {
               const Icon = dashboardIcons[group.id] ?? Grid2X2;
@@ -291,9 +289,9 @@ export function DashboardMegaMenu({
           <DialogClose className="dashboard-mega-close" aria-label="Tutup menu aplikasi">
             <X size={18} />
           </DialogClose>
-          <DialogTitle>Navigasi aplikasi</DialogTitle>
+          <DialogTitle>Pusat Aplikasi</DialogTitle>
           <DialogDescription>
-            Pilih ruang kerja, monitoring, laporan, atau Pusat Bantuan sesuai kewenangan akun Anda.
+            Enam aplikasi utama Srikandi Buana. Fitur yang tampil mengikuti hak akses akun Anda.
           </DialogDescription>
           <div className="dashboard-mega-search">
             <Search size={17} />
@@ -325,7 +323,7 @@ export function DashboardMegaMenu({
               </div>
             </section>
           )}
-          <div className="dashboard-mega-grid">
+          <div className="dashboard-mega-grid" aria-label="Enam aplikasi utama">
             {groups.map((g) => (
               <section key={g.id}>
                 <h3>
