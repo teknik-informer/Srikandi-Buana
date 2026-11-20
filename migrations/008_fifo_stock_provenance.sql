@@ -148,15 +148,25 @@ BEGIN
  END IF;
  PERFORM 1 FROM commerce_products WHERE id=v_order.product_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Produk pesanan tidak ditemukan saat pembatalan.'; END IF;
- FOR v_allocation IN
-  SELECT a.lot_id,a.quantity FROM commerce_order_lot_allocations a
-  WHERE a.owner=p_owner AND a.order_id=p_order_id FOR UPDATE
- LOOP
-  UPDATE commerce_inventory_lots SET remaining_quantity=remaining_quantity+v_allocation.quantity
-   WHERE id=v_allocation.lot_id AND owner=p_owner
-     AND remaining_quantity+v_allocation.quantity<=initial_quantity;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Lot sumber tidak dapat dipulihkan. Periksa alokasi pesanan.'; END IF;
- END LOOP;
+ SELECT COALESCE(SUM(quantity),0)::INTEGER INTO v_allocated
+  FROM commerce_order_lot_allocations WHERE owner=p_owner AND order_id=p_order_id;
+ IF v_allocated=0 THEN
+  -- Legacy orders created before FIFO tracking have no source allocations.
+  -- Restore their reserved quantity as an explicitly labelled adjustment lot.
+  INSERT INTO commerce_inventory_lots(owner,product_id,source_type,source_ref,initial_quantity,remaining_quantity,received_at,created)
+  VALUES(p_owner,v_order.product_id,'adjustment','cancelled-order:'||p_order_id,v_order.quantity,v_order.quantity,p_now::timestamptz,p_now::timestamptz);
+ ELSE
+  IF v_allocated<>v_order.quantity THEN RAISE EXCEPTION 'Jumlah alokasi lot tidak sama dengan jumlah pesanan.'; END IF;
+  FOR v_allocation IN
+   SELECT a.lot_id,a.quantity FROM commerce_order_lot_allocations a
+   WHERE a.owner=p_owner AND a.order_id=p_order_id FOR UPDATE
+  LOOP
+   UPDATE commerce_inventory_lots SET remaining_quantity=remaining_quantity+v_allocation.quantity
+    WHERE id=v_allocation.lot_id AND owner=p_owner
+      AND remaining_quantity+v_allocation.quantity<=initial_quantity;
+   IF NOT FOUND THEN RAISE EXCEPTION 'Lot sumber tidak dapat dipulihkan. Periksa alokasi pesanan.'; END IF;
+  END LOOP;
+ END IF;
  UPDATE commerce_products SET stock=stock+v_order.quantity,updated=p_now
   WHERE id=v_order.product_id AND owner=p_owner AND stock+v_order.quantity<=1000000;
  IF NOT FOUND THEN RAISE EXCEPTION 'Stok produk melewati batas saat pengembalian.'; END IF;
