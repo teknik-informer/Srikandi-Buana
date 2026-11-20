@@ -7,12 +7,12 @@ import { PREFERENCE_DEFAULTS, PREFERENCE_REGISTRY, type PreferenceKey, type Pref
 import { applyPreference } from "@/lib/preferences/preference-runtime";
 import { persistPreference } from "@/lib/preferences/preferences-storage";
 import { THEME_PRESET_OPTIONS } from "@/lib/preferences/theme";
-import { fontKeys } from "@/lib/fonts/registry";
+import { fontOptions } from "@/lib/fonts/registry";
 
 const options: { key: PreferenceKey; label: string; values: { value: string; label: string }[] }[] = [
   { key: "theme_mode", label: "Mode tampilan", values: [{ value: "light", label: "Terang" }, { value: "dark", label: "Gelap" }, { value: "system", label: "Ikuti perangkat" }] },
   { key: "theme_preset", label: "Palet warna", values: THEME_PRESET_OPTIONS.map((item) => ({ value: item.value, label: item.label })) },
-  { key: "font", label: "Tipografi", values: fontKeys.map((value) => ({ value, label: value.replaceAll("-", " ") })) },
+  { key: "font", label: "Tipografi", values: fontOptions.map(({ key, label }) => ({ value: key, label })) },
   { key: "content_layout", label: "Lebar konten", values: [{ value: "centered", label: "Terpusat" }, { value: "full-width", label: "Lebar penuh" }] },
   { key: "navbar_style", label: "Perilaku header", values: [{ value: "sticky", label: "Tetap di atas" }, { value: "scroll", label: "Mengikuti halaman" }] },
   { key: "sidebar_variant", label: "Tampilan navigasi", values: [{ value: "sidebar", label: "Standar" }, { value: "inset", label: "Inset" }, { value: "floating", label: "Mengambang" }] },
@@ -54,7 +54,7 @@ export default function GlobalSettingsControl() {
       {open && (
         <section className="global-settings-panel" aria-label="Pengaturan tampilan aplikasi">
           <div className="global-settings-heading">
-            <div><strong>Pengaturan tampilan</strong><span>Berlaku di seluruh ruang kerja akun ini</span></div>
+            <div><strong>Pengaturan tampilan</strong><span>Berlaku di seluruh ruang kerja pada browser ini</span></div>
             <Button type="button" variant="ghost" size="icon" aria-label="Tutup pengaturan" onClick={() => setOpen(false)}><X /></Button>
           </div>
           <div className="global-settings-fields">
@@ -68,7 +68,7 @@ export default function GlobalSettingsControl() {
             ))}
           </div>
           <div className="global-settings-footer">
-            <span>Preferensi tersimpan otomatis pada perangkat ini.</span>
+            <span>Preferensi tersimpan otomatis pada browser ini.</span>
             <Button type="button" variant="outline" size="sm" onClick={reset}><RotateCcw /> Pulihkan standar</Button>
           </div>
         </section>
