@@ -68,3 +68,18 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /enam aplikasi utama/);
 });
+
+test("Gentelella is a visual layer and does not replace the canonical six-application architecture", () => {
+  const registrySource = readFileSync("src/features/platform/application-registry.ts", "utf8");
+  const shell = readFileSync("src/app/_components/workspace-shell.tsx", "utf8");
+  const globalStyles = readFileSync("src/app/globals.css", "utf8");
+  assert.doesNotMatch(registrySource, /dashboardId|featureId/);
+  assert.match(hub, /application\.legacyWorkspaces/);
+  assert.match(navigation, /APLIKASI UTAMA/);
+  assert.match(navigation, /MODUL DALAM APLIKASI/);
+  assert.match(navigation, /getVisibleEnterpriseDashboardsForUser/);
+  assert.match(shell, /data-workspace-theme="gentelella"/);
+  assert.match(shell, /<ThemeControl\s*\/>/);
+  assert.match(shell, /variant=\{sidebarVariant\}/);
+  assert.match(globalStyles, /gentelella-workspace\.css/);
+});
