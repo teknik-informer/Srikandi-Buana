@@ -95,7 +95,7 @@ test("Gentelella is a visual layer and does not replace the canonical six-applic
   assert.match(globalStyles, /gentelella-workspace\.css/);
 });
 
-test("canonical landing routes resolve through the existing dashboard router without replacing legacy workspace IDs", () => {
+test("application hub always launches the canonical application landing route", () => {\n  const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");\n  assert.match(hub, /const href = application\\.route/);\n  assert.doesNotMatch(hub, /dashboard\\?\\.href \\?\\? application\\.route/);\n});\n\ntest("canonical landing routes resolve through the existing dashboard router without replacing legacy workspace IDs", () => {
   const route = readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8");
   const enterpriseRegistry = readFileSync("src/features/enterprise/registry.ts", "utf8");
   const canonicalRoutes = new Map(platformApplications.map((app) => [app.id, app.route]));
