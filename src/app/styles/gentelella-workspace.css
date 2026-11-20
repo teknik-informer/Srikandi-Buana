@@ -394,3 +394,184 @@
     [data-slot="table"], .records-table-region table, .workspace-table-scroll table
   ) > tbody > tr > td {padding:9px 10px;font-size:11px}
 }
+
+
+/* GLOBAL FORM SYSTEM — consistent controls, labels, validation and spacing.
+   Applies to shared Shadcn fields and native HTML forms inside every workspace.
+   Form state, validation rules, submission handlers and business logic stay intact. */
+.workspace-shell[data-workspace-theme="gentelella"] :is(form,[data-slot="field-group"]) {
+  color:var(--foreground);
+}
+.workspace-shell[data-workspace-theme="gentelella"] form {
+  min-width:0;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="field"], .form-field, .form-group, .form-control-group
+) {
+  min-width:0;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  label,[data-slot="field-label"],[data-slot="label"],.form-label
+) {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-bottom:6px;
+  color:var(--foreground);
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea, select, [data-slot="input"], [data-slot="textarea"],
+  [data-slot="select-trigger"], [data-slot="native-select"]
+) {
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:38px;
+  padding:8px 11px;
+  border:1px solid var(--input);
+  border-radius:5px;
+  background-color:var(--card);
+  color:var(--foreground);
+  font:inherit;
+  font-size:13px;
+  line-height:1.45;
+  box-shadow:none;
+  outline:none;
+  transition:border-color 120ms ease,background-color 120ms ease;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea, select, [data-slot="input"], [data-slot="textarea"],
+  [data-slot="select-trigger"], [data-slot="native-select"]
+)::placeholder {
+  color:var(--muted-foreground);
+  opacity:.82;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea, select, [data-slot="input"], [data-slot="textarea"],
+  [data-slot="select-trigger"], [data-slot="native-select"]
+):hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color:color-mix(in srgb,var(--primary) 38%,var(--input));
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea, select, [data-slot="input"], [data-slot="textarea"],
+  [data-slot="select-trigger"], [data-slot="native-select"]
+):focus,
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea, select, [data-slot="input"], [data-slot="textarea"],
+  [data-slot="select-trigger"], [data-slot="native-select"]
+):focus-visible {
+  border-color:var(--primary);
+  outline:2px solid color-mix(in srgb,var(--primary) 13%,transparent);
+  outline-offset:1px;
+  box-shadow:none;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input,textarea,select,[data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]
+):is(:disabled,[aria-disabled="true"]) {
+  cursor:not-allowed;
+  opacity:.62;
+  background-color:var(--muted);
+}
+.workspace-shell[data-workspace-theme="gentelella"] textarea,
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="textarea"] {
+  min-height:92px;
+  resize:vertical;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input[type="checkbox"],input[type="radio"],
+  [data-slot="checkbox"],[data-slot="radio-group"] [role="radio"]
+) {
+  accent-color:var(--primary);
+}
+.workspace-shell[data-workspace-theme="gentelella"] input[type="checkbox"],
+.workspace-shell[data-workspace-theme="gentelella"] input[type="radio"] {
+  width:16px;
+  height:16px;
+  min-width:16px;
+  min-height:16px;
+  margin:0;
+  vertical-align:middle;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="checkbox"],[data-slot="radio-group"] [role="radio"]
+) {
+  border-color:var(--input);
+  box-shadow:none;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="field-description"],.field-description,.form-text,.help-text
+) {
+  display:block;
+  margin-top:5px;
+  color:var(--muted-foreground);
+  font-size:11px;
+  line-height:1.5;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="field-error"],[aria-invalid="true"],.field-error,.form-error
+) {
+  color:var(--destructive);
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input,textarea,select,[data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]
+)[aria-invalid="true"] {
+  border-color:var(--destructive);
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="field-group"],.form-grid,.form-row
+) {
+  gap:14px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  input[type="file"],input[type="color"]
+) {
+  max-width:100%;
+}
+.workspace-shell[data-workspace-theme="gentelella"] input[type="file"] {
+  min-height:38px;
+  padding:5px;
+  border:1px dashed var(--input);
+  border-radius:5px;
+  background:var(--muted);
+  color:var(--muted-foreground);
+  font-size:12px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] input[type="file"]::file-selector-button {
+  min-height:26px;
+  margin-right:9px;
+  padding:3px 9px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:var(--card);
+  color:var(--foreground);
+  font-size:11px;
+  font-weight:600;
+  cursor:pointer;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="form"],[data-slot="field-group"],.workspace-form
+) :is(button,[data-slot="button"]) {
+  border-radius:5px;
+}
+@media(max-width:767px) {
+  .workspace-shell[data-workspace-theme="gentelella"] :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    textarea,select,[data-slot="input"],[data-slot="textarea"],
+    [data-slot="select-trigger"],[data-slot="native-select"]
+  ) {
+    min-height:40px;
+    font-size:16px;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] textarea,
+  .workspace-shell[data-workspace-theme="gentelella"] [data-slot="textarea"] {
+    min-height:100px;
+  }
+}
