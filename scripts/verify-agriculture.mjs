@@ -173,6 +173,12 @@ assert(api.includes("c.verification_status AS cycle_verification") && api.includ
 assert(api.includes('cycle.parcel_verification !== "verified" || cycle.cycle_verification !== "verified"'), "Harvest records must not be created until both the parcel and crop cycle are verified");
 assert(api.includes('cycle.parcel_status !== "active"'), "Harvest records must not be created from archived parcels");
 assert(api.includes('user.programIds.includes("3")'), "Coordinator write access must require agriculture program assignment");
+const traceabilityMigration = readFileSync("migrations/007_harvest_receipt_traceability.sql", "utf8");
+assert(traceabilityMigration.includes("received_quantity") && traceabilityMigration.includes("CHECK (received_quantity >= 0 AND received_quantity <= quantity)"), "Harvest receipt allocations must be capped by verified harvest quantity");
+assert(traceabilityMigration.includes("FOREIGN KEY (harvest_id, owner)") && traceabilityMigration.includes("REFERENCES harvest_records(id, workspace_owner)"), "Receipt-to-harvest links must enforce workspace ownership");
+assert(traceabilityMigration.includes("FOR UPDATE OF h") && traceabilityMigration.includes("v_harvest.received_quantity + v_quantity > v_harvest.quantity"), "Harvest receipt posting must lock and cap concurrent allocations");
+assert(api.includes("srikandi_post_harvest_receipt") && api.includes('data.originType==="Hasil panen kelompok"'), "Accepted group-harvest receipts must use the atomic traceability posting function");
+assert(agricultureWorkspace.includes("ID referensi penerimaan"), "Verified harvest cards must expose a reference that can be linked by the receiving workflow");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
 assert(api.includes("const memberOptions = isSecretariat ?"), "Only the Secretariat may receive individual member choices");
 assert(api.includes("const memberCount = members.results.reduce"), "Other roles receive an aggregate member count rather than identities");
