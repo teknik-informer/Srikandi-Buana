@@ -7,7 +7,7 @@ const navLabels=new Map([...nav.matchAll(/admin\('([^']+)','([^']+)','[^']+'\)/g
 const labels={
  anggota:'Keanggotaan', pengurus:'Struktur Organisasi', musyawarah:'Rapat dan Notulen', persetujuan:'Persetujuan Data',
  tindaklanjut:'Tugas dan Tindak Lanjut', kegiatan:'Agenda Kegiatan', kas:'Buku Kas', usaha:'Perencanaan Usaha',
- aset:'Inventaris Aset', lotkopi:'Penerimaan Kopi', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
+ aset:'Inventaris Aset', lotkopi:'Penerimaan Hasil', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
  register:'Register Dokumen', transkripsi:'Verifikasi Informasi', publikasi:'Manajemen Konten',galeri:'Galeri Foto',
  portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional','akses-eksternal':'Akses Pemerintah & Mitra',pertanian:'Pengelolaan Pertanian',laporan:'Laporan Kas',surat:'Surat Masuk dan Keluar','surat-resmi':'Penyusunan Surat Resmi',laporan_program:'Laporan Perkembangan Program',presensi:'Presensi Kegiatan','presensi-saya':'Presensi Saya'
 };
@@ -27,7 +27,7 @@ test('Penyusunan surat resmi memiliki skema draf yang terpisah dari register sur
  assert(mods.includes('options:["Draf"]'));
 });
 test('Tidak menggunakan label yang berpotensi menyesatkan',()=>{
- const forbidden=['Employee Portal','Keuangan & Akuntansi','Laporan Keuangan','Pusat operasional','Checklist kelembagaan','Lot kopi','Sembilan prioritas tahun pertama'];
+ const forbidden=['Employee Portal','Keuangan & Akuntansi','Laporan Keuangan','Pusat operasional','Checklist kelembagaan','Lot kopi','Penerimaan Kopi','Sembilan prioritas tahun pertama'];
  for(const term of forbidden)assert.ok(!nav.includes(term),term);
 });
 test('Tidak mengubah nilai status yang disimpan pada database',()=>{
