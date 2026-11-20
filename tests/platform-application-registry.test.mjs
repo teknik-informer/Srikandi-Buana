@@ -121,6 +121,7 @@ test("canonical landing routes resolve through the existing dashboard router wit
   // Existing dashboard route remains the resolver; this guard intentionally does
   // not prescribe a new route tree or change any authorization behavior.
   assert.match(route, /getEnterpriseDashboardById\(active\)/);
+  assert.match(route, /"ringkasan", "business", "qa-test-center"/);
   assert.match(route, /active === "business"/);
   assert.match(route, /operationalWorkspace\?\.href/);
   assert.match(route, /\["accounting", "pos"\]\.includes\(dashboard\.id\)/);
