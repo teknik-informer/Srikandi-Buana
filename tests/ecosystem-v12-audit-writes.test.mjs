@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');
 const products=readFileSync('src/app/api/ecosystem/products/route.ts','utf8');
+const records=readFileSync('src/app/api/records/route.ts','utf8');
 
 test('Order creation reserves stock through a FIFO allocation function and records its event atomically',()=>{
  assert.match(orders,/srikandi_create_order_with_fifo/);
@@ -49,16 +50,16 @@ test('Generic accepted receipts and new products create matching inventory lots'
 
 test('FIFO migration preserves opening stock and allocates sales by source lot',()=>{
  const migration=readFileSync('migrations/008_fifo_stock_provenance.sql','utf8');
- assert.match(migration,/source_type IN \\('opening_balance','harvest','receipt','adjustment'\\)/);
- assert.match(migration,/source_type='opening_balance'/);
- assert.match(migration,/ORDER BY received_at,id FOR UPDATE/);
- assert.match(migration,/FOREIGN KEY\\(lot_id,owner\\)/);
- assert.match(migration,/v_allocated<>v_order.quantity/);
- assert.match(migration,/cancelled-order:/);
+ assert.ok(migration.includes("source_type IN ('opening_balance','harvest','receipt','adjustment')"));
+ assert.ok(migration.includes("source_type='opening_balance'"));
+ assert.ok(migration.includes("ORDER BY received_at,id FOR UPDATE"));
+ assert.ok(migration.includes("FOREIGN KEY(lot_id,owner)"));
+ assert.ok(migration.includes("v_allocated<>v_order.quantity"));
+ assert.ok(migration.includes("cancelled-order:"));
 });
 test('Receipt and product creation create FIFO lots while catalog edits cannot silently change stock',()=>{
- assert.match(orders,/jsonb_agg\\(jsonb_build_object\\('source_type'/);
- assert.match(readFileSync('src/app/api/records/route.ts','utf8'),/INSERT INTO commerce_inventory_lots\\(owner,product_id,source_type,receipt_record_id/);
- assert.match(products,/INSERT INTO commerce_inventory_lots\\(owner,product_id,source_type,initial_quantity/);
- assert.match(products,/Perubahan jumlah stok harus melalui transaksi penerimaan/);
+ assert.ok(orders.includes("jsonb_agg(jsonb_build_object('source_type'"));
+ assert.ok(records.includes("INSERT INTO commerce_inventory_lots(owner,product_id,source_type,receipt_record_id"));
+ assert.ok(products.includes("INSERT INTO commerce_inventory_lots(owner,product_id,source_type,initial_quantity"));
+ assert.ok(products.includes("Perubahan jumlah stok harus melalui transaksi penerimaan"));
 });
