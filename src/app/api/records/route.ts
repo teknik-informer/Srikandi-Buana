@@ -82,7 +82,14 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   }
  }
  if(body.kind==="lotkopi" && previousRecordData?.status==="Diterima")return json({error:"Penerimaan yang sudah disahkan tidak dapat diubah. Catat koreksi sebagai penerimaan atau penyesuaian persediaan baru agar riwayat stok tetap utuh."},409);
+ if(body.kind==="lotkopi" && data.status==="Diterima" && data.originType==="Hasil panen kelompok"){
+  const posted=await c.db!.prepare("SELECT srikandi_post_harvest_receipt(?,?,?,?::jsonb,?,?,?) AS id")
+   .bind(c.user!.userId,c.user!.accountId,id,JSON.stringify(data),now,edit,previousRecordUpdated||"").first();
+  if(!posted)return json({error:"Penerimaan panen belum dapat diposting. Periksa status verifikasi, sisa hasil panen, satuan, dan SKU persediaan."},409);
+  return json({ok:true,id,updated:now});
+ }
  if(body.kind==="lotkopi" && data.status==="Diterima"){
+  if(data.sourceHarvestId && data.originType!=="Hasil panen kelompok")return json({error:"Referensi panen hanya boleh digunakan untuk penerimaan yang berasal dari panen kelompok."},400);
   const sku=String(data.productSku||"").trim().toUpperCase();
   const quantity=Number(data.quantity);
   if(!sku)return json({error:"Isi SKU produk persediaan sebelum mengesahkan penerimaan."},400);

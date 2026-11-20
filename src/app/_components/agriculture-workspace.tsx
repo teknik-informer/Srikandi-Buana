@@ -17,7 +17,7 @@ type CropCycle = {
   verification_status: string; verification_note?: string;
 };
 type Harvest = {
-  id: string; crop_cycle_id: string; harvest_date: string; quantity: string | number; unit_code: string;
+  id: string; crop_cycle_id: string; harvest_date: string; quantity: string | number; received_quantity: string | number; unit_code: string;
   notes?: string; verification_status: string; verification_note?: string; commodity_name: string;
   parcel_name: string; parcel_code: string; season_label: string;
 };
@@ -294,7 +294,7 @@ export default function AgricultureWorkspace({ role, programIds = [] }: { role: 
     <section className="rounded-2xl border bg-card p-5">
       <div className="flex items-center gap-2"><Wheat size={19}/><h2 className="font-semibold">Hasil panen dan pemeriksaan</h2></div>
       <div className="mt-4 grid gap-3">{data.harvests.map(harvest => <article key={harvest.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
-        <div><p className="text-xs text-muted-foreground">{dateLabel(harvest.harvest_date)} · {harvest.parcel_code}</p><h3 className="font-semibold">{harvest.commodity_name} · {numberLabel(harvest.quantity)} {harvest.unit_code}</h3><p className="mt-1 text-xs text-muted-foreground">{harvest.parcel_name} · {harvest.season_label}{harvest.notes ? " · "+harvest.notes : ""}</p><span className={`mt-2 inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${verificationStyle[harvest.verification_status] || ""}`}>{verificationLabels[harvest.verification_status] || harvest.verification_status}</span>{harvest.verification_note && <p className="mt-1 text-xs text-muted-foreground">{harvest.verification_note}</p>}</div>
+        <div><p className="text-xs text-muted-foreground">{dateLabel(harvest.harvest_date)} · {harvest.parcel_code}</p><h3 className="font-semibold">{harvest.commodity_name} · {numberLabel(harvest.quantity)} {harvest.unit_code}</h3><p className="mt-1 text-xs text-muted-foreground">{harvest.parcel_name} · {harvest.season_label}{harvest.notes ? " · "+harvest.notes : ""}</p><p className="mt-1 text-[11px] text-muted-foreground">ID referensi penerimaan: <span className="font-mono">{harvest.id}</span> · Sudah diterima {numberLabel(harvest.received_quantity)} / {numberLabel(harvest.quantity)} {harvest.unit_code}</p><span className={`mt-2 inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${verificationStyle[harvest.verification_status] || ""}`}>{verificationLabels[harvest.verification_status] || harvest.verification_status}</span>{harvest.verification_note && <p className="mt-1 text-xs text-muted-foreground">{harvest.verification_note}</p>}</div>
         {data.permissions.canVerify && harvest.verification_status !== "verified" && <div className="flex gap-2"><button disabled={busy} onClick={() => void verify("harvest", harvest.id, true)} className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-emerald-800 px-3 text-xs font-semibold text-white disabled:opacity-50"><ShieldCheck size={14}/> Verifikasi</button><button disabled={busy} onClick={() => void verify("harvest", harvest.id, false)} className="min-h-9 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700 disabled:opacity-50">Kembalikan</button></div>}
       </article>)}{!data.harvests.length && <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada hasil panen yang dicatat.</p>}</div>
     </section>
