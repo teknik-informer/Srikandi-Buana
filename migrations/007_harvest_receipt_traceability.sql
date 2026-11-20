@@ -49,11 +49,14 @@ BEGIN
     INTO v_harvest
     FROM harvest_records h
     JOIN crop_cycles c ON c.id=h.crop_cycle_id AND c.workspace_owner=h.workspace_owner
+    JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner
     JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner
    WHERE h.id=p_data->>'sourceHarvestId'
      AND h.workspace_owner=p_owner
      AND h.verification_status='verified'
      AND c.verification_status='verified'
+     AND p.verification_status='verified'
+     AND p.status='active'
    FOR UPDATE OF h;
   IF NOT FOUND THEN RAISE EXCEPTION 'Hasil panen tidak ditemukan atau belum terverifikasi.'; END IF;
   IF v_harvest.unit_code <> v_unit OR v_harvest.commodity_name <> v_commodity THEN
