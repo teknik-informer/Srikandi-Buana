@@ -21,7 +21,7 @@ test("pusat aplikasi memakai enam aplikasi kanonis", () => {
   assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.id), ["platform-core", "organization", "agriculture", "business", "bi-analytics", "public-partnership"]);
   assert.deepEqual(Array.from(registry.enterpriseDashboards, (dashboard) => dashboard.label), ["Platform Core", "Organization Management", "Agriculture Management", "Business & Enterprise", "BI & Analytics", "Public & Partnership"]);
   for (const dashboard of registry.enterpriseDashboards) {
-    assert.equal(dashboard.href, "/dashboard/" + dashboard.id);
+    assert.equal(dashboard.href, dashboard.id === "agriculture" ? "/dashboard/pertanian" : "/dashboard/" + dashboard.id);
     assert.equal(registry.getEnterpriseDashboardById(dashboard.id)?.id, dashboard.id);
   }
 });
@@ -61,7 +61,7 @@ test("menu navigasi memakai label formal dan ringkas", () => {
   const overview = readFileSync("src/app/_components/enterprise-dashboard-overview.tsx", "utf8");
   assert.match(navigation, /ENAM APLIKASI/);
   assert.match(navigation, /Cari halaman/);
-  assert.match(overview, /PELAPORAN/);
+  assert.match(overview, /BI & ANALYTICS/);
   assert.doesNotMatch(overview, /LANGKAH 0/);
 });
 
