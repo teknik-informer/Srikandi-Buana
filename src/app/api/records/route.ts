@@ -36,7 +36,7 @@ function validate(kind:string,raw:unknown):Data{
  if(f.options&&!v)v=f.options[0];
  if(f.options&&!f.options.includes(v))throw new Error(`${f.label} tidak valid.`);
  if(f.type==="date"&&v&&(!/^\d{4}-\d{2}-\d{2}$/.test(v)||(!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v)))throw new Error("Tanggal tidak valid.");
- if(f.type==="number"||f.type==="decimal"){const n=Number(v||0);if((f.type==="number"?!Number.isSafeInteger(n):!Number.isFinite(n))||n<0||n>1e12||(f.key==="amount"&&n===0))throw new Error(`${f.label} harus berupa bilangan bulat yang valid.`);out[f.key]=n;}else out[f.key]=v;
+ if(f.type==="number"||f.type==="decimal"){const n=Number(v||0);if((f.type==="number"?!Number.isSafeInteger(n):!Number.isFinite(n))||n<0||n>1e12||(f.key==="amount"&&n===0)||(kind==="lotkopi"&&f.key==="quantity"&&n<=0))throw new Error(`${f.label} harus lebih besar dari nol dan menggunakan angka yang valid.`);out[f.key]=n;}else out[f.key]=v;
  }
  if(kind==="surat_resmi"){out.number="";out.status="Draf";}
  return out;
