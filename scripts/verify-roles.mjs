@@ -259,7 +259,22 @@ const pendingBeforeReset=(await pool.query('SELECT id,owner,member_id,purpose,co
 const login=await load('src/app/api/auth/login/route.ts',jar());assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,200,'Member email/password login');
 assert.equal((await accountAdmin.PATCH(req('/api/accounts','PATCH',{userId:owner,role:'anggota',enabled:false}))).status,403,'Owner cannot be demoted');
 assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:principal.accountId,role:'anggota',enabled:false}))).status,200);assert.equal((await login.POST(req('/api/auth/login','POST',{email:inv.email,password}))).status,401);assert.equal((await chairAccounts.PATCH(req('/api/accounts','PATCH',{userId:chairAccountId,role:'anggota',position:'Changed',programIds:[],enabled:true}))).status,403,'Chair cannot change or disable their own organizational authority');assert.equal((await chairAuth.getAuthenticatedUser()).role,'ketua','Rejected self-role changes preserve the authenticated Chair session');
-// Public service topics, consent receipts, rejection, and administrator visibility.
+// Membership lifecycle: a verified account loses access immediately when its source member record is deactivated.
+ const lifecycleMember=await member('Lifecycle session fixture'),lifecycleInvite=await invite(lifecycleMember),lifecycleActivation=await activate(lifecycleInvite);
+ assert.equal(lifecycleActivation.response.status,200,'Active verified member can activate an account');
+ const lifecycleAuth=await load('src/lib/auth.ts',lifecycleActivation.j);
+ assert.equal((await lifecycleAuth.getAuthenticatedUser()).memberId,lifecycleMember,'Session resolves the linked member before deactivation');
+ const lifecycleRow=await prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(lifecycleMember,owner).first();
+ const lifecycleData=JSON.parse(lifecycleRow.data);lifecycleData.status='Tidak aktif';
+ await prepare('UPDATE records SET data=$1 WHERE id=$2').bind(JSON.stringify(lifecycleData),lifecycleMember).run();
+ assert.equal(await lifecycleAuth.getAuthenticatedUser(),null,'Deactivating a member immediately blocks an already authenticated linked account');
+ const pendingLifecycleMember=await member('Lifecycle pending invite'),pendingLifecycleInvite=await invite(pendingLifecycleMember);
+ const pendingLifecycleRow=await prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(pendingLifecycleMember,owner).first();
+ const pendingLifecycleData=JSON.parse(pendingLifecycleRow.data);pendingLifecycleData.status='Tidak aktif';
+ await prepare('UPDATE records SET data=$1 WHERE id=$2').bind(JSON.stringify(pendingLifecycleData),pendingLifecycleMember).run();
+ assert.equal((await activate(pendingLifecycleInvite)).response.status,403,'A pending activation cannot be consumed after its member is deactivated');
+ console.log('PASS membership lifecycle: deactivation blocks existing sessions and pending account activation immediately.');
+ // Public service topics, consent receipts, rejection, and administrator visibility.
 const publicMessages=await load('src/app/api/messages/route.ts',jar());
 const topics=['Informasi kelompok','Keanggotaan','Kemitraan','Dukungan akun','Pengaduan','Koreksi informasi','Permintaan data pribadi','Laporan keamanan','Bantuan aksesibilitas','Lainnya'];
 for(let i=0;i<topics.length;i++){const request=req('/api/messages','POST',{name:'Synthetic visitor',contact:'visitor@example.test',topic:topics[i],message:'Synthetic request for '+topics[i],consent:true});request.headers.set('x-vercel-forwarded-for','198.51.100.'+(70+i));const response=await publicMessages.POST(request);assert.equal(response.status,200,await response.text())}
