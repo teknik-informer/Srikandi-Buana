@@ -27,7 +27,7 @@ function validate(raw: unknown) {
     const limit = key === "description" ? 1000 : key === "name" ? 140 : 100;
     if (value.length > limit) throw new Error("Kolom " + key + " melebihi batas karakter.");
     if (key !== "description" && !value) throw new Error("Kolom " + key + " wajib diisi.");
-    result[key] = value;
+    Object.assign(result, { [key]: value });
   }
   if (!/^\d{5}$/.test(result.postalCode)) throw new Error("Kode pos harus terdiri dari 5 angka.");
   return result;
