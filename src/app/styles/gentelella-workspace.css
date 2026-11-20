@@ -265,3 +265,132 @@
 .dark .workspace-shell[data-workspace-theme="gentelella"] [data-slot="sidebar-inner"] [data-slot="sidebar-menu-sub-button"]:hover {
   background-color:#1e4332 !important;
 }
+
+
+/* GLOBAL TABLE SYSTEM — static HTML tables and data-driven Shadcn tables.
+   Both variants share the same typography, density, borders and responsive
+   overflow without changing their data, sorting, pagination or CRUD logic. */
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table-container"], .records-table-region, .workspace-table-scroll
+) {
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:visible;
+  overscroll-behavior-inline:contain;
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:var(--card);
+  box-shadow:var(--sb-shadow);
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--muted-foreground) 35%,transparent) transparent;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table-container"], .records-table-region, .workspace-table-scroll
+) > table,
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="table"] {
+  width:100%;
+  min-width:640px;
+  border-collapse:separate;
+  border-spacing:0;
+  background:var(--card);
+  color:var(--foreground);
+  font-size:12px;
+  line-height:1.45;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > thead > tr > :is(th,td),
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > thead th {
+  height:40px;
+  padding:9px 12px;
+  background:var(--muted);
+  color:var(--muted-foreground);
+  border-bottom:1px solid var(--border);
+  font-size:10px;
+  font-weight:650;
+  letter-spacing:.045em;
+  line-height:1.35;
+  text-align:left;
+  text-transform:uppercase;
+  vertical-align:middle;
+  white-space:nowrap;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > tbody > tr > :is(td,th),
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > tfoot > tr > :is(td,th) {
+  min-height:42px;
+  padding:10px 12px;
+  color:var(--foreground);
+  border-bottom:1px solid var(--border);
+  font-size:12px;
+  line-height:1.5;
+  text-align:left;
+  vertical-align:middle;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > tbody > tr:last-child > :is(td,th) {border-bottom:0}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > tbody > tr {
+  background:var(--card);
+  transition:background-color 120ms ease;
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > tbody > tr:hover {background:color-mix(in srgb,var(--primary) 3.5%,var(--card))}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > tbody > tr[data-state="selected"] {
+  background:color-mix(in srgb,var(--primary) 7%,var(--card));
+}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) > tfoot > tr {background:var(--muted);font-weight:650}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) :is(a,.record-title) {color:var(--primary);font-weight:600}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) :is(input,select,button) {max-width:100%}
+.workspace-shell[data-workspace-theme="gentelella"] :is(
+  [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+) :is(.whitespace-nowrap,[data-nowrap="true"]) {white-space:nowrap}
+.workspace-shell[data-workspace-theme="gentelella"] [data-slot="table-caption"] {
+  padding:10px 12px;
+  color:var(--muted-foreground);
+  font-size:11px;
+  text-align:left;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .records-table-region {
+  border-color:var(--border);
+  border-radius:6px;
+}
+.workspace-shell[data-workspace-theme="gentelella"] .records-table-region table {min-width:640px}
+.workspace-shell[data-workspace-theme="gentelella"] .records-table-region thead th {height:40px}
+.workspace-shell[data-workspace-theme="gentelella"] .records-table-region tbody td {padding:10px 12px}
+.workspace-shell[data-workspace-theme="gentelella"] .records-first-column {min-width:12rem}
+.workspace-shell[data-workspace-theme="gentelella"] .record-actions {white-space:nowrap}
+@media(max-width:767px) {
+  .workspace-shell[data-workspace-theme="gentelella"] :is(
+    [data-slot="table-container"], .records-table-region, .workspace-table-scroll
+  ) {
+    border-radius:5px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .workspace-shell[data-workspace-theme="gentelella"] :is(
+    [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+  ) {min-width:600px;font-size:11px}
+  .workspace-shell[data-workspace-theme="gentelella"] :is(
+    [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+  ) > thead th {height:38px;padding:8px 10px;font-size:9px}
+  .workspace-shell[data-workspace-theme="gentelella"] :is(
+    [data-slot="table"], .records-table-region table, .workspace-table-scroll table
+  ) > tbody > tr > td {padding:9px 10px;font-size:11px}
+}
