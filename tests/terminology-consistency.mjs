@@ -28,6 +28,11 @@ test('Penyusunan surat resmi memiliki skema draf yang terpisah dari register sur
 });
 test('Tidak menggunakan label yang berpotensi menyesatkan',()=>{
  const forbidden=['Employee Portal','Keuangan & Akuntansi','Laporan Keuangan','Pusat operasional','Checklist kelembagaan','Lot kopi','Penerimaan Kopi','Sembilan prioritas tahun pertama'];
+ assert.ok(mods.includes('title:"Penerimaan Hasil"'));
+ assert.ok(mods.includes('label:"Nama komoditas / produk"'));
+ assert.ok(mods.includes('label:"Asal penerimaan"'));
+ assert.ok(mods.includes('label:"Status penerimaan"'));
+ assert.ok(!mods.includes('title:"Penerimaan Kopi"'));
  for(const term of forbidden)assert.ok(!nav.includes(term),term);
 });
 test('Tidak mengubah nilai status yang disimpan pada database',()=>{
