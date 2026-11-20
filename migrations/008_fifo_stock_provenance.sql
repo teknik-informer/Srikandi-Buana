@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS commerce_inventory_lots (
  created TIMESTAMPTZ NOT NULL DEFAULT now(),
  FOREIGN KEY(product_id,owner) REFERENCES commerce_products(id,owner) ON DELETE RESTRICT,
  FOREIGN KEY(receipt_record_id) REFERENCES records(id) ON DELETE RESTRICT,
- UNIQUE(owner,receipt_record_id)
+ UNIQUE(owner,receipt_record_id),
+ UNIQUE(id,owner)
 );
 CREATE INDEX IF NOT EXISTS commerce_inventory_lots_fifo
  ON commerce_inventory_lots(owner,product_id,received_at,id) WHERE remaining_quantity>0;
@@ -26,7 +27,7 @@ CREATE TABLE IF NOT EXISTS commerce_order_lot_allocations (
  quantity INTEGER NOT NULL CHECK(quantity>0),
  created TIMESTAMPTZ NOT NULL DEFAULT now(),
  FOREIGN KEY(order_id,owner) REFERENCES commerce_orders(id,owner) ON DELETE RESTRICT,
- FOREIGN KEY(lot_id) REFERENCES commerce_inventory_lots(id) ON DELETE RESTRICT,
+ FOREIGN KEY(lot_id,owner) REFERENCES commerce_inventory_lots(id,owner) ON DELETE RESTRICT,
  UNIQUE(order_id,lot_id)
 );
 CREATE INDEX IF NOT EXISTS commerce_order_lot_allocations_order
