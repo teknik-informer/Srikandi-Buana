@@ -47,6 +47,10 @@ test("enam pintasan aplikasi dipetakan ke fitur pada empat dashboard produksi", 
   }
   assert.match(source, /route: "\/dashboard\/pengaturan"/);
   assert.match(source, /route: "\/dashboard\/pertanian"/);
+  const hub = readFileSync("src/app/_components/application-hub.tsx", "utf8");
+  assert.match(hub, /dashboard\?\.features\.find\(\(item\) => item\.id === application\.featureId\)/);
+  assert.match(hub, /href=\{feature\.href\}/, "Shortcut links must use the authoritative registered feature route");
+  assert.doesNotMatch(hub, /href=\{application\.route\}/, "Shortcut links must not drift from the production feature registry");
 });
 
 
