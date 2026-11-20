@@ -34,6 +34,7 @@ DECLARE
  v_existing RECORD;
  v_cash RECORD;
  v_revenue RECORD;
+ v_actor RECORD;
  v_paid BIGINT := 0;
  v_entry_id TEXT;
  v_ledger_reference TEXT;
@@ -45,6 +46,9 @@ BEGIN
  SELECT id,order_id,amount INTO v_existing FROM commerce_order_payments
  WHERE owner=p_owner AND client_request_id=p_client_request_id;
  IF FOUND THEN
+  IF v_existing.order_id<>p_order_id OR v_existing.amount<>p_amount THEN
+   RAISE EXCEPTION 'Kunci idempotensi pembayaran telah digunakan untuk transaksi lain.';
+  END IF;
   SELECT COALESCE(SUM(amount),0) INTO v_paid FROM commerce_order_payments
    WHERE owner=p_owner AND order_id=v_existing.order_id;
   RETURN QUERY SELECT v_existing.id,v_existing.order_id,v_paid,v_order.total,
@@ -66,6 +70,8 @@ BEGIN
   RAISE EXCEPTION 'Tanggal pembayaran tidak valid.';
  END IF;
 
+ SELECT id INTO v_actor FROM users WHERE id=p_actor AND workspace_owner=p_owner AND role='bendahara' AND enabled=TRUE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Aktor pembayaran bukan Bendahara aktif organisasi ini.'; END IF;
  SELECT id,category,active INTO v_cash FROM ledger_accounts
   WHERE id=p_cash_account_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND OR NOT v_cash.active OR v_cash.category<>'asset' THEN
