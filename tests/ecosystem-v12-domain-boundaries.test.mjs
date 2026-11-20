@@ -72,6 +72,8 @@ test("generic commodity receipts are writable only by the Treasurer and require 
   assert.ok(modules.includes('label:"SKU produk persediaan"'));
   assert.ok(records.includes('WITH product_update AS'));
   assert.ok(records.includes('stock=stock+?'));
+  assert.ok(records.includes('unit=?'));
+  assert.ok(records.includes('EXISTS (SELECT 1 FROM records WHERE id=? AND owner=? AND kind=\'lotkopi\' AND updated=?)'));
   assert.ok(records.includes('basis!=="Hasil timbang terverifikasi"'));
   assert.ok(records.includes('Penerimaan yang sudah disahkan tidak dapat diubah'));
   assert.ok(records.includes('Penerimaan yang sudah menambah stok tidak dapat dihapus'));
