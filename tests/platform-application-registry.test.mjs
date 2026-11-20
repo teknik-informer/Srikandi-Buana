@@ -70,7 +70,7 @@ test("application hub renders the canonical suite and keeps access derived from 
   assert.match(navigation, /APLIKASI UTAMA/);
   assert.match(readFileSync("src/app/dashboard/[[...section]]/page.tsx", "utf8"), /canOpenPlatformCore=\{admin\.role === "admin"/);
   assert.match(navigation, /MODUL DALAM APLIKASI/);
-  assert.match(navigation, /getApplicationLaunches/);
+  assert.match(navigation, /getApplicationLaunches/);\n  assert.doesNotMatch(navigation, /href: businessWorkspace\\.href/);\n  assert.match(navigation, /href: business\\.route/);
   assert.match(navigation, /features\.some\(\(feature\) => feature\.id === "pertanian"\)/);
   assert.match(navigation, /MODUL DALAM APLIKASI/);
   assert.match(navigation, /enam aplikasi utama/);
