@@ -177,6 +177,7 @@ assert(api.includes("member_id: _memberId") && api.includes("verification_note: 
 assert(api.includes("audit: isSecretariat ? auditRows.results : []"), "Agriculture actor-level audit is restricted to the Secretariat");
 assert(agricultureWorkspace.includes('const canManageCommodity = role === "sekretaris";'), "The Secretariat owns commodity master maintenance");
 assert(agricultureWorkspace.includes('const canManageLand = role === "sekretaris";'), "The Secretariat owns the land register");
+assert(agricultureWorkspace.includes("antrean pemeriksaan Sekretariat"), "Land edits must describe the actual Secretariat verification owner");
 assert(agricultureWorkspace.includes('const canManageTechnical = role === "koordinator" && programIds.includes("3");'), "Only the assigned agriculture coordinator records technical cycles and harvests");
 
 assert(summary.includes("data::jsonb->>'status'='Aktif'") && summary.includes("data::jsonb->>'verification'='Terverifikasi'"));
