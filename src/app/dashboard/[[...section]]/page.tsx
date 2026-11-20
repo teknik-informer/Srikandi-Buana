@@ -16,6 +16,7 @@ import EnterpriseDashboardOverview from "../../_components/enterprise-dashboard-
 import ExternalAccessWorkspace from "../../_components/external-access-workspace";
 import AgricultureWorkspace from "../../_components/agriculture-workspace";
 import ManagementAudienceDashboard from "../../_components/management-audience-dashboard";
+import ApplicationHub from "../../_components/application-hub";
 import MemberAudienceDashboard from "../../_components/member-audience-dashboard";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
@@ -53,12 +54,12 @@ export default async function Page({ params }: { params: Promise<{ section?: str
       <WorkspaceShell
         user={admin}
         section={active}
-        title={isMember ? "Dashboard Anggota" : "Dashboard Pengurus"}
+        title={isMember ? "Dashboard Anggota" : "Pusat Aplikasi"}
         defaultSidebarOpen={defaultSidebarOpen}
       >
         {isMember
           ? <MemberAudienceDashboard user={admin} />
-          : <ManagementAudienceDashboard user={admin} />}
+          : <ApplicationHub dashboards={getVisibleEnterpriseDashboards(admin.role)} displayName={admin.displayName || admin.fullName} canOpenPlatformCore={admin.role === "admin"} />}
       </WorkspaceShell>
     );
   }
