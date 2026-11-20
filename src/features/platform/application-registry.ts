@@ -60,7 +60,7 @@ export const platformApplications: readonly PlatformApplication[] = [
     name: "Business & Enterprise",
     eyebrow: "FINANCE · COMMERCE · PARTNERSHIPS",
     description: "Keuangan, buku besar, aset, persediaan, usaha, penjualan, transaksi, dan pengelolaan kemitraan.",
-    route: "/dashboard/accounting",
+    route: "/dashboard/business",
     status: "partial",
     legacyWorkspaces: ["accounting", "pos"],
     supportingDomains: ["Inventory & Procurement", "CRM", "Commerce", "Accounting"],
