@@ -36,6 +36,7 @@ import {
   Grid2X2,
   Handshake,
   LayoutDashboard,
+  Megaphone,
   Search,
   ShieldCheck,
   Sprout,
