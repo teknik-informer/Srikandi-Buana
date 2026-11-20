@@ -49,7 +49,7 @@ const dashboardIcons: Record<string, typeof Grid2X2> = {
   organization: Users,
   agriculture: Sprout,
   business: Store,
-  analytics: ChartNoAxesCombined,
+  "bi-analytics": ChartNoAxesCombined,
   "public-partnership": Handshake,
   "platform-core": Blocks,
 };
