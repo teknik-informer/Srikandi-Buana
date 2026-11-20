@@ -62,7 +62,7 @@ const kindLabels: Record<string, string> = {
   dokumen: "Dokumen",
   kas: "Buku kas",
   aset: "Aset",
-  lotkopi: "Lot",
+  lotkopi: "Penerimaan",
   usaha: "Kajian usaha",
   kemitraan: "Kemitraan",
   publikasi: "Konten",

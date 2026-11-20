@@ -34,7 +34,7 @@ test("shared validation keeps safe integer and normalized text contracts", () =>
   assert.equal(shared.textField("   "), null);
 });
 
-test("coffee receipt lots are writable only by the Treasurer and require positive quantity", async () => {
+test("generic commodity receipts are writable only by the Treasurer and require positive quantity", async () => {
   const policyBundle = await build({
     entryPoints: ["src/features/identity/access-policy.ts"],
     bundle: true,
@@ -65,6 +65,18 @@ test("coffee receipt lots are writable only by the Treasurer and require positiv
   }
   const records = readFileSync("src/app/api/records/route.ts", "utf8");
   assert.ok(records.includes('kind==="lotkopi"&&f.key==="quantity"&&n<=0'));
+  const modules = readFileSync("src/lib/srikandi.ts", "utf8");
+  assert.ok(modules.includes('title:"Penerimaan Hasil"'));
+  assert.ok(modules.includes('label:"Nama komoditas / produk"'));
+  assert.ok(modules.includes('label:"Asal penerimaan"'));
+  assert.ok(modules.includes('label:"SKU produk persediaan"'));
+  assert.ok(records.includes('WITH product_update AS'));
+  assert.ok(records.includes('stock=stock+?'));
+  assert.ok(records.includes('unit=?'));
+  assert.ok(records.includes('EXISTS (SELECT 1 FROM records WHERE id=? AND owner=? AND kind=\'lotkopi\' AND updated=?)'));
+  assert.ok(records.includes('basis!=="Hasil timbang terverifikasi"'));
+  assert.ok(records.includes('Penerimaan yang sudah disahkan tidak dapat diubah'));
+  assert.ok(records.includes('Penerimaan yang sudah menambah stok tidak dapat dihapus'));
 });
 
 test("commerce validation owns SKU format rules", () => {
