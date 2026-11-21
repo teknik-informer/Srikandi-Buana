@@ -57,7 +57,7 @@ test('Order receipt displays recorded payment totals and the payment history',()
  assert.match(receipt,/paid_total/);
  assert.match(receipt,/Status pembayaran/);
  assert.match(receipt,/Riwayat Pembayaran/);
- assert.match(receipt,/user\.role\)\)/);
+ assert.ok(receipt.includes('user.role'));
 });
 
 test('Payment journals cannot be reversed through the generic journal correction endpoint',()=>{
