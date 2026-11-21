@@ -46,7 +46,7 @@ BEGIN
  FROM commerce_orders WHERE id=p_order_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Pesanan tidak ditemukan pada organisasi ini.'; END IF;
 
- SELECT id,order_id,amount,cash_account_id,revenue_account_id INTO v_payment
+ SELECT id,order_id,amount,revenue_account_id INTO v_payment
  FROM commerce_order_payments
  WHERE id=p_payment_id AND order_id=p_order_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Pembayaran sumber tidak ditemukan pada pesanan ini.'; END IF;
@@ -87,12 +87,12 @@ BEGIN
  SELECT id,category,active INTO v_cash FROM ledger_accounts
  WHERE id=p_cash_account_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND OR NOT v_cash.active OR v_cash.category<>'asset' THEN
-  RAISE EXCEPTION 'Akun kas/bank sumber tidak aktif atau tidak valid.';
+  RAISE EXCEPTION 'Akun kas/bank pengembalian tidak aktif atau tidak valid.';
  END IF;
  SELECT id,category,active INTO v_revenue FROM ledger_accounts
  WHERE id=v_payment.revenue_account_id AND owner=p_owner FOR UPDATE;
- IF NOT FOUND OR NOT v_revenue.active OR v_revenue.category<>'revenue' THEN
-  RAISE EXCEPTION 'Akun pendapatan sumber tidak aktif atau tidak valid.';
+ IF NOT FOUND OR v_revenue.category<>'revenue' THEN
+  RAISE EXCEPTION 'Akun pendapatan sumber tidak valid.';
  END IF;
 
  SELECT COALESCE(SUM(amount),0) INTO v_refunded FROM commerce_order_refunds
@@ -105,7 +105,7 @@ BEGIN
  INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created)
  VALUES(v_entry_id,p_owner,p_actor,p_received_date,
   ('Pengembalian pembayaran pesanan '||p_order_id),v_entry_id,p_now);
- -- Reverse the original cash-basis revenue recognition using the original accounts.
+ -- Debit the original sales revenue account and credit the actual payout cash/bank account.
  INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit)
  VALUES(gen_random_uuid()::text,p_owner,v_entry_id,v_payment.revenue_account_id,p_amount,0);
  INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit)
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION srikandi_post_order_payment(
  p_payment_id TEXT,p_owner TEXT,p_actor TEXT,p_order_id TEXT,p_amount BIGINT,
  p_method TEXT,p_cash_account_id TEXT,p_revenue_account_id TEXT,
  p_client_request_id TEXT,p_received_date TEXT,p_reference TEXT,p_now TEXT
-) RETURNS TABLE(payment_id TEXT,order_id TEXT,paid_total BIGINT,order_total BIGINT,payment_status TEXT,reused BOOLEAN) AS $
+) RETURNS TABLE(payment_id TEXT,order_id TEXT,paid_total BIGINT,order_total BIGINT,payment_status TEXT,reused BOOLEAN) AS $$
 DECLARE
  v_order RECORD;
  v_existing RECORD;
@@ -169,40 +169,7 @@ BEGIN
  IF p_method NOT IN ('tunai','transfer','qris') THEN
   RAISE EXCEPTION 'Metode pembayaran tidak dikenal.';
  END IF;
- IF p_received_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}CREATE OR REPLACE FUNCTION srikandi_enforce_order_payment_state() RETURNS trigger AS $$
-DECLARE
- v_paid BIGINT := 0;
- v_refunded BIGINT := 0;
-BEGIN
- SELECT COALESCE(SUM(p.amount),0) INTO v_paid
- FROM commerce_order_payments p WHERE p.owner=OLD.owner AND p.order_id=OLD.id;
- SELECT COALESCE(SUM(r.amount),0) INTO v_refunded
- FROM commerce_order_refunds r WHERE r.owner=OLD.owner AND r.order_id=OLD.id;
-
- IF NEW.status='cancelled' AND OLD.status<>'cancelled' AND v_refunded<v_paid THEN
-  RAISE EXCEPTION 'Pesanan hanya dapat dibatalkan setelah seluruh pembayaran dikembalikan.';
- END IF;
- IF NEW.status='completed' AND OLD.status<>'completed' AND v_paid-v_refunded<OLD.total THEN
-  RAISE EXCEPTION 'Pesanan belum dapat diselesaikan sebelum seluruh pembayaran tercatat.';
- END IF;
- RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS srikandi_enforce_order_payment_state ON commerce_orders;
-CREATE TRIGGER srikandi_enforce_order_payment_state
- BEFORE UPDATE OF status ON commerce_orders
- FOR EACH ROW EXECUTE FUNCTION srikandi_enforce_order_payment_state();
-
-CREATE OR REPLACE FUNCTION srikandi_protect_order_refund() RETURNS trigger AS $$
-BEGIN
- RAISE EXCEPTION 'Catatan refund bersifat tetap. Koreksi harus melalui transaksi koreksi tersendiri.';
-END;
-$$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS srikandi_protect_order_refund ON commerce_order_refunds;
-CREATE TRIGGER srikandi_protect_order_refund
- BEFORE UPDATE OR DELETE ON commerce_order_refunds
- FOR EACH ROW EXECUTE FUNCTION srikandi_protect_order_refund();
- OR
+ IF p_received_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR
     to_char(p_received_date::date,'YYYY-MM-DD')<>p_received_date THEN
   RAISE EXCEPTION 'Tanggal pembayaran tidak valid.';
  END IF;
@@ -255,7 +222,8 @@ CREATE TRIGGER srikandi_protect_order_refund
  RETURN QUERY SELECT p_payment_id,p_order_id,v_paid,v_order.total,
   CASE WHEN v_paid=v_order.total THEN 'paid' ELSE 'partial' END,FALSE;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
+
 
 -- Cancellation may restore reserved FIFO stock only after every recorded payment is fully refunded.
 CREATE OR REPLACE FUNCTION srikandi_enforce_order_payment_state() RETURNS trigger AS $$
@@ -271,7 +239,7 @@ BEGIN
  IF NEW.status='cancelled' AND OLD.status<>'cancelled' AND v_refunded<v_paid THEN
   RAISE EXCEPTION 'Pesanan hanya dapat dibatalkan setelah seluruh pembayaran dikembalikan.';
  END IF;
- IF NEW.status='completed' AND OLD.status<>'completed' AND v_paid<OLD.total THEN
+ IF NEW.status='completed' AND OLD.status<>'completed' AND v_paid-v_refunded<OLD.total THEN
   RAISE EXCEPTION 'Pesanan belum dapat diselesaikan sebelum seluruh pembayaran tercatat.';
  END IF;
  RETURN NEW;
