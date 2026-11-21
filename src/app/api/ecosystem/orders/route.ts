@@ -39,6 +39,7 @@ export async function PATCH(request:Request){const c=await required(request,true
  const now=new Date().toISOString();
  if(b.action==='refund'){
   if(typeof b.paymentId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.paymentId)||
+     typeof b.cashAccountId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.cashAccountId)||
      typeof b.clientRequestId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.clientRequestId)||
      !moneyInteger(b.amount,1000000000000)||Number(b.amount)===0||
      !['tunai','transfer','qris'].includes(String(b.method))||
@@ -49,8 +50,8 @@ export async function PATCH(request:Request){const c=await required(request,true
    return json({error:'Nominal, metode, tanggal, alasan, atau identitas refund tidak valid.'},400);
   if(!await consumeRateLimit(c.db,'commerce:refund:'+c.user.accountId,45,3600000))return json({error:'Batas pencatatan refund tercapai.'},429);
   const refundId=crypto.randomUUID();
-  const row=await c.db.prepare("SELECT * FROM srikandi_post_order_refund(?,?,?,?,?,?,?,?,?,?,?,?)")
-   .bind(refundId,c.user.userId,c.user.accountId,b.id,b.paymentId,b.amount,b.method,b.clientRequestId,b.receivedDate,String(b.reference||'').slice(0,120),b.reason.trim(),now).first();
+  const row=await c.db.prepare("SELECT * FROM srikandi_post_order_refund(?,?,?,?,?,?,?,?,?,?,?,?,?)")
+   .bind(refundId,c.user.userId,c.user.accountId,b.id,b.paymentId,b.cashAccountId,b.amount,b.method,b.clientRequestId,b.receivedDate,String(b.reference||'').slice(0,120),b.reason.trim(),now).first();
   if(!row)return json({error:'Refund belum dapat dibukukan.'},409);
   if(!row.reused){const buyer=await c.db.prepare('SELECT buyer_id FROM commerce_orders WHERE id=? AND owner=?').bind(b.id,c.user.userId).first();if(buyer?.buyer_id)await notifyOwner(c.user.userId,String(buyer.buyer_id),'order:'+b.id+':refund:'+String(row.refund_id||row.refundId),'Pengembalian dana dicatat','Pengembalian dana pesanan Anda telah dicatat oleh Bendahara.','/dashboard/penjualan','pesanan');}
   return json({ok:true,refundId:row.refund_id||row.refundId,refundedTotal:row.refunded_total||row.refundedTotal,reused:Boolean(row.reused)},row.reused?200:201);
