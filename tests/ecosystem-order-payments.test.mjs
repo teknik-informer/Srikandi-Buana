@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const migration=readFileSync('migrations/009_order_payment_ledger.sql','utf8');
 const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');
+const ledger=readFileSync('src/app/api/ecosystem/ledger/route.ts','utf8');
 const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
 const receipt=readFileSync('src/app/dashboard/pesanan/[id]/page.tsx','utf8');
 
@@ -57,4 +58,9 @@ test('Order receipt displays recorded payment totals and the payment history',()
  assert.match(receipt,/Status pembayaran/);
  assert.match(receipt,/Riwayat Pembayaran/);
  assert.match(receipt,/user\.role\)\)/);
+});
+
+test('Payment journals cannot be reversed through the generic journal correction endpoint',()=>{
+ assert.match(ledger,/NOT EXISTS\(SELECT 1 FROM commerce_order_payments p WHERE p\.owner=e\.owner AND p\.ledger_entry_id=e\.id\)/);
+ assert.match(ledger,/Prosedur pengembalian dana belum tersedia/);
 });
