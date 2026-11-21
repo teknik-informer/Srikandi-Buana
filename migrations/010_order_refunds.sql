@@ -51,10 +51,10 @@ BEGIN
  WHERE id=p_payment_id AND order_id=p_order_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Pembayaran sumber tidak ditemukan pada pesanan ini.'; END IF;
 
- SELECT id,payment_id,amount INTO v_existing FROM commerce_order_refunds
+ SELECT id,order_id,payment_id,amount,method,cash_account_id,received_date,refund_reference,reason INTO v_existing FROM commerce_order_refunds
  WHERE owner=p_owner AND client_request_id=p_client_request_id;
  IF FOUND THEN
-  IF v_existing.payment_id<>p_payment_id OR v_existing.amount<>p_amount THEN
+  IF v_existing.order_id<>p_order_id OR v_existing.payment_id<>p_payment_id OR v_existing.amount<>p_amount OR v_existing.method<>p_method OR v_existing.cash_account_id<>p_cash_account_id OR v_existing.received_date<>p_received_date OR v_existing.refund_reference<>left(COALESCE(p_reference,''),120) OR v_existing.reason<>trim(p_reason) THEN
    RAISE EXCEPTION 'Kunci idempotensi refund telah digunakan untuk transaksi lain.';
   END IF;
   SELECT COALESCE(SUM(amount),0) INTO v_refunded FROM commerce_order_refunds
@@ -148,10 +148,10 @@ BEGIN
  FROM commerce_orders WHERE id=p_order_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Pesanan tidak ditemukan pada organisasi ini.'; END IF;
 
- SELECT id,order_id,amount INTO v_existing FROM commerce_order_payments
+ SELECT id,order_id,amount,method,cash_account_id,revenue_account_id,received_date,payment_reference INTO v_existing FROM commerce_order_payments
  WHERE owner=p_owner AND client_request_id=p_client_request_id;
  IF FOUND THEN
-  IF v_existing.order_id<>p_order_id OR v_existing.amount<>p_amount THEN
+  IF v_existing.order_id<>p_order_id OR v_existing.amount<>p_amount OR v_existing.method<>p_method OR v_existing.cash_account_id<>p_cash_account_id OR v_existing.revenue_account_id<>p_revenue_account_id OR v_existing.received_date<>p_received_date OR v_existing.payment_reference<>left(COALESCE(p_reference,''),120) THEN
    RAISE EXCEPTION 'Kunci idempotensi pembayaran telah digunakan untuk transaksi lain.';
   END IF;
   SELECT COALESCE(SUM(p.amount),0)-COALESCE((SELECT SUM(r.amount) FROM commerce_order_refunds r WHERE r.owner=p_owner AND r.order_id=v_existing.order_id),0) INTO v_paid FROM commerce_order_payments p WHERE p.owner=p_owner AND p.order_id=v_existing.order_id;
