@@ -116,3 +116,18 @@ BEGIN
   CASE WHEN v_paid=v_order.total THEN 'paid' ELSE 'partial' END,FALSE;
 END;
 $$ LANGUAGE plpgsql;
+
+-- A paid order cannot be cancelled until a separately controlled refund workflow exists.
+CREATE OR REPLACE FUNCTION srikandi_prevent_paid_order_cancellation() RETURNS trigger AS $$
+BEGIN
+ IF NEW.status='cancelled' AND OLD.status<>'cancelled'
+    AND EXISTS (SELECT 1 FROM commerce_order_payments p WHERE p.owner=OLD.owner AND p.order_id=OLD.id) THEN
+  RAISE EXCEPTION 'Pesanan sudah memiliki pembayaran. Proses pengembalian dana harus diselesaikan melalui prosedur tersendiri sebelum pembatalan.';
+ END IF;
+ RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS srikandi_prevent_paid_order_cancellation ON commerce_orders;
+CREATE TRIGGER srikandi_prevent_paid_order_cancellation
+ BEFORE UPDATE OF status ON commerce_orders
+ FOR EACH ROW EXECUTE FUNCTION srikandi_prevent_paid_order_cancellation();
