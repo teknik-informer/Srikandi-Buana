@@ -20,7 +20,7 @@ test('Storefront publik terdaftar sebagai SEO dan menampilkan produk terbitan sa
 test('Bukti pengajuan pesanan dibatasi pada anggota pemesan atau administrator',()=>{
  const receipt=read('src/app/dashboard/pesanan/[id]/page.tsx');
  assert(receipt.includes('getAuthenticatedUser()'));assert(receipt.includes('o.buyer_id=? OR'));assert(receipt.includes('o.owner=?'));
- assert(receipt.includes('Bukan faktur pajak'));assert(receipt.includes('Pembayaran belum diverifikasi'));
+ assert(receipt.includes('Bukan faktur pajak'));assert(receipt.includes('Status pembayaran'));assert(receipt.includes('Riwayat Pembayaran'));
 });
 test('Jurnal koreksi menukar debit/kredit tanpa menghapus posting historis',()=>{
  const ledger=read('src/app/api/ecosystem/ledger/route.ts');
@@ -54,7 +54,8 @@ test('Penyuntingan produk memakai versi terakhir untuk menghindari lost update',
  assert(api.includes('FROM before JOIN changed ON changed.id=before.id'));
  assert(!api.includes('AND updated=? RETURNING id'));
  assert(api.includes('b.expectedUpdated'));
- assert(orders.includes('stock=stock-?,updated=?'));
+ assert(orders.includes('srikandi_create_order_with_fifo'));
+ const fifo=read('migrations/008_fifo_stock_provenance.sql');assert(fifo.includes('stock=stock-p_quantity'));assert(fifo.includes('stock>=p_quantity'));
  assert(ui.includes('Sunting produk'));
  assert(ui.includes("editing?'PATCH':'POST'"));
  assert(ui.includes('expectedUpdated:editing.updated'));
@@ -62,7 +63,7 @@ test('Penyuntingan produk memakai versi terakhir untuk menghindari lost update',
 test('Undangan pembeli dan katalog publik tidak mengandung pembayaran semu',()=>{
  const api=read('src/app/api/ecosystem/orders/route.ts');
  const route=read('src/app/(public)/produk/page.tsx');
- assert(!api.includes("'paid'"));
+ assert(api.includes("status:'submitted'"));assert(!api.includes("status:'paid'"));
  assert(route.includes('Belum tersedia pembayaran online'));
  assert(route.includes('u.enabled=TRUE'));
 });
