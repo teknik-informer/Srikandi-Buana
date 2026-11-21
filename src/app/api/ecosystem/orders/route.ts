@@ -27,7 +27,7 @@ export async function POST(request:Request){const c=await required(request,true)
   .bind(id,c.user.userId,c.user.accountId,c.user.accountId,b.productId,b.quantity,b.clientRequestId,now).first();
  if(!row)return json({error:'Produk tidak tersedia atau stok tidak mencukupi.'},409);
  const orderId=String(row.order_id||row.orderId||id);
- // No payment assertion; the order is merely submitted for manual processing.
+ // The order remains submitted; payment is a separate Bendahara-verified transaction.
  const treasurers=await c.db.prepare("SELECT id FROM users WHERE workspace_owner=? AND role='bendahara' AND enabled=TRUE ORDER BY created,id").bind(c.user.userId).all();
   for(const treasurer of treasurers.results)await notifyOwner(c.user.userId,String(treasurer.id),'order:'+orderId,'Pesanan baru','Pesanan baru menunggu pemeriksaan Bendahara.','/dashboard/penjualan','pesanan');return json({ok:true,id:orderId,total:row.total,status:'submitted',reused:Boolean(row.reused)},row.reused?200:201);
  }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);return errorReply(e)}}
@@ -50,7 +50,7 @@ export async function PATCH(request:Request){const c=await required(request,true
   const row=await c.db.prepare("SELECT * FROM srikandi_post_order_payment(?,?,?,?,?,?,?,?,?,?,?,?)")
    .bind(paymentId,c.user.userId,c.user.accountId,b.id,b.amount,b.method,b.cashAccountId,b.revenueAccountId,b.clientRequestId,b.receivedDate,String(b.reference||'').slice(0,120),now).first();
   if(!row)return json({error:'Pembayaran belum dapat dibukukan.'},409);
-  await notifyOwner(c.user.userId,String((await c.db.prepare('SELECT buyer_id FROM commerce_orders WHERE id=? AND owner=?').bind(b.id,c.user.userId).first())?.buyer_id||''),'order:'+b.id+':payment:'+String(row.payment_id||row.paymentId),'Pembayaran diterima','Pembayaran pesanan Anda telah dicatat oleh Bendahara.','/dashboard/penjualan','pesanan');
+  if(!row.reused)await notifyOwner(c.user.userId,String((await c.db.prepare('SELECT buyer_id FROM commerce_orders WHERE id=? AND owner=?').bind(b.id,c.user.userId).first())?.buyer_id||''),'order:'+b.id+':payment:'+String(row.payment_id||row.paymentId),'Pembayaran diterima','Pembayaran pesanan Anda telah dicatat oleh Bendahara.','/dashboard/penjualan','pesanan');
   return json({ok:true,paymentId:row.payment_id||row.paymentId,paidTotal:row.paid_total||row.paidTotal,paymentStatus:row.payment_status||row.paymentStatus,reused:Boolean(row.reused)},row.reused?200:201);
  }
  if(b.action==='cancelled'){
@@ -63,7 +63,7 @@ export async function PATCH(request:Request){const c=await required(request,true
  const sql=`WITH before AS MATERIALIZED (
   SELECT o.status FROM commerce_orders o WHERE o.id=? AND o.owner=? AND o.status=? AND (?<>'completed' OR COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)>=o.total)
  ), changed AS (
-  UPDATE commerce_orders SET status=?,updated=? WHERE id=? AND owner=? AND status=?
+  UPDATE commerce_orders SET status=?,updated=? WHERE id=? AND owner=? AND status=? AND EXISTS (SELECT 1 FROM before)
   RETURNING id,buyer_id
  ), logged AS (
   INSERT INTO commerce_order_events(owner,order_id,actor_id,from_status,to_status)
