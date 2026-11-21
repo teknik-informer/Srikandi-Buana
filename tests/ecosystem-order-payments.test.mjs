@@ -28,13 +28,13 @@ test('Payment posting locks the order and validates Bendahara, account categorie
 
 test('Paid orders cannot be cancelled until a refund workflow is implemented',()=>{
  assert.match(migration,/CREATE OR REPLACE FUNCTION srikandi_prevent_paid_order_cancellation/);
- assert.match(migration,/BEFORE UPDATE OF status ON commerce_orders/);
+ assert.match(migration,/BEFORE UPDATE OF status ON commerce_orders/);\n assert.match(migration,/NEW.status='completed'[\\s\\S]*SUM\\(p.amount\\)[\\s\\S]*<OLD.total/);
  assert.match(workspace,/Number\(o.paid_total\|\|0\)===0/);
 });
 
 test('Order completion requires fully posted payments and the API exposes payment history',()=>{
  assert.match(orders,/payment_status/);
- assert.match(orders,/commerce_order_payments/);
+ assert.match(orders,/commerce_order_payments/);\n assert.match(orders,/receivedDate!=='string'\\|\\|!\\/\\^\\[0-9\\]\\{4\\}/);
  assert.match(orders,/\?<'completed'[\s\S]*SUM\(p.amount\)[\s\S]*>=o.total/);
  assert.match(orders,/EXISTS \(SELECT 1 FROM before\)/);
 });
