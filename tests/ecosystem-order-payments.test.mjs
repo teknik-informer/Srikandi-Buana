@@ -5,7 +5,6 @@ import { readFileSync } from 'node:fs';
 const migration=readFileSync('migrations/009_order_payment_ledger.sql','utf8');
 const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');
 const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
-const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
 
 test('Order payments are tenant-scoped, immutable records linked to orders and balanced ledger entries',()=>{
  assert.match(migration,/CREATE TABLE IF NOT EXISTS commerce_order_payments/);
@@ -30,7 +29,7 @@ test('Payment posting locks the order and validates Bendahara, account categorie
 test('Paid orders cannot be cancelled until a refund workflow is implemented',()=>{
  assert.match(migration,/CREATE OR REPLACE FUNCTION srikandi_prevent_paid_order_cancellation/);
  assert.match(migration,/BEFORE UPDATE OF status ON commerce_orders/);
- assert.match(orders,/Number\(o.paid_total\|\|0\)===0/);
+ assert.match(workspace,/Number\(o.paid_total\|\|0\)===0/);
 });
 
 test('Order completion requires fully posted payments and the API exposes payment history',()=>{
