@@ -41,7 +41,7 @@ export async function PATCH(request:Request){const c=await required(request,true
      typeof b.revenueAccountId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.revenueAccountId)||
      !moneyInteger(b.amount,1000000000000)||Number(b.amount)===0||
      !['tunai','transfer','qris'].includes(String(b.method))||
-     typeof b.receivedDate!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(b.receivedDate)||
+     typeof b.receivedDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(b.receivedDate)||
      Number.isNaN(Date.parse(b.receivedDate))||new Date(b.receivedDate).toISOString().slice(0,10)!==b.receivedDate||
      (b.reference!==undefined&&typeof b.reference!=='string'))
    return json({error:'Nominal, metode, akun, tanggal, atau identitas pembayaran tidak valid.'},400);
