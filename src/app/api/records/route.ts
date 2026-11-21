@@ -43,7 +43,7 @@ function validate(kind:string,raw:unknown):Data{
   let items:unknown;
   try{items=JSON.parse(String(out.costItems||"[]"));}catch{throw new Error("Rincian komponen biaya tidak valid.");}
   const normalized=normalizeHppCostRows(items);
-  const calculation=calculateHpp({totalCost:normalized.totalCost,outputQuantity:out.outputQuantity,targetMargin:out.targetMargin||0});
+  const calculation=calculateHpp({totalCost:normalized.totalCost,outputQuantity:Number(out.outputQuantity),targetMargin:Number(out.targetMargin||0)});
   if(calculation.totalCost<=0||Number(out.totalCost)!==calculation.totalCost)throw new Error("Total biaya tidak cocok dengan rincian komponen.");
   if(Number(out.unitCost)!==calculation.unitCost)throw new Error("Nilai HPP per satuan tidak cocok dengan jumlah hasil akhir.");
   if(Number(out.suggestedPrice)!==calculation.suggestedPrice)throw new Error("Simulasi margin atau harga jual tidak valid.");
