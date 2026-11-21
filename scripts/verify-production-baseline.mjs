@@ -34,7 +34,7 @@ assert.match(loginApi, /safeReturn/);
 const memberDefinition = memberModel.slice(memberModel.indexOf("anggota:{"));
 assert.notEqual(memberDefinition, memberModel, "Member module definition must exist");
 for (const field of ["name", "dusun", "email", "phone", "status", "verification", "consent"]) {
-  assert.match(memberDefinition, new RegExp("key:\\"" + field + "\\""), "Member field missing: " + field);
+  assert.ok(memberDefinition.includes('key:"' + field + '"'), "Member field missing: " + field);
 }
 assert.match(memberDefinition, /Email pribadi/);
 assert.match(memberDefinition, /Nomor telepon/);
