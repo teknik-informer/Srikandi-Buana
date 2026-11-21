@@ -209,7 +209,7 @@ export default function HppWorkspace({ role }: { role: string }) {
         <section className="rounded-xl border bg-card p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div><h2 className="text-base font-semibold">Rincian komponen biaya</h2><p className="mt-1 text-xs text-muted-foreground">Isi volume dan harga satuan. Subtotal dan total dihitung otomatis.</p></div>
-            {canWrite && <button type="button" onClick={() => setRows(current => [...current, freshRow()])} className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold"><Plus size={15}/> Tambah baris</button>}
+            {canWrite && <button type="button" disabled={rows.length>=20} onClick={() => setRows(current => current.length>=20?current:[...current, freshRow()])} className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold disabled:opacity-40"><Plus size={15}/> Tambah baris</button>}
           </div>
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full min-w-[780px] text-sm">
@@ -217,7 +217,7 @@ export default function HppWorkspace({ role }: { role: string }) {
               <tbody>{costRows.map(row => <tr key={row.id} className="border-t">
                 <td className="p-2"><input className={inputClass+" min-w-48"} aria-label="Komponen biaya" value={row.component} disabled={!canWrite} onChange={event => changeRow(row.id,"component",event.target.value)} placeholder="Nama komponen"/></td>
                 <td className="p-2"><input className={inputClass+" w-24"} aria-label="Volume" type="number" min="0" step="0.001" value={row.quantity} disabled={!canWrite} onChange={event => changeRow(row.id,"quantity",event.target.value)}/></td>
-                <td className="p-2"><input className={inputClass+" w-24"} aria-label="Satuan biaya" maxLength={24} value={row.unit} disabled={!canWrite} onChange={event => changeRow(row.id,"unit",event.target.value)}/></td>
+                <td className="p-2"><input className={inputClass+" w-24"} aria-label="Satuan biaya" maxLength={16} value={row.unit} disabled={!canWrite} onChange={event => changeRow(row.id,"unit",event.target.value)}/></td>
                 <td className="p-2"><input className={inputClass+" min-w-32 text-right"} aria-label="Harga satuan" type="number" min="0" step="1" value={row.unitPrice} disabled={!canWrite} onChange={event => changeRow(row.id,"unitPrice",event.target.value)}/></td>
                 <td className="px-3 py-2 text-right font-medium tabular-nums">{money(row.subtotal)}</td>
                 <td className="p-2 no-print">{canWrite && <button type="button" aria-label="Hapus komponen" disabled={rows.length===1} onClick={() => setRows(current => current.filter(item => item.id!==row.id))} className="inline-flex h-8 w-8 items-center justify-center rounded-md border text-muted-foreground disabled:opacity-30"><Trash2 size={14}/></button>}</td>
