@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Calculator, Plus, Printer, RefreshCw, Save, Trash2 } from "lucide-react";
-import { WorkspacePageHeader, WorkspaceMetric, WorkspaceEmptyState } from "./workspace-ui";
+import { Calculator, Plus, Printer, RefreshCw, Save, Trash2, Wallet, Scale, Tag, Package } from "lucide-react";
+import { WorkspacePageHeader, WorkspaceEmptyState } from "./workspace-ui";
 
 type CostRow = { id: string; component: string; quantity: string; unit: string; unitPrice: string };
 type SavedCalculation = {
@@ -181,10 +181,12 @@ export default function HppWorkspace({ role }: { role: string }) {
       {error && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
       {notice && <p role="status" className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <WorkspaceMetric label="Total biaya" value={money(totalCost)} />
-        <WorkspaceMetric label="Hasil akhir" value={output > 0 ? output.toLocaleString("id-ID") + " " + outputUnit : "—"} />
-        <WorkspaceMetric label="HPP per satuan" value={output > 0 ? money(unitCost) : "—"} />
-        <WorkspaceMetric label="Harga jual simulasi" value={money(suggestedPrice)} />
+        {[
+          { label: "Total biaya", value: money(totalCost), icon: Wallet },
+          { label: "Hasil akhir", value: output > 0 ? output.toLocaleString("id-ID") + " " + outputUnit : "—", icon: Package },
+          { label: "HPP per satuan", value: output > 0 ? money(unitCost) : "—", icon: Scale },
+          { label: "Harga jual simulasi", value: money(suggestedPrice), icon: Tag },
+        ].map(metric => <div key={metric.label} className="workspace-metric min-w-0 rounded-xl border bg-card p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">{metric.label}</p><metric.icon className="size-4 text-muted-foreground" /></div><p className="mt-3 break-words text-xl font-semibold tabular-nums">{metric.value}</p></div>)}
       </div>
 
       <form onSubmit={save} className="space-y-5">
