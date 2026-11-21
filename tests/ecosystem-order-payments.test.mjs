@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const migration=readFileSync('migrations/009_order_payment_ledger.sql','utf8');
 const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');
 const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
+const receipt=readFileSync('src/app/dashboard/pesanan/[id]/page.tsx','utf8');
 
 test('Order payments are tenant-scoped, append-only records linked to orders and balanced ledger entries',()=>{
  assert.match(migration,/CREATE TABLE IF NOT EXISTS commerce_order_payments/);
@@ -49,4 +50,11 @@ test('Bendahara payment form requires cash and revenue accounts and displays pay
  assert.match(workspace,/paymentAccounts\.filter\(a=>a\.category==='revenue'\)/);
  assert.match(workspace,/Lunas/);
  assert.match(workspace,/Pembatalan ditahan karena sudah ada pembayaran/);
+});
+
+test('Order receipt displays recorded payment totals and the payment history',()=>{
+ assert.match(receipt,/paid_total/);
+ assert.match(receipt,/Status pembayaran/);
+ assert.match(receipt,/Riwayat Pembayaran/);
+ assert.match(receipt,/user\.role\)\)/);
 });
