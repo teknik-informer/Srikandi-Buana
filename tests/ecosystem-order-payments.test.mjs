@@ -71,12 +71,13 @@ test('Payment journals cannot be reversed through the generic journal correction
 test('Refunds are append-only, tenant-scoped, capped to the source payment, and journaled atomically',()=>{
  assert.match(refundMigration,/CREATE TABLE IF NOT EXISTS commerce_order_refunds/);
  assert.match(refundMigration,/FOREIGN KEY\(payment_id,owner\) REFERENCES commerce_order_payments\(id,owner\)/);
+ assert.match(refundMigration,/FOREIGN KEY\(cash_account_id,owner\) REFERENCES ledger_accounts\(id,owner\)/);
  assert.match(refundMigration,/UNIQUE\(owner,client_request_id\)/);
  assert.match(refundMigration,/CREATE OR REPLACE FUNCTION srikandi_post_order_refund/);
  assert.match(refundMigration,/v_refunded\+p_amount>v_payment.amount/);
  assert.match(refundMigration,/role='bendahara' AND enabled=TRUE/);
  assert.match(refundMigration,/v_payment.revenue_account_id,p_amount,0/);
- assert.match(refundMigration,/v_payment.cash_account_id,0,p_amount/);
+ assert.match(refundMigration,/p_cash_account_id,0,p_amount/);
  assert.match(refundMigration,/BEFORE UPDATE OR DELETE ON commerce_order_refunds/);
 });
 
@@ -86,6 +87,8 @@ test('Net payment balance controls collection, completion, and cancellation afte
  assert.match(refundMigration,/v_refunded<v_paid/);
  assert.match(orders,/action==='refund'/);
  assert.match(orders,/srikandi_post_order_refund/);
+ assert.match(orders,/b\.cashAccountId/);
+ assert.match(workspace,/refundDraft\.cashAccountId/);
  assert.match(orders,/SUM\(r.amount\)[\s\S]*>=o.total/);
  assert.match(workspace,/recordRefund/);
  assert.match(workspace,/Refund \{money/);
