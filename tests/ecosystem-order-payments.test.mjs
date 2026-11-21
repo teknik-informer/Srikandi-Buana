@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const migration=readFileSync('migrations/009_order_payment_ledger.sql','utf8');
 const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');
 const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
+const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
 
 test('Order payments are tenant-scoped, immutable records linked to orders and balanced ledger entries',()=>{
  assert.match(migration,/CREATE TABLE IF NOT EXISTS commerce_order_payments/);
