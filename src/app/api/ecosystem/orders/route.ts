@@ -71,7 +71,7 @@ export async function PATCH(request:Request){const c=await required(request,true
   RETURNING order_id
  )
  SELECT changed.id,changed.buyer_id FROM changed JOIN logged ON logged.order_id=changed.id`;
- const row=await c.db.prepare(sql).bind(b.id,c.user.userId,before,b.action,now,b.id,c.user.userId,before,c.user.userId,c.user.userId,b.action).first();
+ const row=await c.db.prepare(sql).bind(b.id,c.user.userId,before,b.action,b.action,now,b.id,c.user.userId,before,c.user.userId,c.user.accountId,b.action).first();
  if(!row)return json({error:b.action==='completed'?'Pesanan hanya dapat diselesaikan setelah seluruh pembayaran tercatat dan terverifikasi.':'Status pesanan telah berubah. Muat ulang halaman.'},409);
  await notifyOwner(c.user.userId,String(row.buyer_id),'order:'+b.id+':'+b.action,b.action==='confirmed'?'Pesanan dikonfirmasi':'Pesanan diselesaikan','Lihat rincian pesanan Anda di ruang kerja.','/dashboard/penjualan','pesanan');return json({ok:true});
  }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}
