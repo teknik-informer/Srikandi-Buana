@@ -10,6 +10,7 @@ import { taskVerificationError } from "@/lib/enterprise/task-verification";
 import { decisionsPreserveExistingOrder, meetingReviewError, parseMeetingActions, parseMeetingTaskReference } from "@/lib/meeting-cycle";
 import { buildV14RecordSyncStatements } from "@/lib/workspace-v14-sync";
 import { buildCashLedgerPostingStatements } from "@/features/finance/record-posting";
+import { normalizeHppCostRows, calculateHpp } from "@/features/finance/hpp-calculation.mjs";
 export const dynamic="force-dynamic";
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store"}});
 async function context(req:Request,write=false){
@@ -38,6 +39,22 @@ function validate(kind:string,raw:unknown):Data{
  if(f.type==="date"&&v&&(!/^\d{4}-\d{2}-\d{2}$/.test(v)||(!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v)))throw new Error("Tanggal tidak valid.");
  if(f.type==="number"||f.type==="decimal"){const n=Number(v||0);if((f.type==="number"?!Number.isSafeInteger(n):!Number.isFinite(n))||n<0||n>1e12||(f.key==="amount"&&n===0))throw new Error(`${f.label} harus berupa bilangan bulat yang valid.`);out[f.key]=n;}else out[f.key]=v;
  }
+ if(kind==="hpp"){
+  let items:unknown;
+  try{items=JSON.parse(String(out.costItems||"[]"));}catch{throw new Error("Rincian komponen biaya tidak valid.");}
+  const normalized=normalizeHppCostRows(items);
+  const calculation=calculateHpp({totalCost:normalized.totalCost,outputQuantity:Number(out.outputQuantity),targetMargin:Number(out.targetMargin||0)});
+  if(calculation.totalCost<=0||Number(out.totalCost)!==calculation.totalCost)throw new Error("Total biaya tidak cocok dengan rincian komponen.");
+  if(Number(out.unitCost)!==calculation.unitCost)throw new Error("Nilai HPP per satuan tidak cocok dengan jumlah hasil akhir.");
+  if(Number(out.suggestedPrice)!==calculation.suggestedPrice)throw new Error("Simulasi margin atau harga jual tidak valid.");
+  if(!Number.isSafeInteger(Number(out.sellingPrice))||Number(out.sellingPrice)<0)throw new Error("Harga jual uji harus berupa nominal rupiah yang valid.");
+  out.costItems=JSON.stringify(normalized.items);
+  out.totalCost=calculation.totalCost;
+  out.outputQuantity=calculation.outputQuantity;
+  out.unitCost=calculation.unitCost;
+  out.targetMargin=calculation.targetMargin;
+  out.suggestedPrice=calculation.suggestedPrice;
+ }
  if(kind==="surat_resmi"){out.number="";out.status="Draf";}
  return out;
 }
@@ -47,7 +64,7 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
  if(Number(req.headers.get("content-length")||0)>40000)return json({error:"Formulir terlalu besar."},413);
  const body=await readJsonObject(req,40000) as {kind:string;id?:string;data:unknown;expectedUpdated?:string};const data=validate(body.kind,body.data);if(body.kind==='galeri'&&data.status==='Terbit'&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin publikasi foto sebelum menerbitkan. Simpan sebagai Draf jika izin belum tersedia.'},400);if(body.kind==='publikasi'&&data.status==='Terbit'&&data.fileId&&data.publicationPermission!=='Dikonfirmasi')return json({error:'Konfirmasikan izin foto sampul sebelum menerbitkan konten. Hapus foto sampul jika tidak digunakan.'},400);const mayAttemptExistingReview=edit&&c.user!.role==='sekretaris'&&body.kind==='tindaklanjut';const mayAttemptPublication=edit&&c.user!.role==='ketua'&&['publikasi','galeri'].includes(body.kind);if(!canWriteRecord(c.user!,{id:body.id||'',kind:body.kind,data})&&!mayAttemptExistingReview&&!mayAttemptPublication)return json({error:'Anda tidak memiliki izin mengubah data ini.'},403);const readableFiles=await allowedFileIds(c.user!);if([data.fileId,data.attachmentId].some(id=>id&&!readableFiles.has(String(id))))return json({error:'Berkas di luar hak akses Anda.'},403);if(data.fileId){const file=await c.db!.prepare("SELECT mime FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.fileId,c.user!.userId).first();if(!file||!["image/png","image/jpeg"].includes(String(file.mime)))return json({error:"Pilih foto JPG/PNG yang tersedia di arsip akun Anda."},400);}
  if(data.attachmentId){const attachment=await c.db!.prepare("SELECT id FROM files WHERE id=? AND owner=? AND deleted_at IS NULL").bind(data.attachmentId,c.user!.userId).first();if(!attachment)return json({error:"Lampiran tidak tersedia di arsip Anda."},400);}
- if(body.kind==="lotkopi"){const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='lotkopi' AND json_extract(data,'$.name')=? AND id!=?").bind(c.user!.userId,data.name,body.id||"").first();if(duplicate)return json({error:"Kode lot sudah digunakan. Gunakan kode unik."},409);}
+ if(body.kind==="lotkopi"){const duplicate=await c.db!.prepare("SELECT id FROM records WHERE owner=? AND kind='lotkopi' AND json_extract(data,'$.name')=? AND id!=?").bind(c.user!.userId,data.name,body.id||"").first();if(duplicate)return json({error:"Kode penerimaan sudah digunakan. Gunakan kode unik."},409);}
  const id=edit?body.id:crypto.randomUUID();const now=new Date().toISOString();if(!id)return json({error:"ID tidak valid."},400);if(body.kind==="kas"){const counter=await c.db!.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE id=? AND owner=? AND active=TRUE").bind(String(data.counterAccountId||""),c.user!.userId).first();if(!counter)return json({error:"Pilih akun lawan transaksi yang aktif pada daftar akun kelompok."},400);data.counterAccountName=String(counter.name||"").slice(0,160);data.counterAccountCode=String(counter.code||"").slice(0,8);data.counterAccountCategory=String(counter.category||"").slice(0,20);}
  let previousTaskData:Data|undefined;
  let previousRecordData:Data|undefined;

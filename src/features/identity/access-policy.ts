@@ -46,7 +46,7 @@ export type ModuleAccessState = {
 
 const moduleBaselineSections: Record<string, readonly string[]> = {
   hrm: ["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya", "akun"],
-  accounting: ["kas", "laporan", "akuntansi", "aset"],
+  accounting: ["kas", "laporan", "akuntansi", "aset", "hpp"],
   crm: ["kemitraan", "pesan", "akses-eksternal", "publikasi", "galeri"],
   projects: ["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "surat", "surat-resmi", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "pengajuan", "enterprise", "panduan"],
   pos: ["penjualan", "lotkopi"],
@@ -56,7 +56,7 @@ const moduleBaselineSections: Record<string, readonly string[]> = {
 const sectionModuleMap: Record<string, string> = {
   hrm: "hrm", anggota: "hrm", pengurus: "hrm", musyawarah: "hrm", persetujuan: "hrm",
   presensi: "hrm", "presensi-saya": "hrm", portal: "hrm", "akun-saya": "hrm",
-  accounting: "accounting", kas: "accounting", laporan: "accounting", akuntansi: "accounting", aset: "accounting",
+  accounting: "accounting", kas: "accounting", laporan: "accounting", akuntansi: "accounting", aset: "accounting", hpp: "accounting",
   crm: "crm", kemitraan: "crm", pesan: "crm", "akses-eksternal": "crm", publikasi: "crm", galeri: "crm",
   projects: "projects", program: "projects", pertanian: "agriculture", laporan_program: "projects",
   tindaklanjut: "projects", kegiatan: "projects", kehadiran: "hrm", surat: "projects", "surat-resmi": "projects",
@@ -69,7 +69,7 @@ const recordKindModuleMap: Record<string, string> = {
   anggota: "hrm", pengurus: "hrm", musyawarah: "hrm", persetujuan: "hrm",
   presensi: "hrm", kehadiran: "hrm", attendance_session: "hrm", attendance_record: "hrm",
   attendance_correction: "hrm", attendance_qr_token: "hrm", attendance_audit: "hrm",
-  kas: "accounting", akuntansi: "accounting", aset: "accounting",
+  kas: "accounting", akuntansi: "accounting", aset: "accounting", hpp: "accounting",
   kemitraan: "crm", pesan: "crm", publikasi: "crm", galeri: "crm",
   program: "projects", pertanian: "agriculture", laporan_program: "projects",
   tindaklanjut: "projects", kegiatan: "projects", usaha: "projects", alsintan: "projects",
@@ -122,9 +122,9 @@ const secretariatWrite = [
 ];
 const secretariatReadOnly = [
   "kas", "aset", "akuntansi", "program", "pertanian",
-  "laporan_program", "tindaklanjut", "dokumen", "kemitraan", "usaha",
+  "laporan_program", "tindaklanjut", "dokumen", "kemitraan", "usaha", "hpp",
 ];
-const financeWrite = ["kas", "aset"];
+const financeWrite = ["kas", "aset", "hpp"];
 const financeReadOnly = [
   ...secretariatWrite,
   ...secretariatReadOnly,
