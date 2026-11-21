@@ -124,6 +124,10 @@ BEGIN
     AND EXISTS (SELECT 1 FROM commerce_order_payments p WHERE p.owner=OLD.owner AND p.order_id=OLD.id) THEN
   RAISE EXCEPTION 'Pesanan sudah memiliki pembayaran. Proses pengembalian dana harus diselesaikan melalui prosedur tersendiri sebelum pembatalan.';
  END IF;
+ IF NEW.status='completed' AND OLD.status<>'completed'
+    AND COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=OLD.owner AND p.order_id=OLD.id),0)<OLD.total THEN
+  RAISE EXCEPTION 'Pesanan belum dapat diselesaikan sebelum seluruh pembayaran tercatat.';
+ END IF;
  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -197,3 +201,14 @@ DROP TRIGGER IF EXISTS srikandi_prevent_paid_order_cancellation ON commerce_orde
 CREATE TRIGGER srikandi_prevent_paid_order_cancellation
  BEFORE UPDATE OF status ON commerce_orders
  FOR EACH ROW EXECUTE FUNCTION srikandi_prevent_paid_order_cancellation();
+
+-- Payment evidence is append-only; corrections require a separate refund/reversal workflow.
+CREATE OR REPLACE FUNCTION srikandi_protect_order_payment() RETURNS trigger AS $$
+BEGIN
+ RAISE EXCEPTION 'Catatan pembayaran bersifat tetap. Koreksi harus melalui prosedur pengembalian dana dan jurnal koreksi.';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS srikandi_protect_order_payment ON commerce_order_payments;
+CREATE TRIGGER srikandi_protect_order_payment
+ BEFORE UPDATE OR DELETE ON commerce_order_payments
+ FOR EACH ROW EXECUTE FUNCTION srikandi_protect_order_payment();
