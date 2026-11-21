@@ -26,6 +26,7 @@ import { isArchitectQaPreview } from "@/features/shared/qa-preview.mjs";
 import ArchitectQaTestCenter from "../../_components/architect-qa-test-center";
 import QaMemberLab from "../../_components/qa-member-lab";
 import HrmAttendanceWorkspace from "../../_components/hrm-attendance-workspace";
+import HppWorkspace from "../../_components/hpp-workspace";
 export async function generateMetadata({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section } = await params;
   const id = section?.[0] || "ringkasan";
@@ -154,6 +155,11 @@ export default async function Page({ params }: { params: Promise<{ section?: str
         <EnterpriseDashboardOverview dashboard={visibleDashboard} user={admin} />
       </WorkspaceShell>
     );
+  }
+  if (active === "hpp") {
+    return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Kalkulator HPP" defaultSidebarOpen={defaultSidebarOpen}>
+      <HppWorkspace role={admin.role} />
+    </WorkspaceShell>;
   }
   if (active === "pertanian") {
     return <WorkspaceShell user={admin} qaPreviewEnabled={isArchitectQaPreview(process.env)} section={active} title="Pengelolaan Pertanian" defaultSidebarOpen={defaultSidebarOpen}>
