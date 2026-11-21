@@ -41,13 +41,13 @@ function validate(kind:string,raw:unknown):Data{
  if(kind==="hpp"){
   let items:unknown;
   try{items=JSON.parse(String(out.costItems||"[]"));}catch{throw new Error("Rincian komponen biaya tidak valid.");}
-  if(!Array.isArray(items)||items.length<1||items.length>50)throw new Error("Tambahkan 1–50 komponen biaya yang valid.");
+  if(!Array.isArray(items)||items.length<1||items.length>20)throw new Error("Tambahkan 1–50 komponen biaya yang valid.");
   let computedTotal=0;
   const normalized=items.map((raw)=>{
    if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("Baris komponen biaya tidak valid.");
    const item=raw as Record<string,unknown>;
-   const component=String(item.component||"").trim().slice(0,120);
-   const unit=String(item.unit||"").trim().slice(0,24);
+   const component=String(item.component||"").trim().slice(0,80);
+   const unit=String(item.unit||"").trim().slice(0,16);
    const quantity=Number(item.quantity);
    const unitPrice=Number(item.unitPrice);
    if(!component||!unit||!Number.isFinite(quantity)||quantity<=0||quantity>1e9||!Number.isSafeInteger(unitPrice)||unitPrice<0||unitPrice>1e12)throw new Error("Lengkapi komponen, volume, satuan, dan harga satuan dengan benar.");
