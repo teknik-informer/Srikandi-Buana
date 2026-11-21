@@ -6,7 +6,7 @@ const nav=read('src/lib/navigation-config.ts'), mods=read('src/lib/srikandi.ts')
 const navLabels=new Map([...nav.matchAll(/admin\('([^']+)','([^']+)','[^']+'\)/g)].map(m=>[m[1],m[2]]));
 const labels={
  anggota:'Keanggotaan', pengurus:'Struktur Organisasi', musyawarah:'Rapat dan Notulen', persetujuan:'Persetujuan Data',
- tindaklanjut:'Tugas dan Tindak Lanjut', kegiatan:'Agenda Kegiatan', kas:'Buku Kas', usaha:'Perencanaan Usaha',
+ tindaklanjut:'Tugas dan Tindak Lanjut', kegiatan:'Agenda Kegiatan', kas:'Buku Kas', usaha:'Perencanaan Usaha', hpp:'Kalkulator HPP',
  aset:'Inventaris Aset', lotkopi:'Penerimaan Kopi', sumber:'Referensi Dokumen', kelembagaan:'Kepatuhan Organisasi',
  register:'Register Dokumen', transkripsi:'Verifikasi Informasi', publikasi:'Manajemen Konten',galeri:'Galeri Foto',
  portal:'Portal Anggota',pengajuan:'Pengajuan Operasional',enterprise:'Persetujuan Operasional','akses-eksternal':'Akses Pemerintah & Mitra',pertanian:'Pengelolaan Pertanian',laporan:'Laporan Kas',surat:'Surat Masuk dan Keluar','surat-resmi':'Penyusunan Surat Resmi',laporan_program:'Laporan Perkembangan Program',presensi:'Presensi Kegiatan','presensi-saya':'Presensi Saya'
@@ -15,7 +15,7 @@ test('Nama halaman utama konsisten dengan fungsinya',()=>{
  for(const [id,label] of Object.entries(labels))assert.equal(navLabels.get(id),label,`label untuk ${id}`);
 });
 test('Nama modul database cocok dengan menu pengguna',()=>{
- for(const id of ['anggota','pengurus','musyawarah','persetujuan','tindaklanjut','kegiatan','kas','usaha','aset','lotkopi','kelembagaan','register','transkripsi','publikasi','galeri','surat','laporan_program']){
+ for(const id of ['anggota','pengurus','musyawarah','persetujuan','tindaklanjut','kegiatan','kas','usaha','hpp','aset','lotkopi','kelembagaan','register','transkripsi','publikasi','galeri','surat','laporan_program']){
  const found=mods.match(new RegExp(String.raw`\b${id}:\{title:"([^"]+)"`));assert.ok(found,id);assert.equal(found[1],labels[id],id);
  }
 });
@@ -34,5 +34,5 @@ test('Tidak mengubah nilai status yang disimpan pada database',()=>{
  for(const s of ['Draf','Terbit','Pemasukan','Pengeluaran','Perlu verifikasi','Disepakati'])assert.ok(mods.includes(`"${s}"`),s);
 });
 test('Menu publik tidak terpengaruh dan tidak ada menu tanpa endpoint',()=>{
- const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.ok(ids.includes('akses-eksternal'));assert.equal(ids.length,41); // Existing routes plus new official-letter drafting, external access, agriculture management, Alsintan, and field survey instruments
+ const ids=[...navLabels.keys()];assert.equal(new Set(ids).size,ids.length);assert.ok(ids.includes('akses-eksternal'));assert.equal(ids.length,42); // Existing routes plus new official-letter drafting, external access, agriculture management, Alsintan, and field survey instruments
 });
