@@ -153,6 +153,7 @@ const legacyOnly = { ...principal, grants: [{ ...principal.grants[0], scopes: [{
 assert.equal(activeExternalGrants(legacyOnly.grants, at).length, 0, "Unsupported legacy grants must not keep an external account active");
 
 const api = readFileSync("src/app/api/agriculture/route.ts", "utf8");
+const recordsApi = readFileSync("src/app/api/records/route.ts", "utf8");
 const agricultureWorkspace = readFileSync("src/app/_components/agriculture-workspace.tsx", "utf8");
 const summary = readFileSync("src/lib/external-agriculture-summary.ts", "utf8");
 const portal = readFileSync("src/app/portal-eksternal/page.tsx", "utf8");
@@ -180,7 +181,7 @@ assert(traceabilityMigration.includes("FOR UPDATE OF h") && traceabilityMigratio
 assert(traceabilityMigration.includes("p.verification_status='verified'") && traceabilityMigration.includes("p.status='active'"), "Receipt posting must recheck verified active source land");
 assert(api.includes("h.received_quantity"), "Agriculture workspace must expose the cumulative quantity already received");
 assert(agricultureWorkspace.includes("harvest.received_quantity"), "Harvest cards must show received versus verified harvest quantity");
-assert(api.includes("srikandi_post_harvest_receipt") && api.includes('data.originType==="Hasil panen kelompok"'), "Accepted group-harvest receipts must use the atomic traceability posting function");
+assert(recordsApi.includes("srikandi_post_harvest_receipt") && recordsApi.includes('data.originType==="Hasil panen kelompok"'), "Accepted group-harvest receipts must use the atomic traceability posting function");
 assert(agricultureWorkspace.includes("ID referensi penerimaan"), "Verified harvest cards must expose a reference that can be linked by the receiving workflow");
 assert(api.includes("WHERE p.workspace_owner=?") && api.includes("WHERE h.workspace_owner=?"), "Queries must be workspace-scoped");
 assert(api.includes("const memberOptions = isSecretariat ?"), "Only the Secretariat may receive individual member choices");

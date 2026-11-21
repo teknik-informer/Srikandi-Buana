@@ -163,8 +163,11 @@ test("ledger write paths carry the authenticated workspace owner into ledger lin
   const orders = readFileSync("src/app/api/ecosystem/orders/route.ts", "utf8");
   assert.ok(products.includes("WHERE id=? AND owner=? AND updated=?"));
   assert.ok(products.includes("FROM before b WHERE p.id=b.id AND p.owner=b.owner AND p.updated=b.updated"));
-  assert.ok(orders.includes("stock=stock-?"));
-  assert.ok(orders.includes("status='cancelled'"));
+  assert.ok(orders.includes("srikandi_create_order_with_fifo"));
+  assert.ok(orders.includes("srikandi_cancel_order_restore_fifo"));
+  const fifo = readFileSync("migrations/008_fifo_stock_provenance.sql", "utf8");
+  assert.ok(fifo.includes("stock=stock-p_quantity"));
+  assert.ok(fifo.includes("UPDATE commerce_orders SET status='cancelled'"));
   const stockAudit = readFileSync("migrations/006_order_receipts_and_journal_corrections.sql", "utf8");
   assert.ok(stockAudit.includes("INSERT INTO commerce_stock_history(owner,product_id,change_amount,stock_before,stock_after)"));
 });

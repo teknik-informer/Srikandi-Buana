@@ -14,7 +14,7 @@ test('Notifikasi dan jurnal hanya mengakses data dalam organisasi',()=>{
  const l=f('src/app/api/ecosystem/ledger/route.ts'); assert(l.includes('canRead(c.user.role)')); assert(l.includes('canWrite(c.user.role)'));assert(l.includes('ids.length<2'));
 });
 test('Pesanan mempunyai status server dan stok tidak negatif',()=>{
- const q=f('src/app/api/ecosystem/orders/route.ts'); assert(q.includes('stock>=?'));assert(q.includes("status IN ('submitted','confirmed')")); assert(q.includes("status='cancelled'"));assert(q.includes('status=?'));assert(q.includes('client_request_id=?'));
+ const q=f('src/app/api/ecosystem/orders/route.ts');const fifo=f('migrations/008_fifo_stock_provenance.sql');assert(q.includes('srikandi_create_order_with_fifo'));assert(q.includes('srikandi_cancel_order_restore_fifo'));assert(fifo.includes('stock=stock-p_quantity'));assert(fifo.includes('stock>=p_quantity'));assert(fifo.includes("status IN ('submitted','confirmed')"));assert(fifo.includes("status='cancelled'"));assert(q.includes('client_request_id=?')||q.includes('clientRequestId'));
  const m=f('migrations/005_ecosystem_foundation.sql'); assert(m.includes('stock INTEGER NOT NULL DEFAULT 0 CHECK(stock>=0 AND stock<=1000000)')); assert(m.includes('UNIQUE(owner,buyer_id,client_request_id)'));
 });
 
@@ -22,7 +22,8 @@ test('Mutasi pesanan dan notifikasi dibatasi laju dan dapat diaudit per akun',()
  const orders=f('src/app/api/ecosystem/orders/route.ts');
  const notes=f('src/app/api/ecosystem/notifications/route.ts');
  assert(orders.includes('commerce:order-status:'));
- assert(orders.includes("status='cancelled'"));
+ assert(orders.includes('srikandi_cancel_order_restore_fifo'));
+ const fifo=f('migrations/008_fifo_stock_provenance.sql');assert(fifo.includes("UPDATE commerce_orders SET status='cancelled'"));
  const stockAudit=f('migrations/006_order_receipts_and_journal_corrections.sql');
  assert(stockAudit.includes('CREATE TABLE IF NOT EXISTS commerce_stock_history'));
  assert(stockAudit.includes('CREATE OR REPLACE FUNCTION srikandi_capture_stock_change'));

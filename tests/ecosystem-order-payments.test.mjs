@@ -1,0 +1,101 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const migration=readFileSync('migrations/009_order_payment_ledger.sql','utf8');
+const refundMigration=readFileSync('migrations/010_order_refunds.sql','utf8');
+const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');
+const ledger=readFileSync('src/app/api/ecosystem/ledger/route.ts','utf8');
+const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
+const receipt=readFileSync('src/app/dashboard/pesanan/[id]/page.tsx','utf8');
+
+test('Order payments are tenant-scoped, append-only records linked to orders and balanced ledger entries',()=>{
+ assert.match(migration,/CREATE TABLE IF NOT EXISTS commerce_order_payments/);
+ assert.match(migration,/FOREIGN KEY\(order_id,owner\) REFERENCES commerce_orders\(id,owner\)/);
+ assert.match(migration,/FOREIGN KEY\(ledger_entry_id,owner\) REFERENCES ledger_entries\(id,owner\)/);
+ assert.match(migration,/UNIQUE\(owner,client_request_id\)/);
+ assert.match(migration,/CREATE OR REPLACE FUNCTION srikandi_post_order_payment/);
+ assert.match(migration,/INSERT INTO ledger_entries/);
+ assert.match(migration,/INSERT INTO ledger_lines[\s\S]*p_cash_account_id,p_amount,0/);
+ assert.match(migration,/INSERT INTO ledger_lines[\s\S]*p_revenue_account_id,0,p_amount/);
+ assert.match(migration,/BEFORE UPDATE OR DELETE ON commerce_order_payments/);
+});
+
+test('Payment posting locks the order and validates Bendahara, account categories, and remaining balance',()=>{
+ assert.match(migration,/commerce_orders WHERE id=p_order_id AND owner=p_owner FOR UPDATE/);
+ assert.match(migration,/role='bendahara' AND enabled=TRUE/);
+ assert.match(migration,/v_cash.category<>'asset'/);
+ assert.match(migration,/v_revenue.category<>'revenue'/);
+ assert.match(migration,/v_paid\+p_amount>v_order.total/);
+ assert.match(migration,/v_existing.order_id<>p_order_id OR v_existing.amount<>p_amount/);
+ assert.ok(migration.includes("p_received_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR"));
+});
+
+test('Paid orders cannot be cancelled and cannot be completed before full payment',()=>{
+ assert.match(migration,/CREATE OR REPLACE FUNCTION srikandi_enforce_order_payment_state/);
+ assert.match(migration,/BEFORE UPDATE OF status ON commerce_orders/);
+ assert.match(migration,/NEW\.status='completed'[\s\S]*SUM\(p\.amount\)[\s\S]*<OLD\.total/);
+ assert.ok(workspace.includes("Number(o.paid_total||0)<=Number(o.refunded_total||0)"));
+});
+
+test('Order completion requires fully posted payments and the API exposes payment history',()=>{
+ assert.match(orders,/payment_status/);
+ assert.match(orders,/commerce_order_payments/);
+ assert.ok(orders.includes("(?<>'completed'"));
+ assert.ok(orders.includes("EXISTS (SELECT 1 FROM before)"));
+ assert.ok(orders.includes("receivedDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/"));
+});
+
+test('Bendahara payment form requires cash and revenue accounts and displays payment status',()=>{
+ assert.match(workspace,/Catat pembayaran/);
+ assert.match(workspace,/paymentAccounts\.filter\(a=>a\.category==='asset'\)/);
+ assert.match(workspace,/paymentAccounts\.filter\(a=>a\.category==='revenue'\)/);
+ assert.match(workspace,/Lunas/);
+ assert.match(workspace,/Pesanan hanya dapat dibatalkan setelah seluruh pembayaran dikembalikan./);
+});
+
+test('Order receipt displays recorded payment totals and the payment history',()=>{
+ assert.match(receipt,/paid_total/);
+ assert.match(receipt,/Status pembayaran/);
+ assert.match(receipt,/Riwayat Pembayaran/);
+ assert.ok(receipt.includes('user.role'));
+});
+
+test('Payment journals cannot be reversed through the generic journal correction endpoint',()=>{
+ assert.match(ledger,/NOT EXISTS\(SELECT 1 FROM commerce_order_payments p WHERE p\.owner=e\.owner AND p\.ledger_entry_id=e\.id\)/);
+ assert.match(ledger,/Jurnal penerimaan pembayaran pesanan tidak dapat dibalik langsung/);
+ assert.match(ledger,/Jurnal pengembalian dana tidak dapat dibalik langsung/);
+ assert.match(ledger,/commerce_order_refunds f WHERE f\.owner=e\.owner AND f\.ledger_entry_id=e\.id/);
+});
+
+test('Refunds are append-only, tenant-scoped, capped to the source payment, and journaled atomically',()=>{
+ assert.match(refundMigration,/CREATE TABLE IF NOT EXISTS commerce_order_refunds/);
+ assert.match(refundMigration,/FOREIGN KEY\(payment_id,owner\) REFERENCES commerce_order_payments\(id,owner\)/);
+ assert.match(refundMigration,/FOREIGN KEY\(cash_account_id,owner\) REFERENCES ledger_accounts\(id,owner\)/);
+ assert.match(refundMigration,/UNIQUE\(owner,client_request_id\)/);
+ assert.match(refundMigration,/CREATE OR REPLACE FUNCTION srikandi_post_order_refund/);
+ assert.match(refundMigration,/v_refunded\+p_amount>v_payment.amount/);
+ assert.match(refundMigration,/v_existing\.cash_account_id<>p_cash_account_id/);
+ assert.match(refundMigration,/v_existing\.reason<>trim\(p_reason\)/);
+ assert.match(refundMigration,/v_existing\.payment_reference<>left\(COALESCE\(p_reference,''\),120\)/);
+ assert.match(refundMigration,/role='bendahara' AND enabled=TRUE/);
+ assert.match(refundMigration,/v_payment.revenue_account_id,p_amount,0/);
+ assert.match(refundMigration,/p_cash_account_id,0,p_amount/);
+ assert.match(refundMigration,/BEFORE UPDATE OR DELETE ON commerce_order_refunds/);
+});
+
+test('Net payment balance controls collection, completion, and cancellation after full refund',()=>{
+ assert.match(refundMigration,/commerce_order_refunds r WHERE r.owner=p_owner AND r.order_id=v_existing.order_id/);
+ assert.match(refundMigration,/v_paid-v_refunded<OLD.total/);
+ assert.match(refundMigration,/v_refunded<v_paid/);
+ assert.match(orders,/action==='refund'/);
+ assert.match(orders,/srikandi_post_order_refund/);
+ assert.match(orders,/b\.cashAccountId/);
+ assert.match(workspace,/refundDraft\.cashAccountId/);
+ assert.match(orders,/SUM\(r.amount\)[\s\S]*>=o.total/);
+ assert.match(workspace,/recordRefund/);
+ assert.match(workspace,/Refund \{money/);
+ assert.match(workspace,/Pengembalian dana/);
+ assert.match(receipt,/Riwayat Pengembalian Dana/);
+ assert.match(receipt,/refunded_total/);
+});
