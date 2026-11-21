@@ -37,7 +37,6 @@ DECLARE
  v_actor RECORD;
  v_paid BIGINT := 0;
  v_entry_id TEXT;
- v_ledger_reference TEXT;
 BEGIN
  SELECT id,status,total,buyer_id INTO v_order
  FROM commerce_orders WHERE id=p_order_id AND owner=p_owner FOR UPDATE;
@@ -74,12 +73,14 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Aktor pembayaran bukan Bendahara aktif organisasi ini.'; END IF;
  SELECT id,category,active INTO v_cash FROM ledger_accounts
   WHERE id=p_cash_account_id AND owner=p_owner FOR UPDATE;
- IF NOT FOUND OR NOT v_cash.active OR v_cash.category<>'asset' THEN
+ IF NOT FOUND THEN RAISE EXCEPTION 'Akun kas/bank tidak ditemukan.'; END IF;
+ IF NOT v_cash.active OR v_cash.category<>'asset' THEN
   RAISE EXCEPTION 'Akun kas/bank harus akun aset aktif milik organisasi.';
  END IF;
  SELECT id,category,active INTO v_revenue FROM ledger_accounts
   WHERE id=p_revenue_account_id AND owner=p_owner FOR UPDATE;
- IF NOT FOUND OR NOT v_revenue.active OR v_revenue.category<>'revenue' THEN
+ IF NOT FOUND THEN RAISE EXCEPTION 'Akun pendapatan tidak ditemukan.'; END IF;
+ IF NOT v_revenue.active OR v_revenue.category<>'revenue' THEN
   RAISE EXCEPTION 'Akun pendapatan harus akun pendapatan aktif milik organisasi.';
  END IF;
 
@@ -90,7 +91,6 @@ BEGIN
  END IF;
 
  v_entry_id := 'PAY-'||p_payment_id;
- v_ledger_reference := v_entry_id;
  INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created)
  VALUES(v_entry_id,p_owner,p_actor,p_received_date,
   ('Penerimaan pembayaran pesanan '||p_order_id),v_ledger_reference,p_now);
