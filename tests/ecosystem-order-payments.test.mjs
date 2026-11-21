@@ -63,7 +63,9 @@ test('Order receipt displays recorded payment totals and the payment history',()
 
 test('Payment journals cannot be reversed through the generic journal correction endpoint',()=>{
  assert.match(ledger,/NOT EXISTS\(SELECT 1 FROM commerce_order_payments p WHERE p\.owner=e\.owner AND p\.ledger_entry_id=e\.id\)/);
- assert.match(ledger,/Prosedur pengembalian dana belum tersedia/);
+ assert.match(ledger,/Jurnal penerimaan pembayaran pesanan tidak dapat dibalik langsung/);
+ assert.match(ledger,/Jurnal pengembalian dana tidak dapat dibalik langsung/);
+ assert.match(ledger,/commerce_order_refunds f WHERE f\.owner=e\.owner AND f\.ledger_entry_id=e\.id/);
 });
 
 test('Refunds are append-only, tenant-scoped, capped to the source payment, and journaled atomically',()=>{
