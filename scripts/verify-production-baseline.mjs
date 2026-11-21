@@ -14,8 +14,8 @@ const hub = read("src/app/_components/application-hub.tsx");
 const shell = read("src/app/_components/workspace-shell.tsx");
 
 assert.match(loginPage, /<main className="login-shell">/);
-assert.match(loginPage, /<section className="login-story">/);
-assert.match(loginPage, /<section className="login-panel">/);
+assert.match(loginPage, /<section className="login-story"/);
+assert.match(loginPage, /<section className="login-panel"/);
 assert.match(loginPage, /<LoginForm\s*\/>/);
 assert.match(loginPage, /\.\/login\.css/);
 assert.match(loginForm, /fetch\("\/api\/auth\/login"/);
