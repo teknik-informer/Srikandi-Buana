@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Calculator, Plus, Printer, RefreshCw, Save, Trash2, Wallet, Scale, Tag, Package } from "lucide-react";
 import { WorkspacePageHeader, WorkspaceEmptyState } from "./workspace-ui";
+import { calculateHpp, calculateActualMargin } from "@/features/finance/hpp-calculation.mjs";
 
 type CostRow = { id: string; component: string; quantity: string; unit: string; unitPrice: string };
 type SavedCalculation = {
@@ -54,11 +55,15 @@ export default function HppWorkspace({ role }: { role: string }) {
   }), [rows]);
   const totalCost = useMemo(() => costRows.reduce((sum, row) => sum + row.subtotal, 0), [costRows]);
   const output = number(outputQuantity);
-  const unitCost = output > 0 ? Math.round(totalCost / output) : 0;
   const margin = Math.min(90, Math.max(0, number(targetMargin)));
-  const suggestedPrice = margin < 100 ? Math.round(unitCost / (1 - margin / 100)) : unitCost;
+  const calculation = useMemo(() => {
+    try { return calculateHpp({ totalCost, outputQuantity: output > 0 ? output : 1, targetMargin: margin }); }
+    catch { return { unitCost: 0, suggestedPrice: 0 }; }
+  }, [totalCost, output, margin]);
+  const unitCost = output > 0 ? calculation.unitCost : 0;
+  const suggestedPrice = output > 0 ? calculation.suggestedPrice : 0;
   const testedPrice = Math.round(number(sellingPrice));
-  const actualMargin = testedPrice > 0 ? ((testedPrice - unitCost) / testedPrice) * 100 : 0;
+  const actualMargin = calculateActualMargin(unitCost, testedPrice);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -216,9 +221,9 @@ export default function HppWorkspace({ role }: { role: string }) {
               <thead className="bg-muted/50 text-left"><tr><th className="px-3 py-3">Komponen biaya</th><th className="px-3 py-3">Volume</th><th className="px-3 py-3">Satuan</th><th className="px-3 py-3 text-right">Harga satuan</th><th className="px-3 py-3 text-right">Subtotal</th><th className="px-3 py-3 no-print"> </th></tr></thead>
               <tbody>{costRows.map(row => <tr key={row.id} className="border-t">
                 <td className="p-2"><input className={inputClass+" min-w-48"} aria-label="Komponen biaya" value={row.component} disabled={!canWrite} onChange={event => changeRow(row.id,"component",event.target.value)} placeholder="Nama komponen"/></td>
-                <td className="p-2"><input className={inputClass+" w-24"} aria-label="Volume" type="number" min="0" step="0.001" value={row.quantity} disabled={!canWrite} onChange={event => changeRow(row.id,"quantity",event.target.value)}/></td>
+                <td className="p-2"><input className={inputClass+" w-24"} aria-label="Volume" type="number" min="0" max="1000000000" step="0.001" value={row.quantity} disabled={!canWrite} onChange={event => changeRow(row.id,"quantity",event.target.value)}/></td>
                 <td className="p-2"><input className={inputClass+" w-24"} aria-label="Satuan biaya" maxLength={16} value={row.unit} disabled={!canWrite} onChange={event => changeRow(row.id,"unit",event.target.value)}/></td>
-                <td className="p-2"><input className={inputClass+" min-w-32 text-right"} aria-label="Harga satuan" type="number" min="0" step="1" value={row.unitPrice} disabled={!canWrite} onChange={event => changeRow(row.id,"unitPrice",event.target.value)}/></td>
+                <td className="p-2"><input className={inputClass+" min-w-32 text-right"} aria-label="Harga satuan" type="number" min="0" max="1000000000000" step="1" value={row.unitPrice} disabled={!canWrite} onChange={event => changeRow(row.id,"unitPrice",event.target.value)}/></td>
                 <td className="px-3 py-2 text-right font-medium tabular-nums">{money(row.subtotal)}</td>
                 <td className="p-2 no-print">{canWrite && <button type="button" aria-label="Hapus komponen" disabled={rows.length===1} onClick={() => setRows(current => current.filter(item => item.id!==row.id))} className="inline-flex h-8 w-8 items-center justify-center rounded-md border text-muted-foreground disabled:opacity-30"><Trash2 size={14}/></button>}</td>
               </tr>)}</tbody>
@@ -231,7 +236,7 @@ export default function HppWorkspace({ role }: { role: string }) {
           <div className="rounded-xl border bg-card p-4 sm:p-5">
             <h2 className="text-base font-semibold">Hasil akhir dan HPP</h2><p className="mt-1 text-xs text-muted-foreground">HPP per satuan = total biaya ÷ jumlah hasil akhir.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className={fieldClass}>Jumlah hasil akhir<input className={inputClass} type="number" min="0.001" step="0.001" required value={outputQuantity} disabled={!canWrite} onChange={event => setOutputQuantity(event.target.value)}/></label>
+              <label className={fieldClass}>Jumlah hasil akhir<input className={inputClass} type="number" min="0.001" max="1000000000" step="0.001" required value={outputQuantity} disabled={!canWrite} onChange={event => setOutputQuantity(event.target.value)}/></label>
               <label className={fieldClass}>Satuan hasil<input className={inputClass} required maxLength={24} value={outputUnit} disabled={!canWrite} onChange={event => setOutputUnit(event.target.value)}/></label>
             </div>
             <div className="mt-4 rounded-lg bg-muted/40 p-4"><p className="text-xs text-muted-foreground">HPP per {outputUnit || "satuan"}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{output>0?money(unitCost):"—"}</p></div>
@@ -242,7 +247,7 @@ export default function HppWorkspace({ role }: { role: string }) {
               <label className={fieldClass}>Target margin (%)<input className={inputClass} type="number" min="0" max="90" step="0.5" value={targetMargin} disabled={!canWrite} onChange={event => setTargetMargin(event.target.value)}/></label>
               <label className={fieldClass}>Uji harga jual per satuan (Rp)<input className={inputClass} type="number" min="0" step="1" value={sellingPrice} disabled={!canWrite} onChange={event => setSellingPrice(event.target.value)}/></label>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Harga jual untuk target margin</p><p className="mt-1 text-lg font-semibold">{money(suggestedPrice)}</p></div><div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Margin pada harga uji</p><p className="mt-1 text-lg font-semibold">{sellingPrice && testedPrice>0?actualMargin.toLocaleString("id-ID",{maximumFractionDigits:1})+"%":"—"}</p></div></div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Harga jual untuk target margin</p><p className="mt-1 text-lg font-semibold">{money(suggestedPrice)}</p></div><div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Margin pada harga uji</p><p className="mt-1 text-lg font-semibold">{sellingPrice && testedPrice>0 && actualMargin!==null?actualMargin.toLocaleString("id-ID",{maximumFractionDigits:1})+"%":"—"}</p></div></div>
           </div>
         </section>
 
