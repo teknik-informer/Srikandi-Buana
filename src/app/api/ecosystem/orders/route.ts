@@ -9,10 +9,12 @@ export async function GET(request:Request){const c=await required(request);if(c.
  const canReadAll=['ketua','bendahara'].includes(c.user.role);const where=canReadAll?'owner=?':'owner=? AND buyer_id=?',args=canReadAll?[c.user.userId]:[c.user.userId,c.user.accountId];
  const rows=await c.db.prepare(`SELECT o.id,o.product_name,o.quantity,o.unit_price,o.total,o.status,o.created,b.full_name AS buyer_name,
  COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0) AS paid_total,
- CASE WHEN COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)>=o.total THEN 'paid'
-      WHEN COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)>0 THEN 'partial' ELSE 'unpaid' END AS payment_status,
+ COALESCE((SELECT SUM(r.amount) FROM commerce_order_refunds r WHERE r.owner=o.owner AND r.order_id=o.id),0) AS refunded_total,
+ CASE WHEN COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)>0 AND COALESCE((SELECT SUM(r.amount) FROM commerce_order_refunds r WHERE r.owner=o.owner AND r.order_id=o.id),0)>=COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0) THEN 'refunded'
+      WHEN COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)-COALESCE((SELECT SUM(r.amount) FROM commerce_order_refunds r WHERE r.owner=o.owner AND r.order_id=o.id),0)>=o.total THEN 'paid'
+      WHEN COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)>COALESCE((SELECT SUM(r.amount) FROM commerce_order_refunds r WHERE r.owner=o.owner AND r.order_id=o.id),0) THEN 'partial' ELSE 'unpaid' END AS payment_status,
  COALESCE((SELECT jsonb_agg(jsonb_build_object('source_type',l.source_type,'source_ref',l.source_ref,'quantity',a.quantity) ORDER BY l.received_at,l.id) FROM commerce_order_lot_allocations a JOIN commerce_inventory_lots l ON l.id=a.lot_id AND l.owner=a.owner WHERE a.owner=o.owner AND a.order_id=o.id),'[]'::jsonb) AS allocations,
- COALESCE((SELECT jsonb_agg(jsonb_build_object('id',p.id,'amount',p.amount,'method',p.method,'received_date',p.received_date,'reference',p.payment_reference,'ledger_entry_id',p.ledger_entry_id) ORDER BY p.received_date,p.created) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),'[]'::jsonb) AS payments
+ COALESCE((SELECT jsonb_agg(jsonb_build_object('id',p.id,'amount',p.amount,'method',p.method,'received_date',p.received_date,'reference',p.payment_reference,'ledger_entry_id',p.ledger_entry_id,'refunded_amount',COALESCE((SELECT SUM(r.amount) FROM commerce_order_refunds r WHERE r.owner=p.owner AND r.payment_id=p.id),0),'refunds',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',r.id,'amount',r.amount,'method',r.method,'received_date',r.received_date,'reference',r.refund_reference,'reason',r.reason,'ledger_entry_id',r.ledger_entry_id) ORDER BY r.received_date,r.created) FROM commerce_order_refunds r WHERE r.owner=p.owner AND r.payment_id=p.id),'[]'::jsonb)) ORDER BY p.received_date,p.created) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),'[]'::jsonb) AS payments
  FROM commerce_orders o JOIN users b ON b.id=o.buyer_id AND b.workspace_owner=o.owner WHERE `+where.replaceAll('owner=','o.owner=').replaceAll('buyer_id=','o.buyer_id=')+` ORDER BY o.created DESC LIMIT 100`).bind(...args).all();
  const paymentAccounts=c.user.role==='bendahara'?await c.db.prepare("SELECT id,code,name,category FROM ledger_accounts WHERE owner=? AND active=TRUE AND category IN ('asset','revenue') ORDER BY code").bind(c.user.userId).all():{results:[]};
  return json({items:rows.results,paymentAccounts:paymentAccounts.results});
@@ -35,6 +37,24 @@ export async function POST(request:Request){const c=await required(request,true)
 export async function PATCH(request:Request){const c=await required(request,true);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'pos'))return json({error:'Aplikasi POS sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(c.user.role!=='bendahara')return json({error:'Hanya Bendahara yang dapat mengubah status pesanan.'},403);
  try{const b=await readJsonObject(request,1000);if(!await consumeRateLimit(c.db,'commerce:order-status:'+c.user.accountId,90,3600000))return json({error:'Batas perubahan status pesanan tercapai.'},429);if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id)||!['confirmed','cancelled','completed','payment'].includes(String(b.action)))return json({error:'Pesanan atau tindakan tidak valid.'},400);
  const now=new Date().toISOString();
+ if(b.action==='refund'){
+  if(typeof b.paymentId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.paymentId)||
+     typeof b.clientRequestId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.clientRequestId)||
+     !moneyInteger(b.amount,1000000000000)||Number(b.amount)===0||
+     !['tunai','transfer','qris'].includes(String(b.method))||
+     typeof b.receivedDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(b.receivedDate)||
+     Number.isNaN(Date.parse(b.receivedDate))||new Date(b.receivedDate).toISOString().slice(0,10)!==b.receivedDate||
+     typeof b.reason!=='string'||b.reason.trim().length<10||b.reason.trim().length>500||
+     (b.reference!==undefined&&typeof b.reference!=='string'))
+   return json({error:'Nominal, metode, tanggal, alasan, atau identitas refund tidak valid.'},400);
+  if(!await consumeRateLimit(c.db,'commerce:refund:'+c.user.accountId,45,3600000))return json({error:'Batas pencatatan refund tercapai.'},429);
+  const refundId=crypto.randomUUID();
+  const row=await c.db.prepare("SELECT * FROM srikandi_post_order_refund(?,?,?,?,?,?,?,?,?,?,?,?)")
+   .bind(refundId,c.user.userId,c.user.accountId,b.id,b.paymentId,b.amount,b.method,b.clientRequestId,b.receivedDate,String(b.reference||'').slice(0,120),b.reason.trim(),now).first();
+  if(!row)return json({error:'Refund belum dapat dibukukan.'},409);
+  if(!row.reused){const buyer=await c.db.prepare('SELECT buyer_id FROM commerce_orders WHERE id=? AND owner=?').bind(b.id,c.user.userId).first();if(buyer?.buyer_id)await notifyOwner(c.user.userId,String(buyer.buyer_id),'order:'+b.id+':refund:'+String(row.refund_id||row.refundId),'Pengembalian dana dicatat','Pengembalian dana pesanan Anda telah dicatat oleh Bendahara.','/dashboard/penjualan','pesanan');}
+  return json({ok:true,refundId:row.refund_id||row.refundId,refundedTotal:row.refunded_total||row.refundedTotal,reused:Boolean(row.reused)},row.reused?200:201);
+ }
  if(b.action==='payment'){
   if(typeof b.clientRequestId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.clientRequestId)||
      typeof b.cashAccountId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.cashAccountId)||
