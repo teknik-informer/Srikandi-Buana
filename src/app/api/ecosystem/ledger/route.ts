@@ -23,7 +23,7 @@ export async function POST(request:Request){const c=await required(request,true)
  if(b.action==='initialize'){await ensureDefaultLedgerAccounts(c.db,c.user.userId,now);return json({ok:true});}
  if(b.action==='reverse'){
   if(typeof b.id!=='string'||!/^[a-f0-9-]{36}$/i.test(b.id))return json({error:'Nomor jurnal tidak valid.'},400);
-  const old=await c.db.prepare('SELECT e.id,e.memo FROM ledger_entries e WHERE e.id=? AND e.owner=? AND NOT EXISTS(SELECT 1 FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id)').bind(b.id,c.user.userId).first();
+  const old=await c.db.prepare('SELECT e.id,e.memo FROM ledger_entries e WHERE e.id=? AND e.owner=? AND NOT EXISTS(SELECT 1 FROM ledger_reversals r WHERE r.original_entry_id=e.id OR r.reversal_entry_id=e.id) AND NOT EXISTS(SELECT 1 FROM commerce_order_payments p WHERE p.owner=e.owner AND p.ledger_entry_id=e.id)').bind(b.id,c.user.userId).first();
   if(!old)return json({error:'Jurnal tidak ditemukan atau sudah memiliki koreksi.'},409);
   const lines=await c.db.prepare('SELECT l.account_id,l.debit,l.credit FROM ledger_lines l JOIN ledger_accounts a ON a.id=l.account_id WHERE l.entry_id=? AND l.owner=? AND a.owner=?').bind(b.id,c.user.userId,c.user.userId).all();
   if(lines.results.length<2)return json({error:'Jurnal belum memenuhi persyaratan koreksi.'},409);
