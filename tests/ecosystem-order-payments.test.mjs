@@ -29,7 +29,7 @@ test('Payment posting locks the order and validates Bendahara, account categorie
 });
 
 test('Paid orders cannot be cancelled and cannot be completed before full payment',()=>{
- assert.match(migration,/CREATE OR REPLACE FUNCTION srikandi_prevent_paid_order_cancellation/);
+ assert.match(migration,/CREATE OR REPLACE FUNCTION srikandi_enforce_order_payment_state/);
  assert.match(migration,/BEFORE UPDATE OF status ON commerce_orders/);
  assert.match(migration,/NEW\.status='completed'[\s\S]*SUM\(p\.amount\)[\s\S]*<OLD\.total/);
  assert.ok(workspace.includes("Number(o.paid_total||0)===0"));
