@@ -81,7 +81,7 @@ export async function PATCH(request:Request){const c=await required(request,true
  }
  const before=b.action==='confirmed'?'submitted':'confirmed';
  const sql=`WITH before AS MATERIALIZED (
-  SELECT o.status FROM commerce_orders o WHERE o.id=? AND o.owner=? AND o.status=? AND (?<>'completed' OR COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)>=o.total)
+  SELECT o.status FROM commerce_orders o WHERE o.id=? AND o.owner=? AND o.status=? AND (?<>'completed' OR COALESCE((SELECT SUM(p.amount) FROM commerce_order_payments p WHERE p.owner=o.owner AND p.order_id=o.id),0)-COALESCE((SELECT SUM(r.amount) FROM commerce_order_refunds r WHERE r.owner=o.owner AND r.order_id=o.id),0)>=o.total)
  ), changed AS (
   UPDATE commerce_orders SET status=?,updated=? WHERE id=? AND owner=? AND status=? AND EXISTS (SELECT 1 FROM before)
   RETURNING id,buyer_id
