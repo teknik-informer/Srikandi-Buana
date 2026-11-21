@@ -64,7 +64,9 @@ BEGIN
  IF p_method NOT IN ('tunai','transfer','qris') THEN
   RAISE EXCEPTION 'Metode pembayaran tidak dikenal.';
  END IF;
- IF p_received_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}
+ IF p_received_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR
+    to_char(p_received_date::date,'YYYY-MM-DD')<>p_received_date THEN
+  RAISE EXCEPTION 'Tanggal pembayaran tidak valid.';
  END IF;
 
  SELECT id INTO v_actor FROM users WHERE id=p_actor AND workspace_owner=p_owner AND role='bendahara' AND enabled=TRUE;
