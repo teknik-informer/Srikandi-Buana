@@ -51,7 +51,8 @@ test('Generic accepted receipts and new products create matching inventory lots'
 test('FIFO migration preserves opening stock and allocates sales by source lot',()=>{
  const migration=readFileSync('migrations/008_fifo_stock_provenance.sql','utf8');
  assert.ok(migration.includes("source_type IN ('opening_balance','harvest','receipt','adjustment')"));
- assert.ok(migration.includes("source_type='opening_balance'"));
+ assert.ok(migration.includes("SELECT p.owner,p.id,'opening_balance'"));
+ assert.ok(migration.includes('WHERE p.stock>0'));
  assert.ok(migration.includes("ORDER BY received_at,id FOR UPDATE"));
  assert.ok(migration.includes("FOREIGN KEY(lot_id,owner)"));
  assert.ok(migration.includes("v_allocated<>v_order.quantity"));
