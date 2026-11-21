@@ -40,8 +40,8 @@ export const enterpriseDashboards: readonly EnterpriseDashboard[] = [
     id: "accounting",
     href: "/dashboard/accounting",
     label: "Accounting · Keuangan",
-    description: "Buku kas, akun perkiraan, jurnal, aset, dan pelaporan keuangan.",
-    features: features(["kas", "laporan", "akuntansi", "aset"]),
+    description: "Buku kas, akun perkiraan, jurnal, aset, kalkulasi HPP, dan pelaporan keuangan.",
+    features: features(["kas", "laporan", "akuntansi", "aset", "hpp"]),
   },
   {
     id: "crm",
