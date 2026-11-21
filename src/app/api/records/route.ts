@@ -41,7 +41,7 @@ function validate(kind:string,raw:unknown):Data{
  if(kind==="hpp"){
   let items:unknown;
   try{items=JSON.parse(String(out.costItems||"[]"));}catch{throw new Error("Rincian komponen biaya tidak valid.");}
-  if(!Array.isArray(items)||items.length<1||items.length>20)throw new Error("Tambahkan 1–50 komponen biaya yang valid.");
+  if(!Array.isArray(items)||items.length<1||items.length>20)throw new Error("Tambahkan 1–20 komponen biaya yang valid.");
   let computedTotal=0;
   const normalized=items.map((raw)=>{
    if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("Baris komponen biaya tidak valid.");
