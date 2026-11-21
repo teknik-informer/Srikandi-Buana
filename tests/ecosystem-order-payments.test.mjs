@@ -51,7 +51,7 @@ test('Bendahara payment form requires cash and revenue accounts and displays pay
  assert.match(workspace,/paymentAccounts\.filter\(a=>a\.category==='asset'\)/);
  assert.match(workspace,/paymentAccounts\.filter\(a=>a\.category==='revenue'\)/);
  assert.match(workspace,/Lunas/);
- assert.match(workspace,/Pembatalan ditahan karena sudah ada pembayaran/);
+ assert.match(workspace,/Pesanan hanya dapat dibatalkan setelah seluruh pembayaran dikembalikan./);
 });
 
 test('Order receipt displays recorded payment totals and the payment history',()=>{
