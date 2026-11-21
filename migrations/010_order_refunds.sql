@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS commerce_order_refunds (
  owner TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
  order_id TEXT NOT NULL,
  payment_id TEXT NOT NULL,
+ cash_account_id TEXT NOT NULL,
  actor_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
  amount BIGINT NOT NULL CHECK(amount>0 AND amount<=1000000000000),
  method TEXT NOT NULL CHECK(method IN ('tunai','transfer','qris')),
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS commerce_order_refunds (
  created TEXT NOT NULL,
  FOREIGN KEY(order_id,owner) REFERENCES commerce_orders(id,owner) ON DELETE RESTRICT,
  FOREIGN KEY(payment_id,owner) REFERENCES commerce_order_payments(id,owner) ON DELETE RESTRICT,
+ FOREIGN KEY(cash_account_id,owner) REFERENCES ledger_accounts(id,owner) ON DELETE RESTRICT,
  FOREIGN KEY(ledger_entry_id,owner) REFERENCES ledger_entries(id,owner) ON DELETE RESTRICT,
  UNIQUE(owner,client_request_id),
  UNIQUE(ledger_entry_id,owner),
@@ -26,7 +28,7 @@ CREATE INDEX IF NOT EXISTS commerce_order_refunds_payment
  ON commerce_order_refunds(owner,payment_id,received_date,created);
 
 CREATE OR REPLACE FUNCTION srikandi_post_order_refund(
- p_refund_id TEXT,p_owner TEXT,p_actor TEXT,p_order_id TEXT,p_payment_id TEXT,
+ p_refund_id TEXT,p_owner TEXT,p_actor TEXT,p_order_id TEXT,p_payment_id TEXT,p_cash_account_id TEXT,
  p_amount BIGINT,p_method TEXT,p_client_request_id TEXT,p_received_date TEXT,
  p_reference TEXT,p_reason TEXT,p_now TEXT
 ) RETURNS TABLE(refund_id TEXT,order_id TEXT,payment_id TEXT,refunded_total BIGINT,payment_amount BIGINT,reused BOOLEAN) AS $$
@@ -83,7 +85,7 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Aktor refund bukan Bendahara aktif organisasi ini.'; END IF;
 
  SELECT id,category,active INTO v_cash FROM ledger_accounts
- WHERE id=v_payment.cash_account_id AND owner=p_owner FOR UPDATE;
+ WHERE id=p_cash_account_id AND owner=p_owner FOR UPDATE;
  IF NOT FOUND OR NOT v_cash.active OR v_cash.category<>'asset' THEN
   RAISE EXCEPTION 'Akun kas/bank sumber tidak aktif atau tidak valid.';
  END IF;
@@ -107,13 +109,13 @@ BEGIN
  INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit)
  VALUES(gen_random_uuid()::text,p_owner,v_entry_id,v_payment.revenue_account_id,p_amount,0);
  INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit)
- VALUES(gen_random_uuid()::text,p_owner,v_entry_id,v_payment.cash_account_id,0,p_amount);
+ VALUES(gen_random_uuid()::text,p_owner,v_entry_id,p_cash_account_id,0,p_amount);
 
  INSERT INTO commerce_order_refunds(
-  id,owner,order_id,payment_id,actor_id,amount,method,refund_reference,reason,
+  id,owner,order_id,payment_id,cash_account_id,actor_id,amount,method,refund_reference,reason,
   client_request_id,received_date,ledger_entry_id,created
  ) VALUES (
-  p_refund_id,p_owner,p_order_id,p_payment_id,p_actor,p_amount,p_method,
+  p_refund_id,p_owner,p_order_id,p_payment_id,p_cash_account_id,p_actor,p_amount,p_method,
   left(COALESCE(p_reference,''),120),trim(p_reason),p_client_request_id,
   p_received_date,v_entry_id,p_now
  );
