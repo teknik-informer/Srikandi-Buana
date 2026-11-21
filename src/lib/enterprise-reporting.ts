@@ -49,7 +49,7 @@ const reportGroups: readonly ReportGroup[] = [
   {
     id: "usaha",
     label: "Usaha & aset",
-    description: "Rekap inventaris, penerimaan lot, kajian usaha, dan kemitraan.",
+    description: "Rekap inventaris, penerimaan hasil, kajian usaha, dan kemitraan.",
     kinds: ["aset", "lotkopi", "usaha", "kemitraan"],
   },
   {
