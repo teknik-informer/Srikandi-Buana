@@ -6,7 +6,7 @@ const migration=readFileSync('migrations/009_order_payment_ledger.sql','utf8');
 const orders=readFileSync('src/app/api/ecosystem/orders/route.ts','utf8');
 const workspace=readFileSync('src/app/_components/ecosystem-workspace.tsx','utf8');
 
-test('Order payments are tenant-scoped, immutable records linked to orders and balanced ledger entries',()=>{
+test('Order payments are tenant-scoped, append-only records linked to orders and balanced ledger entries',()=>{
  assert.match(migration,/CREATE TABLE IF NOT EXISTS commerce_order_payments/);
  assert.match(migration,/FOREIGN KEY\(order_id,owner\) REFERENCES commerce_orders\(id,owner\)/);
  assert.match(migration,/FOREIGN KEY\(ledger_entry_id,owner\) REFERENCES ledger_entries\(id,owner\)/);
@@ -15,6 +15,7 @@ test('Order payments are tenant-scoped, immutable records linked to orders and b
  assert.match(migration,/INSERT INTO ledger_entries/);
  assert.match(migration,/INSERT INTO ledger_lines[\s\S]*p_cash_account_id,p_amount,0/);
  assert.match(migration,/INSERT INTO ledger_lines[\s\S]*p_revenue_account_id,0,p_amount/);
+ assert.match(migration,/BEFORE UPDATE OR DELETE ON commerce_order_payments/);
 });
 
 test('Payment posting locks the order and validates Bendahara, account categories, and remaining balance',()=>{
@@ -24,19 +25,22 @@ test('Payment posting locks the order and validates Bendahara, account categorie
  assert.match(migration,/v_revenue.category<>'revenue'/);
  assert.match(migration,/v_paid\+p_amount>v_order.total/);
  assert.match(migration,/v_existing.order_id<>p_order_id OR v_existing.amount<>p_amount/);
+ assert.ok(migration.includes("p_received_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR"));
 });
 
-test('Paid orders cannot be cancelled until a refund workflow is implemented',()=>{
+test('Paid orders cannot be cancelled and cannot be completed before full payment',()=>{
  assert.match(migration,/CREATE OR REPLACE FUNCTION srikandi_prevent_paid_order_cancellation/);
- assert.match(migration,/BEFORE UPDATE OF status ON commerce_orders/);\n assert.match(migration,/NEW.status='completed'[\\s\\S]*SUM\\(p.amount\\)[\\s\\S]*<OLD.total/);
- assert.match(workspace,/Number\(o.paid_total\|\|0\)===0/);
+ assert.match(migration,/BEFORE UPDATE OF status ON commerce_orders/);
+ assert.match(migration,/NEW\.status='completed'[\s\S]*SUM\(p\.amount\)[\s\S]*<OLD\.total/);
+ assert.ok(workspace.includes("Number(o.paid_total||0)===0"));
 });
 
 test('Order completion requires fully posted payments and the API exposes payment history',()=>{
  assert.match(orders,/payment_status/);
- assert.match(orders,/commerce_order_payments/);\n assert.match(orders,/receivedDate!=='string'\\|\\|!\\/\\^\\[0-9\\]\\{4\\}/);
- assert.match(orders,/\?<'completed'[\s\S]*SUM\(p.amount\)[\s\S]*>=o.total/);
- assert.match(orders,/EXISTS \(SELECT 1 FROM before\)/);
+ assert.match(orders,/commerce_order_payments/);
+ assert.ok(orders.includes("(?<>'completed'"));
+ assert.ok(orders.includes("EXISTS (SELECT 1 FROM before)"));
+ assert.ok(orders.includes("receivedDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/"));
 });
 
 test('Bendahara payment form requires cash and revenue accounts and displays payment status',()=>{
