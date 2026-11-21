@@ -46,7 +46,7 @@ export type ModuleAccessState = {
 
 const moduleBaselineSections: Record<string, readonly string[]> = {
   hrm: ["anggota", "pengurus", "musyawarah", "persetujuan", "presensi", "presensi-saya", "portal", "akun-saya", "akun"],
-  accounting: ["kas", "laporan", "akuntansi", "aset"],
+  accounting: ["kas", "laporan", "akuntansi", "aset", "hpp"],accounting: ["kas", "laporan", "akuntansi", "aset"],
   crm: ["kemitraan", "pesan", "akses-eksternal", "publikasi", "galeri"],
   projects: ["program", "pertanian", "laporan_program", "tindaklanjut", "kegiatan", "kehadiran", "surat", "surat-resmi", "sumber", "kelembagaan", "register", "transkripsi", "survei", "dokumen", "pengajuan", "enterprise", "panduan"],
   pos: ["penjualan", "lotkopi"],
