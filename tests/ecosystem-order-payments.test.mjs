@@ -75,6 +75,9 @@ test('Refunds are append-only, tenant-scoped, capped to the source payment, and 
  assert.match(refundMigration,/UNIQUE\(owner,client_request_id\)/);
  assert.match(refundMigration,/CREATE OR REPLACE FUNCTION srikandi_post_order_refund/);
  assert.match(refundMigration,/v_refunded\+p_amount>v_payment.amount/);
+ assert.match(refundMigration,/v_existing\.cash_account_id<>p_cash_account_id/);
+ assert.match(refundMigration,/v_existing\.reason<>trim\(p_reason\)/);
+ assert.match(refundMigration,/v_existing\.payment_reference<>left\(COALESCE\(p_reference,''\),120\)/);
  assert.match(refundMigration,/role='bendahara' AND enabled=TRUE/);
  assert.match(refundMigration,/v_payment.revenue_account_id,p_amount,0/);
  assert.match(refundMigration,/p_cash_account_id,0,p_amount/);
