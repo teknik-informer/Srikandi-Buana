@@ -38,6 +38,41 @@ function validate(kind:string,raw:unknown):Data{
  if(f.type==="date"&&v&&(!/^\d{4}-\d{2}-\d{2}$/.test(v)||(!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v)))throw new Error("Tanggal tidak valid.");
  if(f.type==="number"||f.type==="decimal"){const n=Number(v||0);if((f.type==="number"?!Number.isSafeInteger(n):!Number.isFinite(n))||n<0||n>1e12||(f.key==="amount"&&n===0))throw new Error(`${f.label} harus berupa bilangan bulat yang valid.`);out[f.key]=n;}else out[f.key]=v;
  }
+ if(kind==="hpp"){
+  let items:unknown;
+  try{items=JSON.parse(String(out.costItems||"[]"));}catch{throw new Error("Rincian komponen biaya tidak valid.");}
+  if(!Array.isArray(items)||items.length<1||items.length>50)throw new Error("Tambahkan 1–50 komponen biaya yang valid.");
+  let computedTotal=0;
+  const normalized=items.map((raw)=>{
+   if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("Baris komponen biaya tidak valid.");
+   const item=raw as Record<string,unknown>;
+   const component=String(item.component||"").trim().slice(0,120);
+   const unit=String(item.unit||"").trim().slice(0,24);
+   const quantity=Number(item.quantity);
+   const unitPrice=Number(item.unitPrice);
+   if(!component||!unit||!Number.isFinite(quantity)||quantity<=0||quantity>1e9||!Number.isSafeInteger(unitPrice)||unitPrice<0||unitPrice>1e12)throw new Error("Lengkapi komponen, volume, satuan, dan harga satuan dengan benar.");
+   const subtotal=Math.round(quantity*unitPrice);
+   if(!Number.isSafeInteger(subtotal)||subtotal<0)throw new Error("Subtotal komponen melebihi batas perhitungan.");
+   computedTotal+=subtotal;
+   if(!Number.isSafeInteger(computedTotal)||computedTotal>1e14)throw new Error("Total biaya melebihi batas perhitungan.");
+   return {component,quantity,unit,unitPrice,subtotal};
+  });
+  const outputQuantity=Number(out.outputQuantity);
+  const targetMargin=Number(out.targetMargin||0);
+  const unitCost=outputQuantity>0?Math.round(computedTotal/outputQuantity):0;
+  const suggestedPrice=targetMargin>=0&&targetMargin<=90?Math.round(unitCost/(1-targetMargin/100)):-1;
+  if(!Number.isFinite(outputQuantity)||outputQuantity<=0||outputQuantity>1e9)throw new Error("Jumlah hasil akhir harus lebih dari nol.");
+  if(computedTotal<=0||Number(out.totalCost)!==computedTotal)throw new Error("Total biaya tidak cocok dengan rincian komponen.");
+  if(Number(out.unitCost)!==unitCost)throw new Error("Nilai HPP per satuan tidak cocok dengan jumlah hasil akhir.");
+  if(!Number.isFinite(targetMargin)||targetMargin<0||targetMargin>90||Number(out.suggestedPrice)!==suggestedPrice)throw new Error("Simulasi margin atau harga jual tidak valid.");
+  if(!Number.isSafeInteger(Number(out.sellingPrice))||Number(out.sellingPrice)<0)throw new Error("Harga jual uji harus berupa nominal rupiah yang valid.");
+  out.costItems=JSON.stringify(normalized);
+  out.totalCost=computedTotal;
+  out.outputQuantity=outputQuantity;
+  out.unitCost=unitCost;
+  out.targetMargin=targetMargin;
+  out.suggestedPrice=suggestedPrice;
+ }
  if(kind==="surat_resmi"){out.number="";out.status="Draf";}
  return out;
 }
