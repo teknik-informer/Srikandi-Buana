@@ -135,10 +135,6 @@ DROP TRIGGER IF EXISTS srikandi_prevent_paid_order_cancellation ON commerce_orde
 CREATE TRIGGER srikandi_prevent_paid_order_cancellation
  BEFORE UPDATE OF status ON commerce_orders
  FOR EACH ROW EXECUTE FUNCTION srikandi_prevent_paid_order_cancellation();
- OR
-    to_char(p_received_date::date,'YYYY-MM-DD')<>p_received_date THEN
-  RAISE EXCEPTION 'Tanggal pembayaran tidak valid.';
- END IF;
 
  SELECT id INTO v_actor FROM users WHERE id=p_actor AND workspace_owner=p_owner AND role='bendahara' AND enabled=TRUE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Aktor pembayaran bukan Bendahara aktif organisasi ini.'; END IF;
