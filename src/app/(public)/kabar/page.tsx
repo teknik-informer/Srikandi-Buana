@@ -15,7 +15,7 @@ export default async function KabarPage({ searchParams }: { searchParams: Promis
   const [lead, ...rest] = published;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div className="sb-shell py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="sb-label mb-2">Informasi</div>

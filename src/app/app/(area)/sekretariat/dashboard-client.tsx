@@ -7,6 +7,8 @@ import { ACTIVITIES } from "@/data/operations";
 import { formatDateID, relativeID } from "@/lib/format";
 import { Badge, Card, CardHeader, StatCard, StatusBadge } from "@/components/ui";
 import { Btn, DemoStateChip } from "@/components/act";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { useStore } from "@/lib/store";
 
 export function SekretariatDashboardClient() {
@@ -17,22 +19,22 @@ export function SekretariatDashboardClient() {
 
   return (
     <div className="pb-10">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
-        <div className="min-w-0">
-          <div className="sb-label mb-1.5">Sekretariat</div>
-          <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Administrasi organisasi</h1>
-          <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
-            Surat, notulen, agenda, dokumen, dan publikasi website. Publikasi tetap melalui alur draf → review → terbit.
-          </p>
-          <div className="mt-2"><DemoStateChip /></div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/sekretariat/surat" className="sb-btn sb-btn-outline">Registrasi surat</Link>
-          <Link href="/studio/website" className="sb-btn sb-btn-primary">Buka Website Studio</Link>
-        </div>
-      </header>
+      <AppBanner
+        {...APP_IDENTITY.sekretariat}
+        facts={[
+          `${inbound.length} surat perlu tindak lanjut`,
+          `${DOCUMENTS.length} dokumen aktif`,
+          `${drafts.length} draf publikasi`,
+          `${ACTIVITIES.filter((a) => a.status === "terjadwal").length} agenda minggu ini`,
+        ]}
+        badge={<DemoStateChip tone="dark" />}
+        actions={[
+          { href: "/app/sekretariat/surat", label: "Registrasi surat", primary: true },
+          { href: "/studio/website", label: "Website Studio" },
+        ]}
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Surat masuk perlu tindak lanjut" value={inbound.length} note="Termasuk 1 surat pencairan bantuan" tone="warning" href="/app/sekretariat/surat" />
         <StatCard label="Dokumen aktif" value={DOCUMENTS.length} note={`${DOCUMENTS.filter((d) => d.visibility === "publik").length} publik`} tone="info" href="/app/sekretariat/dokumen" />
         <StatCard label="Draf publikasi" value={drafts.length} note="Menunggu review pengurus" tone="accent" href="/studio/website" />

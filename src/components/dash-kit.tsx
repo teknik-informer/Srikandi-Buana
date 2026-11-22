@@ -567,40 +567,129 @@ export function WorkspaceCard({ pct, label, name, role, href }: { pct: number; l
 /* Hero banner                                                        */
 /* ------------------------------------------------------------------ */
 
-export function HeroBanner({ name, dateLabel, ctaHref }: { name: string; dateLabel: string; ctaHref: string }) {
+/* ------------------------------------------------------------------ */
+/* App banner — one hero per application, told by its own photograph.  */
+/* ------------------------------------------------------------------ */
+
+export interface AppHeroQuotes {
+  /** One honest line from the data behind this app, e.g. "3 persetujuan menunggu". */
+  facts: string[];
+}
+
+export function AppBanner({
+  eyebrow,
+  title,
+  lead,
+  quote,
+  image,
+  imageAlt,
+  facts = [],
+  actions = [],
+  badge,
+  compact = false,
+}: {
+  eyebrow: string;
+  title: string;
+  lead?: string;
+  /** Verbatim organisational motto or line — never a written-for-you slogan. */
+  quote?: { text: string; source?: string };
+  image: string;
+  imageAlt: string;
+  facts?: string[];
+  actions?: { href: string; label: string; primary?: boolean }[];
+  badge?: React.ReactNode;
+  compact?: boolean;
+}) {
   return (
-    <div className="relative overflow-hidden rounded-[16px] bg-[#14351f]">
+    <section
+      className={`relative isolate overflow-hidden rounded-[18px] bg-[#0f2c19] ${compact ? "" : "shadow-[0_1px_2px_rgba(15,26,43,0.06)]"}`}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/hero-dasbor.jpg"
-        alt="Enam perempuan tani Srikandi Buana berdiri di kebun kopi Ngadimulyo"
-        className="absolute inset-0 h-full w-full object-cover object-[65%_center]"
-        width={1584} height={672}
+        src={image}
+        alt={imageAlt}
+        className="absolute inset-0 h-full w-full object-cover object-[62%_38%]"
         decoding="async"
         fetchPriority="high"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0d2715]/95 via-[#14351f]/80 to-[#14351f]/10" aria-hidden />
-      <div className="relative flex min-h-[132px] flex-col justify-center gap-1.5 px-5 py-4 sm:min-h-[150px] sm:px-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 ring-1 ring-inset ring-white/20">
-            {dateLabel}
-          </span>
-          <span className="rounded-full bg-[#e6c56a]/20 px-2.5 py-0.5 text-[10px] font-semibold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
-            Data contoh berlabel
-          </span>
+      {/* Readability scrim: solid on the copy side, feathered to nothing over the photograph. */}
+      <div
+        className="absolute inset-0 bg-[linear-gradient(96deg,rgba(8,35,20,0.97)_0%,rgba(11,43,25,0.94)_34%,rgba(13,49,28,0.72)_52%,rgba(15,55,32,0.34)_70%,rgba(16,58,34,0.10)_84%,rgba(16,58,34,0.02)_100%)]"
+        aria-hidden
+      />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" aria-hidden />
+
+      <div className={`relative flex flex-col ${compact ? "px-5 py-5 sm:px-6" : "px-5 py-5 sm:px-7 sm:py-6"}`}>
+        <div className="min-w-0 max-w-[58ch]">
+          <div className="flex flex-wrap items-center gap-2 [&>*]:shrink-0">
+            <span className="rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#dff0e2] ring-1 ring-inset ring-white/15">
+              {eyebrow}
+            </span>
+            {badge ? <span className="inline-flex">{badge}</span> : null}
+          </div>
+
+          <h1
+            className={`mt-2.5 font-display font-extrabold leading-[1.1] tracking-[-0.03em] text-white ${
+              compact ? "text-[22px] sm:text-[26px]" : "text-[25px] sm:text-[31px]"
+            }`}
+          >
+            {title}
+          </h1>
+          {lead ? (
+            <p className="mt-2 max-w-[56ch] text-[13px] leading-relaxed text-[#cfe3d3] sm:text-[13.5px]">{lead}</p>
+          ) : null}
+
+          {facts.length ? (
+            <ul className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {facts.map((f) => (
+                <li key={f} className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#e8f3ea]">
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-[#e6c56a]" aria-hidden />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {actions.length ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {actions.map((a) =>
+                a.primary ? (
+                  <Link
+                    key={a.href + a.label}
+                    href={a.href}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#f2dda2] px-3.5 py-1.5 text-[11.5px] font-bold text-[#2a1f00] shadow-sm transition hover:bg-[#f7e8bb]"
+                  >
+                    {a.label} <ArrowRight size={13} />
+                  </Link>
+                ) : (
+                  <Link
+                    key={a.href + a.label}
+                    href={a.href}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3.5 py-1.5 text-[11.5px] font-semibold text-white transition hover:border-white/50 hover:bg-white/10"
+                  >
+                    {a.label}
+                  </Link>
+                ),
+              )}
+            </div>
+          ) : null}
         </div>
-        <h1 className="mt-0.5 max-w-[22ch] font-display text-[22px] font-extrabold leading-[1.15] text-white sm:text-[27px]">
-          Selamat Datang di Srikandi Buana
-        </h1>
-        <p className="font-display text-[12.5px] font-semibold italic text-[#e6c56a]">Bersama, Berdaya, Berjaya</p>
-        <div className="mt-1.5">
-          <Link href={ctaHref} className="inline-flex items-center gap-1.5 rounded-full bg-[#f2dda2] px-3.5 py-1.5 text-[11.5px] font-bold text-[#2a1f00] shadow-sm transition hover:bg-[#f7e8bb]">
-            Lihat Program Kami <ArrowRight size={13} />
-          </Link>
-        </div>
-        <span className="sr-only">{name}</span>
+
+        {quote ? (
+          /* The motto sits on its own translucent strip at the foot of the
+             banner: present on every screen size, but never laid over a face
+             in the photograph. */
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-t border-white/15 pt-2.5">
+            <blockquote className="font-display text-[12.5px] font-semibold italic leading-snug text-[#f4e7c3]">
+              &ldquo;{quote.text}&rdquo;
+            </blockquote>
+            {quote.source ? (
+              <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#9dbfa6]">{quote.source}</span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
-    </div>
+    </section>
   );
 }
 

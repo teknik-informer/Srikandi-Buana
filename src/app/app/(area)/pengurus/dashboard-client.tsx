@@ -17,9 +17,10 @@ import { Badge, Card, CardHeader } from "@/components/ui";
 import { Btn, Field, Modal, TextArea } from "@/components/act";
 import { useStore, useFinance } from "@/lib/store";
 import {
-  ActivityChart, AgendaCard, DonutCard, GrowthCard, HeroBanner, KpiStrip, NewsCard,
+  ActivityChart, AgendaCard, AppBanner, DonutCard, GrowthCard, KpiStrip, NewsCard,
   QuickAccess, RecentCard, WorkspaceCard, type Kpi,
 } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 
 type DashChart = {
   ranges: { key: string; label: string }[];
@@ -240,11 +241,26 @@ export function PengurusDashboardClient() {
 
   return (
     <div className="pb-4">
-      {/* ── HERO ────────────────────────────────────────────────────── */}
-      <HeroBanner
-        name={actor.name}
-        dateLabel={`Pengurus Harian · ${formatDateID("2026-11-22")}`}
-        ctaHref="/program"
+      {/* ── BANNER — this app's own photograph and the organisation's own
+             words. The facts underneath are counted from the live store, so
+             the banner can never claim something the data does not show. ── */}
+      <AppBanner
+        {...APP_IDENTITY.pengurus}
+        badge={
+          <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
+            Data contoh berlabel
+          </span>
+        }
+        facts={[
+          `${activeMembers} anggota aktif`,
+          `${pending.length} persetujuan menunggu`,
+          `${openTasks.length} tugas terbuka`,
+          nextMeeting ? `Rapat berikutnya ${formatDateID(nextMeeting.date, "short")}` : "Belum ada rapat terjadwal",
+        ]}
+        actions={[
+          { href: "/program", label: "Lihat program", primary: true },
+          { href: "/app/pengurus/persetujuan", label: "Persetujuan" },
+        ]}
       />
 
       {/* ── KPI STRIP ───────────────────────────────────────────────── */}

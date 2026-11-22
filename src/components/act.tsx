@@ -276,22 +276,28 @@ export function Toaster() {
 /* Demo state chip + reset                                             */
 /* ------------------------------------------------------------------ */
 
-export function DemoStateChip({ compact = false }: { compact?: boolean }) {
+export function DemoStateChip({ compact = false, tone = "light" }: { compact?: boolean; tone?: "light" | "dark" }) {
   const { state } = useStore();
   const pending = state.approvals.filter((a) => a.status === "menunggu").length;
+  const skin =
+    tone === "dark"
+      ? "border-white/20 bg-white/10 text-[#dfeadd] backdrop-blur-sm"
+      : "border-line bg-paper text-muted";
+  const dot = tone === "dark" ? "bg-[#7ddc93]" : "bg-[var(--sb-primary-500)]";
+  const sep = tone === "dark" ? "text-white/30" : "text-line-strong";
   return (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-line bg-paper px-2.5 py-1 text-[10.5px] font-medium text-muted">
+    <span className={`inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full border px-2.5 py-1 text-[10.5px] font-medium ${skin}`}>
       <span className="inline-flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--sb-primary-500)]" aria-hidden />
+        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
         Data demo
       </span>
       {!compact ? (
         <>
-          <span aria-hidden className="text-line-strong">·</span>
+          <span aria-hidden className={sep}>·</span>
           <span>{state.journals.length} jurnal</span>
-          <span aria-hidden className="text-line-strong">·</span>
+          <span aria-hidden className={sep}>·</span>
           <span>{pending} menunggu</span>
-          <span aria-hidden className="text-line-strong">·</span>
+          <span aria-hidden className={sep}>·</span>
           <span>tersimpan di peramban</span>
         </>
       ) : null}

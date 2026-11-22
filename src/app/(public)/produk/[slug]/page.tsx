@@ -23,7 +23,7 @@ export default async function ProductDetail({ params }: { params: Promise<{ slug
   const related = PRODUCTS.filter((x) => x.published && x.id !== p.id && x.category === p.category).slice(0, 3);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <div className="sb-shell py-10">
       <nav className="mb-5 text-[12px] text-muted">
         <Link href="/produk" className="hover:underline">Katalog</Link>
         <span className="mx-1.5">/</span>

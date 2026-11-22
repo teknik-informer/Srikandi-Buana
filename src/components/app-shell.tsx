@@ -119,7 +119,7 @@ export function AppShell({
     <div className="min-h-dvh bg-[#f7f9fc]">
       {/* ── TOPBAR — deep green, matching the reference dashboard ── */}
       <header className="no-print sticky top-0 z-40 bg-[#14351f] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]">
-        <div className="flex h-[58px] items-center gap-2 px-3 sm:gap-3 sm:px-4">
+        <div className="sb-bar flex h-[60px] items-center gap-1 sm:gap-2 lg:gap-3">
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 text-white lg:hidden"
@@ -130,22 +130,22 @@ export function AppShell({
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
-          {/* compact mark on phones, full lock-up from lg up */}
-          <Link href="/app" className="inline-flex shrink-0 items-center rounded-[9px] bg-white p-1 lg:hidden" aria-label="Beranda aplikasi">
+          {/* ONE brand mark for the whole application: the organisation's own
+              full-colour lock-up on a white tile, so the green serif stays
+              legible on the deep-green bar. The sidebar carries no second
+              logo — it opens with the current app instead. */}
+          <Link
+            href="/app"
+            aria-label="Srikandi Buana — beranda aplikasi"
+            className="inline-flex shrink-0 items-center rounded-[10px] bg-white px-1.5 py-1 shadow-[0_1px_0_rgba(0,0,0,0.12)] ring-1 ring-white/20 transition hover:bg-[#fbfdf9] sm:px-2 sm:py-1.5"
+          >
+            {/* One mark, two lock-ups: the emblem alone where the bar is
+                narrow, the full lock-up as soon as there is room. Never two
+                logos on screen at once. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/mark.png" alt="" aria-hidden width={63} height={96} className="h-6 w-auto" decoding="async" />
-          </Link>
-
-          {/* On the deep-green bar the full-colour lock-up would put dark green
-              type on dark green, so the emblem + wordmark are set in the light
-              duotone the brand block already uses. */}
-          <Link href="/app" className="hidden shrink-0 items-center gap-2 lg:flex" aria-label="Beranda aplikasi">
+            <img src="/brand/mark.png" alt="Srikandi Buana" width={386} height={420} className="h-6 w-auto sm:hidden" decoding="async" fetchPriority="high" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/emblem-light.png" alt="" aria-hidden width={167} height={256} className="h-7 w-auto" decoding="async" />
-            <span className="leading-none">
-              <span className="block font-display text-[15px] font-extrabold tracking-tight text-white">Srikandi</span>
-              <span className="block font-display text-[12px] font-extrabold tracking-[0.18em] text-[#e6c56a]">BUANA</span>
-            </span>
+            <img src="/brand/wordmark-alpha.png" alt="" aria-hidden width={900} height={329} className="hidden h-[26px] w-auto sm:block sm:h-[28px] lg:h-[30px]" decoding="async" fetchPriority="high" />
           </Link>
 
           {/* app switcher */}
@@ -154,11 +154,13 @@ export function AppShell({
               type="button"
               onClick={() => { setLauncher((v) => !v); setBell(false); setUser(false); }}
               aria-expanded={launcher}
-              className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-2.5 py-1.5 text-left ring-1 ring-inset ring-white/15 transition hover:bg-white/15"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1.5 text-left ring-1 ring-inset ring-white/15 transition hover:bg-white/15 sm:gap-2 sm:px-2.5"
             >
-              <AppIcon name={app.icon} size={15} className="text-[#bfe3c6]" />
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/15">
+                <AppIcon name={app.icon} size={13} className="text-[#d6f0dc]" />
+              </span>
               <span className="hidden max-w-[170px] truncate text-[12.5px] font-semibold text-white sm:block">{app.short}</span>
-              <ChevronDown size={13} className="text-white/70" />
+              <ChevronDown size={13} className="hidden text-white/70 sm:block" />
             </button>
             {launcher && (
               <div className="absolute left-0 top-full z-50 mt-2 w-[min(92vw,560px)]">
@@ -196,10 +198,10 @@ export function AppShell({
             )}
           </div>
 
-          {/* scope pill */}
-          <span className="hidden items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11.5px] text-white/85 md:inline-flex">
+          {/* scope pill — who you are acting as, not which product this is */}
+          <span className="hidden items-center gap-1.5 text-[11.5px] text-white/75 xl:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-[#7ddc93]" />
-            Konteks: <span className="font-semibold text-white">{identity.scope}</span>
+            <span className="font-semibold text-white">{identity.scope}</span>
           </span>
 
           {/* search — wide pill like the reference, ⌘K opens the same field */}
@@ -348,42 +350,27 @@ export function AppShell({
       </header>
 
       <div className="flex">
-        {/* ── SIDEBAR — white surface, green brand block, grouped rows ── */}
+        {/* ── SIDEBAR — the app's own navigation. Deliberately carries NO second
+               logo: the brand lives once, in the topbar. This panel opens by
+               saying which application you are in. ── */}
         <aside
-          className={`no-print fixed inset-y-0 left-0 z-30 w-[264px] overflow-y-auto border-r border-line bg-white pt-[58px] transition-transform lg:sticky lg:top-[58px] lg:h-[calc(100dvh-58px)] lg:translate-x-0 ${
+          className={`no-print fixed inset-y-0 left-0 z-30 w-[264px] overflow-y-auto border-r border-line bg-white pt-[60px] transition-transform lg:sticky lg:top-[60px] lg:h-[calc(100dvh-60px)] lg:translate-x-0 ${
             mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
           }`}
         >
-          {/* brand block */}
-          <div className="relative overflow-hidden bg-[#14351f] px-4 pb-5 pt-4 text-white">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 opacity-[0.18]"
-              style={{ backgroundImage: "radial-gradient(circle at 82% 10%, #7ddc93 0, transparent 55%), radial-gradient(circle at 10% 110%, #e6c56a 0, transparent 50%)" }}
-            />
-            <div className="relative flex items-center gap-2.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/emblem-light.png" alt="" aria-hidden width={167} height={256} className="h-11 w-auto" />
-              <span className="leading-none">
-                <span className="block font-display text-[17px] font-extrabold tracking-tight">Srikandi</span>
-                <span className="block font-display text-[15px] font-extrabold tracking-[0.16em] text-[#e6c56a]">BUANA</span>
+          <div className="border-b border-line px-3.5 pb-3.5 pt-4 sm:px-4">
+            <div className="flex items-center gap-2.5 pl-0.5 sm:pl-1">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#eaf6ec] text-[#127e2f] ring-1 ring-inset ring-[#d5e9d8]">
+                <AppIcon name={app.icon} size={17} />
               </span>
-            </div>
-            <div className="relative mt-2.5 text-[10px] font-medium tracking-[0.02em] text-white/70">
-              Bersama Membangun Negeri
+              <div className="min-w-0">
+                <div className="truncate font-display text-[14px] font-bold leading-[1.25] text-[#14351f]">{app.short}</div>
+                <div className="truncate text-[10.5px] leading-[1.3] text-muted">{app.audience}</div>
+              </div>
             </div>
           </div>
 
-          <nav className="px-2.5 py-3" aria-label="Navigasi aplikasi">
-            <div className="mb-2 flex items-center gap-2.5 rounded-[12px] bg-[#f2f7ef] px-3 py-2 ring-1 ring-inset ring-[#e0ebdd]">
-              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-primary-700 text-white">
-                <AppIcon name={app.icon} size={16} />
-              </span>
-              <div className="min-w-0">
-                <div className="truncate text-[12px] font-bold text-[#14351f]">{app.short}</div>
-                <div className="truncate text-[10px] text-muted">{app.audience}</div>
-              </div>
-            </div>
+          <nav className="px-2.5 pb-3 pt-2.5 sm:px-3.5" aria-label="Navigasi aplikasi">
             {nav.map((group, gi) => (
               <div key={gi} className={gi > 0 ? "mt-3 border-t border-line pt-3" : "mt-1"}>
                 {group.label ? (
@@ -397,7 +384,7 @@ export function AppShell({
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className={`group flex items-center gap-2.5 rounded-[10px] px-2.5 py-[9px] text-[12.5px] transition ${
+                          className={`group flex items-center gap-2.5 rounded-[10px] px-2 py-[9px] text-[12.5px] transition sm:px-2.5 ${
                             active
                               ? "bg-[#127e2f] font-semibold text-white shadow-[0_8px_18px_-10px_rgba(18,126,47,0.9)]"
                               : "font-medium text-ink2 hover:bg-[#f4f7f2] hover:text-[#14351f]"
@@ -491,12 +478,13 @@ export function AppShell({
 
         {mobileOpen && <button type="button" className="fixed inset-0 z-20 bg-black/30 lg:hidden" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} />}
 
-        {/* ── MAIN ── */}
-        <main className="min-w-0 flex-1 px-3 py-5 sm:px-6 sm:py-6">
-          <div className="mx-auto max-w-[1240px]">{children}</div>
+        {/* ── MAIN ── one container, shared with the topbar, so the content
+               column lines up with the brand mark above it at every width. */}
+        <main className="min-w-0 flex-1">
+          <div className="sb-main-col py-5 sm:py-6">{children}</div>
 
           {/* status bar — the reference closes the page with an honest stamp */}
-          <div className="mx-auto mt-8 max-w-[1240px]">
+          <div className="sb-main-col pb-6">
             <div className="flex flex-col gap-2 rounded-[12px] border border-line bg-white px-4 py-2.5 text-[11px] text-muted sm:flex-row sm:items-center sm:justify-between">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#22a34a] shadow-[0_0_0_3px_rgba(34,163,74,0.16)]" />

@@ -68,6 +68,15 @@
   --sb-radius-sm: 10px;
   --sb-shadow: 0 1px 2px rgb(15 26 43 / 0.04), 0 8px 24px -14px rgb(15 26 43 / 0.12);
   --sb-shadow-lg: 0 2px 6px rgb(15 26 43 / 0.05), 0 28px 60px -24px rgb(15 26 43 / 0.20);
+
+  /* ---------- the one container (header · hero · body · footer · credit) ----
+     1440 - 2*24 = 1392 max content width. The same value drives the public
+     header, the public footer, the dashboard topbar, the dashboard main
+     column and the login page, so no two surfaces can drift apart. */
+  --sb-shell-max: 1392px;
+  --sb-gutter: 16px;   /* < 640px  */
+  --sb-gutter-lg: 24px; /* >= 640px */
+  --sb-shell: min(var(--sb-shell-max), 100% - var(--sb-gutter) * 2);
 }
 
 @theme inline {
@@ -250,6 +259,181 @@ body {
 .sb-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 .sb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---------- one shell throughout ----------
+   Every band of the page (header row, hero, body, footer, credit) uses
+   `.sb-shell` so their left and right edges line up to the pixel. */
+.sb-shell {
+  width: 100%;
+  max-width: var(--sb-shell-max);
+  margin-inline: auto;
+  padding-inline: var(--sb-gutter);
+}
+.sb-shell-flush {
+  width: 100%;
+  max-width: calc(var(--sb-shell-max) + var(--sb-gutter) * 2);
+  margin-inline: auto;
+}
+@media (min-width: 640px) {
+  .sb-shell { padding-inline: var(--sb-gutter-lg); }
+}
+
+/* Topbar of the dashboard: full-width bar, untouched by the sidebar, with the
+   same 16/24px gutter as every other band. The brand mark therefore sits on
+   the same vertical line as the sidebar's own content. */
+.sb-bar {
+  width: 100%;
+  padding-inline: var(--sb-gutter);
+}
+@media (min-width: 640px) {
+  .sb-bar { padding-inline: var(--sb-gutter-lg); }
+}
+
+/* Main column of the dashboard: starts after the 264px sidebar and keeps the
+   same 24px gutter on every edge. No max-width cap and no centring: the left
+   edge is always sidebar(264) + gutter, i.e. exactly the brand mark's line
+   plus the sidebar, at every width. Capping the column would re-introduce a
+   second margin system on ultra-wide screens. */
+.sb-main-col {
+  width: 100%;
+  padding-inline: var(--sb-gutter);
+}
+@media (min-width: 640px) {
+  .sb-main-col { padding-inline: var(--sb-gutter-lg); }
+}
+
+/* ---------- shared primitives ---------- */
+
+.sb-card {
+  background: var(--sb-card);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius);
+  box-shadow: var(--sb-shadow);
+}
+
+.sb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--sb-border);
+  background: var(--sb-paper);
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--sb-ink-2);
+  white-space: nowrap;
+}
+
+.sb-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+}
+
+.sb-input {
+  width: 100%;
+  border-radius: 999px;
+  
+  border: 1px solid var(--sb-border-strong);
+  background: #fff;
+  padding: 9px 14px;
+  font-size: 14px;
+  color: var(--sb-ink);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.sb-input:focus {
+  outline: none;
+  border-color: var(--sb-primary-500);
+  box-shadow: 0 0 0 3px rgb(93 132 50 / 0.18);
+}
+.sb-input::placeholder { color: var(--sb-muted-2); }
+
+.sb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 13.5px;
+  font-weight: 650;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 80ms ease, box-shadow 120ms ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sb-btn:active { transform: translateY(1px); }
+.sb-btn-primary { background: var(--sb-primary-700); color: #ffffff; box-shadow: 0 6px 16px -8px rgb(18 126 47 / 0.55); }
+.sb-btn-primary:hover { background: var(--sb-primary-800); box-shadow: 0 8px 20px -8px rgb(18 126 47 / 0.6); }
+.sb-btn-accent { background: var(--sb-accent-500); color: #241500; box-shadow: 0 6px 16px -8px rgb(240 180 41 / 0.6); }
+.sb-btn-accent:hover { background: var(--sb-accent-600); }
+.sb-btn-outline { background: #fff; border-color: var(--sb-border-strong); color: var(--sb-ink); }
+.sb-btn-outline:hover { border-color: var(--sb-primary-400); background: var(--sb-primary-50); }
+.sb-btn-ghost { background: transparent; color: var(--sb-ink-2); }
+.sb-btn-ghost:hover { background: var(--sb-surface-2); }
+.sb-btn-danger { background: var(--sb-danger-bg); color: var(--sb-danger); border-color: #ecc9c3; }
+.sb-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+.sb-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.sb-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+  font-weight: 700;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--sb-border);
+  background: var(--sb-paper);
+  white-space: nowrap;
+}
+.sb-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eeeee7;
+  vertical-align: top;
+}
+.sb-table tbody tr:hover { background: #fafaf4; }
+.sb-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.sb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---------- one shell throughout ----------
+   Every band of the page (header row, hero, body, footer, credit) uses
+   `.sb-shell` so their left and right edges line up to the pixel. */
+.sb-shell {
+  width: 100%;
+  max-width: var(--sb-shell-max);
+  margin-inline: auto;
+  padding-inline: var(--sb-gutter);
+}
+.sb-shell-flush {
+  width: 100%;
+  max-width: calc(var(--sb-shell-max) + var(--sb-gutter) * 2);
+  margin-inline: auto;
+}
+@media (min-width: 640px) {
+  .sb-shell { padding-inline: var(--sb-gutter-lg); }
+}
+
+/* Inside the dashboard the sidebar takes 264px of the viewport. The main
+   column then centres its own 1148px track, so from 1440px up the space
+   right of the sidebar is the exact same 24 + 1148 + 24 band the topbar
+   uses — brand mark, page content and footer all sit on one grid. */
+@media (min-width: 1024px) {
+  .sb-shell-main {
+    max-width: calc(100% - 0px);
+  }
+}
+@media (min-width: 1440px) {
+  .sb-shell-main {
+    max-width: calc(var(--sb-shell-max) - 264px + 48px);
+  }
+}
 
 /* ── Touch targets (WCAG 2.2 §2.5.8 AA · Apple/Material ≥24px) ────────────
    Inline text links are padded vertically instead of being resized, so the

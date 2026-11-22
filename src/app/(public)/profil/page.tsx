@@ -25,7 +25,7 @@ export default function ProfilPage() {
   const pengurus = MEMBERS.filter((m) => ["Ketua", "Sekretaris", "Bendahara"].includes(m.role));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div className="sb-shell py-12">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Profil organisasi</div>
         <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[42px]">

@@ -4,7 +4,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   return (
     <div className="public-canvas min-h-dvh">
       <PublicHeader />
-      <main>{children}</main>
+      {/* one named content region: the body shell is `main > .sb-shell` */}
+      <main className="public-body">{children}</main>
       <PublicFooter />
     </div>
   );

@@ -45,13 +45,13 @@ export default function HomePage() {
   return (
     <div className="bg-white">
       {/* ───────────── HERO — two columns, copy left, photo right ───────────── */}
-      <section className="relative overflow-hidden bg-white">
+      <section className="relative isolate overflow-hidden bg-white">
         <div
-          className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full opacity-70 blur-3xl"
+          className="pointer-events-none absolute -right-40 -top-40 -z-10 h-[520px] w-[520px] rounded-full opacity-70 blur-3xl"
           style={{ background: "radial-gradient(circle, #e8f6ec 0%, #ffffff 70%)" }}
           aria-hidden
         />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-12 pt-14 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:pt-20">
+        <div className="sb-shell relative grid items-center gap-10 pb-12 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:pb-16 lg:pt-16">
           <div className="animate-rise">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--sb-primary-50)] px-3.5 py-1.5 text-[11.5px] font-bold text-primary-700">
               <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
@@ -98,7 +98,7 @@ export default function HomePage() {
 
       {/* ───────────── STRIP 6 CAPABILITIES ───────────── */}
       <section className="border-y border-line bg-white">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="sb-shell">
           <ul className="grid grid-cols-2 divide-line sm:grid-cols-3 md:grid-cols-6 md:divide-x">
             {CAPABILITIES.map((c) => (
               <li key={c.label} className="flex flex-col items-center gap-2 px-3 py-6 text-center">
@@ -116,7 +116,7 @@ export default function HomePage() {
       </section>
 
       {/* ───────────── SOLUSI — dashboard mockup + benefits ───────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <section className="sb-shell py-16">
         <div className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
           {/* mockup */}
           <div className="relative">
@@ -211,7 +211,7 @@ export default function HomePage() {
 
       {/* ───────────── MODUL UNGGULAN — 6 tinted cards ───────────── */}
       <section className="bg-[var(--sb-canvas)] py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="sb-shell">
           <div className="mx-auto mb-9 max-w-2xl text-center">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-primary-700 shadow-sm">
               Modul Unggulan
@@ -242,7 +242,7 @@ export default function HomePage() {
       </section>
 
       {/* ───────────── BIDANG RESMI ───────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <section className="sb-shell py-16">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="sb-label mb-2">Empat bidang resmi</div>
@@ -281,7 +281,7 @@ export default function HomePage() {
 
       {/* ───────────── PROGRAM BERJALAN ───────────── */}
       <section className="bg-[var(--sb-primary-900)] py-16 text-white">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="sb-shell">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
             <div>
               <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary-300">Program berjalan 2026</div>
@@ -323,7 +323,7 @@ export default function HomePage() {
       </section>
 
       {/* ───────────── KOMUNITAS & KOLABORASI ───────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <section className="sb-shell py-16">
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_0.95fr]">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--sb-primary-50)] px-3 py-1.5 text-[11px] font-bold text-primary-700">
@@ -374,7 +374,7 @@ export default function HomePage() {
 
       {/* ───────────── KABAR ───────────── */}
       <section className="border-y border-line bg-[var(--sb-canvas)] py-14">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="sb-shell">
           <SectionTitle
             action={
               <Link href="/kabar" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary-700 hover:underline">
@@ -403,7 +403,7 @@ export default function HomePage() {
 
       {/* ───────────── PRODUK ───────────── */}
       <section className="bg-white py-14">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="sb-shell">
           <SectionTitle
             action={
               <Link href="/produk" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary-700 hover:underline">
@@ -437,10 +437,10 @@ export default function HomePage() {
       </section>
 
       {/* ───────────── CTA BAND ───────────── */}
-      <section className="mx-auto max-w-6xl px-4 pb-4 pt-10 sm:px-6">
+      <section className="sb-shell pb-4 pt-10">
         <div className="relative overflow-hidden rounded-[22px] bg-[var(--sb-forest)] px-6 py-8 sm:px-10">
           <div
-            className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full opacity-20 blur-2xl"
+            className="pointer-events-none absolute -right-20 -top-24 -z-10 h-64 w-64 rounded-full opacity-20 blur-2xl"
             style={{ background: "radial-gradient(circle, #8ed4a2 0%, transparent 70%)" }}
             aria-hidden
           />

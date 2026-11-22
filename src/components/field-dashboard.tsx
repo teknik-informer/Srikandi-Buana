@@ -4,6 +4,8 @@ import { PROGRAMS, TASKS, ACTIVITIES, LANDS, HARVESTS, TRAININGS, PRODUCTS, ORDE
 import { MEMBERS } from "@/data/organization";
 import { Badge, Card, CardHeader, PageHeader, Progress, StatCard, StatusBadge, EmptyState } from "@/components/ui";
 import { FieldMark } from "@/components/brand";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { formatIDR, formatDateID, relativeID, percent } from "@/lib/format";
 
 const BIDANG_LABEL: Record<string, string> = {
@@ -202,19 +204,22 @@ export function FieldDashboard({ field }: { field: FieldDef }) {
 
   return (
     <div className="pb-10">
-      <PageHeader
-        eyebrow={`${field.fieldId} · ${BIDANG_LABEL[field.slug] ?? field.name}`}
-        title={field.name}
-        description={field.mandate}
-        actions={
-          <>
-            <StatusBadge status={field.appStatus === "aktif" ? "Aktif" : field.appStatus} />
-            <Link href={`${field.appHref}/profil-mandat`} className="sb-btn sb-btn-outline !py-1.5 text-[12px]">Profil &amp; Mandat</Link>
-          </>
-        }
+      <AppBanner
+        {...(APP_IDENTITY[field.slug] ?? APP_IDENTITY.bidang)}
+        facts={[
+          `${programs.length} program`,
+          `${tasks.filter((t) => t.status !== "selesai").length} tugas terbuka`,
+          `${field.teamSize} orang tim`,
+          `${field.modules.length} modul`,
+        ]}
+        badge={<StatusBadge status={field.appStatus === "aktif" ? "Aktif" : field.appStatus} />}
+        actions={[
+          { href: `${field.appHref}/profil-mandat`, label: "Profil & mandat", primary: true },
+          { href: `${field.appHref}/rencana`, label: "Rencana kerja" },
+        ]}
       />
 
-      <div className="mb-5 flex items-start gap-3 rounded-sb border border-line bg-white p-3.5">
+      <div className="mt-3 mb-3 flex items-start gap-3 rounded-sb border border-line bg-white p-3.5">
         <FieldMark icon={field.icon} accent={field.accent} />
         <div className="grid flex-1 gap-x-6 gap-y-1 text-[11.5px] sm:grid-cols-3">
           <div><span className="text-muted">Dasar keputusan:</span> <span className="font-medium text-ink2">{field.decision.kind}</span></div>

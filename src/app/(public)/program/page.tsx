@@ -26,7 +26,7 @@ async function ProgramList({ searchParams }: { searchParams: Promise<{ bidang?: 
   const visible = PROGRAMS.filter((p) => p.published).filter((p) => !bidang || p.bidang === bidang);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div className="sb-shell py-12">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Program 2026</div>
         <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">

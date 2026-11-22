@@ -6,6 +6,8 @@ import { ACTIVITIES } from "@/data/operations";
 import { formatDateID, relativeID, formatIDR } from "@/lib/format";
 import { Badge, Card, CardHeader, StatCard, StatusBadge, Progress } from "@/components/ui";
 import { Btn, DemoStateChip } from "@/components/act";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { useStore } from "@/lib/store";
 
 export function AnggotaHomeClient() {
@@ -20,22 +22,20 @@ export function AnggotaHomeClient() {
 
   return (
     <div className="pb-10">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
-        <div className="min-w-0">
-          <div className="sb-label mb-1.5">Portal Anggota</div>
-          <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Halo, {identity.name.split(" ")[0]}.</h1>
-          <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
-            Profil, agenda, penugasan, dan kontribusi Anda dalam satu tempat. Data pribadi dapat Anda ubah
-            sendiri; data resmi keanggotaan tidak.
-          </p>
-          <div className="mt-2"><DemoStateChip /></div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/anggota/profil" className="sb-btn sb-btn-primary">Profil saya</Link>
-        </div>
-      </header>
+      <AppBanner
+        {...APP_IDENTITY.anggota}
+        title={`Halo, ${identity.name.split(" ")[0]}.`}
+        facts={[
+          `Keanggotaan ${me?.status === "aktif" ? "aktif" : me?.status ?? "—"}`,
+          `${agenda.length} kegiatan terjadwal`,
+          `${myTasks.filter((t) => t.status !== "selesai").length} penugasan terbuka`,
+          `${trainings.length} pelatihan dibuka`,
+        ]}
+        badge={<DemoStateChip tone="dark" />}
+        actions={[{ href: "/app/anggota/profil", label: "Profil saya", primary: true }]}
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Status keanggotaan" value={me?.status === "aktif" ? "Aktif" : me?.status ?? "—"} note={`Sejak ${me ? formatDateID(me.joined) : "—"}`} tone="success" />
         <StatCard label="Kegiatan terjadwal" value={agenda.length} note="Lintas bidang" tone="info" href="/app/anggota/agenda" />
         <StatCard label="Pelatihan dibuka" value={trainings.filter((t) => t.status === "dibuka").length} note="Pendaftaran via portal" tone="accent" href="/app/anggota/agenda" />

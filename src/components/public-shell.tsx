@@ -86,12 +86,13 @@ export function PublicHeader() {
       </div>
 
       <header className="no-print sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-        <div ref={navRef} className="relative mx-auto max-w-[1320px] px-4 sm:px-6">
+        <div ref={navRef} className="relative sb-shell">
           <div className="flex h-[68px] items-center justify-between gap-4">
             <Link href="/" aria-label="Srikandi Buana — beranda" className="shrink-0" onMouseEnter={() => setOpen(null)}>
-              {/* taller lock-up on desktop, compact on phones */}
+              {/* The real lock-up at every size — on a phone it is simply
+                  shorter, never replaced by a different mark. */}
+              <span className="block sm:hidden"><Wordmark height={30} /></span>
               <span className="hidden sm:block"><Wordmark height={46} /></span>
-              <span className="sm:hidden"><Wordmark compact /></span>
             </Link>
 
             {/* ── desktop nav: Beranda · Produk · four grouped panels ── */}
@@ -142,7 +143,7 @@ export function PublicHeader() {
               })}
             </nav>
 
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="hidden min-w-0 shrink items-center gap-1.5 lg:flex xl:gap-2">
               <button
                 type="button"
                 onClick={() => setPalette(true)}
@@ -153,7 +154,7 @@ export function PublicHeader() {
                 <span className="hidden xl:inline">Cari</span>
                 <kbd className="hidden rounded border border-line bg-[#fafaf9] px-1.5 py-0.5 font-sans text-[10px] text-muted2 xl:inline">⌘K</kbd>
               </button>
-              <Link href="/kontak" className="sb-btn sb-btn-primary !px-4 !py-2 text-[13px]">
+              <Link href="/kontak" className="sb-btn sb-btn-primary shrink-0 !px-3 !py-2 text-[12.5px] xl:!px-4 xl:text-[13px]">
                 Hubungi kami
                 <ArrowRight size={14} />
               </Link>
@@ -272,7 +273,8 @@ export function PublicHeader() {
 
         {/* mobile drawer */}
         {mobile && (
-          <div className="max-h-[78vh] overflow-y-auto border-t border-line bg-white px-4 pb-6 pt-3 lg:hidden">
+          <div className="max-h-[78vh] overflow-y-auto border-t border-line bg-white pb-6 pt-3 lg:hidden">
+          <div className="sb-shell">
             <Link href="/" className="flex items-center justify-between border-b border-line py-2.5 text-[14px] font-semibold text-ink">
               Beranda <ArrowRight size={14} className="text-muted2" />
             </Link>
@@ -307,6 +309,7 @@ export function PublicHeader() {
             <div className="mt-4 flex gap-2">
               <Link href="/kontak" className="sb-btn sb-btn-primary flex-1">Hubungi kami</Link>
               <Link href="/masuk" className="sb-btn sb-btn-outline flex-1">Masuk</Link>
+            </div>
             </div>
           </div>
         )}
@@ -408,7 +411,7 @@ function SitePalette({ onClose }: { onClose: () => void }) {
 export function PublicFooter() {
   return (
     <footer className="no-print border-t border-white/10 bg-[#123d32] text-primary-100">
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <div className="sb-shell py-12 sm:py-14">
         <div className="grid gap-10 md:grid-cols-[1.3fr_repeat(4,1fr)]">
           <div>
             <span className="inline-flex items-center gap-2.5 rounded-[10px] bg-white px-3 py-2">

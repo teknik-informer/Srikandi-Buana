@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function GabungPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+    <div className="sb-shell py-12">
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <div className="sb-label mb-2">Minat bergabung</div>

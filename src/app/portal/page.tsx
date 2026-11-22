@@ -12,7 +12,7 @@ export default function PortalEksternal() {
   const shared = DOCUMENTS.filter((d) => d.category === "Laporan" || d.visibility === "publik");
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <div className="sb-shell py-10">
       <div className="mb-3 flex items-center justify-between">
         <span className="sb-label">{ORG.shortName} · Portal Eksternal</span>
         <Link href="/" className="text-[12px] font-medium text-muted hover:text-ink">← Website</Link>

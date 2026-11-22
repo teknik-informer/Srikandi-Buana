@@ -5,6 +5,8 @@ import { PERIODS, FUNDS } from "@/data/finance";
 import { formatIDR, formatDateID, percent } from "@/lib/format";
 import { Badge, Card, CardHeader, Progress, StatCard, StatusBadge } from "@/components/ui";
 import { DemoStateChip } from "@/components/act";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { useStore, useFinance } from "@/lib/store";
 import { TrendingUp, TrendingDown, PiggyBank, Landmark } from "lucide-react";
 
@@ -31,23 +33,22 @@ export function KeuanganDashboardClient() {
 
   return (
     <div className="pb-10">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
-        <div className="min-w-0">
-          <div className="sb-label mb-1.5">Srikandi Finance · Native</div>
-          <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Ringkasan keuangan organisasi</h1>
-          <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
-            Mesin akuntansi milik Srikandi Buana sendiri — tanpa aplikasi akuntansi eksternal. Seluruh saldo
-            dihitung dari jurnal berstatus diposting.
-          </p>
-          <div className="mt-2"><DemoStateChip /></div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/keuangan/jurnal" className="sb-btn sb-btn-outline">Jurnal &amp; posting</Link>
-          <Link href="/app/keuangan/laporan" className="sb-btn sb-btn-primary">Laporan keuangan</Link>
-        </div>
-      </header>
+      <AppBanner
+        {...APP_IDENTITY.keuangan}
+        facts={[
+          `${posted.length} jurnal diposting`,
+          `${totalDrafts} draf menunggu`,
+          `Neraca ${tb.balanced ? "seimbang" : "tidak seimbang"}`,
+          `Kas & bank ${compactIDR(cashTotal)}`,
+        ]}
+        badge={<DemoStateChip tone="dark" />}
+        actions={[
+          { href: "/app/keuangan/laporan", label: "Laporan keuangan", primary: true },
+          { href: "/app/keuangan/jurnal", label: "Jurnal & posting" },
+        ]}
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Pendapatan periode" value={formatIDR(is.totalRevenue)} note="Nov 2026 · posted" tone="success" href="/app/keuangan/laporan" icon={<TrendingUp size={17} strokeWidth={2.2} />} />
         <StatCard label="Beban periode" value={formatIDR(is.totalExpense)} note="Termasuk HPP & penyusutan" tone="danger" href="/app/keuangan/laporan" icon={<TrendingDown size={17} strokeWidth={2.2} />} />
         <StatCard label="Surplus" value={formatIDR(is.surplus)} note={`Margin ${percent(is.surplus, is.totalRevenue)}%`} tone="info" icon={<PiggyBank size={17} strokeWidth={2.2} />} />

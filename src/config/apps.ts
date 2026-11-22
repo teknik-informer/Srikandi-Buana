@@ -216,6 +216,8 @@ export const CORE_NAV: Record<"pengurus" | "sekretariat" | "keuangan" | "anggota
     { label: "Anggaran", href: "/app/keuangan/anggaran" },
     { label: "Laporan", href: "/app/keuangan/laporan" },
     { label: "Bagan Akun (COA)", href: "/app/keuangan/bagan-akun" },
+    { label: "Iuran & Kontribusi", href: "/app/keuangan/iuran" },
+    { label: "Piutang & Utang", href: "/app/keuangan/piutang-utang" },
   ],
   anggota: [
     { label: "Beranda Anggota", href: "/app/anggota" },

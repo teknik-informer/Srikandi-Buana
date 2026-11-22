@@ -17,7 +17,7 @@ const STEPS = [
 
 export default function PemesananPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <div className="sb-shell py-12">
       <div className="sb-label mb-2">Informasi pemesanan</div>
       <h1 className="font-display text-[34px] font-semibold leading-tight text-ink sm:text-[40px]">Pesan langsung, tanpa perantara.</h1>
       <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink2">
