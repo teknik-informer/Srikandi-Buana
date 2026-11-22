@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getIdentity, DEMO_ACCOUNTS } from "@/lib/session";
 import { LoginForm } from "@/components/login-form";
-import { Wordmark } from "@/components/brand";
 import { DEMO_BANNER } from "@/config/org";
 
 export const metadata: Metadata = {
@@ -11,12 +10,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * Login is a single screen at every size — no scrollbar, phone or desktop.
+ * Branding sits directly on the photograph (transparent lock-up for the dark
+ * green bar), the form is compact enough to fit 360×640 once the role picker
+ * is behind its own step.
+ */
 export default async function MasukPage() {
   const identity = await getIdentity();
   if (identity) redirect(identity.home);
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[#0b2417]">
+    <div className="relative min-h-dvh bg-[#0b2417] [@media(min-height:520px)]:h-dvh [@media(min-height:520px)]:overflow-hidden">
       {/* ── Background: a real photograph from this organisation's own
              documentation, not an abstract gradient. A deep green scrim keeps
              the form legible at every size. ── */}
@@ -34,27 +39,38 @@ export default async function MasukPage() {
         aria-hidden
       />
 
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col px-4 py-6 sm:px-6 sm:py-8">
-        {/* top row: the one brand mark + the way back to the site */}
-        <div className="flex items-center justify-between">
+      {/* flex column pinned to the viewport: header row, the panel, the demo line */}
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col px-4 py-4 sm:px-6 sm:py-6 [@media(min-height:520px)]:h-full [@media(min-height:520px)]:min-h-0">
+        <div className="flex shrink-0 items-center justify-between gap-3">
+          {/* Transparent lock-up — the previous white tile read as a sticker
+              pasted on the photograph. */}
           <Link
             href="/"
             aria-label="Srikandi Buana — kembali ke website"
-            className="inline-flex items-center rounded-[10px] bg-white px-2.5 py-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.25)] ring-1 ring-white/25 transition hover:bg-[#fbfdf9]"
+            className="inline-flex items-center rounded-md transition hover:opacity-85"
           >
-            <Wordmark height={30} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/wordmark-on-dark.png"
+              alt="Srikandi Buana"
+              width={900}
+              height={329}
+              className="h-[30px] w-auto sm:h-[36px]"
+              decoding="async"
+              fetchPriority="high"
+            />
           </Link>
           <Link
             href="/"
-            className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-white/85 ring-1 ring-inset ring-white/25 transition hover:bg-white/10 hover:text-white"
+            className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold text-white/85 ring-1 ring-inset ring-white/25 transition hover:bg-white/10 hover:text-white"
           >
-            ← Kembali ke website
+            ← <span className="hidden sm:inline">Kembali ke </span>Website
           </Link>
         </div>
 
-        {/* two columns on desktop: the promise on the left, the form on the right */}
-        <div className="grid flex-1 items-center gap-10 py-8 lg:grid-cols-[1.05fr_minmax(420px,480px)] lg:gap-14">
-          <div className="hidden max-w-xl lg:block">
+        {/* two columns from lg up: the promise on the left, the form on the right */}
+        <div className="grid min-h-0 flex-1 items-center gap-8 py-4 lg:grid-cols-[1.05fr_minmax(400px,468px)] lg:gap-14">
+          <div className="hidden lg:block">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#dff0e2] ring-1 ring-inset ring-white/20">
               <span className="h-1.5 w-1.5 rounded-full bg-[#7ddc93]" />
               Ruang kerja internal
@@ -87,22 +103,32 @@ export default async function MasukPage() {
             </ul>
           </div>
 
-          {/* the form card */}
-          <div className="w-full rounded-[20px] border border-white/15 bg-white/98 p-5 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.65)] backdrop-blur sm:p-7">
-            <div className="sb-label mb-2">Masuk ke ekosistem</div>
-            <h2 className="font-display text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink sm:text-[28px]">Selamat datang kembali.</h2>
-            <p className="mt-1.5 text-[12.5px] text-muted">
-              Pilih akun demo sesuai peran yang ingin Anda telusuri.
+          {/* the form card — compact: 8 role names live behind the picker */}
+          <div className="w-full max-w-[480px] justify-self-end rounded-[18px] border border-white/15 bg-white/[0.98] p-4 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.65)] backdrop-blur sm:p-6">
+            <div className="sb-label mb-1.5">Masuk ke ekosistem</div>
+            <h2 className="font-display text-[23px] font-extrabold leading-tight tracking-[-0.02em] text-ink sm:text-[26px]">
+              Selamat datang kembali.
+            </h2>
+            <p className="mt-1 text-[12.5px] text-muted">
+              Pilih peran demo, lalu masuk — satu layar, tanpa gulir.
             </p>
-            <LoginForm accounts={DEMO_ACCOUNTS.map((a) => ({ key: a.key, email: a.email, label: a.label, description: a.description, scope: a.identity.scope }))} />
-            <p className="mt-5 border-t border-line pt-3.5 text-[11px] leading-relaxed text-muted2">
+            <LoginForm
+              accounts={DEMO_ACCOUNTS.map((a) => ({
+                key: a.key,
+                email: a.email,
+                label: a.label,
+                description: a.description,
+                scope: a.identity.scope,
+              }))}
+            />
+            <p className="mt-3 border-t border-line pt-2.5 text-[10.5px] leading-snug text-muted2">
               Lingkungan demo — sesi disimpan sebagai cookie lokal. Produksi wajib memakai penyedia
               autentikasi terverifikasi dan otorisasi server-side (Blueprint §16.2 &amp; §13).
             </p>
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-white/55">{DEMO_BANNER}</p>
+        <p className="shrink-0 text-center text-[10.5px] text-white/55">{DEMO_BANNER}</p>
       </div>
     </div>
   );

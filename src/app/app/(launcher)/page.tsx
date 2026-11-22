@@ -7,6 +7,8 @@ import { FIELDS } from "@/config/fields";
 import { PROGRAMS, TASKS, ACTIVITIES } from "@/data/operations";
 import { APPROVALS } from "@/data/organization";
 import { AppIcon, FieldMark } from "@/components/brand";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { Badge, Card, CardHeader, PageHeader, StatCard, StatusBadge } from "@/components/ui";
 import { formatDateID, relativeID } from "@/lib/format";
 
@@ -23,17 +25,34 @@ export default async function AppHome() {
 
   return (
     <div className="pb-10">
-      <PageHeader
-        eyebrow={`Selamat datang, ${identity.name.split(" ")[0]}`}
-        title="Apa yang perlu Anda kerjakan hari ini?"
-        description={`Konteks aktif: ${identity.scope}. ${identity.note}`}
-        actions={
-          <>
-            <Link href="/app/cepat" className="sb-btn sb-btn-primary">Buat cepat</Link>
-            <Link href="/studio" className="sb-btn sb-btn-outline">Studio Pengelola</Link>
-          </>
+      {/* The launcher is an application too, so it opens with the same banner
+          system: its own photograph, its own name, facts from live data. */}
+      <AppBanner
+        {...APP_IDENTITY.launcher}
+        heading="h2"
+        badge={
+          <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
+            {`Masuk sebagai ${identity.name.split(" ")[0]} · ${identity.scope}`}
+          </span>
         }
+        facts={[
+          `${myTasks.length} tugas terbuka`,
+          `${pending.length} persetujuan menunggu`,
+          `${upcoming.length} agenda terjadwal`,
+          `${mine.length} program dalam cakupan`,
+        ]}
+        actions={[
+          { href: "/app/cepat", label: "Buat cepat", primary: true },
+          { href: "/studio", label: "Studio Pengelola" },
+        ]}
       />
+      <div className="mt-5">
+        <PageHeader
+          eyebrow={`Selamat datang, ${identity.name.split(" ")[0]}`}
+          title="Apa yang perlu Anda kerjakan hari ini?"
+          description={`Konteks aktif: ${identity.scope}. ${identity.note}`}
+        />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Tugas terbuka" value={TASKS.filter((t) => t.status !== "selesai").length} note={`${TASKS.filter((t) => t.status === "terlambat").length} terlambat`} tone="warning" href="/app/anggota/tugas" />

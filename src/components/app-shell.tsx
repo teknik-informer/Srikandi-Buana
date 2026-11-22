@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { APPS, type AppKey } from "@/config/apps";
 import { AppIcon } from "@/components/brand";
+import { TopSearch } from "@/components/top-search";
 import { switchContext } from "@/app/actions/auth";
 import { MEMBERS } from "@/data/organization";
 import { demoNow } from "@/lib/store";
@@ -130,103 +131,38 @@ export function AppShell({
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
-          {/* ONE brand mark for the whole application: the organisation's own
-              full-colour lock-up on a white tile, so the green serif stays
-              legible on the deep-green bar. The sidebar carries no second
-              logo — it opens with the current app instead. */}
+          {/* ONE brand, transparent, directly on the bar — the white tile read
+              as a sticker. `wordmark-on-dark` is the same lock-up with the
+              green serif recoloured for dark backgrounds; the emblem keeps the
+              organisation's own animation and colour. */}
           <Link
             href="/app"
             aria-label="Srikandi Buana — beranda aplikasi"
-            className="inline-flex shrink-0 items-center rounded-[10px] bg-white px-1.5 py-1 shadow-[0_1px_0_rgba(0,0,0,0.12)] ring-1 ring-white/20 transition hover:bg-[#fbfdf9] sm:px-2 sm:py-1.5"
+            className="inline-flex shrink-0 items-center rounded-md transition hover:opacity-90"
           >
-            {/* One mark, two lock-ups: the emblem alone where the bar is
-                narrow, the full lock-up as soon as there is room. Never two
-                logos on screen at once. */}
+            {/* Transparent lock-up: the gold emblem keeps its colour, the
+                green serif is recoloured white for the dark bar. One image at
+                every size — the emblem alone read as a broken logo on phones. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/mark.png" alt="Srikandi Buana" width={386} height={420} className="h-6 w-auto sm:hidden" decoding="async" fetchPriority="high" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/wordmark-alpha.png" alt="" aria-hidden width={900} height={329} className="hidden h-[26px] w-auto sm:block sm:h-[28px] lg:h-[30px]" decoding="async" fetchPriority="high" />
+            <img
+              src="/brand/wordmark-on-dark.png"
+              alt="Srikandi Buana"
+              width={900}
+              height={329}
+              className="h-[24px] w-auto sm:h-[28px] lg:h-[31px]"
+              decoding="async"
+              fetchPriority="high"
+            />
           </Link>
 
-          {/* app switcher */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => { setLauncher((v) => !v); setBell(false); setUser(false); }}
-              aria-expanded={launcher}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2 py-1.5 text-left ring-1 ring-inset ring-white/15 transition hover:bg-white/15 sm:gap-2 sm:px-2.5"
-            >
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/15">
-                <AppIcon name={app.icon} size={13} className="text-[#d6f0dc]" />
-              </span>
-              <span className="hidden max-w-[170px] truncate text-[12.5px] font-semibold text-white sm:block">{app.short}</span>
-              <ChevronDown size={13} className="hidden text-white/70 sm:block" />
-            </button>
-            {launcher && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-[min(92vw,560px)]">
-                <div className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_28px_60px_-24px_rgba(15,26,43,0.4)] animate-rise">
-                  <div className="border-b border-line px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-                    Aplikasi &amp; cakupan Anda
-                  </div>
-                  <div className="grid max-h-[60vh] gap-1 overflow-y-auto p-2 sm:grid-cols-2">
-                    {APPS.map((a) => {
-                      const active = a.key === activeApp;
-                      return (
-                        <Link
-                          key={a.key}
-                          href={a.href}
-                          className={`flex items-start gap-2.5 rounded-[9px] px-2.5 py-2 transition ${
-                            active ? "bg-primary-50 ring-1 ring-primary-200" : "hover:bg-surface2"
-                          }`}
-                        >
-                          <span className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] ${active ? "bg-primary text-primary-50" : "bg-surface2 text-ink2"}`}>
-                            <AppIcon name={a.icon} size={14} />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block truncate text-[12px] font-semibold text-ink">{a.short}</span>
-                            <span className="block text-[10.5px] text-muted">{a.audience}</span>
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                  <div className="border-t border-line bg-paper px-4 py-2 text-[10.5px] text-muted2">
-                    Aplikasi hanya muncul sesuai kewenangan. Menonaktifkan modul tidak menghapus data historis.
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* scope pill — who you are acting as, not which product this is */}
-          <span className="hidden items-center gap-1.5 text-[11.5px] text-white/75 xl:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7ddc93]" />
-            <span className="font-semibold text-white">{identity.scope}</span>
-          </span>
-
-          {/* search — wide pill like the reference, ⌘K opens the same field */}
-          <div className="ml-auto hidden max-w-[380px] flex-1 items-center md:flex">
-            <label className="relative w-full">
-              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/55" />
-              <input
-                type="search"
-                placeholder="Cari data, orang, dokumen…"
-                aria-label="Cari"
-                className="w-full rounded-full border border-white/15 bg-white/10 py-2 pl-8 pr-12 text-[12px] text-white placeholder:text-white/55 focus:border-[#7ddc93] focus:bg-white/15 focus:outline-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const q = (e.target as HTMLInputElement).value.trim();
-                    if (q) window.location.href = `/app/cari?q=${encodeURIComponent(q)}`;
-                  }
-                }}
-              />
-              <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-white/20 px-1.5 py-0.5 font-sans text-[9.5px] text-white/60 lg:block">⌘K</kbd>
-            </label>
+          {/* search — the real field: live results, ⌘K, arrow keys, Enter */}
+          <div className="ml-auto hidden min-w-0 max-w-[400px] flex-1 items-center md:flex">
+            <TopSearch />
           </div>
           <Link
             href="/app/cari"
             aria-label="Cari"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-inset ring-white/15 md:hidden"
+            className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0d2b18]/55 text-white ring-1 ring-inset ring-white/20 md:hidden"
           >
             <Search size={16} />
           </Link>
@@ -241,7 +177,7 @@ export function AppShell({
               <button
                 type="button"
                 onClick={() => { setBell((v) => !v); setLauncher(false); setUser(false); }}
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-inset ring-white/15 hover:bg-white/20"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0d2b18]/55 text-white ring-1 ring-inset ring-white/20 hover:bg-[#0d2b18]/80"
                 aria-label={`Notifikasi${unread ? `, ${unread} belum dibaca` : ""}`}
                 aria-expanded={bell}
               >
@@ -295,16 +231,16 @@ export function AppShell({
               <button
                 type="button"
                 onClick={() => { setUser((v) => !v); setLauncher(false); setBell(false); }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/10 py-1 pl-1 pr-2.5 ring-1 ring-inset ring-white/15 hover:bg-white/20"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#0d2b18]/55 py-1 pl-1 pr-2.5 ring-1 ring-inset ring-white/20 hover:bg-[#0d2b18]/80"
                 aria-expanded={user}
                 aria-label="Menu akun"
               >
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#e6c56a] text-[11px] font-bold text-[#2a1f00]">
                   {identity.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
                 </span>
-                <span className="hidden text-left sm:block">
+                <span className="hidden text-left sm:block" data-contrast-bg="#12301c">
                   <span className="block text-[11.5px] font-semibold leading-tight text-white">{identity.name}</span>
-                  <span className="block text-[9.5px] leading-tight text-white/70">{identity.role}</span>
+                  <span className="block text-[9.5px] leading-tight text-[#d3e6d7]">{identity.role}</span>
                 </span>
                 <ChevronDown size={12} className="hidden text-white/70 sm:block" />
               </button>
@@ -358,16 +294,92 @@ export function AppShell({
             mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
           }`}
         >
-          <div className="border-b border-line px-3.5 pb-3.5 pt-4 sm:px-4">
-            <div className="flex items-center gap-2.5 pl-0.5 sm:pl-1">
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#eaf6ec] text-[#127e2f] ring-1 ring-inset ring-[#d5e9d8]">
-                <AppIcon name={app.icon} size={17} />
+          {/* ── APLIKASI AKTIF — the app switcher lives here, inside the
+                 sidebar, as a card that mirrors the banner: same deep green,
+                 same photographic tint. The topbar keeps only the brand, the
+                 search and the person. ── */}
+          <div className="relative mt-3 px-2.5 sm:px-3">
+            <button
+              type="button"
+              onClick={() => { setLauncher((v) => !v); }}
+              aria-expanded={launcher}
+              aria-label={`Aplikasi aktif: ${app.short}. Ganti aplikasi`}
+              className="group relative w-full overflow-hidden rounded-[14px] text-left shadow-[0_10px_24px_-16px_rgba(9,32,19,0.9)] ring-1 ring-inset ring-white/10 transition hover:ring-white/25"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/hero-kebun.jpg"
+                alt=""
+                aria-hidden
+                className="absolute inset-0 h-full w-full object-cover object-[60%_45%] transition duration-500 group-hover:scale-[1.03]"
+                decoding="async"
+              />
+              <span className="absolute inset-0 bg-[linear-gradient(105deg,rgba(9,32,19,0.94)_0%,rgba(12,45,26,0.86)_58%,rgba(14,54,30,0.62)_100%)]" aria-hidden />
+              {/* copy plate first, so it sits BEHIND the words (a scrim drawn
+                  after the text dimmed it instead of backing it) */}
+              <span className="pointer-events-none absolute inset-y-0 left-0 w-[86%] bg-[linear-gradient(90deg,rgba(9,32,19,0.90)_0%,rgba(9,32,19,0.80)_64%,rgba(9,32,19,0)_100%)]" aria-hidden />
+              <span className="relative flex items-center gap-2.5 px-2.5 py-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[#0d2b18]/85 text-[#e4f6e8] ring-1 ring-inset ring-white/25">
+                  <AppIcon name={app.icon} size={18} />
+                </span>
+                <span className="min-w-0 flex-1" data-contrast-bg="#0c2a16">
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-[#a6dab2]">Aplikasi aktif</span>
+                  <span className="mt-0.5 block truncate font-display text-[14px] font-bold leading-tight text-white">{app.short}</span>
+                  {/* font-sans: the display face's "&" is the ampersand above */}
+                  <span className="mt-[1px] block font-sans text-[10px] leading-[1.25] text-[#dbeadf]">{app.audience}</span>
+                </span>
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#0d2b18]/70 text-white ring-1 ring-inset ring-white/25">
+                  <ChevronDown size={13} className={`transition ${launcher ? "rotate-180" : ""}`} />
+                </span>
               </span>
-              <div className="min-w-0">
-                <div className="truncate font-display text-[14px] font-bold leading-[1.25] text-[#14351f]">{app.short}</div>
-                <div className="truncate text-[10.5px] leading-[1.3] text-muted">{app.audience}</div>
-              </div>
-            </div>
+
+            </button>
+
+            {launcher && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Tutup daftar aplikasi"
+                  onClick={() => setLauncher(false)}
+                  className="fixed inset-0 z-40 cursor-default"
+                />
+                <div className="absolute left-2.5 right-2.5 top-full z-50 mt-1.5 sm:left-3 sm:right-3">
+                  <div className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_28px_60px_-24px_rgba(15,26,43,0.45)] animate-rise">
+                    <div className="flex items-center justify-between border-b border-line px-3.5 py-2">
+                      <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted2">Ganti aplikasi</span>
+                      <span className="text-[10px] text-muted2">{APPS.length} tersedia</span>
+                    </div>
+                    <ul className="max-h-[min(62dvh,420px)] overflow-y-auto p-1.5">
+                      {APPS.map((a) => {
+                        const active = a.key === activeApp;
+                        return (
+                          <li key={a.key}>
+                            <Link
+                              href={a.href}
+                              className={`flex items-center gap-2.5 rounded-[9px] px-2 py-1.5 transition ${
+                                active ? "bg-[#eaf6ec] ring-1 ring-inset ring-[#cfe6d3]" : "hover:bg-paper"
+                              }`}
+                            >
+                              <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[7px] ${active ? "bg-[#127e2f] text-white" : "bg-surface2 text-ink2"}`}>
+                                <AppIcon name={a.icon} size={13} />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[12px] font-semibold text-ink">{a.short}</span>
+                                <span className="block truncate text-[10px] text-muted">{a.audience}</span>
+                              </span>
+                              {active ? <Check size={13} className="shrink-0 text-[#127e2f]" /> : null}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div className="border-t border-line bg-paper px-3.5 py-1.5 text-[10px] leading-snug text-muted2">
+                      Aplikasi muncul sesuai kewenangan.
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <nav className="px-2.5 pb-3 pt-2.5 sm:px-3.5" aria-label="Navigasi aplikasi">

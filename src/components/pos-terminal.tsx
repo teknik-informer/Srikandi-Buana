@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Minus, Plus, Trash2, Wifi, WifiOff, CheckCircle2, ReceiptText, X, RotateCcw } from "lucide-react";
 import { formatIDR } from "@/lib/format";
 import { Badge, Notice } from "@/components/ui";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { useStore } from "@/lib/store";
 
 interface ProductLite {
@@ -89,15 +91,41 @@ export function PosTerminal() {
     setPaid(null);
   }
 
+  const stockValue = products.reduce((s, p) => s + p.stock, 0);
+
   return (
     <div className="pb-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      {/* POS carries the same banner treatment as every other app — its own
+          photograph, its own name, facts counted from what is on the shelf. */}
+      <AppBanner
+        {...APP_IDENTITY.pos}
+        lead={undefined}
+        compact
+        heading="h2"
+        badge={
+          <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
+            Demo — tidak ada pembayaran nyata
+          </span>
+        }
+        facts={[
+          `${products.length} produk terbit`,
+          `${stockValue} unit stok tercatat`,
+          `Tersambung: ${online ? "ya" : "tidak (demo)"}`,
+        ]}
+        actions={[
+          {
+            href: "/app/keuangan/jurnal",
+            label: "Jurnal hasil penjualan",
+          },
+        ]}
+      />
+
+      <div className="mb-4 mt-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="sb-label">POS · Penjualan lapangan</div>
-          <h1 className="font-display text-[24px] font-semibold text-ink">Kasir</h1>
+          <h1 className="font-display text-[20px] font-semibold text-ink">Kasir</h1>
           <p className="text-[12px] text-muted">Touch-first, minim langkah. Dampak akuntansi via posting service.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setOnline((v) => !v)}
@@ -107,7 +135,7 @@ export function PosTerminal() {
             {online ? <Wifi size={13} /> : <WifiOff size={13} />}
             {online ? "Tersambung" : "Mode offline (demo)"}
           </button>
-          <Badge tone="neutral">Demo — tidak ada pembayaran nyata</Badge>
+          <Badge tone="neutral">Stok &amp; jurnal diperbarui otomatis</Badge>
         </div>
       </div>
 

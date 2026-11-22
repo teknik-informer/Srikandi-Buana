@@ -587,6 +587,7 @@ export function AppBanner({
   actions = [],
   badge,
   compact = false,
+  heading = "h1",
 }: {
   eyebrow: string;
   title: string;
@@ -599,7 +600,11 @@ export function AppBanner({
   actions?: { href: string; label: string; primary?: boolean }[];
   badge?: React.ReactNode;
   compact?: boolean;
+  /** The banner title is the page heading on most screens; a screen that
+      already carries its own h1 passes "h2" so the outline never duplicates. */
+  heading?: "h1" | "h2";
 }) {
+  const Heading = heading;
   return (
     <section
       className={`relative isolate overflow-hidden rounded-[18px] bg-[#0f2c19] ${compact ? "" : "shadow-[0_1px_2px_rgba(15,26,43,0.06)]"}`}
@@ -619,7 +624,10 @@ export function AppBanner({
       />
       <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" aria-hidden />
 
-      <div className={`relative flex flex-col ${compact ? "px-5 py-5 sm:px-6" : "px-5 py-5 sm:px-7 sm:py-6"}`}>
+      <div
+        className={`relative flex flex-col ${compact ? "px-5 py-5 sm:px-6" : "px-5 py-5 sm:px-7 sm:py-6"}`}
+        data-contrast-bg="#0b2b18"
+      >
         <div className="min-w-0 max-w-[58ch]">
           <div className="flex flex-wrap items-center gap-2 [&>*]:shrink-0">
             <span className="rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#dff0e2] ring-1 ring-inset ring-white/15">
@@ -628,13 +636,13 @@ export function AppBanner({
             {badge ? <span className="inline-flex">{badge}</span> : null}
           </div>
 
-          <h1
+          <Heading
             className={`mt-2.5 font-display font-extrabold leading-[1.1] tracking-[-0.03em] text-white ${
               compact ? "text-[22px] sm:text-[26px]" : "text-[25px] sm:text-[31px]"
             }`}
           >
             {title}
-          </h1>
+          </Heading>
           {lead ? (
             <p className="mt-2 max-w-[56ch] text-[13px] leading-relaxed text-[#cfe3d3] sm:text-[13.5px]">{lead}</p>
           ) : null}
