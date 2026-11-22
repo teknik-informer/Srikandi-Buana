@@ -7,6 +7,12 @@ import { Badge, Card, CardHeader, Notice, PageHeader, Progress, StatCard, Status
 
 export const metadata: Metadata = { title: "Ringkasan Keuangan" };
 
+function compactIDR(n: number) {
+  if (Math.abs(n) >= 1_000_000) return `Rp ${(n / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt`;
+  if (Math.abs(n) >= 1_000) return `Rp ${(n / 1_000).toLocaleString("id-ID", { maximumFractionDigits: 0 })} rb`;
+  return formatIDR(n);
+}
+
 export default function KeuanganDashboard() {
   const is = incomeStatement();
   const cash = cashPosition();
@@ -35,7 +41,7 @@ export default function KeuanganDashboard() {
         <StatCard label="Kas & bank" value={formatIDR(cash.totalClosing)} note={`Neraca ${tb.balanced ? "seimbang" : "tidak seimbang"}`} tone="accent" href="/app/keuangan/kas-bank" />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-6 grid gap-4 xl:grid-cols-[1.55fr_1fr]">
         <div className="space-y-4">
           <Card>
             <CardHeader
@@ -44,19 +50,23 @@ export default function KeuanganDashboard() {
               action={<Link href="/app/keuangan/jurnal" className="text-[11.5px] font-semibold text-primary-700">Semua jurnal →</Link>}
             />
             <div className="sb-scroll">
-              <table className="sb-table min-w-[720px]">
-                <thead><tr><th>Nomor</th><th>Tanggal</th><th>Keterangan</th><th>Sumber</th><th className="num">Nilai</th><th>Status</th></tr></thead>
+              <table className="sb-table min-w-[560px]">
+                <thead><tr><th>Nomor / tanggal</th><th>Keterangan</th><th className="num">Nilai</th><th>Status</th></tr></thead>
                 <tbody>
                   {recent.map((j) => {
                     const t = journalTotals(j);
                     return (
                       <tr key={j.id}>
-                        <td className="whitespace-nowrap font-mono text-[11px] text-muted">{j.number}</td>
-                        <td className="whitespace-nowrap text-muted">{formatDateID(j.date, "short")}</td>
-                        <td className="font-medium text-ink">{j.description}</td>
-                        <td><Badge tone="neutral">{j.source}</Badge></td>
-                        <td className="num font-medium">{formatIDR(t.debit)}</td>
-                        <td><StatusBadge status={j.status === "diposting" ? "Diposting" : j.status === "menunggu" ? "Menunggu" : "Draf"} /></td>
+                        <td className="whitespace-nowrap">
+                          <div className="font-mono text-[11px] text-muted">{j.number}</div>
+                          <div className="mt-0.5 text-[10.5px] text-muted2">{formatDateID(j.date, "short")}</div>
+                        </td>
+                        <td className="text-ink2">
+                          <span className="line-clamp-2" title={j.description}>{j.description}</span>
+                          <span className="mt-0.5 block text-[10.5px] text-muted2">{j.source}</span>
+                        </td>
+                        <td className="num whitespace-nowrap font-medium" title={formatIDR(t.debit)}>{compactIDR(t.debit)}</td>
+                        <td className="whitespace-nowrap"><StatusBadge status={j.status === "diposting" ? "Diposting" : j.status === "menunggu" ? "Menunggu" : "Draf"} /></td>
                       </tr>
                     );
                   })}
