@@ -64,8 +64,8 @@ export default async function PersetujuanPage({ searchParams }: { searchParams: 
             </div>
             {a.status === "menunggu" && (
               <div className="flex flex-wrap items-center gap-2 border-t border-line bg-paper px-4 py-2.5">
-                <button type="button" className="sb-btn sb-btn-primary !py-1.5 text-[12px]" disabled>Setujui</button>
-                <button type="button" className="sb-btn sb-btn-danger !py-1.5 text-[12px]" disabled>Tolak / minta revisi</button>
+                <button type="button" className="sb-btn sb-btn-primary !py-1.5 text-[12px]" disabled title="Keputusan persetujuan menulis ke workflow engine dan audit log — belum aktif pada demo.">Setujui</button>
+                <button type="button" className="sb-btn sb-btn-danger !py-1.5 text-[12px]" disabled title="Keputusan persetujuan menulis ke workflow engine dan audit log — belum aktif pada demo.">Tolak / minta revisi</button>
                 <span className="text-[10.5px] text-muted2">Aksi persetujuan dinonaktifkan pada demo — alur kerja nyata menulis ke workflow engine &amp; audit log.</span>
               </div>
             )}

@@ -73,6 +73,16 @@ export const DOCUMENTS: DocumentRow[] = [
   { id: "DOC-08", number: "PUB-2026-03", title: "Ringkasan program untuk mitra (versi publik)", category: "Publikasi", date: "2026-10-22", owner: "Pengurus Harian", visibility: "terbatas", status: "final" },
 ];
 
+/** Example attendance sheet — names come from MEMBERS so nothing is invented. */
+export const ATTENDANCE_MOCK: { name: string; role: string }[] = [
+  { name: "Sri Wulandari", role: "Ketua" },
+  { name: "Endang Puspitasari", role: "Sekretaris" },
+  { name: "Titik Handayani", role: "Bendahara" },
+  { name: "Warsiti", role: "Anggota Bidang Pertanian" },
+  { name: "Rukmini", role: "Anggota Bidang Pelatihan" },
+  { name: "Dwi Lestari", role: "Anggota Bidang Usaha" },
+];
+
 export const NOTICES: Notice[] = [
   { id: "N-01", title: "Anggaran pelatihan Desember menunggu persetujuan Anda", body: "Bidang Pelatihan mengajukan Rp 2.000.000 untuk Sekolah Tani edisi Desember.", date: "2026-11-22", audience: "Bendahara · Ketua", read: false, href: "/app/pengurus/persetujuan", tone: "warning" },
   { id: "N-02", title: "Rapat koordinasi bidang 25 November", body: "Ruang balai pertemuan, 09.00 WIB. Koordinator bidang diharapkan menyiapkan catatan progres.", date: "2026-11-20", audience: "Semua bidang", read: false, href: "/app/sekretariat/agenda", tone: "info" },

@@ -61,7 +61,7 @@ export default async function AnggotaHome() {
                   <div className="text-[12.5px] font-semibold text-ink">{t.title}</div>
                   <div className="mt-0.5 text-[10.5px] text-muted2">{formatDateID(t.date, "short")} · {t.location}</div>
                   <div className="mt-2"><Progress value={Math.round((t.registered / t.seats) * 100)} /></div>
-                  <button type="button" className="sb-btn sb-btn-outline mt-2 w-full !py-1.5 text-[11.5px]" disabled>Daftar (demo)</button>
+                  <button type="button" className="sb-btn sb-btn-outline mt-2 w-full !py-1.5 text-[11.5px]" disabled title="Pendaftaran pelatihan memerlukan basis data peserta — belum aktif pada demo.">Daftar (demo)</button>
                 </div>
               ))}
             </div>

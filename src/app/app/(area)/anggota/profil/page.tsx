@@ -43,7 +43,7 @@ export default async function ProfilAnggotaPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button type="button" className="sb-btn sb-btn-primary" disabled>Simpan perubahan</button>
+              <button type="button" className="sb-btn sb-btn-primary" disabled title="Penyimpanan profil memerlukan basis data — belum aktif pada demo.">Simpan perubahan</button>
               <span className="text-[10.5px] text-muted2">Penyimpanan dinonaktifkan pada demo.</span>
             </div>
           </div>

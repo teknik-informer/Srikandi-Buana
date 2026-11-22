@@ -70,8 +70,8 @@ export default async function WebsiteStudio({ searchParams }: { searchParams: Pr
                         <div className="mt-0.5 text-[11px] text-muted">{c.note}</div>
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <button type="button" className="rounded border border-line px-1.5 py-1 text-[10.5px] text-muted" disabled>↑</button>
-                        <button type="button" className="rounded border border-line px-1.5 py-1 text-[10.5px] text-muted" disabled>↓</button>
+                        <button type="button" className="rounded border border-line px-1.5 py-1 text-[10.5px] text-muted" disabled title="Urutan blok ditentukan template pada demo ini — pengurutan bebas belum aktif." aria-label="Naikkan blok (nonaktif)">↑</button>
+                        <button type="button" className="rounded border border-line px-1.5 py-1 text-[10.5px] text-muted" disabled title="Urutan blok ditentukan template pada demo ini — pengurutan bebas belum aktif." aria-label="Turunkan blok (nonaktif)">↓</button>
                       </div>
                     </li>
                   );

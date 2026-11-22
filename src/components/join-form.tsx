@@ -73,7 +73,7 @@ export function JoinForm() {
         <input type="checkbox" name="setuju" required className="mt-0.5 h-4 w-4 accent-[var(--sb-primary)]" />
         <span>Saya menyetujui data ini diproses untuk keperluan keanggotaan sesuai kebijakan privasi organisasi.</span>
       </label>
-      <button type="submit" className="sb-btn sb-btn-primary" disabled={pending}>
+      <button type="submit" className="sb-btn sb-btn-primary" disabled={pending} title={pending ? "Formulir sedang dikirim — tunggu sebentar." : undefined} aria-busy={pending}>
         {pending ? "Mengirim…" : "Kirim minat bergabung"}
       </button>
       <p className="text-[11px] text-muted2">* Wajib diisi. Lingkungan demo — tidak ada data yang dikirim keluar.</p>

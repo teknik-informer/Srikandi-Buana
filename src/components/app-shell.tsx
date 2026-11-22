@@ -37,6 +37,19 @@ export function AppShell({
   const unread = notices.filter((n) => n.unread).length;
   const app = APPS.find((a) => a.key === activeApp)!;
 
+  /**
+   * Only one nav item may look active. A parent route like `/app/pengurus`
+   * is a prefix of every child route, so the winner is the most specific
+   * href that matches — exact match first, then the longest prefix.
+   */
+  const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
+  const activeHref =
+    allHrefs.find((h) => h === pathname) ??
+    allHrefs
+      .filter((h) => pathname.startsWith(h + "/"))
+      .sort((a, b) => b.length - a.length)[0] ??
+    "";
+
   useEffect(() => {
     setMobileOpen(false);
     setLauncher(false);
@@ -282,7 +295,7 @@ export function AppShell({
                 ) : null}
                 <ul className="space-y-0.5">
                   {group.items.map((item) => {
-                    const active = pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href + "/"));
+                    const active = activeHref === item.href;
                     return (
                       <li key={item.href}>
                         <Link

@@ -133,8 +133,8 @@ export default function LaporanPage() {
 
       <Card className="mt-4 p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className="sb-btn sb-btn-outline" disabled>Ekspor CSV (demo)</button>
-          <button type="button" className="sb-btn sb-btn-outline" disabled>Cetak PDF (demo)</button>
+          <button type="button" className="sb-btn sb-btn-outline" disabled title="Ekspor CSV memerlukan job antrean dengan signed URL — belum aktif pada demo.">Ekspor CSV (demo)</button>
+          <button type="button" className="sb-btn sb-btn-outline" disabled title="Pembuatan PDF laporan berada di luar cakupan demo.">Cetak PDF (demo)</button>
           <span className="text-[11px] text-muted2">Ekspor dinonaktifkan pada demo. Produksi: job antrean dengan signed URL &amp; audit unduhan.</span>
         </div>
       </Card>

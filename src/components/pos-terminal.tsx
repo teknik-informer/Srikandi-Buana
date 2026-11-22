@@ -214,6 +214,15 @@ export function PosTerminal({ products }: { products: ProductLite[] }) {
                 type="button"
                 onClick={checkout}
                 disabled={!lines.length || paid === null || paid < total}
+                title={
+                  !lines.length
+                    ? "Nonaktif — keranjang masih kosong."
+                    : paid === null
+                      ? "Nonaktif — isi uang diterima lebih dulu."
+                      : paid < total
+                        ? `Nonaktif — uang kurang ${formatIDR(total - paid)}.`
+                        : "Posting transaksi ke jurnal lewat posting service."
+                }
                 className="sb-btn sb-btn-primary mt-3 w-full !py-3 text-[14px]"
               >
                 Bayar &amp; posting

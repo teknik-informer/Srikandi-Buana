@@ -363,8 +363,8 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
                 <span className="sb-chip !text-[10px]">ekspor: CSV</span>
               </div>
               <div className="mt-3 flex gap-2">
-                <button type="button" className="sb-btn sb-btn-outline !py-1.5 !px-3 text-[11.5px]" disabled>Pratinjau</button>
-                <button type="button" className="sb-btn sb-btn-ghost !py-1.5 !px-3 text-[11.5px]" disabled>Ubah di Form Builder</button>
+                <button type="button" className="sb-btn sb-btn-outline !py-1.5 !px-3 text-[11.5px]" disabled title="Pratinjau formulir dinonaktifkan agar tidak ada pengumpulan data nyata pada demo.">Pratinjau</button>
+                <button type="button" className="sb-btn sb-btn-ghost !py-1.5 !px-3 text-[11.5px]" disabled title="Pengubahan formulir belum dapat disimpan — Form Builder belum tersambung ke penyimpanan.">Ubah di Form Builder</button>
               </div>
               <p className="mt-1.5 text-[10px] text-muted2">Kontrol dinonaktifkan pada demo ini untuk menghindari pengumpulan data nyata.</p>
             </Card>
@@ -458,7 +458,7 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
           </Card>
           <Card className="p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="sb-btn sb-btn-outline" disabled>Ekspor laporan (demo)</button>
+              <button type="button" className="sb-btn sb-btn-outline" disabled title="Ekspor PDF/Excel berada di luar cakupan demo ini.">Ekspor laporan (demo)</button>
               <span className="text-[11px] text-muted2">Tombol dinonaktifkan: pembuatan PDF/laporan final berada di luar cakupan demo ini.</span>
             </div>
           </Card>

@@ -175,19 +175,36 @@ export const FIELD_NAV_GROUPS = [
 ] as const;
 
 export const CORE_NAV: Record<"pengurus" | "sekretariat" | "keuangan" | "anggota", { label: string; href: string; icon?: string }[]> = {
+  // Menu mengikuti Blueprint §9.2 (12 menu) — urutan sama dengan dokumen.
   pengurus: [
-    { label: "Ringkasan Organisasi", href: "/app/pengurus" },
+    { label: "Dashboard Pengurus", href: "/app/pengurus" },
+    { label: "Struktur & Kepengurusan", href: "/app/pengurus/struktur" },
+    { label: "Anggota & Keanggotaan", href: "/app/pengurus/anggota" },
+    { label: "Bidang & Tim", href: "/app/pengurus/bidang" },
+    { label: "Program & Rencana Kerja", href: "/app/pengurus/program" },
     { label: "Persetujuan", href: "/app/pengurus/persetujuan" },
-    { label: "Lintas Bidang", href: "/app/pengurus/bidang" },
-    { label: "Rapat & Keputusan", href: "/app/pengurus/rapat" },
+    { label: "Agenda & Rapat", href: "/app/pengurus/rapat" },
+    { label: "Dokumen Keputusan", href: "/app/pengurus/dokumen" },
+    { label: "Tugas Pengurus", href: "/app/pengurus/tugas" },
+    { label: "Laporan Organisasi", href: "/app/pengurus/laporan" },
     { label: "Kinerja & Indikator", href: "/app/pengurus/indikator" },
+    { label: "Pengaturan Organisasi", href: "/app/pengurus/pengaturan" },
   ],
+  // Menu mengikuti Blueprint §9.3 (14 menu).
   sekretariat: [
-    { label: "Ringkasan", href: "/app/sekretariat" },
-    { label: "Surat Masuk-Keluar", href: "/app/sekretariat/surat" },
-    { label: "Notulen & Putusan", href: "/app/sekretariat/notulen" },
-    { label: "Agenda Organisasi", href: "/app/sekretariat/agenda" },
-    { label: "Dokumen & Arsip", href: "/app/sekretariat/dokumen" },
+    { label: "Dashboard Sekretariat", href: "/app/sekretariat" },
+    { label: "Buku Induk Anggota", href: "/app/sekretariat/anggota" },
+    { label: "Pendaftaran & Verifikasi", href: "/app/sekretariat/verifikasi" },
+    { label: "Struktur & SK", href: "/app/sekretariat/sk" },
+    { label: "Surat Masuk & Keluar", href: "/app/sekretariat/surat" },
+    { label: "Agenda Surat & Ekspedisi", href: "/app/sekretariat/ekspedisi" },
+    { label: "Rapat & Undangan", href: "/app/sekretariat/rapat" },
+    { label: "Daftar Hadir", href: "/app/sekretariat/presensi" },
+    { label: "Notulen", href: "/app/sekretariat/notulen" },
+    { label: "Agenda Kegiatan", href: "/app/sekretariat/agenda" },
+    { label: "Arsip Dokumen", href: "/app/sekretariat/dokumen" },
+    { label: "Template Surat & Dokumen", href: "/app/sekretariat/template" },
+    { label: "Laporan Sekretariat", href: "/app/sekretariat/laporan" },
   ],
   keuangan: [
     { label: "Ringkasan Keuangan", href: "/app/keuangan" },
