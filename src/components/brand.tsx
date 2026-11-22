@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import {
   Compass, Archive, Wallet, Users, Sprout, GraduationCap, Store, Home,
-  ScanLine, SlidersHorizontal, Globe2, type LucideIcon,
+  ScanLine, SlidersHorizontal, Globe2, Handshake, FileText, CalendarDays,
+  Newspaper, Images, CircleHelp, Info, Phone, ShieldCheck, Cookie, Image,
+  Accessibility, TriangleAlert, LogIn, IdCard, Target, ShoppingBag, Network,
+  type LucideIcon,
 } from "lucide-react";
 
 const MAP: Record<string, LucideIcon> = {
@@ -16,6 +19,25 @@ const MAP: Record<string, LucideIcon> = {
   scan: ScanLine,
   sliders: SlidersHorizontal,
   globe: Globe2,
+  // public mega-menu glyphs (carried over from the previous site's icon set)
+  handshake: Handshake,
+  file: FileText,
+  calendar: CalendarDays,
+  news: Newspaper,
+  gallery: Images,
+  help: CircleHelp,
+  info: Info,
+  phone: Phone,
+  shield: ShieldCheck,
+  cookie: Cookie,
+  image: Image,
+  accessibility: Accessibility,
+  alert: TriangleAlert,
+  login: LogIn,
+  idcard: IdCard,
+  target: Target,
+  bag: ShoppingBag,
+  structure: Network,
 };
 
 export function AppIcon({
@@ -40,31 +62,49 @@ export function IconBox({ name, tone = "primary" }: { name: string; tone?: "prim
   );
 }
 
-export function Wordmark({ compact = false, light = false }: { compact?: boolean; light?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <span className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] bg-white shadow-sm ring-1 ring-black/5">
-        {/* Srikandi-inspired mark: rising stalk with leaves — white tile, green stems */}
-        <svg viewBox="0 0 36 36" className="h-10 w-10" aria-hidden>
-          <path d="M18 27.5V12.5" stroke="#127e2f" strokeWidth="2.1" strokeLinecap="round" />
-          <path d="M18 17.5c-3.3-.5-5.5-2.8-5.9-6.3 3.3.3 5.5 2.5 5.9 6.3Z" fill="#4fbf6e" />
-          <path d="M18 22c3.3-.5 5.5-2.8 5.9-6.3-3.3.3-5.5 2.5-5.9 6.3Z" fill="#127e2f" />
-          <circle cx="18" cy="10.6" r="2.2" fill="#f0b429" />
-          <path d="M12.5 28h11" stroke="#127e2f" strokeWidth="2.1" strokeLinecap="round" />
-        </svg>
+/**
+ * The organisation's own artwork, not a stand-in. `/brand/wordmark.png` is the
+ * horizontal lock-up used on the previous production site (green serif
+ * "Srikandi", gold "BUANA", orange flame/figure mark). Proportions are fixed by
+ * width + aspect-ratio so nothing shifts while the PNG decodes.
+ */
+export function Wordmark({
+  compact = false,
+  light = false,
+  height = 40,
+}: {
+  compact?: boolean;
+  light?: boolean;
+  height?: number;
+}) {
+  if (compact) {
+    return (
+      <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-[11px] bg-white ring-1 ring-black/5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/mark.png" alt="" aria-hidden className="h-[26px] w-auto" width={63} height={96} />
       </span>
-      {!compact && (
-        <span className="leading-tight">
-          <span className={`block font-display text-[17px] font-extrabold tracking-tight ${light ? "text-white" : "text-ink"}`}>
-            Srikandi Buana
-          </span>
-          <span className={`block text-[9px] font-semibold uppercase tracking-[0.2em] ${light ? "text-primary-200/90" : "text-muted"}`}>
-            Temanggung
-          </span>
-        </span>
-      )}
+    );
+  }
+  return (
+    <span className="inline-flex items-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/wordmark-alpha.png"
+        alt="Srikandi Buana"
+        width={1155}
+        height={403}
+        style={{ height, width: "auto" }}
+        className={light ? "brightness-0 invert" : ""}
+        decoding="async"
+      />
     </span>
   );
+}
+
+/** Vertical emblem used inside the green sidebar / footer blocks. */
+export function Emblem({ size = 84 }: { size?: number }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/brand/emblem-light.png" alt="" aria-hidden width={167} height={256} style={{ height: size, width: "auto" }} decoding="async" />;
 }
 
 export function FieldMark({ icon, accent }: { icon: string; accent: string }): ReactNode {

@@ -317,3 +317,65 @@ body {
   .no-print { display: none !important; }
   body { background: #fff; }
 }
+
+/* =========================================================
+   BRAND STAGE — opening reveal carried over from the previous
+   production site (wordmark, 110px rule, one line of copy).
+   ========================================================= */
+.brand-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: #fafaf9;
+  transition: opacity 420ms ease, visibility 420ms ease;
+}
+.brand-stage-leaving { opacity: 0; visibility: hidden; }
+.brand-stage-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+  padding: 24px;
+}
+.brand-wordmark {
+  width: clamp(150px, 26vw, 190px);
+  height: auto;
+  animation: brand-reveal 1.15s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+.brand-reveal { animation: brand-fade 700ms ease both; }
+.brand-progress {
+  display: block;
+  width: 110px;
+  height: 2px;
+  border-radius: 2px;
+  background: #e7e5e4;
+  overflow: hidden;
+  position: relative;
+}
+.brand-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #123d32, #c8992e);
+  animation: brand-sweep 1.05s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.brand-stage p {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #123d32;
+}
+@keyframes brand-reveal {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes brand-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes brand-sweep {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}

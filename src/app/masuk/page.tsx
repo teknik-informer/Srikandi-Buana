@@ -21,7 +21,12 @@ export default async function MasukPage() {
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-[var(--sb-primary-900)] p-10 text-primary-50 lg:flex">
         <div className="hero-grain absolute inset-0 opacity-40" aria-hidden />
         <div className="relative">
-          <Wordmark light />
+          {/* Full-colour lock-up on a white tile: the gold "BUANA" and the
+              orange flame are part of the identity, so it is not flattened to
+              white on the green panel. */}
+          <span className="inline-flex items-center rounded-[10px] bg-white px-3 py-2">
+            <Wordmark height={40} />
+          </span>
           <h1 className="mt-14 max-w-md font-display text-[38px] leading-[1.1] font-semibold text-white">
             Satu platform, banyak pengalaman aplikasi.
           </h1>

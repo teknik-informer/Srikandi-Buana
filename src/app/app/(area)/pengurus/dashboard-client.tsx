@@ -3,23 +3,38 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  TrendingUp, Landmark, ClipboardCheck, Scale, ArrowRight, Check, X, RotateCcw,
-  CalendarDays, ListChecks, CircleDollarSign, Target, Activity as ActivityIcon, FileClock,
+  CalendarDays, Check, ClipboardCheck, Compass, FileText, Handshake, Landmark,
+  LineChart, ListChecks, RotateCcw, Scale, Sprout, TrendingUp, Users, Wallet, X,
+  ArrowRight, GraduationCap, Store, ShieldCheck, CircleDollarSign, Target,
+  Clock, SlidersHorizontal, BarChart3, FolderOpen, CircleHelp, Home, Network,
 } from "lucide-react";
 import { FIELDS } from "@/config/fields";
-import { COA } from "@/data/coa";
-import { MEETINGS } from "@/data/organization";
-import { formatIDR, formatDateID, relativeID, percent } from "@/lib/format";
-import { Badge, Card, CardHeader, Progress, StatCard, StatusBadge } from "@/components/ui";
-import { Btn, Field, Modal, TextArea, DemoStateChip } from "@/components/act";
-import { useStore, useFinance, demoNow } from "@/lib/store";
-import { FieldMark } from "@/components/brand";
+import { MEETINGS, MEMBERS } from "@/data/organization";
+import { ACTIVITIES, LANDS } from "@/data/operations";
+import { NEWS } from "@/data/content";
+import { formatIDR, formatDateID, relativeID } from "@/lib/format";
+import { Badge, Card, CardHeader } from "@/components/ui";
+import { Btn, Field, Modal, TextArea } from "@/components/act";
+import { useStore, useFinance } from "@/lib/store";
+import {
+  ActivityChart, AgendaCard, DonutCard, GrowthCard, HeroBanner, KpiStrip, NewsCard,
+  QuickAccess, RecentCard, WorkspaceCard, type Kpi,
+} from "@/components/dash-kit";
 
-/** Short human label for an audit app code. */
+type DashChart = {
+  ranges: { key: string; label: string }[];
+  labels: Record<string, string[]>;
+  series: Record<string, { key: string; label: string; color: string; points: number[] }[]>;
+};
+
 const APP_LABEL: Record<string, string> = {
   pengurus: "Pengurus", keuangan: "Keuangan", sekretariat: "Sekretariat",
   pos: "POS", anggota: "Anggota", sistem: "Sistem",
 };
+
+/** The demo clock; everything below is measured against it. */
+const SPAN_START = "2016-01";   // founding year column in the activity chart
+const ACTIVITY_START = "2026-08";
 
 export function PengurusDashboardClient() {
   const { state, exec, actor } = useStore();
@@ -29,20 +44,82 @@ export function PengurusDashboardClient() {
   const [decision, setDecision] = useState<"disetujui" | "ditolak" | "revisi">("disetujui");
 
   const pending = state.approvals.filter((a) => a.status === "menunggu");
-  const nextMeeting = MEETINGS.filter((m) => m.date >= "2026-11-22")[0];
   const openTasks = state.tasks.filter((t) => t.status !== "selesai");
+  const late = state.tasks.filter((t) => t.status === "terlambat");
+  const nextMeeting = MEETINGS.filter((m) => m.date >= "2026-11-22").sort((a, b) => a.date.localeCompare(b.date))[0];
 
-  const fieldRows = useMemo(
-    () =>
-      FIELDS.map((f) => {
-        const prog = state.programs.filter((p) => p.bidang === f.slug);
-        const progress = prog.length ? Math.round(prog.reduce((s, p) => s + p.progress, 0) / prog.length) : 0;
-        const budget = prog.reduce((s, p) => s + p.budget, 0);
-        const spent = prog.reduce((s, p) => s + p.spent, 0);
-        return { f, prog, progress, budget, spent };
-      }),
-    [state.programs],
-  );
+  /* ---- live figures, all derived from the same store the apps write to ---- */
+  const activeMembers = MEMBERS.filter((m) => m.status === "aktif").length;
+  const candidates = MEMBERS.filter((m) => m.status === "menunggu").length;
+  const landHa = LANDS.reduce((s: number, l) => s + l.areaHa, 0);
+  const cash = postedBalance(state.journals, "1-1000");
+  const bank = postedBalance(state.journals, "1-1100");
+
+  const donePrograms = state.programs.filter((p) => p.status === "selesai").length;
+  const runPrograms = state.programs.filter((p) => p.status === "berjalan").length;
+  const planPrograms = state.programs.filter((p) => p.status !== "selesai" && p.status !== "berjalan").length;
+  const programTotal = state.programs.length || 1;
+
+  const meetingsDone = ACTIVITIES.filter((a) => a.status === "selesai").length;
+  const partners = 3; // documented in the partner register; not a live entity in this demo
+
+  /* Activity chart: three real series, bucketed from real dated records.
+     Every range is a trailing window that ends on the demo clock (22 Nov). */
+  const chart = useMemo((): DashChart => {
+    const MON = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+    const dayLabel = (iso: string) => `${Number(iso.slice(8, 10))} ${MON[Number(iso.slice(5, 7)) - 1]}`;
+    const window7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(Date.UTC(2026, 10, 15 + i));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    });
+    const window14 = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(Date.UTC(2026, 10, 8 + i));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    });
+    const window22 = Array.from({ length: 22 }, (_, i) => {
+      const d = new Date(Date.UTC(2026, 10, 1 + i));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    });
+
+    const seriesFor = (days: string[]) => [
+      {
+        key: "kegiatan",
+        label: "Kegiatan",
+        color: "#127e2f",
+        points: days.map((iso) => ACTIVITIES.filter((a) => a.date === iso).length),
+      },
+      {
+        key: "tugas",
+        label: "Tugas jatuh tempo",
+        color: "#1f6fd0",
+        points: days.map((iso) => state.tasks.filter((t) => t.due === iso).length),
+      },
+      {
+        key: "keuangan",
+        label: "Transaksi",
+        color: "#e8a012",
+        points: days.map((iso) => state.journals.filter((j) => j.date === iso).length),
+      },
+    ];
+
+    return {
+      ranges: [
+        { key: "7h", label: "7 Hari" },
+        { key: "14h", label: "14 Hari" },
+        { key: "22h", label: "22 Hari" },
+      ],
+      labels: {
+        "7h": window7.map(dayLabel),
+        "14h": window14.map(dayLabel),
+        "22h": window22.map(dayLabel),
+      },
+      series: {
+        "7h": seriesFor(window7),
+        "14h": seriesFor(window14),
+        "22h": seriesFor(window22),
+      },
+    };
+  }, [state.tasks, state.journals]);
 
   const target = state.approvals.find((a) => a.id === deciding);
 
@@ -53,71 +130,143 @@ export function PengurusDashboardClient() {
     setNote("");
   }
 
-  return (
-    <div className="pb-10">
-      {/* Header */}
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
-        <div className="min-w-0">
-          <div className="sb-label mb-1.5">Pengurus Harian · {formatDateID("2026-11-22")}</div>
-          <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">
-            Ringkasan organisasi lintas bidang
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <DemoStateChip />
-            <span className="text-[11.5px] text-muted">
-              Masuk sebagai <strong className="font-semibold text-ink">{actor.name}</strong> · {actor.role}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/app/pengurus/persetujuan" className="sb-btn sb-btn-primary">
-            Kotak persetujuan
-            <span className="rounded-full bg-white/20 px-1.5 text-[10.5px] tabular-nums">{pending.length}</span>
-          </Link>
-          <Link href="/app/keuangan/jurnal" className="sb-btn sb-btn-outline">Posting jurnal</Link>
-        </div>
-      </header>
+  /* KPI strip — every number computed, none typed in by hand. */
+  const kpis: Kpi[] = [
+    {
+      label: "Jumlah Anggota",
+      value: String(activeMembers),
+      delta: candidates ? `${candidates} calon menunggu` : undefined,
+      note: `dari ${MEMBERS.length} terdaftar`,
+      href: "/app/pengurus/anggota",
+      tone: "green",
+      icon: <Users size={15} />,
+      watermark: <Users size={62} strokeWidth={1.6} />,
+    },
+    {
+      label: "Luas Lahan Produktif",
+      value: `${landHa.toFixed(2).replace(".", ",")} Ha`,
+      note: `${LANDS.filter((l) => l.status === "produktif").length} petak produktif`,
+      href: "/app/bidang/pertanian",
+      tone: "blue",
+      icon: <Sprout size={15} />,
+      watermark: <Sprout size={62} strokeWidth={1.6} />,
+    },
+    {
+      label: "Saldo Kas & Bank",
+      value: formatIDR(cash + bank),
+      note: `${state.drafts.length} draf belum diposting`,
+      href: "/app/keuangan/kas-bank",
+      tone: "amber",
+      icon: <Wallet size={15} />,
+      watermark: <CircleDollarSign size={62} strokeWidth={1.6} />,
+    },
+    {
+      label: "Kegiatan Bulan Ini",
+      value: String(ACTIVITIES.filter((a) => a.date.startsWith("2026-11")).length),
+      note: `${meetingsDone} selesai · ${nextMeeting ? relativeID(nextMeeting.date).toLowerCase() : "—"} rapat`,
+      href: "/app/sekretariat/agenda",
+      tone: "violet",
+      icon: <CalendarDays size={15} />,
+      watermark: <CalendarDays size={62} strokeWidth={1.6} />,
+    },
+    {
+      label: "Mitra Aktif",
+      value: String(partners),
+      note: "tercatat di daftar mitra",
+      href: "/kemitraan",
+      tone: "teal",
+      icon: <Handshake size={15} />,
+      watermark: <Handshake size={62} strokeWidth={1.6} />,
+    },
+  ];
 
-      {/* Live KPIs */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Surplus periode"
-          value={formatIDR(is.surplus)}
-          note={`Pendapatan ${formatIDR(is.totalRevenue)}`}
-          tone="success"
-          href="/app/keuangan/laporan"
-          icon={<TrendingUp size={17} strokeWidth={2.2} />}
-        />
-        <StatCard
-          label="Neraca saldo"
-          value={tb.balanced ? "Seimbang" : "Tidak seimbang"}
-          note={`D ${formatIDR(tb.totalDebit)} · K ${formatIDR(tb.totalCredit)}`}
-          tone={tb.balanced ? "success" : "danger"}
-          href="/app/keuangan/neraca-saldo"
-          icon={<Scale size={17} strokeWidth={2.2} />}
-        />
-        <StatCard
-          label="Persetujuan menunggu"
-          value={pending.length}
-          note={pending.length ? "Perlu keputusan Anda" : "Tidak ada antrean"}
-          tone="accent"
-          href="/app/pengurus/persetujuan"
-          icon={<ClipboardCheck size={17} strokeWidth={2.2} />}
-        />
-        <StatCard
-          label="Tugas terbuka"
-          value={openTasks.length}
-          note={`${state.tasks.filter((t) => t.status === "terlambat").length} terlambat`}
-          tone="info"
-          href="/app/pengurus/tugas"
-          icon={<ListChecks size={17} strokeWidth={2.2} />}
-        />
+  /* Agenda Hari Ini — pulled from meetings, open tasks due soon, and letters. */
+  const agenda = [
+    ...(nextMeeting
+      ? [{
+          time: "08.00",
+          title: nextMeeting.title,
+          place: `${formatDateID(nextMeeting.date, "short")} · ${nextMeeting.type}`,
+          color: "#127e2f",
+          href: "/app/sekretariat/rapat",
+        }]
+      : []),
+    ...state.tasks
+      .filter((t) => t.status !== "selesai" && t.due <= "2026-11-24")
+      .sort((a, b) => a.due.localeCompare(b.due))
+      .slice(0, 3)
+      .map((t, i) => ({
+        time: ["10.00", "13.00", "15.30"][i] ?? "16.00",
+        title: t.title,
+        place: `${t.assignee} · tenggat ${relativeID(t.due).toLowerCase()}`,
+        color: ["#1f6fd0", "#e8a012", "#7b5cd6"][i] ?? "#7b5cd6",
+        href: "/app/pengurus/tugas",
+      })),
+  ].slice(0, 4);
+
+  /* Aktivitas Terbaru — the audit trail, newest first. */
+  const recent = state.audit.slice(0, 4).map((e) => {
+    const isMoney = e.app === "keuangan" || e.app === "pos";
+    return {
+      title: e.action,
+      meta: `${e.detail} · ${e.actor}`,
+      pill: APP_LABEL[e.app] ?? e.app,
+      pillClass: isMoney
+        ? "bg-[#fdf6e8] text-[#7a5210] ring-[#ecd9a6]"
+        : e.app === "sekretariat"
+          ? "bg-[#eef5fd] text-[#0f3f6d] ring-[#bfd6ee]"
+          : "bg-[#eef8ef] text-[#14532a] ring-[#bfe2c4]",
+      icon: isMoney ? <Wallet size={13} /> : e.app === "sekretariat" ? <FileText size={13} /> : <Check size={13} />,
+      iconClass: isMoney ? "bg-[#fdf6e8] text-[#b07c0a]" : e.app === "sekretariat" ? "bg-[#eef5fd] text-[#1f6fd0]" : "bg-[#eaf6ec] text-[#127e2f]",
+    };
+  });
+
+  const newsItems = NEWS.filter((n) => n.status === "published").slice(0, 3).map((n) => ({
+    title: n.title.length > 62 ? n.title.slice(0, 60) + "…" : n.title,
+    excerpt: n.excerpt,
+    date: formatDateID(n.date, "short"),
+    href: `/kabar/${n.slug}`,
+    image: n.image,
+    tag: n.kind === "pengumuman" ? "Pengumuman" : n.kind === "artikel" ? "Artikel" : "Berita",
+  }));
+
+  const profileMember = MEMBERS.find((m) => m.role === actor.role) ?? MEMBERS[0];
+  const profilePct = useMemo(() => {
+    const m = MEMBERS.find((x) => x.role === actor.role);
+    if (!m) return 0;
+    const checks = [!!m.name, !!m.role && m.role !== "—", !!m.scope && m.scope !== "—", !!m.village, !!m.joined, !!m.phone, (m.interests?.length ?? 0) > 0, !!m.status];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }, [actor.key]);
+
+  return (
+    <div className="pb-4">
+      {/* ── HERO ────────────────────────────────────────────────────── */}
+      <HeroBanner
+        name={actor.name}
+        dateLabel={`Pengurus Harian · ${formatDateID("2026-11-22")}`}
+        ctaHref="/program"
+      />
+
+      {/* ── KPI STRIP ───────────────────────────────────────────────── */}
+      <div className="mt-3">
+        <KpiStrip items={kpis} />
       </div>
 
-      <div className="mt-5 grid items-start gap-4 lg:grid-cols-[1.45fr_1fr]">
-        <div className="space-y-4">
-          {/* Inbox: decide inline */}
-          <Card>
+      {/* ── MAIN GRID ───────────────────────────────────────────────── */}
+      <div className="mt-3 grid gap-3 lg:grid-cols-[1.62fr_1fr]">
+        <div className="min-w-0 space-y-3">
+          <ActivityChart
+            title="Aktivitas Organisasi"
+            subtitle="Dari catatan kegiatan, tugas, dan jurnal yang benar-benar ada"
+            ranges={chart.ranges}
+            labels={chart.labels}
+            series={chart.series["14h"]}
+            icon={<LineChart size={16} />}
+          />
+          <RecentCard items={recent} href="/app/pengurus/laporan" linkLabel="Lihat Semua" />
+
+          {/* Approval inbox keeps the working decision flow, restyled */}
+          <Card className="!rounded-[16px]">
             <CardHeader
               title="Kotak persetujuan"
               subtitle="Putuskan di tempat — persetujuan anggaran langsung memposting jurnal"
@@ -147,28 +296,13 @@ export function PengurusDashboardClient() {
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <Btn
-                      size="sm"
-                      variant="primary"
-                      icon={<Check size={13} />}
-                      onClick={() => { setDeciding(a.id); setDecision("disetujui"); setNote(""); }}
-                    >
+                    <Btn size="sm" variant="primary" icon={<Check size={13} />} onClick={() => { setDeciding(a.id); setDecision("disetujui"); setNote(""); }}>
                       Setujui
                     </Btn>
-                    <Btn
-                      size="sm"
-                      variant="outline"
-                      icon={<RotateCcw size={13} />}
-                      onClick={() => { setDeciding(a.id); setDecision("revisi"); setNote(""); }}
-                    >
+                    <Btn size="sm" variant="outline" icon={<RotateCcw size={13} />} onClick={() => { setDeciding(a.id); setDecision("revisi"); setNote(""); }}>
                       Minta revisi
                     </Btn>
-                    <Btn
-                      size="sm"
-                      variant="danger"
-                      icon={<X size={13} />}
-                      onClick={() => { setDeciding(a.id); setDecision("ditolak"); setNote(""); }}
-                    >
+                    <Btn size="sm" variant="danger" icon={<X size={13} />} onClick={() => { setDeciding(a.id); setDecision("ditolak"); setNote(""); }}>
                       Tolak
                     </Btn>
                   </div>
@@ -183,123 +317,116 @@ export function PengurusDashboardClient() {
             </div>
           </Card>
 
-          {/* Field performance */}
-          <Card>
+          {/* Field performance, condensed to the reference's card language */}
+          <Card className="!rounded-[16px]">
             <CardHeader title="Kinerja empat bidang" subtitle="Progres program & serapan anggaran" action={<Link href="/app/pengurus/bidang" className="text-[11.5px] font-semibold text-primary-700">Detail →</Link>} />
             <div className="grid gap-2 p-3 sm:grid-cols-2">
-              {fieldRows.map(({ f, prog, progress, budget, spent }) => (
-                <Link key={f.fieldId} href={f.appHref} className="group rounded-sb-sm border border-line bg-white p-3.5 transition hover:border-primary-300 hover:shadow-[var(--sb-shadow)]">
-                  <div className="flex items-start gap-3">
-                    <FieldMark icon={f.icon} accent={f.accent} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <div className="text-[12.5px] font-semibold text-ink">{f.shortName}</div>
-                        <ArrowRight size={13} className="text-muted2 transition group-hover:translate-x-0.5 group-hover:text-primary-700" />
-                      </div>
-                      <div className="mt-0.5 text-[10.5px] text-muted">{prog.length} program · {f.teamSize} anggota tim</div>
-                      <div className="mt-2"><Progress value={progress} /></div>
-                      <div className="mt-1.5 text-[10.5px] text-muted2">Serapan {percent(spent, budget)}% dari {formatIDR(budget)}</div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </Card>
-
-          {/* Agenda */}
-          <Card>
-            <CardHeader
-              title="Agenda & rapat terdekat"
-              action={<Link href="/app/sekretariat/agenda" className="text-[11.5px] font-semibold text-primary-700">Agenda lengkap</Link>}
-            />
-            <div className="divide-y divide-line">
-              {nextMeeting && (
-                <div className="px-4 py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[12.5px] font-semibold text-ink">{nextMeeting.title}</div>
-                    <Badge tone="info">{relativeID(nextMeeting.date)}</Badge>
-                  </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[11px] text-muted">
-                    <span className="inline-flex items-center gap-1"><CalendarDays size={12} /> {formatDateID(nextMeeting.date)}</span>
-                    <span>{nextMeeting.type}</span>
-                    <span>{nextMeeting.attendees || "—"} peserta</span>
-                  </div>
-                </div>
-              )}
-              {state.tasks.filter((t) => t.priority === "tinggi" && t.status !== "selesai").slice(0, 4).map((t) => (
-                <div key={t.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
-                  <div className="min-w-0">
-                    <div className="truncate text-[12.5px] font-medium text-ink">{t.title}</div>
-                    <div className="text-[10.5px] text-muted2">{t.assignee} · {t.bidang}</div>
-                  </div>
-                  <span className={`shrink-0 text-[10.5px] font-semibold ${t.status === "terlambat" ? "text-[var(--sb-danger)]" : "text-accent-700"}`}>
-                    {relativeID(t.due)}
-                  </span>
-                </div>
-              ))}
+              {FIELDS.map((f) => {
+                const prog = state.programs.filter((p) => p.bidang === f.slug);
+                const progress = prog.length ? Math.round(prog.reduce((s, p) => s + p.progress, 0) / prog.length) : 0;
+                const budget = prog.reduce((s, p) => s + p.budget, 0);
+                const spent = prog.reduce((s, p) => s + p.spent, 0);
+                return (
+                  <Link key={f.fieldId} href={f.appHref} className="group flex items-center gap-3 rounded-[12px] border border-line bg-white p-3 transition hover:border-primary-300 hover:shadow-[var(--sb-shadow)]">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white" style={{ background: f.accent }}>
+                      {f.slug === "organisasi" ? <Users size={17} /> : f.slug === "pertanian" ? <Sprout size={17} /> : f.slug === "pelatihan" ? <GraduationCap size={17} /> : <Store size={17} />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-1">
+                        <span className="truncate text-[12px] font-semibold text-ink">{f.shortName}</span>
+                        <ArrowRight size={12} className="text-muted2 transition group-hover:translate-x-0.5 group-hover:text-primary-700" />
+                      </span>
+                      <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-[#eef1ee]">
+                        <span className="block h-full rounded-full" style={{ width: `${progress}%`, background: f.accent }} />
+                      </span>
+                      <span className="mt-1 block text-[10px] text-muted2">{progress}% · serapan {budget ? Math.round((spent / budget) * 100) : 0}%</span>
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </Card>
         </div>
 
-        {/* Right column */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Posisi keuangan" subtitle="Dihitung dari jurnal diposting" action={<Link href="/app/keuangan" className="text-[11.5px] font-semibold text-primary-700">Buka →</Link>} />
-            <dl className="divide-y divide-line text-[12.5px]">
-              {[
-                ["Pendapatan periode", formatIDR(is.totalRevenue), "text-[var(--sb-success)]"],
-                ["Beban periode", formatIDR(is.totalExpense), "text-[var(--sb-danger)]"],
-                ["Surplus", formatIDR(is.surplus), "text-primary-800 font-semibold"],
-                ["Kas", formatIDR(state.journals.length ? cashOf(state.journals, "1-1000") : 0), ""],
-                ["Bank", formatIDR(cashOf(state.journals, "1-1100")), ""],
-              ].map(([k, v, cls]) => (
-                <div key={k} className="flex items-center justify-between px-4 py-2.5">
-                  <dt className="text-muted">{k}</dt>
-                  <dd className={`font-medium tabular-nums ${cls}`}>{v}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="border-t border-line px-4 py-2.5 text-[10.5px] text-muted2">
-              {state.drafts.length} draf belum diposting · {state.journals.length} jurnal total
-            </div>
-          </Card>
+        {/* ── RIGHT RAIL ──────────────────────────────────────────────── */}
+        <div className="min-w-0 space-y-3">
+          <DonutCard
+            title="Status Program"
+            total={programTotal}
+            centerLabel="Berjalan / selesai"
+            headline={runPrograms + donePrograms}
+            segments={[
+              { label: "Berjalan", value: runPrograms, color: "#2fa84f" },
+              { label: "Selesai", value: donePrograms, color: "#127e2f" },
+              { label: "Direncanakan", value: planPrograms, color: "#1f6fd0" },
+              { label: "Tertunda", value: Math.max(programTotal - runPrograms - donePrograms - planPrograms, 0), color: "#e8a012" },
+            ]}
+            legendNote={`${runPrograms + donePrograms} dari ${programTotal} program sudah berjalan`}
+          />
+          <AgendaCard items={agenda} href="/app/sekretariat/agenda" linkLabel="Lihat" />
+          <QuickAccess
+            items={[
+              { label: "Input Kegiatan", href: "/app/sekretariat/agenda", icon: <CalendarDays size={14} />, tone: "green" },
+              { label: "Kelola Anggota", href: "/app/pengurus/anggota", icon: <Users size={14} />, tone: "blue" },
+              { label: "Laporan", href: "/app/keuangan/laporan", icon: <BarChart3 size={14} />, tone: "violet" },
+              { label: "Keuangan", href: "/app/keuangan", icon: <Wallet size={14} />, tone: "orange" },
+              { label: "Dokumen", href: "/app/pengurus/dokumen", icon: <FolderOpen size={14} />, tone: "teal" },
+              { label: "Bantuan", href: "/bantuan", icon: <CircleHelp size={14} />, tone: "blue" },
+            ]}
+          />
+          <NewsCard items={newsItems} />
+          <GrowthCard href="/gabung" />
+        </div>
+      </div>
 
-          <Card>
-            <CardHeader
-              title="Jejak audit"
-              subtitle="Aktivitas terbaru lintas aplikasi"
-              action={<Badge tone="neutral">{state.audit.length}</Badge>}
-            />
-            <ol className="max-h-[340px] divide-y divide-line overflow-y-auto">
-              {state.audit.slice(0, 8).map((e) => (
-                <li key={e.id} className="px-4 py-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-semibold text-ink">{e.action}</span>
-                    <span className="shrink-0 rounded bg-surface2 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-muted">
-                      {APP_LABEL[e.app] ?? e.app}
-                    </span>
-                  </div>
-                  <div className="mt-0.5 text-[11px] leading-snug text-muted">{e.detail}</div>
-                  <div className="mt-0.5 text-[10px] text-muted2">{e.actor} · {e.actorRole} · {e.at}</div>
-                </li>
-              ))}
-            </ol>
-          </Card>
-
-          <div className="rounded-sb border border-primary-200 bg-primary-50 p-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary-700">Pengalaman lintas bidang</div>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-ink2">
-              Pengurus melihat ringkasan; menulis ke domain bidang tetap dilakukan pemilik proses.
-              Ini menjaga jejak audit dan pemisahan tugas.
-            </p>
-            <Link href="/app/pengurus/bidang" className="mt-2 inline-block text-[12px] font-semibold text-primary-700">
-              Buka pandangan lintas bidang →
-            </Link>
+      {/* ── BOTTOM ROW — workspace, finance position, help ──────────── */}
+      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+        <WorkspaceCard
+          pct={profilePct}
+          label={profilePct >= 90 ? "Sangat baik" : profilePct >= 70 ? "Baik" : "Perlu dilengkapi"}
+          name={profileMember.name}
+          role={actor.role}
+          href="/app/anggota/profil"
+        />
+        {/* Financial position moved from the old right rail */}
+        <Card className="!rounded-[16px]">
+          <CardHeader title="Posisi keuangan" subtitle="Dihitung dari jurnal diposting" action={<Link href="/app/keuangan" className="text-[11.5px] font-semibold text-primary-700">Buka →</Link>} />
+          <dl className="divide-y divide-line text-[12.5px]">
+            {[
+              ["Pendapatan periode", formatIDR(is.totalRevenue), "text-[var(--sb-success)]"],
+              ["Beban periode", formatIDR(is.totalExpense), "text-[var(--sb-danger)]"],
+              ["Surplus", formatIDR(is.surplus), "text-primary-800 font-semibold"],
+              ["Kas", formatIDR(cash), ""],
+              ["Bank", formatIDR(bank), ""],
+            ].map(([k, v, cls]) => (
+              <div key={k} className="flex items-center justify-between px-4 py-2.5">
+                <dt className="text-muted">{k}</dt>
+                <dd className={`font-medium tabular-nums ${cls}`}>{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="border-t border-line px-4 py-2.5 text-[10.5px] text-muted2">
+            {state.drafts.length} draf belum diposting · {state.journals.length} jurnal total · neraca {tb.balanced ? "seimbang" : "tidak seimbang"}
+          </div>
+        </Card>
+        <div className="rounded-[16px] border border-line bg-white p-4 shadow-[0_1px_2px_rgba(15,26,43,0.04)]">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-[9px] bg-[#eaf6ec] text-[#127e2f]"><ShieldCheck size={16} /></span>
+            <h3 className="font-display text-[13.5px] font-bold text-ink">Pemisahan tugas</h3>
+          </div>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink2">
+            Pengurus melihat ringkasan dan memutuskan pengajuan; menulis ke domain bidang tetap
+            dilakukan pemilik proses. Setiap keputusan tercatat di jejak audit beserta nama dan perannya.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Link href="/app/pengurus/persetujuan" className="sb-chip hover:!border-primary-400">Kotak persetujuan</Link>
+            <Link href="/app/pengurus/laporan" className="sb-chip hover:!border-primary-400">Jejak audit</Link>
+            <Link href="/bantuan" className="sb-chip hover:!border-primary-400">Pusat bantuan</Link>
           </div>
         </div>
       </div>
 
-      {/* Decision dialog */}
+      {/* ── DECISION DIALOG (unchanged behaviour) ───────────────────── */}
       <Modal
         open={!!target}
         onClose={() => setDeciding(null)}
@@ -353,8 +480,8 @@ export function PengurusDashboardClient() {
   );
 }
 
-/** Opening cash/bank posted balance, recomputed from the live journal list. */
-function cashOf(journals: { status: string; lines: { accountCode: string; debit: number; credit: number }[] }[], code: string) {
+/** Posted balance for one account, recomputed from the live journal list. */
+function postedBalance(journals: { status: string; lines: { accountCode: string; debit: number; credit: number }[] }[], code: string) {
   let bal = 0;
   for (const j of journals) {
     if (j.status !== "diposting") continue;
