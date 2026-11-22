@@ -10,6 +10,7 @@ import { APPS, type AppKey } from "@/config/apps";
 import { AppIcon, Wordmark } from "@/components/brand";
 import { switchContext } from "@/app/actions/auth";
 import type { DemoIdentity } from "@/lib/identity";
+import { useStoreOptional } from "@/lib/store";
 
 interface NavItem { label: string; href: string; badge?: number }
 interface NavGroup { label?: string; items: NavItem[] }
@@ -28,8 +29,13 @@ export function AppShell({
   nav: NavGroup[];
   notices: { id: string; title: string; date: string; href?: string; unread: boolean }[];
   children: React.ReactNode;
+  fallbackNotices?: number;
 }) {
   const pathname = usePathname();
+  // Optional: shells can mount outside a StoreProvider (public/preview), in
+  // which case "mark all read" is simply hidden rather than crashing the page.
+  const store = useStoreOptional();
+  const markAllRead = () => store?.dispatch({ type: "notice.readAll" });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [launcher, setLauncher] = useState(false);
   const [bell, setBell] = useState(false);
@@ -192,7 +198,18 @@ export function AppShell({
                   <div className="sb-card animate-rise overflow-hidden">
                     <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
                       <span className="text-[12px] font-semibold text-ink">Notifikasi</span>
-                      <Link href="/app/notifikasi" className="text-[11px] font-semibold text-primary-700">Lihat semua</Link>
+                      <div className="flex items-center gap-2">
+                        {unread > 0 && store ? (
+                          <button
+                            type="button"
+                            onClick={markAllRead}
+                            className="inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-50"
+                          >
+                            <Check size={12} /> Tandai dibaca
+                          </button>
+                        ) : null}
+                        <Link href="/app/notifikasi" className="text-[11px] font-semibold text-primary-700">Lihat semua</Link>
+                      </div>
                     </div>
                     <ul className="max-h-[50vh] divide-y divide-line overflow-y-auto">
                       {notices.slice(0, 5).map((n) => (

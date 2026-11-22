@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Minus, Plus, Trash2, Wifi, WifiOff, CheckCircle2, ReceiptText, X, RotateCcw } from "lucide-react";
 import { formatIDR } from "@/lib/format";
 import { Badge, Notice } from "@/components/ui";
+import { useStore } from "@/lib/store";
 
 interface ProductLite {
   id: string;
@@ -14,7 +15,11 @@ interface ProductLite {
   stock: number;
 }
 
-export function PosTerminal({ products }: { products: ProductLite[] }) {
+export function PosTerminal() {
+  const { state, exec, actor } = useStore();
+  const products: ProductLite[] = state.products
+    .filter((p) => p.published)
+    .map((p) => ({ id: p.id, name: p.name, price: p.price, unit: p.unit, category: p.category, stock: p.stock }));
   const [cart, setCart] = useState<Record<string, number>>({});
   const [online, setOnline] = useState(true);
   const [paid, setPaid] = useState<number | null>(null);
@@ -60,12 +65,21 @@ export function PosTerminal({ products }: { products: ProductLite[] }) {
 
   function checkout() {
     if (!lines.length || paid === null || paid < total) return;
+    const receiptNo = `POS-2026-11-22-${String(state.seq + 1).slice(-3)}`;
+    const r = exec({
+      type: "pos.sale",
+      items: lines.map(([id, qty]) => ({ id, qty })),
+      paid,
+      receiptNo,
+      actor,
+    });
+    if (!r.ok) return;
     setReceipt({
-      number: `POS-2026-11-22-${String(Math.floor(Math.random() * 900) + 100).padStart(3, "0")}`,
+      number: receiptNo,
       total,
       paid,
       change,
-      journal: "JU/2026/11/0023",
+      journal: r.detail ?? "—",
       items: lines.map(([id, qty]) => {
         const p = products.find((x) => x.id === id)!;
         return { name: p.name, qty, price: p.price };
@@ -272,7 +286,10 @@ export function PosTerminal({ products }: { products: ProductLite[] }) {
                 </dl>
               </div>
               <dl className="mt-2 space-y-1 text-[11.5px]">
-                <div className="flex justify-between"><dt className="text-muted">Jurnal (antrean posting)</dt><dd className="font-mono text-ink2">{receipt.journal}</dd></div>
+                <div className="flex justify-between">
+                  <dt className="text-muted">Jurnal diposting</dt>
+                  <dd className="font-mono font-semibold text-[var(--sb-success)]">{receipt.journal}</dd>
+                </div>
               </dl>
               <button
                 type="button"
@@ -282,8 +299,14 @@ export function PosTerminal({ products }: { products: ProductLite[] }) {
                 <RotateCcw size={13} /> Transaksi baru
               </button>
               <div className="mt-2">
-                <Notice tone="info">Transaksi demo tidak memengaruhi laporan. Di produksi, POS memanggil posting service dengan idempotency key per transaksi.</Notice>
+                <Notice tone="success">
+                  Stok sudah berkurang dan jurnal {receipt.journal} masuk ke buku besar. Buka Keuangan → Jurnal
+                  untuk melihatnya; surplus di dasbor Pengurus ikut berubah.
+                </Notice>
               </div>
+              <a href="/app/keuangan/jurnal" className="sb-btn sb-btn-outline mt-2 w-full !py-2 text-[12px]">
+                Lihat jurnal di Keuangan
+              </a>
             </div>
           )}
         </div>
