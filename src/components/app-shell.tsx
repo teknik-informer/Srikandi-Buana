@@ -506,11 +506,11 @@ export function AppShell({
               </span>
               <span className="flex items-center gap-3">
                 <span className="hidden sm:inline">Srikandi Buana © 2026 | Desa Ngadimulyo, Kec. Kedu, Kab. Temanggung</span>
-                <span className="flex items-center gap-2 text-muted2">
-                  <Link href="/galeri" aria-label="Dokumentasi kegiatan" className="hover:text-[#14351f]"><Youtube size={14} /></Link>
-                  <Link href="/kabar" aria-label="Kabar kelompok" className="hover:text-[#14351f]"><Facebook size={14} /></Link>
-                  <Link href="/kegiatan" aria-label="Agenda kegiatan" className="hover:text-[#14351f]"><Instagram size={14} /></Link>
-                  <Link href="/kontak" aria-label="Kontak" className="hover:text-[#14351f]"><Mail size={14} /></Link>
+                <span className="flex items-center gap-0.5 text-muted2">
+                  <Link href="/galeri" aria-label="Dokumentasi kegiatan" className="inline-flex h-6 w-6 items-center justify-center rounded-md transition hover:bg-[#f4f7f2] hover:text-[#14351f]"><Youtube size={14} /></Link>
+                  <Link href="/kabar" aria-label="Kabar kelompok" className="inline-flex h-6 w-6 items-center justify-center rounded-md transition hover:bg-[#f4f7f2] hover:text-[#14351f]"><Facebook size={14} /></Link>
+                  <Link href="/kegiatan" aria-label="Agenda kegiatan" className="inline-flex h-6 w-6 items-center justify-center rounded-md transition hover:bg-[#f4f7f2] hover:text-[#14351f]"><Instagram size={14} /></Link>
+                  <Link href="/kontak" aria-label="Kontak" className="inline-flex h-6 w-6 items-center justify-center rounded-md transition hover:bg-[#f4f7f2] hover:text-[#14351f]"><Mail size={14} /></Link>
                 </span>
               </span>
             </div>
