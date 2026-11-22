@@ -82,9 +82,9 @@ export default async function AnggotaHome() {
                     {identity.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
                   </span>
                   <div>
-                    <div className="text-[13.5px] font-semibold text-primary-950">{identity.name}</div>
+                    <div className="text-[13.5px] font-semibold text-ink">{identity.name}</div>
                     <div className="text-[11px] text-primary-800">{me?.id} · {identity.role}</div>
-                    <div className="text-[10.5px] text-primary-700/80">{me?.village}, Kedu, Temanggung</div>
+                    <div className="text-[10.5px] text-primary-800">{me?.village}, Kedu, Temanggung</div>
                   </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-primary-200 pt-2 text-[10.5px] text-primary-700">

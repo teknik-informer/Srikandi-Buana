@@ -70,7 +70,7 @@ export function AppShell({
   return (
     <div className="min-h-dvh bg-canvas">
       {/* ── TOPBAR ── */}
-      <header className="no-print sticky top-0 z-40 border-b border-line bg-paper">
+      <header className="no-print sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
         <div className="flex h-[58px] items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <button
             type="button"
@@ -135,7 +135,7 @@ export function AppShell({
           </div>
 
           {/* context */}
-          <span className="hidden items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 text-[11.5px] text-ink2 md:inline-flex">
+          <span className="hidden items-center gap-1.5 rounded-full bg-[var(--sb-surface-2)] px-3 py-1.5 text-[11.5px] text-ink2 md:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
             Konteks: <span className="font-semibold">{identity.scope}</span>
           </span>
@@ -148,7 +148,7 @@ export function AppShell({
                 type="search"
                 placeholder="Cari data, orang, dokumen…"
                 aria-label="Cari"
-                className="w-full rounded-lg border border-line bg-white py-1.5 pl-8 pr-3 text-[12px] text-ink placeholder:text-muted2 focus:border-primary-400 focus:outline-none"
+                className="w-full rounded-full border border-transparent bg-[var(--sb-surface-2)] py-2 pl-8 pr-3 text-[12px] text-ink placeholder:text-muted2 focus:border-primary-400 focus:bg-white focus:outline-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     const q = (e.target as HTMLInputElement).value.trim();
@@ -161,13 +161,13 @@ export function AppShell({
           <Link
             href="/app/cari"
             aria-label="Cari"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-white text-ink2 hover:border-primary-300 md:hidden"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink2 hover:border-primary-300 md:hidden"
           >
             <Search size={16} />
           </Link>
 
           <div className="ml-auto flex items-center gap-1.5 md:ml-0">
-            <Link href="/app/cepat" className="hidden items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[12px] font-semibold text-primary-50 transition hover:bg-primary-800 sm:inline-flex">
+            <Link href="/app/cepat" className="hidden items-center gap-1 rounded-full bg-[var(--sb-primary-700)] px-3.5 py-2 text-[12px] font-semibold text-white shadow-[0_6px_16px_-8px_rgba(18,126,47,0.55)] transition hover:bg-[var(--sb-primary-800)] sm:inline-flex">
               <Plus size={14} /> Buat
             </Link>
 
@@ -176,13 +176,13 @@ export function AppShell({
               <button
                 type="button"
                 onClick={() => { setBell((v) => !v); setLauncher(false); setUser(false); }}
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-white text-ink2 hover:border-primary-300"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink2 hover:border-primary-300"
                 aria-label={`Notifikasi${unread ? `, ${unread} belum dibaca` : ""}`}
                 aria-expanded={bell}
               >
                 <Bell size={16} />
                 {unread > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9.5px] font-bold text-[#241500]">
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--sb-accent-500)] px-1 text-[9.5px] font-bold text-[#241500]">
                     {unread}
                   </span>
                 )}
@@ -219,7 +219,7 @@ export function AppShell({
               <button
                 type="button"
                 onClick={() => { setUser((v) => !v); setLauncher(false); setBell(false); }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white py-1 pl-1 pr-2 hover:border-primary-300"
+                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white py-1 pl-1 pr-2.5 hover:border-primary-300"
                 aria-expanded={user}
                 aria-label="Menu akun"
               >
@@ -276,22 +276,24 @@ export function AppShell({
       <div className="flex">
         {/* ── SIDEBAR ── */}
         <aside
-          className={`no-print fixed inset-y-0 left-0 z-30 w-[248px] overflow-y-auto border-r border-line bg-paper pt-[58px] transition-transform lg:sticky lg:top-[58px] lg:h-[calc(100dvh-58px)] lg:translate-x-0 ${
+          className={`no-print fixed inset-y-0 left-0 z-30 w-[248px] overflow-y-auto bg-[var(--sb-primary-900)] pt-[58px] transition-transform lg:sticky lg:top-[58px] lg:h-[calc(100dvh-58px)] lg:translate-x-0 ${
             mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
           }`}
         >
           <nav className="px-3 py-4" aria-label="Navigasi aplikasi">
-            <div className="mb-3 flex items-center gap-2 rounded-sb-sm bg-primary-50 px-2.5 py-2">
-              <AppIcon name={app.icon} size={15} className="text-primary-700" />
+            <div className="mb-4 flex items-center gap-2.5 rounded-[12px] bg-white/10 px-3 py-2.5 ring-1 ring-inset ring-white/10">
+              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-white/15 text-primary-100">
+                <AppIcon name={app.icon} size={16} />
+              </span>
               <div className="min-w-0">
-                <div className="truncate text-[11.5px] font-bold text-primary-900">{app.short}</div>
-                <div className="truncate text-[10px] text-primary-700/80">{app.audience}</div>
+                <div className="truncate text-[12px] font-bold text-white">{app.short}</div>
+                <div className="truncate text-[10px] text-primary-200/90">{app.audience}</div>
               </div>
             </div>
             {nav.map((group, gi) => (
               <div key={gi} className="mb-4">
                 {group.label ? (
-                  <div className="mb-1 px-2 text-[9.5px] font-bold uppercase tracking-[0.16em] text-muted2">{group.label}</div>
+                  <div className="mb-1.5 px-2.5 text-[9.5px] font-bold uppercase tracking-[0.16em] text-primary-200/70">{group.label}</div>
                 ) : null}
                 <ul className="space-y-0.5">
                   {group.items.map((item) => {
@@ -300,15 +302,15 @@ export function AppShell({
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className={`flex items-center justify-between gap-2 rounded-[7px] px-2 py-[7px] text-[12.5px] transition ${
+                          className={`flex items-center justify-between gap-2 rounded-[10px] px-2.5 py-[9px] text-[12.5px] transition ${
                             active
-                              ? "bg-primary text-primary-50 font-semibold"
-                              : "font-medium text-ink2 hover:bg-surface2"
+                              ? "bg-[var(--sb-primary-700)] font-semibold text-white shadow-[0_6px_16px_-8px_rgba(0,0,0,0.5)]"
+                              : "font-medium text-primary-100/85 hover:bg-white/10 hover:text-white"
                           }`}
                         >
                           <span className="truncate">{item.label}</span>
                           {item.badge ? (
-                            <span className={`rounded-full px-1.5 text-[10px] font-bold ${active ? "bg-primary-700 text-white" : "bg-accent-100 text-accent-700"}`}>
+                            <span className={`rounded-full px-1.5 text-[10px] font-bold ${active ? "bg-white/25 text-white" : "bg-[var(--sb-accent-500)] text-[#241500]"}`}>
                               {item.badge}
                             </span>
                           ) : null}
@@ -320,9 +322,9 @@ export function AppShell({
               </div>
             ))}
           </nav>
-          <div className="sticky bottom-0 border-t border-line bg-paper px-3 py-3">
-            <Link href="/app" className="flex items-center justify-between rounded-sb-sm px-2 py-1.5 text-[11px] font-semibold text-muted hover:bg-surface2">
-              Semua aplikasi <ChevronRight size={12} />
+          <div className="sticky bottom-0 border-t border-white/10 bg-[var(--sb-primary-900)] px-3 py-3">
+            <Link href="/app" className="flex items-center justify-between rounded-[10px] px-2.5 py-2 text-[11.5px] font-semibold text-primary-200/90 transition hover:bg-white/10 hover:text-white">
+              Semua aplikasi <ChevronRight size={13} />
             </Link>
           </div>
         </aside>

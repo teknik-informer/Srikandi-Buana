@@ -12,7 +12,7 @@ export default function FaqPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <div className="sb-label mb-2">Bantuan</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">Pertanyaan yang sering diajukan.</h1>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Pertanyaan yang sering diajukan.</h1>
       <p className="mt-2 text-[13.5px] text-muted">Jika jawaban belum membantu, hubungi kami melalui halaman kontak.</p>
 
       <div className="mt-8 space-y-3">

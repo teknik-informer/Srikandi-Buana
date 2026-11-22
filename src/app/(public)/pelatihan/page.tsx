@@ -16,7 +16,7 @@ export default function PelatihanPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
       <div className="sb-label mb-2">Pemberdayaan &amp; Pelatihan</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">Kelas yang dibuka untuk anggota.</h1>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Kelas yang dibuka untuk anggota.</h1>
       <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
         Jadwal terbuka Sekolah Tani Perempuan. Pendaftaran anggota melalui portal anggota; warga umum
         melalui formulir minat bergabung.

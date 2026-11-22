@@ -28,7 +28,7 @@ export default function ProfilPage() {
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Profil organisasi</div>
-        <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[42px]">
+        <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[42px]">
           Sepuluh tahun merawat lahan dan kepercayaan.
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-ink2">

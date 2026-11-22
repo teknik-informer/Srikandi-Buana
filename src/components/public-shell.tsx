@@ -37,15 +37,15 @@ export function PublicHeader() {
   return (
     <>
       {/* demo ribbon */}
-      <div className="no-print bg-primary-900 px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-primary-100">
+      <div className="no-print bg-[var(--sb-primary-900)] px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-primary-100">
         {DEMO_BANNER}{" "}
         <Link href="/masuk" className="underline decoration-primary-400 underline-offset-2 hover:text-white">
           Masuk demo
         </Link>
       </div>
 
-      <header className="no-print sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex h-[62px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="no-print sticky top-0 z-40 border-b border-line bg-white shadow-[0_1px_0_rgba(15,26,43,0.06)]">
+        <div className="mx-auto flex h-[68px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" aria-label="Srikandi Buana — beranda">
             <Wordmark />
           </Link>
@@ -67,8 +67,8 @@ export function PublicHeader() {
                     aria-expanded={isOpen}
                     aria-haspopup="true"
                     onClick={() => setOpen(isOpen ? null : group.heading)}
-                    className={`inline-flex items-center gap-1 rounded-md px-3 py-2 text-[13px] font-semibold transition ${
-                      active ? "text-primary-800" : "text-ink2 hover:text-primary-800"
+                    className={`inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-semibold transition ${
+                      active ? "bg-[var(--sb-primary-50)] text-primary-800" : "text-ink2 hover:bg-[var(--sb-surface-2)] hover:text-primary-800"
                     }`}
                   >
                     {group.heading}
@@ -101,7 +101,7 @@ export function PublicHeader() {
           </nav>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <Link href="/gabung" className="sb-btn sb-btn-primary !px-4 !py-2 text-[12.5px]">
+            <Link href="/gabung" className="sb-btn sb-btn-primary !px-5 !py-2.5 text-[13px]">
               Bergabung
               <ArrowRight size={14} />
             </Link>
@@ -150,8 +150,8 @@ export function PublicHeader() {
 
 export function PublicFooter() {
   return (
-    <footer className="no-print mt-16 border-t border-line bg-primary-950 text-primary-100">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <footer className="no-print border-t border-white/10 bg-[var(--sb-forest)] text-primary-100">
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[1.3fr_repeat(4,1fr)]">
           <div>
             <Wordmark light />
@@ -178,7 +178,7 @@ export function PublicFooter() {
             </div>
           ))}
         </div>
-        <div className="mt-10 flex flex-col gap-2 border-t border-primary-800 pt-5 text-[11.5px] text-primary-300/90 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-5 text-[11.5px] text-primary-100/90 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} {ORG.legalName}. Seluruh hak dilindungi.</p>
           <p>
             Blueprint {ORG.docVersion} · Lingkungan demo · Data contoh berlabel

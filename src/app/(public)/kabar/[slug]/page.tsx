@@ -31,7 +31,7 @@ export default async function KabarDetail({ params }: { params: Promise<{ slug: 
       </nav>
 
       <Badge tone="accent">{n.kind}</Badge>
-      <h1 className="mt-3 font-display text-[30px] leading-tight font-semibold text-primary-950 sm:text-[38px]">{n.title}</h1>
+      <h1 className="mt-3 font-display text-[30px] leading-tight font-semibold text-ink sm:text-[38px]">{n.title}</h1>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-muted">
         <span>{formatDateFull(n.date)}</span>
         <span>·</span>

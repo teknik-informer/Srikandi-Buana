@@ -44,26 +44,43 @@ export function StatCard({
   note,
   tone = "neutral",
   href,
+  icon,
 }: {
   label: string;
   value: ReactNode;
   note?: ReactNode;
   tone?: Tone;
   href?: string;
+  /** Optional glyph — the reference dashboard shows a large soft icon per card. */
+  icon?: ReactNode;
 }) {
+  /* Pastel tinted card, matching the reference dashboard's stat strip. */
+  const TINT: Record<string, { bg: string; icon: string; value: string }> = {
+    success: { bg: "var(--sb-tint-green)", icon: "var(--sb-primary-700)", value: "var(--sb-primary-900)" },
+    info: { bg: "var(--sb-tint-blue)", icon: "#1d6fa5", value: "#12405e" },
+    warning: { bg: "var(--sb-tint-amber)", icon: "#7a5210", value: "#5e3f0c" },
+    accent: { bg: "var(--sb-tint-violet)", icon: "#6b45c9", value: "#412a86" },
+    danger: { bg: "var(--sb-tint-rose)", icon: "var(--sb-danger)", value: "#7d1a14" },
+    neutral: { bg: "var(--sb-surface-2)", icon: "var(--sb-muted)", value: "var(--sb-ink)" },
+  };
+  const t = TINT[tone] ?? TINT.neutral;
   const body = (
-    <div className="sb-card h-full px-4 py-3.5 transition hover:border-primary-400">
-      <div className="flex items-center gap-2">
-        <span className={`inline-block h-1.5 w-1.5 rounded-full ${
-          tone === "success" ? "bg-[var(--sb-success)]" :
-          tone === "warning" ? "bg-[var(--sb-warning)]" :
-          tone === "danger" ? "bg-[var(--sb-danger)]" :
-          tone === "info" ? "bg-[var(--sb-info)]" : "bg-[var(--sb-primary-400)]"
-        }`} />
-        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{label}</div>
+    <div
+      className="sb-card relative h-full overflow-hidden border-0 px-4 py-3.5 transition hover:-translate-y-0.5 hover:shadow-[var(--sb-shadow-lg)]"
+      style={{ background: t.bg }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: t.icon }}>{label}</div>
+        <span
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70"
+          style={{ color: t.icon }}
+          aria-hidden
+        >
+          {icon ?? <span className="block h-2 w-2 rounded-full" style={{ background: t.icon }} />}
+        </span>
       </div>
-      <div className="mt-1.5 font-display text-[26px] leading-[1.1] font-semibold text-ink">{value}</div>
-      {note ? <div className="mt-1 text-[12px] text-muted">{note}</div> : null}
+      <div className="mt-1 font-display text-[27px] leading-[1.05] font-extrabold" style={{ color: t.value }}>{value}</div>
+      {note ? <div className="mt-1 text-[11.5px] text-[var(--sb-ink-2)]/75">{note}</div> : null}
     </div>
   );
   return href ? <Link href={href} className="block">{body}</Link> : body;

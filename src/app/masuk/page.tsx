@@ -18,7 +18,7 @@ export default async function MasukPage() {
   return (
     <div className="grid min-h-dvh bg-paper lg:grid-cols-[1fr_1.05fr]">
       {/* branding side */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary-950 p-10 text-primary-50 lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-[var(--sb-primary-900)] p-10 text-primary-50 lg:flex">
         <div className="hero-grain absolute inset-0 opacity-40" aria-hidden />
         <div className="relative">
           <Wordmark light />

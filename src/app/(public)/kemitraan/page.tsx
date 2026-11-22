@@ -21,7 +21,7 @@ export default function KemitraanPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
       <div className="sb-label mb-2">Kemitraan</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">Tumbuh bersama, dengan perjanjian yang jelas.</h1>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Tumbuh bersama, dengan perjanjian yang jelas.</h1>
       <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
         Setiap kerja sama dicatat pada database mitra dengan milestone, dokumen, dan batas data
         sharing yang disepakati.

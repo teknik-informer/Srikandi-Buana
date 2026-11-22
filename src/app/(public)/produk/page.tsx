@@ -19,7 +19,7 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Katalog publik</div>
-        <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">
+        <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">
           Produk yang punya nama pembuatnya.
         </h1>
         <p className="mt-3 text-[14px] leading-relaxed text-ink2">

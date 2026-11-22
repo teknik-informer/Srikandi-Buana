@@ -7,6 +7,7 @@ import { incomeStatement, cashPosition, trialBalance } from "@/lib/finance";
 import { formatIDR, formatDateID, relativeID, percent } from "@/lib/format";
 import { Badge, Card, CardHeader, PageHeader, Progress, StatCard, StatusBadge } from "@/components/ui";
 import { FieldMark } from "@/components/brand";
+import { TrendingUp, Landmark, ClipboardCheck, Scale } from "lucide-react";
 
 export const metadata: Metadata = { title: "Ringkasan Organisasi" };
 
@@ -32,10 +33,10 @@ export default function PengurusDashboard() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Surplus periode" value={formatIDR(is.surplus)} note={`Pendapatan ${formatIDR(is.totalRevenue)}`} tone="success" href="/app/keuangan/laporan" />
-        <StatCard label="Saldo kas & bank" value={formatIDR(cash.totalClosing)} note="Kas + bank, dari buku besar" tone="info" href="/app/keuangan/kas-bank" />
-        <StatCard label="Persetujuan menunggu" value={pending.length} note="Rata-rata 1,4 hari" tone="accent" href="/app/pengurus/persetujuan" />
-        <StatCard label="Neraca saldo" value={tb.balanced ? "Seimbang" : "Tidak seimbang"} note={`D ${formatIDR(tb.totalDebit)}`} tone={tb.balanced ? "success" : "danger"} href="/app/keuangan/neraca-saldo" />
+        <StatCard label="Surplus periode" value={formatIDR(is.surplus)} note={`Pendapatan ${formatIDR(is.totalRevenue)}`} tone="success" href="/app/keuangan/laporan" icon={<TrendingUp size={17} strokeWidth={2.2} />} />
+        <StatCard label="Saldo kas & bank" value={formatIDR(cash.totalClosing)} note="Kas + bank, dari buku besar" tone="info" href="/app/keuangan/kas-bank" icon={<Landmark size={17} strokeWidth={2.2} />} />
+        <StatCard label="Persetujuan menunggu" value={pending.length} note="Rata-rata 1,4 hari" tone="accent" href="/app/pengurus/persetujuan" icon={<ClipboardCheck size={17} strokeWidth={2.2} />} />
+        <StatCard label="Neraca saldo" value={tb.balanced ? "Seimbang" : "Tidak seimbang"} note={`D ${formatIDR(tb.totalDebit)}`} tone={tb.balanced ? "success" : "danger"} href="/app/keuangan/neraca-saldo" icon={<Scale size={17} strokeWidth={2.2} />} />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">

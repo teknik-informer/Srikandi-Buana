@@ -4,6 +4,7 @@ import { JOURNALS, PERIODS, FUNDS } from "@/data/finance";
 import { cashPosition, incomeStatement, trialBalance, journalTotals } from "@/lib/finance";
 import { formatIDR, formatDateID, percent } from "@/lib/format";
 import { Badge, Card, CardHeader, Notice, PageHeader, Progress, StatCard, StatusBadge } from "@/components/ui";
+import { TrendingUp, TrendingDown, PiggyBank, Landmark } from "lucide-react";
 
 export const metadata: Metadata = { title: "Ringkasan Keuangan" };
 
@@ -35,10 +36,10 @@ export default function KeuanganDashboard() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Pendapatan periode" value={formatIDR(is.totalRevenue)} note="Nov 2026 · posted" tone="success" href="/app/keuangan/laporan" />
-        <StatCard label="Beban periode" value={formatIDR(is.totalExpense)} note="Termasuk HPP & penyusutan" tone="danger" href="/app/keuangan/laporan" />
-        <StatCard label="Surplus" value={formatIDR(is.surplus)} note={`Margin ${percent(is.surplus, is.totalRevenue)}%`} tone="info" />
-        <StatCard label="Kas & bank" value={formatIDR(cash.totalClosing)} note={`Neraca ${tb.balanced ? "seimbang" : "tidak seimbang"}`} tone="accent" href="/app/keuangan/kas-bank" />
+        <StatCard label="Pendapatan periode" value={formatIDR(is.totalRevenue)} note="Nov 2026 · posted" tone="success" href="/app/keuangan/laporan" icon={<TrendingUp size={17} strokeWidth={2.2} />} />
+        <StatCard label="Beban periode" value={formatIDR(is.totalExpense)} note="Termasuk HPP & penyusutan" tone="danger" href="/app/keuangan/laporan" icon={<TrendingDown size={17} strokeWidth={2.2} />} />
+        <StatCard label="Surplus" value={formatIDR(is.surplus)} note={`Margin ${percent(is.surplus, is.totalRevenue)}%`} tone="info" icon={<PiggyBank size={17} strokeWidth={2.2} />} />
+        <StatCard label="Kas & bank" value={formatIDR(cash.totalClosing)} note={`Neraca ${tb.balanced ? "seimbang" : "tidak seimbang"}`} tone="accent" href="/app/keuangan/kas-bank" icon={<Landmark size={17} strokeWidth={2.2} />} />
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.55fr_1fr]">

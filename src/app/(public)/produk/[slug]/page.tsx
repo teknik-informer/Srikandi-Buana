@@ -36,7 +36,7 @@ export default async function ProductDetail({ params }: { params: Promise<{ slug
         </div>
         <div>
           <Badge tone="neutral">{p.category}</Badge>
-          <h1 className="mt-3 font-display text-[32px] leading-tight font-semibold text-primary-950 sm:text-[38px]">{p.name}</h1>
+          <h1 className="mt-3 font-display text-[32px] leading-tight font-semibold text-ink sm:text-[38px]">{p.name}</h1>
           <p className="mt-2 text-[13px] text-muted">Diproduksi oleh <span className="font-semibold text-ink2">{p.producer}</span> · {p.unit}</p>
           <div className="mt-5 font-display text-[30px] font-semibold text-primary-800">{formatIDR(p.price)}</div>
           <p className="mt-4 max-w-lg text-[14px] leading-relaxed text-ink2">{p.story}</p>

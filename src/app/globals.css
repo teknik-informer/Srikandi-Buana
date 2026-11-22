@@ -2,55 +2,72 @@
 
 /* =========================================================
    SRIKANDI BUANA — DESIGN TOKENS (Blueprint V9.1 §11.5)
-   Primary #38571a · Accent #d58400 · Surface #ebebeb
-   Neutral reference #c0c0c0 (borders/muted, not page bg)
+   Visual reference: "Dasbor Srikandi Buana Modern" +
+   "Srikandi Buana — Kolaborasi untuk Masa Depan".
+   Palette sampled from the reference artwork:
+     sidebar  #1e4e1f   active  #127e2f   ink navy #2a3443
+     page bg  #f8fafe  accent  #efdc72   cards    pastel tints
    ========================================================= */
 
 :root {
-  --sb-primary: #38571a;
-  --sb-primary-950: #1b2b0c;
-  --sb-primary-900: #24380f;
-  --sb-primary-800: #2c4513;
-  --sb-primary-700: #38571a;
-  --sb-primary-600: #4a6d24;
-  --sb-primary-500: #5d8432;
-  --sb-primary-400: #7ba24e;
-  --sb-primary-300: #a3c37c;
-  --sb-primary-200: #c9deac;
-  --sb-primary-100: #e4efd3;
-  --sb-primary-50: #f1f7e7;
+  /* Brand green — sampled #1e4e1f (sidebar) and #127e2f (active nav) */
+  --sb-primary: #127e2f;
+  --sb-primary-950: #10331a;
+  --sb-primary-900: #16421f;
+  --sb-primary-800: #1a5426;
+  --sb-primary-700: #127e2f;
+  --sb-primary-600: #17913a;
+  --sb-primary-500: #22a34a;
+  --sb-primary-400: #4fbf6e;
+  --sb-primary-300: #8ed4a2;
+  --sb-primary-200: #c2e8cd;
+  --sb-primary-100: #e3f5e8;
+  --sb-primary-50: #f1faf3;
 
-  --sb-accent: #d58400;
+  /* Accent — sampled #efdc72 (hero button) and #feac00 (icon tint) */
+  --sb-accent: #f0b429;
   --sb-accent-700: #8a5300; /* WCAG AA on accent-100 */
-  --sb-accent-600: #bd7400;
-  --sb-accent-500: #d58400;
-  --sb-accent-100: #fbeccf;
-  --sb-accent-50: #fdf6e7;
+  --sb-accent-600: #c98a10;
+  --sb-accent-500: #f0b429;
+  --sb-accent-100: #fdf3d2;
+  --sb-accent-50: #fefae8;
 
-  --sb-canvas: #f6f5ef;
-  --sb-paper: #fbfaf6;
+  /* Cool page surfaces — sampled #f8fafe / #f3f7fe */
+  --sb-canvas: #f8fafe;
+  --sb-paper: #ffffff;
   --sb-card: #ffffff;
-  --sb-surface-2: #ebebeb;
-  --sb-border: #dfdfd6;
-  --sb-border-strong: #c0c0c0;
-  --sb-ink: #1c2115;
-  --sb-ink-2: #3c4233;
-  --sb-muted: #6a6f61;
-  --sb-muted-2: #62675b; /* WCAG AA (≥4.5:1) on white, paper and canvas */
+  --sb-surface-2: #f1f4f9;
+  --sb-border: #e6ebf3;
+  --sb-border-strong: #cbd4e2;
+  --sb-ink: #0f1a2b;
+  --sb-ink-2: #2a3443;   /* sampled mockup sidebar navy */
+  --sb-muted: #5c6a7d;
+  --sb-muted-2: #5f6b7c; /* WCAG AA (≥4.5:1) on white and canvas */
 
-  --sb-success: #2f6b34;
-  --sb-success-bg: #e6f2e4;
-  --sb-warning: #8a5a00;
-  --sb-warning-bg: #fdf1d7;
-  --sb-danger: #a12b20;
-  --sb-danger-bg: #fbe7e4;
+  /* Deep forest used by footer / CTA band — sampled #223721 */
+  --sb-forest: #1f3a24;
+
+  --sb-success: #127e2f;
+  --sb-success-bg: #e6f6ea;
+  --sb-warning: #8a5300;
+  --sb-warning-bg: #fdf3df;
+  --sb-danger: #b3261e;
+  --sb-danger-bg: #fdecea;
   --sb-info: #1d5f8a;
-  --sb-info-bg: #e5f0f7;
+  --sb-info-bg: #e8f3fa;
 
-  --sb-radius: 14px;
-  --sb-radius-sm: 9px;
-  --sb-shadow: 0 1px 2px rgb(28 33 21 / 0.05), 0 8px 24px -12px rgb(28 33 21 / 0.14);
-  --sb-shadow-lg: 0 2px 4px rgb(28 33 21 / 0.06), 0 24px 48px -20px rgb(28 33 21 / 0.22);
+  /* Pastel card tints lifted from the reference dashboard */
+  --sb-tint-green: #ecf8ee;
+  --sb-tint-blue: #edf7fd;
+  --sb-tint-amber: #fdf6e6;
+  --sb-tint-violet: #f6f2fe;
+  --sb-tint-teal: #ebf8fc;
+  --sb-tint-rose: #fdeef3;
+
+  --sb-radius: 16px;
+  --sb-radius-sm: 10px;
+  --sb-shadow: 0 1px 2px rgb(15 26 43 / 0.04), 0 8px 24px -14px rgb(15 26 43 / 0.12);
+  --sb-shadow-lg: 0 2px 6px rgb(15 26 43 / 0.05), 0 28px 60px -24px rgb(15 26 43 / 0.20);
 }
 
 @theme inline {
@@ -63,6 +80,7 @@
   --color-primary-500: var(--sb-primary-500);
   --color-primary-400: var(--sb-primary-400);
   --color-primary-300: var(--sb-primary-300);
+  --color-primary-200: var(--sb-primary-200);
   --color-primary-100: var(--sb-primary-100);
   --color-primary-50: var(--sb-primary-50);
   --color-accent: var(--sb-accent);
@@ -80,6 +98,13 @@
   --color-ink2: var(--sb-ink-2);
   --color-muted: var(--sb-muted);
   --color-muted2: var(--sb-muted-2);
+  --color-forest: var(--sb-forest);
+  --color-tint-green: var(--sb-tint-green);
+  --color-tint-blue: var(--sb-tint-blue);
+  --color-tint-amber: var(--sb-tint-amber);
+  --color-tint-violet: var(--sb-tint-violet);
+  --color-tint-teal: var(--sb-tint-teal);
+  --color-tint-rose: var(--sb-tint-rose);
   --color-success: var(--sb-success);
   --color-success-bg: var(--sb-success-bg);
   --color-warning: var(--sb-warning);
@@ -90,8 +115,8 @@
   --color-info-bg: var(--sb-info-bg);
   --radius-sb: var(--sb-radius);
   --radius-sb-sm: var(--sb-radius-sm);
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-jakarta), "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 html {
@@ -111,7 +136,8 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.028em;
+  font-weight: 800;
 }
 
 ::selection {
@@ -159,10 +185,11 @@ body {
 
 .sb-input {
   width: 100%;
+  border-radius: 999px;
+  
   border: 1px solid var(--sb-border-strong);
   background: #fff;
-  border-radius: var(--sb-radius-sm);
-  padding: 9px 12px;
+  padding: 9px 14px;
   font-size: 14px;
   color: var(--sb-ink);
   transition: border-color 120ms ease, box-shadow 120ms ease;
@@ -179,7 +206,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: var(--sb-radius-sm);
+  border-radius: 999px;
   border: 1px solid transparent;
   font-size: 13.5px;
   font-weight: 650;
@@ -190,9 +217,9 @@ body {
   white-space: nowrap;
 }
 .sb-btn:active { transform: translateY(1px); }
-.sb-btn-primary { background: var(--sb-primary); color: #f6f8ef; }
-.sb-btn-primary:hover { background: var(--sb-primary-800); }
-.sb-btn-accent { background: var(--sb-accent); color: #241500; }
+.sb-btn-primary { background: var(--sb-primary-700); color: #ffffff; box-shadow: 0 6px 16px -8px rgb(18 126 47 / 0.55); }
+.sb-btn-primary:hover { background: var(--sb-primary-800); box-shadow: 0 8px 20px -8px rgb(18 126 47 / 0.6); }
+.sb-btn-accent { background: var(--sb-accent-500); color: #241500; box-shadow: 0 6px 16px -8px rgb(240 180 41 / 0.6); }
 .sb-btn-accent:hover { background: var(--sb-accent-600); }
 .sb-btn-outline { background: #fff; border-color: var(--sb-border-strong); color: var(--sb-ink); }
 .sb-btn-outline:hover { border-color: var(--sb-primary-400); background: var(--sb-primary-50); }

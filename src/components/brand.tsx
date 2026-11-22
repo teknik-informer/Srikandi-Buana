@@ -43,22 +43,22 @@ export function IconBox({ name, tone = "primary" }: { name: string; tone?: "prim
 export function Wordmark({ compact = false, light = false }: { compact?: boolean; light?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
-      <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px] bg-primary text-primary-50 shadow-sm">
-        {/* Srikandi-inspired mark: three rising rice stalks */}
-        <svg viewBox="0 0 36 36" className="h-9 w-9" aria-hidden>
-          <path d="M18 27V13" stroke="#f1f7e7" strokeWidth="2.2" strokeLinecap="round" />
-          <path d="M18 17c-3.4-.6-5.6-2.9-6-6.4 3.3.3 5.6 2.6 6 6.4Z" fill="#a3c37c" />
-          <path d="M18 21.5c3.4-.6 5.6-2.9 6-6.4-3.3.3-5.6 2.6-6 6.4Z" fill="#d58400" />
-          <path d="M18 25c-3.4-.6-5.6-2.9-6-6.4 3.3.3 5.6 2.6 6 6.4Z" fill="#a3c37c" />
-          <path d="M12.5 28h11" stroke="#f1f7e7" strokeWidth="2.2" strokeLinecap="round" />
+      <span className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-[12px] bg-white shadow-sm ring-1 ring-black/5">
+        {/* Srikandi-inspired mark: rising stalk with leaves — white tile, green stems */}
+        <svg viewBox="0 0 36 36" className="h-10 w-10" aria-hidden>
+          <path d="M18 27.5V12.5" stroke="#127e2f" strokeWidth="2.1" strokeLinecap="round" />
+          <path d="M18 17.5c-3.3-.5-5.5-2.8-5.9-6.3 3.3.3 5.5 2.5 5.9 6.3Z" fill="#4fbf6e" />
+          <path d="M18 22c3.3-.5 5.5-2.8 5.9-6.3-3.3.3-5.5 2.5-5.9 6.3Z" fill="#127e2f" />
+          <circle cx="18" cy="10.6" r="2.2" fill="#f0b429" />
+          <path d="M12.5 28h11" stroke="#127e2f" strokeWidth="2.1" strokeLinecap="round" />
         </svg>
       </span>
       {!compact && (
         <span className="leading-tight">
-          <span className={`block font-display text-[17px] font-semibold tracking-tight ${light ? "text-primary-50" : "text-ink"}`}>
+          <span className={`block font-display text-[17px] font-extrabold tracking-tight ${light ? "text-white" : "text-ink"}`}>
             Srikandi Buana
           </span>
-          <span className={`block text-[9.5px] font-bold uppercase tracking-[0.22em] ${light ? "text-primary-300" : "text-muted"}`}>
+          <span className={`block text-[9px] font-semibold uppercase tracking-[0.2em] ${light ? "text-primary-200/90" : "text-muted"}`}>
             Temanggung
           </span>
         </span>

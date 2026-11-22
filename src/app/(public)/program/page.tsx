@@ -29,7 +29,7 @@ async function ProgramList({ searchParams }: { searchParams: Promise<{ bidang?: 
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Program 2026</div>
-        <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">
+        <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">
           Apa yang sedang kami kerjakan, dan sejauh mana.
         </h1>
         <p className="mt-3 text-[14px] leading-relaxed text-ink2">

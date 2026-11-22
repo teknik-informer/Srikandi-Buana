@@ -12,7 +12,7 @@ export default function GaleriPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <div className="sb-label mb-2">Galeri</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">Potret dari lapangan.</h1>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Potret dari lapangan.</h1>
       <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
         Foto ditampilkan hanya dengan persetujuan publikasi anggota. Tidak ada foto yang menyertakan
         data pribadi sensitif.

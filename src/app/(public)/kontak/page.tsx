@@ -14,7 +14,7 @@ export default async function KontakPage({ searchParams }: { searchParams: Promi
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
       <div className="sb-label mb-2">Kontak</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">Bicara langsung dengan sekretariat.</h1>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Bicara langsung dengan sekretariat.</h1>
       <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
         Untuk pertanyaan umum, kemitraan, atau permintaan informasi institusional.
       </p>

@@ -19,7 +19,7 @@ export default async function KabarPage({ searchParams }: { searchParams: Promis
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="sb-label mb-2">Informasi</div>
-          <h1 className="font-display text-[34px] leading-tight font-semibold text-primary-950 sm:text-[40px]">Kabar &amp; artikel</h1>
+          <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Kabar &amp; artikel</h1>
           <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
             Catatan dari lapangan, pengumuman organisasi, dan tulisan pendek tentang kerja tani.
           </p>
@@ -45,7 +45,7 @@ export default async function KabarPage({ searchParams }: { searchParams: Promis
                 <span className="text-muted2">·</span>
                 <span className="font-medium normal-case tracking-normal text-muted">{formatDateID(lead.date)}</span>
               </div>
-              <h2 className="mt-3 font-display text-[26px] leading-snug font-semibold text-primary-950 group-hover:text-primary-800 sm:text-[30px]">{lead.title}</h2>
+              <h2 className="mt-3 font-display text-[26px] leading-snug font-semibold text-ink group-hover:text-primary-800 sm:text-[30px]">{lead.title}</h2>
               <p className="mt-3 text-[13.5px] leading-relaxed text-ink2">{lead.excerpt}</p>
               <div className="mt-5 text-[12px] font-semibold text-primary-700">Baca selengkapnya →</div>
             </div>
