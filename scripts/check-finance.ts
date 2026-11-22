@@ -28,4 +28,6 @@ const keys = new Set<string>();
 for (const j of JOURNALS) { if (keys.has(j.idempotencyKey)) console.log("DUP KEY", j.idempotencyKey); keys.add(j.idempotencyKey); }
 const posted = new Set(JOURNALS.map((j) => j.id));
 for (const row of BANK_STATEMENT) if (row.matchedJournalId && !posted.has(row.matchedJournalId)) console.log("BS orphan", row.id);
-console.log("BS unmatched:", BANK_STATEMENT.filter((r) => r.status !== "cocok").length);
+const unmatched = BANK_STATEMENT.filter((r) => r.status !== "cocok");
+console.log("BS unmatched:", unmatched.length, unmatched.map((r) => `${r.id}:${r.status}`).join(", "));
+console.log("BS nominal:", unmatched.map((r) => `${r.id} ${r.debit ? "masuk " + r.debit : "keluar " + r.credit}`).join(" | "));
