@@ -219,7 +219,13 @@ export function PosTerminal({ products }: { products: ProductLite[] }) {
                 Bayar &amp; posting
               </button>
               <p className="mt-1.5 text-center text-[10px] text-muted2">
-                Tanpa akses ke jurnal langsung — Finance posting service yang mencatat.
+                {!lines.length
+                  ? "Nonaktif — keranjang masih kosong."
+                  : paid === null
+                    ? "Nonaktif — isi uang diterima lebih dulu."
+                    : paid < total
+                      ? `Nonaktif — uang diterima kurang ${formatIDR(total - paid)}.`
+                      : "Tanpa akses ke jurnal langsung — Finance posting service yang mencatat."}
               </p>
             </div>
           </div>

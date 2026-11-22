@@ -155,11 +155,11 @@ export function PublicFooter() {
         <div className="grid gap-10 md:grid-cols-[1.3fr_repeat(4,1fr)]">
           <div>
             <Wordmark light />
-            <p className="mt-4 max-w-[26ch] text-[12.5px] leading-relaxed text-primary-200/80">
+            <p className="mt-4 max-w-[26ch] text-[12.5px] leading-relaxed text-primary-200/90">
               {ORG.legalName}. {ORG.village}, {ORG.district}, {ORG.regency}, {ORG.province}.
             </p>
-            <p className="mt-3 text-[12px] text-primary-300/70">{ORG.address}</p>
-            <p className="mt-2 text-[12px] text-primary-300/70">
+            <p className="mt-3 text-[12px] text-primary-300/90">{ORG.address}</p>
+            <p className="mt-2 text-[12px] text-primary-300/90">
               {ORG.email} · {ORG.hours}
             </p>
           </div>
@@ -169,7 +169,7 @@ export function PublicFooter() {
               <ul className="space-y-1.5">
                 {group.items.map((item) => (
                   <li key={item.href + item.label}>
-                    <Link href={item.href} className="text-[12.5px] text-primary-200/85 transition hover:text-white">
+                    <Link href={item.href} className="text-[12.5px] text-primary-200/95 transition hover:text-white">
                       {item.label}
                     </Link>
                   </li>
@@ -178,7 +178,7 @@ export function PublicFooter() {
             </div>
           ))}
         </div>
-        <div className="mt-10 flex flex-col gap-2 border-t border-primary-800 pt-5 text-[11.5px] text-primary-300/70 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-2 border-t border-primary-800 pt-5 text-[11.5px] text-primary-300/90 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} {ORG.legalName}. Seluruh hak dilindungi.</p>
           <p>
             Blueprint {ORG.docVersion} · Lingkungan demo · Data contoh berlabel

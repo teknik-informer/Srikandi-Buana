@@ -80,7 +80,13 @@ export function LoginForm({ accounts }: { accounts: AccountLite[] }) {
         </p>
       ) : null}
 
-      <button type="submit" className="sb-btn sb-btn-primary w-full" disabled={pending || !selected}>
+      <button
+        type="submit"
+        className="sb-btn sb-btn-primary w-full"
+        disabled={pending || !selected}
+        aria-busy={pending}
+        title={!selected ? "Pilih salah satu akun demo di atas." : undefined}
+      >
         {pending ? "Memeriksa…" : "Masuk"}
         {!pending && <ArrowRight size={15} />}
       </button>

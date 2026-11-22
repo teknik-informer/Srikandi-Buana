@@ -72,7 +72,7 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
       <div className="mt-10 max-w-3xl">
         <Notice tone="info" title="Cara memesan">
           Pemesanan dilakukan melalui kanal resmi organisasi pada halaman{" "}
-          <Link href="/produk/pemesanan" className="font-semibold underline">Informasi Pemesanan</Link>.
+          <Link href="/produk/pemesanan" className="inline-block py-[5px] font-semibold underline decoration-primary-400 underline-offset-2">Informasi Pemesanan</Link>.
           Tidak ada pembayaran otomatis di situs ini.
         </Notice>
       </div>

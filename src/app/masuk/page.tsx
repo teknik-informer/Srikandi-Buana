@@ -25,11 +25,11 @@ export default async function MasukPage() {
           <h1 className="mt-14 max-w-md font-display text-[38px] leading-[1.1] font-semibold text-white">
             Satu platform, banyak pengalaman aplikasi.
           </h1>
-          <p className="mt-4 max-w-sm text-[13.5px] leading-relaxed text-primary-200/85">
+          <p className="mt-4 max-w-sm text-[13.5px] leading-relaxed text-primary-200/95">
             Pengurus mengelola organisasi, bidang menjalankan pekerjaan, anggota berpartisipasi,
             mitra menerima akses yang dibagikan — semuanya di atas satu sumber data.
           </p>
-          <ul className="mt-8 space-y-2.5 text-[12.5px] text-primary-200/80">
+          <ul className="mt-8 space-y-2.5 text-[12.5px] text-primary-200/90">
             {[
               "Identitas & cakupan akses terpusat",
               "Keuangan native tanpa aplikasi akuntansi eksternal",
@@ -42,7 +42,7 @@ export default async function MasukPage() {
             ))}
           </ul>
         </div>
-        <p className="relative text-[11.5px] text-primary-300/70">{DEMO_BANNER}</p>
+        <p className="relative text-[11.5px] text-primary-300/90">{DEMO_BANNER}</p>
       </aside>
 
       {/* form side */}

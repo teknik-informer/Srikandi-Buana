@@ -166,7 +166,7 @@ export default function HomePage() {
                   <StatusBadge status={p.status === "berjalan" ? "Berjalan" : p.status} />
                 </div>
                 <h3 className="mt-3 font-display text-[19px] font-semibold leading-snug text-white">{p.name}</h3>
-                <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-primary-200/85">{p.objective}</p>
+                <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-primary-200/95">{p.objective}</p>
                 <div className="mt-4 flex items-center justify-between text-[11.5px] text-primary-300">
                   <span>Capaian indikator</span>
                   <span className="font-semibold text-white">{p.progress}%</span>

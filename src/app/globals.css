@@ -21,7 +21,7 @@
   --sb-primary-50: #f1f7e7;
 
   --sb-accent: #d58400;
-  --sb-accent-700: #a16200;
+  --sb-accent-700: #8a5300; /* WCAG AA on accent-100 */
   --sb-accent-600: #bd7400;
   --sb-accent-500: #d58400;
   --sb-accent-100: #fbeccf;
@@ -36,7 +36,7 @@
   --sb-ink: #1c2115;
   --sb-ink-2: #3c4233;
   --sb-muted: #6a6f61;
-  --sb-muted-2: #8b9081;
+  --sb-muted-2: #62675b; /* WCAG AA (≥4.5:1) on white, paper and canvas */
 
   --sb-success: #2f6b34;
   --sb-success-bg: #e6f2e4;
@@ -223,6 +223,17 @@ body {
 .sb-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 .sb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Touch targets (WCAG 2.2 §2.5.8 AA · Apple/Material ≥24px) ────────────
+   Inline text links are padded vertically instead of being resized, so the
+   typography stays identical while the hit area reaches 24px. */
+:where(a, button)[class*="text-"]:not([class*="sb-btn"]):not([class*="rounded"]):not([class*="h-"]):not([class*="w-"]) {
+  display: inline-block;
+  padding-block: 0.34rem;
+}
+/* Uppercase micro-labels are often real navigation; give them a full target. */
+.sb-label { padding-block: 0.2rem; }
+
 
 /* Grid items must be allowed to shrink below their widest content
    (wide data tables otherwise stretch the whole page on phones). */
