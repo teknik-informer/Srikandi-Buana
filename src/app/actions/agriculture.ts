@@ -364,7 +364,6 @@ export async function recordAgricultureVisit(formData: FormData): Promise<void> 
   const identity = await requireIdentity("field:pertanian:read");
   ensureAgricultureWrite(identity);
 
-  const plotId = String(formData.get("plot_id") ?? "").trim();
   const cycleId = String(formData.get("cycle_id") ?? "").trim();
   const visitDate = String(formData.get("visit_date") ?? "").trim();
   const visitType = String(formData.get("visit_type") ?? "").trim();
@@ -462,7 +461,7 @@ export async function recordAgricultureHarvest(formData: FormData): Promise<void
   const note = String(formData.get("note") ?? "").trim();
 
   if (
-    !validUuid(plotId) || !validUuid(cycleId) || !validDate(harvestDate) ||
+    !validUuid(cycleId) || !validDate(harvestDate) ||
     commodity.length < 2 || commodity.length > 120 ||
     !Number.isFinite(weight) || weight <= 0 || weight > 100000000 ||
     grade.length > 60 ||
@@ -502,7 +501,6 @@ export async function recordAgricultureHarvest(formData: FormData): Promise<void
           AND plot.organization_id = cycle.organization_id
           AND plot.field_key = cycle.field_key
         WHERE cycle.id = ${cycleId}
-          AND cycle.plot_id = ${plotId}
           AND cycle.organization_id = ${identity.organizationId}
           AND cycle.field_key = 'pertanian'
           AND cycle.status IN ('growing','harvested')
