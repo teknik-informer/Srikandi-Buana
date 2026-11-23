@@ -62,8 +62,16 @@ export async function submitJoinInterest(
   try {
     const sql = getV9Sql();
     const queryResult = await sql`
-      WITH submitted AS (
+      WITH organization AS (
+        SELECT id
+        FROM v9.organizations
+        WHERE slug = 'srikandi-buana'
+          AND status = 'active'
+        LIMIT 1
+      ),
+      submitted AS (
         INSERT INTO v9.membership_interests (
+          organization_id,
           applicant_name,
           phone,
           address,
@@ -75,7 +83,8 @@ export async function submitJoinInterest(
           consented_at,
           source
         )
-        VALUES (
+        SELECT
+          organization.id,
           ${nama},
           ${telepon},
           ${alamat},
@@ -86,16 +95,18 @@ export async function submitJoinInterest(
           ${CONSENT_VERSION},
           now(),
           'website'
-        )
-        RETURNING id, reference_no
+        FROM organization
+        RETURNING id, reference_no, organization_id
       ),
       queued AS (
         INSERT INTO v9.outbox_events (
+          organization_id,
           event_type,
           dedupe_key,
           payload
         )
         SELECT
+          submitted.organization_id,
           'membership.interest.submitted',
           'membership-interest:' || submitted.id::text,
           jsonb_build_object(
