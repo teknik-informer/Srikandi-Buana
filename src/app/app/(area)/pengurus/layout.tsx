@@ -1,13 +1,10 @@
-import { redirect } from "next/navigation";
-import { getIdentity } from "@/lib/session";
+import { requireIdentity } from "@/lib/session";
 import { CoreShell } from "@/components/core-shell";
 import { CORE_NAV } from "@/config/apps";
 import { APPROVALS } from "@/data/organization";
 
 export default async function PengurusLayout({ children }: { children: React.ReactNode }) {
-  const identity = await getIdentity();
-
-  if (!identity) redirect("/masuk");
+  const identity = await requireIdentity("organization:read");
   const pending = APPROVALS.filter((a) => a.status === "menunggu" || a.status === "revisi").length;
 
   return (
