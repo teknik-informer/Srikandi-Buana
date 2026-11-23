@@ -25,8 +25,12 @@ function fail(area: string, reason: unknown): void {
   );
 }
 
+function sectionPath(fieldKey: string): string {
+  return `/app/bidang/${fieldKey}/tim`;
+}
+
 function path(fieldKey: string, result: string): string {
-  return `/app/bidang/${fieldKey}/tim?result=${result}`;
+  return `${sectionPath(fieldKey)}?result=${result}`;
 }
 
 function checkFieldPermission(
@@ -132,7 +136,7 @@ export async function proposeFieldTeamAssignment(formData: FormData): Promise<vo
   }
 
   if (!created) redirect(path(fieldKey, "member-unavailable"));
-  revalidatePath(path(fieldKey, ""));
+  revalidatePath(sectionPath(fieldKey));
   revalidatePath(`/app/bidang/${fieldKey}`);
   redirect(path(fieldKey, "proposed"));
 }
@@ -204,7 +208,7 @@ export async function approveFieldTeamAssignment(formData: FormData): Promise<vo
   }
 
   if (!approved) redirect(path(fieldKey, "stale"));
-  revalidatePath(path(fieldKey, ""));
+  revalidatePath(sectionPath(fieldKey));
   revalidatePath(`/app/bidang/${fieldKey}`);
   redirect(path(fieldKey, "approved"));
 }
@@ -264,7 +268,7 @@ export async function endFieldTeamAssignment(formData: FormData): Promise<void> 
   }
 
   if (!ended) redirect(path(fieldKey, "stale"));
-  revalidatePath(path(fieldKey, ""));
+  revalidatePath(sectionPath(fieldKey));
   revalidatePath(`/app/bidang/${fieldKey}`);
   redirect(path(fieldKey, "ended"));
 }
