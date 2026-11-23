@@ -25,6 +25,9 @@ export function can(identity: AppIdentity, permission: string): boolean {
 
   return identity.permissions.some((grant) => {
     if (grant === permission) return true;
+    if (grant === "field:read" && permission.startsWith("field:") && permission.endsWith(":read")) {
+      return true;
+    }
     if (grant.endsWith(":*") && permission.startsWith(grant.slice(0, -1))) return true;
     if (grant.endsWith("*") && permission.startsWith(grant.slice(0, -1))) return true;
     return false;
