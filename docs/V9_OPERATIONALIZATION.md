@@ -30,14 +30,17 @@ Files applied on the isolated development branch:
 6. `db/migrations/0006_secretariat_meetings_minutes_attendance.sql`
 7. `db/migrations/0007_secretariat_attendance_upsert_key.sql`
 8. `db/migrations/0008_secretariat_document_register_and_files.sql`
+9. `db/migrations/0009_field_applications_operational_core.sql`
+10. `db/migrations/0010_field_team_assignments.sql`
 
-The `v9` schema currently includes 22 tables:
+The `v9` schema currently includes 28 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
 - hashed-token sessions and login rate limits;
 - organization-scoped membership-interest submissions and bootstrap state;
 - Secretariat letter register, meetings, versioned minutes, meeting decisions, meeting attendance, document register, and revisioned file storage;
+- field workplans, programs, indicators, activities, tasks, and field-team assignments;
 - audit events, organization settings, outbox events, and migration history.
 
 Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, letter, activity history, or operational KPI is seeded.
@@ -125,6 +128,20 @@ Technical implementation:
 - The public `/dokumen` page reads only final, public documents with an attached file. It does not read the old `DOCUMENTS` demo array.
 - The upload route is configured with a 4 MiB Server Action body limit; the application and database enforce a 3 MiB file size limit.
 
+### Field applications — shared operational core and team assignment
+
+- All four approved field applications use one shared data model, partitioned by `organization_id` and `field_key`: `v9.field_workplans`, `v9.field_programs`, `v9.field_program_indicators`, `v9.field_activities`, and `v9.field_tasks`.
+- Composite foreign keys tie programs to workplans, indicators to programs, and activities/tasks to programs or activities in the same organization and same field. A record cannot be linked across fields through these relations.
+- Rencana Kerja records can be drafted and submitted for review. The approval decision screen/action for submitted workplans still needs to be implemented; creating or submitting a workplan does not make it approved.
+- Program records support an optional workplan link and an optional budget request. Budget requests do not post to the ledger and remain subject to the Finance application workflow.
+- Program indicators store target and actual values separately. Actual values are entered by an authorized field user and written to audit; no actual result is prefilled.
+- Activities support scheduling, start, completion, and cancellation with audit events. A dedicated field-activity attendance register and evidence files are still pending; no attendance figure is inferred from audit-event counts.
+- Tasks support priorities, optional links to program/activity, a responsible-person label, due dates, and controlled status transitions. A task marked complete cannot be reopened through the normal status action.
+- The field dashboard now computes active unit membership, workplans, programs, scheduled activities, and task counts from V9. No hardcoded KPI or seeded activity array is used for those figures.
+- The field team register is distinct from membership in a unit. An active member of the matching unit can be proposed for a field assignment. A proposal remains `proposed` until organization leadership approves it; only then does it become `active`. Ending an assignment records an end event and preserves history.
+- Field coordinators can propose/end assignments within their field scope. Activation requires the separate `organization:team:approve` permission. Team assignment does not automatically grant an application login role or change the person's system permissions.
+- Current development data has no active memberships assigned to the four field units, so the dashboard member counts and eligible team lists correctly show zero/empty. No demo staff or sample task records were inserted.
+
 ## Verification performed
 
 - GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
@@ -134,10 +151,12 @@ Technical implementation:
 - GitHub Actions for the Secretariat letter UI/server-page commit `e4379b2d857d2c6814abf4c82e70b18f501d35a7` completed successfully through typecheck and production build.
 - GitHub Actions for the V9 meeting/minutes/agenda/attendance implementation commit `364bef67b7a039a39378361b92d23114da8d45b3` completed successfully: install, typecheck, and production build.
 - GitHub Actions for the document register, file download route, and public documents page commit `ef127aa1f96f60dade8f8eeb3bbd969b00f1b7eb` completed successfully: install, typecheck, and production build.
+- GitHub Actions for field dashboard commit `cc874297c270e0aefbf96bdc0b50d5f29c485f56` completed successfully: install, typecheck, and production build.
+- GitHub Actions for field team roster commit `fc223bf77c5ae9db6abc7ca60bcf247fe9ab4db8` and corrected revalidation commit `c2d626db9ec477b4727f87f883e23186766022a6` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
-- Neon development schema check: 22 V9 tables and eight applied migrations.
-- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, and audit records; it cannot create schema objects or read legacy user records.
-- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, and download.
+- Neon development schema check: 28 V9 tables and ten applied migrations.
+- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, and audit records; it cannot create schema objects or read legacy user records.
+- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, and field team roster/proposal/approval/end.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
 - SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
 - No browser E2E, real account login, or real data insertion test has been completed yet.
@@ -147,9 +166,9 @@ Technical implementation:
 
 1. Email verification, invitation and password-reset tokens, plus a reliable outbox delivery worker (using the agreed email provider), are not yet implemented.
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
-3. Most operational modules still use the original client reducer and browser `localStorage` demo state. They must be migrated into server-side domain services and shared database persistence before operational use.
+3. Several remaining operational modules still use the original client reducer and browser `localStorage` demo state. Each must be migrated to server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Invitation delivery and public calendar publishing, plus field-app workplans, activities, forms, evidence, reports, finance, inventory, POS, portals, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, field-specific land/production records, training sessions and attendance, business catalog/orders/stock, field evidence, budgets, reports, finance, POS, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
