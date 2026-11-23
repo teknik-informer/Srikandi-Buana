@@ -1,4 +1,4 @@
-import { Handshake, Landmark, Milestone, Network, Plus, Target } from "lucide-react";
+import { Handshake, Milestone, Plus, Target } from "lucide-react";
 import {
   Badge,
   Card,
