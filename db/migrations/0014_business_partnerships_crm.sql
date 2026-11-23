@@ -139,6 +139,7 @@ CREATE TABLE IF NOT EXISTS v9.business_agreements (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (id, organization_id, field_key),
+  UNIQUE (id, partner_id, organization_id, field_key),
   FOREIGN KEY (field_key, organization_id)
     REFERENCES v9.field_applications(field_key, organization_id) ON DELETE RESTRICT,
   FOREIGN KEY (partner_id, organization_id, field_key)
