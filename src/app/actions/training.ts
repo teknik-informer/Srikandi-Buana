@@ -21,8 +21,10 @@ function normalize(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
-function path(result: string): string {
-  return `/app/bidang/pelatihan/data?result=${result}`;
+function path(result: string, sessionId?: string): string {
+  const query = new URLSearchParams({ result });
+  if (sessionId && validUuid(sessionId)) query.set("session_id", sessionId);
+  return `/app/bidang/pelatihan/data?${query.toString()}`;
 }
 
 function ensureTrainingWrite(identity: Awaited<ReturnType<typeof requireIdentity>>): void {
@@ -153,7 +155,7 @@ export async function updateTrainingSessionStatus(formData: FormData): Promise<v
   const sessionId = String(formData.get("session_id") ?? "").trim();
   const nextStatus = String(formData.get("next_status") ?? "").trim();
   if (!validUuid(sessionId) || !["registration_open","in_progress","completed","cancelled"].includes(nextStatus)) {
-    redirect(path("invalid"));
+    redirect(path("invalid", sessionId));
   }
 
   let changed = false;
@@ -174,7 +176,23 @@ export async function updateTrainingSessionStatus(formData: FormData): Promise<v
           AND (
             (status = 'planned' AND ${nextStatus} IN ('registration_open','cancelled'))
             OR (status = 'registration_open' AND ${nextStatus} IN ('in_progress','cancelled'))
-            OR (status = 'in_progress' AND ${nextStatus} IN ('completed','cancelled'))
+            OR (
+              status = 'in_progress'
+              AND ${nextStatus} = 'cancelled'
+            )
+            OR (
+              status = 'in_progress'
+              AND ${nextStatus} = 'completed'
+              AND session_date <= current_date
+              AND EXISTS (
+                SELECT 1
+                FROM v9.training_enrollments AS enrollment
+                WHERE enrollment.session_id = v9.training_sessions.id
+                  AND enrollment.organization_id = v9.training_sessions.organization_id
+                  AND enrollment.registration_status <> 'cancelled'
+                  AND enrollment.attendance_status = 'hadir'
+              )
+            )
           )
         RETURNING id, organization_id, field_key, reference_no, title, status
       ),
@@ -195,12 +213,12 @@ export async function updateTrainingSessionStatus(formData: FormData): Promise<v
     changed = rowsFromResult<MutationRow>(result).length === 1;
   } catch (reason) {
     logFailure("training-session-status", reason);
-    redirect(path("error"));
+    redirect(path("error", sessionId));
   }
 
-  if (!changed) redirect(path("session-transition-blocked"));
+  if (!changed) redirect(path("session-transition-blocked", sessionId));
   refreshTraining();
-  redirect(path("session-updated"));
+  redirect(path("session-updated", sessionId));
 }
 
 export async function enrollTrainingParticipant(formData: FormData): Promise<void> {
@@ -221,7 +239,7 @@ export async function enrollTrainingParticipant(formData: FormData): Promise<voi
     affiliation.length > 160 ||
     note.length > 1000
   ) {
-    redirect(path("invalid"));
+    redirect(path("invalid", sessionId));
   }
 
   let enrolled = false;
@@ -317,26 +335,27 @@ export async function enrollTrainingParticipant(formData: FormData): Promise<voi
   } catch (reason) {
     logFailure("training-enrollment-create", reason);
     const message = reason instanceof Error ? reason.message.toLowerCase() : "";
-    if (message.includes("unique")) redirect(path("duplicate-participant"));
-    redirect(path("error"));
+    if (message.includes("unique")) redirect(path("duplicate-participant", sessionId));
+    redirect(path("error", sessionId));
   }
 
-  if (!enrolled) redirect(path("session-closed-or-member-unavailable"));
+  if (!enrolled) redirect(path("session-closed-or-member-unavailable", sessionId));
   refreshTraining();
-  redirect(path("participant-enrolled"));
+  redirect(path("participant-enrolled", sessionId));
 }
 
 export async function updateTrainingAttendance(formData: FormData): Promise<void> {
   const identity = await requireIdentity("field:pelatihan:read");
   ensureTrainingWrite(identity);
 
+  const sessionId = String(formData.get("session_id") ?? "").trim();
   const enrollmentId = String(formData.get("enrollment_id") ?? "").trim();
   const attendanceStatus = String(formData.get("attendance_status") ?? "").trim();
   if (
-    !validUuid(enrollmentId) ||
+    !validUuid(sessionId) || !validUuid(enrollmentId) ||
     !["hadir","izin","sakit","alpa"].includes(attendanceStatus)
   ) {
-    redirect(path("invalid"));
+    redirect(path("invalid", sessionId));
   }
 
   let updated = false;
@@ -352,6 +371,7 @@ export async function updateTrainingAttendance(formData: FormData): Promise<void
           updated_at = now()
         FROM v9.training_sessions AS session
         WHERE enrollment.id = ${enrollmentId}
+          AND enrollment.session_id = ${sessionId}
           AND enrollment.organization_id = ${identity.organizationId}
           AND enrollment.field_key = 'pelatihan'
           AND enrollment.registration_status <> 'cancelled'
@@ -388,18 +408,19 @@ export async function updateTrainingAttendance(formData: FormData): Promise<void
     updated = rowsFromResult<MutationRow>(result).length === 1;
   } catch (reason) {
     logFailure("training-attendance-update", reason);
-    redirect(path("error"));
+    redirect(path("error", sessionId));
   }
 
-  if (!updated) redirect(path("attendance-session-not-ready"));
+  if (!updated) redirect(path("attendance-session-not-ready", sessionId));
   refreshTraining();
-  redirect(path("attendance-updated"));
+  redirect(path("attendance-updated", sessionId));
 }
 
 export async function recordTrainingAssessment(formData: FormData): Promise<void> {
   const identity = await requireIdentity("field:pelatihan:read");
   ensureTrainingWrite(identity);
 
+  const sessionId = String(formData.get("session_id") ?? "").trim();
   const enrollmentId = String(formData.get("enrollment_id") ?? "").trim();
   const assessmentType = String(formData.get("assessment_type") ?? "").trim();
   const scoreText = String(formData.get("score") ?? "").trim();
@@ -407,12 +428,12 @@ export async function recordTrainingAssessment(formData: FormData): Promise<void
   const assessmentNote = String(formData.get("assessment_note") ?? "").trim();
 
   if (
-    !validUuid(enrollmentId) ||
+    !validUuid(sessionId) || !validUuid(enrollmentId) ||
     !["pre","post"].includes(assessmentType) ||
     !Number.isFinite(score) || score < 0 || score > 100 ||
     assessmentNote.length > 2000
   ) {
-    redirect(path("invalid"));
+    redirect(path("invalid", sessionId));
   }
 
   let recorded = false;
@@ -433,13 +454,15 @@ export async function recordTrainingAssessment(formData: FormData): Promise<void
           AND session.organization_id = enrollment.organization_id
           AND session.field_key = enrollment.field_key
         WHERE enrollment.id = ${enrollmentId}
+          AND enrollment.session_id = ${sessionId}
           AND enrollment.organization_id = ${identity.organizationId}
           AND enrollment.field_key = 'pelatihan'
           AND enrollment.registration_status <> 'cancelled'
           AND session.status IN ('in_progress','completed')
+          AND enrollment.attendance_status = 'hadir'
           AND (
             ${assessmentType} <> 'post'
-            OR enrollment.attendance_status = 'hadir'
+            OR session.status = 'completed'
           )
       ),
       saved AS (
@@ -491,24 +514,25 @@ export async function recordTrainingAssessment(formData: FormData): Promise<void
     recorded = rowsFromResult<MutationRow>(result).length === 1;
   } catch (reason) {
     logFailure("training-assessment-save", reason);
-    redirect(path("error"));
+    redirect(path("error", sessionId));
   }
 
-  if (!recorded) redirect(path("assessment-not-ready"));
+  if (!recorded) redirect(path("assessment-not-ready", sessionId));
   refreshTraining();
-  redirect(path("assessment-saved"));
+  redirect(path("assessment-saved", sessionId));
 }
 
 export async function issueTrainingCertificate(formData: FormData): Promise<void> {
   const identity = await requireIdentity("field:pelatihan:read");
   if (!can(identity, "field:pelatihan:certificate:issue")) redirect("/app");
 
+  const sessionId = String(formData.get("session_id") ?? "").trim();
   const enrollmentId = String(formData.get("enrollment_id") ?? "").trim();
   const issueDate = String(formData.get("issue_date") ?? "").trim();
   const issuer = normalize(String(formData.get("issuer_label") ?? ""));
 
-  if (!validUuid(enrollmentId) || !validDate(issueDate) || issuer.length < 2 || issuer.length > 160) {
-    redirect(path("invalid"));
+  if (!validUuid(sessionId) || !validUuid(enrollmentId) || !validDate(issueDate) || issuer.length < 2 || issuer.length > 160) {
+    redirect(path("invalid", sessionId));
   }
 
   let issued = false;
@@ -524,6 +548,7 @@ export async function issueTrainingCertificate(formData: FormData): Promise<void
           AND session.organization_id = enrollment.organization_id
           AND session.field_key = enrollment.field_key
         WHERE enrollment.id = ${enrollmentId}
+          AND enrollment.session_id = ${sessionId}
           AND enrollment.organization_id = ${identity.organizationId}
           AND enrollment.field_key = 'pelatihan'
           AND enrollment.registration_status <> 'cancelled'
@@ -573,24 +598,25 @@ export async function issueTrainingCertificate(formData: FormData): Promise<void
   } catch (reason) {
     logFailure("training-certificate-issue", reason);
     const message = reason instanceof Error ? reason.message.toLowerCase() : "";
-    if (message.includes("unique")) redirect(path("certificate-exists"));
-    redirect(path("error"));
+    if (message.includes("unique")) redirect(path("certificate-exists", sessionId));
+    redirect(path("error", sessionId));
   }
 
-  if (!issued) redirect(path("certificate-not-eligible"));
+  if (!issued) redirect(path("certificate-not-eligible", sessionId));
   refreshTraining();
-  redirect(path("certificate-issued"));
+  redirect(path("certificate-issued", sessionId));
 }
 
 export async function revokeTrainingCertificate(formData: FormData): Promise<void> {
   const identity = await requireIdentity("field:pelatihan:read");
   if (!can(identity, "organization:team:approve")) redirect("/app");
 
+  const sessionId = String(formData.get("session_id") ?? "").trim();
   const certificateId = String(formData.get("certificate_id") ?? "").trim();
   const reason = String(formData.get("revocation_note") ?? "").trim();
 
-  if (!validUuid(certificateId) || reason.length < 3 || reason.length > 1000) {
-    redirect(path("invalid"));
+  if (!validUuid(sessionId) || !validUuid(certificateId) || reason.length < 3 || reason.length > 1000) {
+    redirect(path("invalid", sessionId));
   }
 
   let revoked = false;
@@ -609,6 +635,13 @@ export async function revokeTrainingCertificate(formData: FormData): Promise<voi
           AND certificate.organization_id = ${identity.organizationId}
           AND certificate.field_key = 'pelatihan'
           AND certificate.status = 'issued'
+          AND EXISTS (
+            SELECT 1
+            FROM v9.training_enrollments AS enrollment
+            WHERE enrollment.id = certificate.enrollment_id
+              AND enrollment.session_id = ${sessionId}
+              AND enrollment.organization_id = certificate.organization_id
+          )
         RETURNING certificate.id, certificate.organization_id, certificate.field_key,
           certificate.enrollment_id, certificate.reference_no, certificate.revocation_note
       ),
@@ -630,10 +663,10 @@ export async function revokeTrainingCertificate(formData: FormData): Promise<voi
     revoked = rowsFromResult<MutationRow>(result).length === 1;
   } catch (error) {
     logFailure("training-certificate-revoke", error);
-    redirect(path("error"));
+    redirect(path("error", sessionId));
   }
 
-  if (!revoked) redirect(path("certificate-stale"));
+  if (!revoked) redirect(path("certificate-stale", sessionId));
   refreshTraining();
-  redirect(path("certificate-revoked"));
+  redirect(path("certificate-revoked", sessionId));
 }
