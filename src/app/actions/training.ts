@@ -670,3 +670,121 @@ export async function revokeTrainingCertificate(formData: FormData): Promise<voi
   refreshTraining();
   redirect(path("certificate-revoked", sessionId));
 }
+
+export async function cancelTrainingEnrollment(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("field:pelatihan:read");
+  ensureTrainingWrite(identity);
+
+  const enrollmentId = String(formData.get("enrollment_id") ?? "").trim();
+  if (!validUuid(enrollmentId)) redirect(path("invalid"));
+
+  let cancelled = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH target AS (
+        SELECT
+          enrollment.id,
+          enrollment.session_id,
+          enrollment.organization_id,
+          enrollment.field_key,
+          enrollment.registration_status AS previous_status
+        FROM v9.training_enrollments AS enrollment
+        INNER JOIN v9.training_sessions AS session
+          ON session.id = enrollment.session_id
+          AND session.organization_id = enrollment.organization_id
+          AND session.field_key = enrollment.field_key
+        WHERE enrollment.id = ${enrollmentId}
+          AND enrollment.organization_id = ${identity.organizationId}
+          AND enrollment.field_key = 'pelatihan'
+          AND enrollment.registration_status IN ('registered','confirmed','waitlisted')
+          AND enrollment.attendance_status = 'not_marked'
+          AND session.status = 'registration_open'
+        FOR UPDATE OF session, enrollment
+      ),
+      changed AS (
+        UPDATE v9.training_enrollments AS enrollment
+        SET
+          registration_status = 'cancelled',
+          updated_at = now()
+        FROM target
+        WHERE enrollment.id = target.id
+        RETURNING enrollment.id, enrollment.organization_id, enrollment.field_key,
+          enrollment.session_id, enrollment.participant_name
+      ),
+      next_waitlist AS (
+        SELECT
+          candidate.id,
+          changed.session_id
+        FROM changed
+        INNER JOIN target ON target.id = changed.id
+        INNER JOIN v9.training_enrollments AS candidate
+          ON candidate.session_id = changed.session_id
+          AND candidate.organization_id = changed.organization_id
+          AND candidate.field_key = changed.field_key
+        WHERE target.previous_status IN ('registered','confirmed')
+          AND candidate.registration_status = 'waitlisted'
+          AND candidate.attendance_status = 'not_marked'
+        ORDER BY candidate.registered_at, candidate.id
+        LIMIT 1
+        FOR UPDATE OF candidate SKIP LOCKED
+      ),
+      promoted AS (
+        UPDATE v9.training_enrollments AS enrollment
+        SET
+          registration_status = 'registered',
+          updated_at = now()
+        FROM next_waitlist
+        WHERE enrollment.id = next_waitlist.id
+        RETURNING enrollment.id, enrollment.organization_id, enrollment.field_key,
+          enrollment.session_id, enrollment.participant_name
+      ),
+      audit_rows AS (
+        SELECT
+          changed.organization_id,
+          changed.id,
+          'training_enrollment.cancelled'::text AS action,
+          changed.session_id,
+          changed.participant_name
+        FROM changed
+        UNION ALL
+        SELECT
+          promoted.organization_id,
+          promoted.id,
+          'training_enrollment.promoted_from_waitlist'::text AS action,
+          promoted.session_id,
+          promoted.participant_name
+        FROM promoted
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          audit_rows.organization_id,
+          ${identity.userId},
+          audit_rows.action,
+          'training_enrollment',
+          audit_rows.id::text,
+          jsonb_build_object(
+            'field_key', 'pelatihan',
+            'session_id', audit_rows.session_id,
+            'participant_name', audit_rows.participant_name
+          )
+        FROM audit_rows
+        RETURNING id
+      )
+      SELECT changed.id::text AS id
+      FROM changed
+      INNER JOIN audit ON audit.id IS NOT NULL
+    `;
+    cancelled = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    logFailure("training-enrollment-cancel", reason);
+    redirect(path("error"));
+  }
+
+  if (!cancelled) redirect(path("enrollment-cancel-blocked"));
+  refreshTraining();
+  redirect(path("participant-cancelled"));
+}
