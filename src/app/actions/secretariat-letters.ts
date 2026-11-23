@@ -33,6 +33,7 @@ export async function registerSecretariatLetter(formData: FormData): Promise<voi
   }
 
   const sql = getV9Sql();
+  let created = false;
   try {
     const result = await sql`
       WITH organization AS (
@@ -104,9 +105,7 @@ export async function registerSecretariatLetter(formData: FormData): Promise<voi
       ? (result as Array<{ reference_no: string }>)
       : (result as unknown as { rows: Array<{ reference_no: string }> }).rows;
 
-    if (!rows[0]?.reference_no) {
-      redirect("/app/sekretariat/surat?result=unavailable");
-    }
+    created = Boolean(rows[0]?.reference_no);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown letter registration error";
     console.error("[secretariat-letter] Registration failed:", message);
@@ -114,6 +113,10 @@ export async function registerSecretariatLetter(formData: FormData): Promise<voi
       redirect("/app/sekretariat/surat?result=duplicate");
     }
     redirect("/app/sekretariat/surat?result=error");
+  }
+
+  if (!created) {
+    redirect("/app/sekretariat/surat?result=unavailable");
   }
 
   revalidatePath("/app/sekretariat/surat");
