@@ -27,14 +27,16 @@ Files applied on the isolated development branch:
 3. `db/migrations/0003_first_admin_bootstrap.sql`
 4. `db/migrations/0004_membership_interest_org_scope.sql`
 5. `db/migrations/0005_secretariat_letters.sql`
+6. `db/migrations/0006_secretariat_meetings_minutes_attendance.sql`
+7. `db/migrations/0007_secretariat_attendance_upsert_key.sql`
 
-The `v9` schema currently includes 16 tables:
+The `v9` schema currently includes 20 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
 - hashed-token sessions and login rate limits;
 - organization-scoped membership-interest submissions and bootstrap state;
-- Secretariat letter register;
+- Secretariat letter register, meetings, versioned minutes, meeting decisions, and meeting attendance;
 - audit events, organization settings, outbox events, and migration history.
 
 Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, letter, activity history, or operational KPI is seeded.
@@ -94,14 +96,32 @@ Technical implementation:
 - The Expedition page reads the same letter register; there is no duplicate localStorage dataset.
 - No real letter records or demo letters were seeded into the V9 database.
 
+### Secretariat meetings, minutes, decisions, and attendance
+
+- Meeting schedule records are stored in `v9.secretariat_meetings`; a system reference is generated, and no meeting sample rows are seeded.
+- Creating a meeting creates its initial draft minutes and audit event in the same SQL statement.
+- The Rapat & Undangan page reads the shared meeting registry and supports organization-scoped scheduling, completion, and cancellation.
+- Agenda Organisasi reads scheduled meetings from the same database table; it does not read the old `ACTIVITIES` demo array.
+- Minutes are stored as revisions in `v9.secretariat_minutes`; decisions are held in `v9.secretariat_meeting_decisions`.
+- Draft minutes can be edited. Finalization is permitted only after a meeting is marked completed and there is at least some minutes content or a recorded decision.
+- Final minutes are not edited in place. A new draft revision copies the last final text and decision list, leaving the prior revision intact.
+- Attendance is stored in `v9.secretariat_meeting_attendance` and linked to a meeting. Participants can be selected from active/pending organization memberships or entered as external guests.
+- Attendance statuses are `hadir`, `izin`, `sakit`, and `alpa`. A separate flag records whether a physical signature sheet was checked; it is not an electronic signature.
+- A generated attendee key prevents duplicates for the same registered person or normalized guest name within a meeting.
+- Meeting, minutes, decision, revision, and attendance mutations are organization-scoped and write audit events.
+- Agenda, Rapat, Notulen, and Presensi read the same operational records. They do not read seeded meeting arrays or browser `localStorage`.
+
 ## Verification performed
 
 - GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
   - `npm ci`
   - `npm run typecheck`
   - `npm run build`
-- GitHub Actions for the first Secretariat letter UI/server-page commit `e4379b2d857d2c6814abf4c82e70b18f501d35a7` completed successfully through typecheck and production build.
-- Neon development schema check: 16 V9 tables and five applied migrations.
+- GitHub Actions for the Secretariat letter UI/server-page commit `e4379b2d857d2c6814abf4c82e70b18f501d35a7` completed successfully through typecheck and production build.
+- GitHub Actions for the V9 meeting/minutes/agenda/attendance implementation commit `364bef67b7a039a39378361b92d23114da8d45b3` completed successfully: install, typecheck, and production build.
+- Neon development schema check: 20 V9 tables and seven applied migrations.
+- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, and audit records; it cannot create schema objects or read legacy user records.
+- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, and attendance upsert.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
 - SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
 - No browser E2E, real account login, or real data insertion test has been completed yet.
@@ -113,7 +133,7 @@ Technical implementation:
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
 3. Most operational modules still use the original client reducer and browser `localStorage` demo state. They must be migrated into server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Secretariat agenda, minutes, attendance, documents and archives, plus field-app workplans, activities, forms, evidence, reports, finance, inventory, POS, portals, file storage, and CMS publishing need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, meetings, minutes, decisions, and attendance now use the V9 database. Secretariat document/archives, invitation delivery, public calendar publishing, plus field-app workplans, activities, forms, evidence, reports, finance, inventory, POS, portals, file storage, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
