@@ -33,6 +33,7 @@ Files applied on the isolated development branch:
 9. `db/migrations/0009_field_applications_operational_core.sql`
 10. `db/migrations/0010_field_team_assignments.sql`
 11. `db/migrations/0011_agriculture_production_records.sql`
+11. `db/migrations/0011_agriculture_production_records.sql`
 
 The `v9` schema currently includes 32 tables:
 
@@ -41,7 +42,7 @@ The `v9` schema currently includes 32 tables:
 - hashed-token sessions and login rate limits;
 - organization-scoped membership-interest submissions and bootstrap state;
 - Secretariat letter register, meetings, versioned minutes, meeting decisions, meeting attendance, document register, and revisioned file storage;
-- field workplans, programs, indicators, activities, tasks, and field-team assignments;
+- field workplans, programs, indicators, activities, tasks, field-team assignments, and Agriculture plots/cycles/visits/harvests;
 - agriculture plots, cultivation cycles, field visits, and harvest entries;
 - audit events, organization settings, outbox events, and migration history.
 
@@ -158,6 +159,20 @@ Technical implementation:
 - Harvest data is a production record, not an accounting transaction. It does not automatically change inventory, stock, receivables, or the Finance ledger.
 - Current development counts are zero plots, zero cycles, zero visits, and zero harvests. No sample production data has been seeded.
 
+### Agriculture & Production — land, crop cycles, visits, and harvests
+
+- Agriculture records are isolated to `field_key = 'pertanian'` and the authenticated organization: `v9.agriculture_plots`, `v9.agriculture_cycles`, `v9.agriculture_visits`, and `v9.agriculture_harvests`.
+- Plot registration records a code, owner/manager label, optional link to an active organization membership, hamlet, village, commodity, land use, area in hectares, and location note.
+- A plot can be paused or archived. Archiving is blocked while there are crop cycles still planned, planted, or growing.
+- Crop cycles are tied to a specific plot through a composite foreign key. Their status follows a controlled path: planned → planted → growing → harvested, with cancellation available before completion.
+- A cycle can be marked harvested only after one or more harvest records exist. A harvest row derives the plot relationship from the selected cycle, avoiding a user-selected mismatched plot.
+- Field visits are tied to a plot and optionally to a cycle on that same plot. Visit types include monitoring, cultivation, pest/disease, farm inputs, harvest, and other.
+- Harvest records store actual harvest date, commodity, weight in kilograms, optional quality grade and moisture percentage, recorder, and notes. Database checks reject non-positive weights and moisture percentages outside 0–100.
+- Dashboard totals are calculated from stored plot area, cycle statuses, visit dates, and harvest weights. No plot, area, harvest, or crop-cycle examples are seeded.
+- The application currently stores location notes, not precision GPS coordinates. GPS collection needs a separate consent, purpose, access, and retention design before implementation.
+- Harvest records do not create ledger entries or sales transactions. Finance and commerce remain separate domains.
+- The agriculture data page is connected at `/app/bidang/pertanian/data`; agriculture server actions check the scoped `field:pertanian:data:write` permission and write audit events.
+
 ## Verification performed
 
 - GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
@@ -169,6 +184,7 @@ Technical implementation:
 - GitHub Actions for the document register, file download route, and public documents page commit `ef127aa1f96f60dade8f8eeb3bbd969b00f1b7eb` completed successfully: install, typecheck, and production build.
 - GitHub Actions for field dashboard commit `cc874297c270e0aefbf96bdc0b50d5f29c485f56` completed successfully: install, typecheck, and production build.
 - GitHub Actions for field team roster commit `fc223bf77c5ae9db6abc7ca60bcf247fe9ab4db8` and corrected revalidation commit `c2d626db9ec477b4727f87f883e23186766022a6` completed successfully: install, typecheck, and production build.
+- GitHub Actions for Agriculture plot/cycle/visit/harvest implementation commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
 - Neon development schema check: 32 V9 tables and eleven applied migrations.
