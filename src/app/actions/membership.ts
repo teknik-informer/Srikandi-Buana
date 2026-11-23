@@ -32,6 +32,7 @@ export async function decideMembershipInterest(formData: FormData): Promise<void
       SELECT *
       FROM v9.membership_interests
       WHERE id = ${id}
+        AND organization_id = ${identity.organizationId}
         AND status IN ('submitted', 'under_review')
       FOR UPDATE
     ),
