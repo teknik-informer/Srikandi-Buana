@@ -41,8 +41,12 @@ function validDate(value: string): boolean {
 
 export async function FinanceTrialBalanceSection({ asOf }: { asOf?: string }) {
   const identity = await requireIdentity("finance:read");
-  const reportDate = asOf && validDate(asOf) ? asOf : new Date().toISOString().slice(0,10);
   const sql = getV9Sql();
+  const todayResult = await sql`
+    SELECT (now() AT TIME ZONE 'Asia/Jakarta')::date::text AS report_date
+  `;
+  const today = rowsFromResult<{ report_date: string }>(todayResult)[0]?.report_date;
+  const reportDate = asOf && validDate(asOf) ? asOf : today ?? new Date().toISOString().slice(0,10);
 
   const result = await sql`
     WITH posted_totals AS (
