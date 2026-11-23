@@ -2,9 +2,10 @@
 
 ## Source of truth
 
-- Application baseline: Git branch `v9-rebuild` (Arena.ai-generated Srikandi Buana V9.1).
+- Application baseline: `v9-rebuild` (Arena.ai-generated Srikandi Buana V9.1).
 - Working branch: `feat/v9-operational-core`.
-- The old production application and its routes are not an implementation baseline for V9.1.
+- Pull request: #57 — draft, not merged.
+- The previous production application is not an architecture, route, design, or data baseline for V9.1.
 - This branch is additive. Do not merge it into `v9-rebuild` or deploy it to production until review and acceptance.
 
 ## Database isolation
@@ -12,45 +13,78 @@
 - Neon project: `Srikandi Buana Core` (`hidden-surf-18556907`).
 - Development branch: `v9-operational-dev` (`br-bitter-sky-a1busxt3`).
 - Database: `srikandi`.
-- All V9.1 application-owned tables introduced by this work live in schema `v9`.
-- Existing `public` schema is left unchanged and is not part of the V9.1 application contract.
-- No old production database, domain, user records, or member data were copied.
+- All V9 application-owned tables are in schema `v9`.
+- The existing `public` schema has not been changed by the V9 migrations.
+- No old production database, domain, user records, member data, or transactions were copied.
+- Vercel runtime must use `V9_DATABASE_URL` configured with a V9-only, least-privilege application role. Never point it at a legacy `DATABASE_URL`.
 
-## Migration 0001
+## Applied schema
 
-File: `db/migrations/0001_v9_identity_and_membership.sql`
+Files applied on the isolated development branch:
 
-Applied to the isolated Neon development branch and verified. It creates the initial identity and membership foundation:
+1. `db/migrations/0001_v9_identity_and_membership.sql`
+2. `db/migrations/0002_membership_interest_context.sql`
+3. `db/migrations/0003_first_admin_bootstrap.sql`
 
-- organization and organizational-unit registry;
-- the four approved field-application records;
-- people and user accounts as separate entities;
-- organization memberships;
-- role assignments scoped to organization, unit, or self;
-- hashed-token sessions;
-- public membership-interest submissions with consent metadata and review states;
-- login rate-limit records;
-- append-oriented audit events;
-- organization-scoped settings;
-- transactional outbox for email and other notifications;
-- migration history.
+The `v9` schema currently includes 15 tables:
 
-Initial structural seeds are limited to the Srikandi Buana organization, seven organizational units, and four field applications. No administrator, login account, member, financial balance, transaction, KPI, or activity history is seeded.
+- organizations, organizational units, and field-application registry;
+- people, user accounts, memberships, and scoped role assignments;
+- hashed-token sessions and login rate limits;
+- public membership-interest submissions and bootstrap state;
+- audit events, organization settings, outbox events, and migration history.
 
-## Important implementation boundaries
+Structural seed data is limited to one Srikandi Buana organization, seven organization units, and the four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, activity history, or operational KPI is seeded.
 
-1. A database schema is not yet a working application. Server-side repositories, authorization checks, and screen integration must be implemented before the UI can claim these records are operational.
-2. The client reducer and browser `localStorage` remain demo-only until each module is migrated to server persistence.
-3. No demo account may be used as a production credential. Initial administrator provisioning must be a deliberate, one-time, secret-protected flow.
-4. Every mutation must validate authorization server-side, enforce organization/unit scope, and write an audit event in the same transaction where appropriate.
-5. Financial posting, approvals, inventory and POS must remain transactional and idempotent. The finance module will be native to Srikandi Buana; no Manager.io service, embed, API, or dependency is permitted.
-6. Public membership-interest data is personal data. Access, purpose limitation, retention, export and deletion processes must be implemented before public production use.
-7. Production deployment and domain replacement are blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive testing and rollback readiness are complete.
+The database role `v9_app` is restricted to read/write operations in schema `v9`. A permission check confirmed it cannot read the legacy `public.users` table and cannot create objects in schema `v9`.
 
-## Next implementation sequence
+## Implemented application boundaries
 
-1. Add the server-only Neon database client and migration verification.
-2. Replace demo cookie authentication with database-backed accounts, hashed sessions, rate limiting and server-side RBAC/ABAC checks.
-3. Persist public membership-interest submissions and expose a review queue in the Organization & Membership app.
-4. Migrate the remaining apps domain by domain; remove fake metrics and sample records from production-facing calculations.
-5. Connect the V9.1 Vercel project to the repository and isolated development database, deploy preview, then run the release gates.
+### Database client
+
+- Server-only Neon client in `src/lib/db.ts`.
+- Dedicated environment variable `V9_DATABASE_URL`; it does not fall back to an old generic database URL.
+- Shared result normalization for Neon query return shapes.
+
+### Identity and authentication
+
+- Hardcoded demo account catalogue and the `demo1234` login path removed from the login UI.
+- Password hashing and verification use Node.js scrypt with timing-safe comparison.
+- Login resolves accounts and current role assignments from the V9 database.
+- Session cookies contain random opaque tokens; only SHA-256 token hashes are stored in `v9.sessions`.
+- Login attempts are rate limited per HMAC-protected email/IP subject pair.
+- Logout revokes the database session before clearing the cookie.
+- Page layouts now apply server-side permission/role checks for Pengurus, Keuangan, Sekretariat, Bidang, Anggota, POS, and Studio.
+- First administrator provisioning is a one-time CLI operation: `npm run bootstrap:v9-admin`. It requires explicit environment values and a confirmation phrase; it has not been run and no real account has been created.
+
+### Membership-interest workflow
+
+- The public join form validates on the server and writes to `v9.membership_interests`.
+- Submission and the `membership.interest.submitted` outbox event are written in one SQL statement.
+- A real reference number is generated by PostgreSQL, not by a random client value.
+- The Organization & Membership field app now includes a database-backed review queue.
+- Review decisions are permission-checked server-side and written to the audit log.
+- Approval creates or reuses a person record and creates/links a membership in `pending` status. It does not activate membership or create a login account.
+
+## Verification performed
+
+- GitHub Actions run for commit `905d26605858c4b9abdedfd70fdd048d040e814a` completed successfully:
+  - `npm ci`
+  - `npm run typecheck`
+  - `npm run build`
+- SQL query plans were obtained for public membership submission/outbox insertion and the review/approval transaction.
+- No V9 deployment, Vercel environment change, domain switch, or production database migration has been performed.
+
+## Remaining blockers and work
+
+1. Email verification, password-reset and invitation tokens, plus a reliable outbox delivery worker (using the agreed email provider), are not yet implemented.
+2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
+3. Most operational modules still use the original client reducer and browser `localStorage` demo state. They must be migrated into server-side domain services and shared database persistence before operational use.
+4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
+5. Finance, inventory, POS, Secretariat, field-app workflows, portal access, file storage, and CMS publishing need their own domain schemas, authorization, transactional services, and tests.
+6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
+7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness pass.
+
+## Release boundary
+
+This work is a development foundation, not a production-ready release. Keep the existing production domain untouched until V9.1 is complete, accepted, and verified end to end.
