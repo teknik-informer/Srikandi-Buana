@@ -30,3 +30,15 @@ export function getV9Sql(): V9Sql {
 
   return globalForV9.__srikandiV9Sql;
 }
+
+/** Normalize Neon HTTP query output to a row array without trusting its shape. */
+export function rowsFromResult<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+
+  if (result && typeof result === "object" && "rows" in result) {
+    const rows = (result as { rows?: unknown }).rows;
+    if (Array.isArray(rows)) return rows as T[];
+  }
+
+  return [];
+}
