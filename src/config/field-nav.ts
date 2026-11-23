@@ -13,6 +13,8 @@ const SECTIONS: { key: string; label: string; group: string }[] = [
   { key: "tugas", label: "Tugas & Kolaborasi", group: "Tugas & Tim" },
   { key: "tim", label: "Manajemen Tim", group: "Tugas & Tim" },
   { key: "data", label: "Data Operasional", group: "Data Operasional" },
+  { key: "katalog", label: "Katalog Produk", group: "Produk & Persediaan" },
+  { key: "persediaan", label: "Gudang & Persediaan", group: "Produk & Persediaan" },
   { key: "formulir", label: "Formulir & Pendataan", group: "Formulir" },
   { key: "pengajuan", label: "Pengajuan Keanggotaan", group: "Formulir" },
   { key: "dokumen", label: "Dokumen & Bukti", group: "Dokumen" },
@@ -27,9 +29,11 @@ export const FIELD_SECTION_KEYS = SECTIONS.map((s) => s.key).filter(Boolean);
 export function fieldNav(field: FieldDef): FieldNavGroup[] {
   const base = field.appHref;
   const groups = new Map<string, { label: string; href: string }[]>();
-  const visibleSections = field.slug === "organisasi"
-    ? SECTIONS
-    : SECTIONS.filter((section) => section.key !== "pengajuan");
+  const visibleSections = SECTIONS.filter((section) => {
+    if (section.key === "pengajuan") return field.slug === "organisasi";
+    if (section.key === "katalog" || section.key === "persediaan") return field.slug === "usaha";
+    return true;
+  });
 
   for (const s of visibleSections) {
     const arr = groups.get(s.group) ?? [];
