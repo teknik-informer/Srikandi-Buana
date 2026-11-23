@@ -327,10 +327,19 @@ export async function updateAgricultureCycleStatus(formData: FormData): Promise<
           )
           AND (
             ${nextStatus} <> 'harvested'
-            OR EXISTS (
-              SELECT 1 FROM v9.agriculture_harvests AS harvest
-              WHERE harvest.cycle_id = cycle.id
-                AND harvest.organization_id = cycle.organization_id
+            OR (
+              EXISTS (
+                SELECT 1 FROM v9.agriculture_harvests AS harvest
+                WHERE harvest.cycle_id = cycle.id
+                  AND harvest.organization_id = cycle.organization_id
+              )
+              AND ${harvestedOn}::date >= COALESCE(
+                (SELECT max(harvest.harvest_date)
+                 FROM v9.agriculture_harvests AS harvest
+                 WHERE harvest.cycle_id = cycle.id
+                   AND harvest.organization_id = cycle.organization_id),
+                ${harvestedOn}::date
+              )
             )
           )
         RETURNING cycle.id, cycle.organization_id, cycle.field_key, cycle.plot_id, cycle.crop_name, cycle.status, cycle.harvested_on
@@ -448,7 +457,6 @@ export async function recordAgricultureHarvest(formData: FormData): Promise<void
   const identity = await requireIdentity("field:pertanian:read");
   ensureAgricultureWrite(identity);
 
-  const plotId = String(formData.get("plot_id") ?? "").trim();
   const cycleId = String(formData.get("cycle_id") ?? "").trim();
   const harvestDate = String(formData.get("harvest_date") ?? "").trim();
   const commodity = normalize(String(formData.get("commodity") ?? ""));
@@ -504,6 +512,7 @@ export async function recordAgricultureHarvest(formData: FormData): Promise<void
           AND cycle.organization_id = ${identity.organizationId}
           AND cycle.field_key = 'pertanian'
           AND cycle.status IN ('growing','harvested')
+          AND (cycle.planting_date IS NULL OR ${harvestDate}::date >= cycle.planting_date)
           AND plot.status <> 'archived'
         RETURNING id, organization_id, field_key, plot_id, cycle_id, harvest_date, commodity, weight_kg, quality_grade
       ),
