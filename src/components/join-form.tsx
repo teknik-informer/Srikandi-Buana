@@ -16,12 +16,9 @@ export function JoinForm() {
         <h2 className="mt-3 font-display text-[20px] font-semibold text-ink">Terima kasih, {state.name}.</h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-ink2">{state.message}</p>
         <div className="mt-4 rounded-sb-sm border border-line bg-paper px-3 py-2 text-[12px] text-muted">
-          Nomor pengajuan demo: <span className="font-mono font-semibold text-ink2">{state.ref}</span> · Status:{" "}
+          Nomor pengajuan: <span className="font-mono font-semibold text-ink2">{state.ref}</span> · Status:{" "}
           <span className="font-semibold text-[var(--sb-warning)]">Menunggu verifikasi</span>
         </div>
-        <p className="mt-3 text-[11.5px] text-muted2">
-          Lingkungan demo — pengajuan tidak tersimpan permanen dan tidak dikirim ke siapa pun.
-        </p>
       </div>
     );
   }
@@ -76,7 +73,7 @@ export function JoinForm() {
       <button type="submit" className="sb-btn sb-btn-primary" disabled={pending} title={pending ? "Formulir sedang dikirim — tunggu sebentar." : undefined} aria-busy={pending}>
         {pending ? "Mengirim…" : "Kirim minat bergabung"}
       </button>
-      <p className="text-[11px] text-muted2">* Wajib diisi. Lingkungan demo — tidak ada data yang dikirim keluar.</p>
+      <p className="text-[11px] text-muted2">* Wajib diisi. Pengajuan disimpan untuk proses verifikasi keanggotaan.</p>
     </form>
   );
 }
