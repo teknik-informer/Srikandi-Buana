@@ -3,6 +3,7 @@
 import { StoreProvider, type Actor } from "@/lib/store";
 import { Toaster } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
+import { SearchProvider } from "@/components/search-dialog";
 import { DEMO_ACCOUNTS, type DemoIdentity } from "@/lib/identity";
 import { NOTICES } from "@/data/organization";
 import { FIELDS_BY_SLUG, type FieldDef } from "@/config/fields";
@@ -51,6 +52,7 @@ export function FieldShellChrome({
 
   return (
     <StoreProvider actor={actor}>
+    <SearchProvider>
     <AppShell
       identity={identity}
       accounts={DEMO_ACCOUNTS.map((a) => ({ key: a.key, label: a.label, scope: a.identity.scope }))}
@@ -60,6 +62,7 @@ export function FieldShellChrome({
     >
       {children}
     </AppShell>
+    </SearchProvider>
     <Toaster />
     </StoreProvider>
   );

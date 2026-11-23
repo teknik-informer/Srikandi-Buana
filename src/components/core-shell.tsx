@@ -3,6 +3,7 @@
 import { useStore, StoreProvider, type Actor } from "@/lib/store";
 import { Toaster } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
+import { SearchProvider } from "@/components/search-dialog";
 import { DEMO_ACCOUNTS, type DemoIdentity } from "@/lib/identity";
 import { NOTICES } from "@/data/organization";
 import type { AppKey } from "@/config/apps";
@@ -33,9 +34,11 @@ export function CoreShell({
 
   return (
     <StoreProvider actor={actor}>
-      <LiveChrome identity={identity} activeApp={activeApp} nav={nav}>
-        {children}
-      </LiveChrome>
+      <SearchProvider>
+        <LiveChrome identity={identity} activeApp={activeApp} nav={nav}>
+          {children}
+        </LiveChrome>
+      </SearchProvider>
       <Toaster />
     </StoreProvider>
   );

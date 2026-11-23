@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { APPS, type AppKey } from "@/config/apps";
 import { AppIcon } from "@/components/brand";
-import { TopSearch } from "@/components/top-search";
+import { SearchProvider, SearchButton } from "@/components/search-dialog";
 import { switchContext } from "@/app/actions/auth";
 import { MEMBERS } from "@/data/organization";
 import { demoNow } from "@/lib/store";
@@ -155,22 +155,15 @@ export function AppShell({
             />
           </Link>
 
-          {/* search — the real field: live results, ⌘K, arrow keys, Enter */}
-          <div className="ml-auto hidden min-w-0 max-w-[400px] flex-1 items-center md:flex">
-            <TopSearch />
-          </div>
-          <Link
-            href="/app/cari"
-            aria-label="Cari"
-            className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0d2b18]/55 text-white ring-1 ring-inset ring-white/20 md:hidden"
-          >
-            <Search size={16} />
-          </Link>
-
-          <div className="ml-auto flex items-center gap-1.5 md:ml-0">
+          {/* Right cluster — the previous site's model: create, then a compact
+              search button that opens the search dialog (also ⌘K), then the
+              bell and the person. The bar itself stays clean. */}
+          <div className="ml-auto flex items-center gap-1.5">
             <Link href="/app/cepat" className="hidden items-center gap-1 rounded-full bg-[#7ddc93] px-3.5 py-2 text-[12px] font-bold text-[#0e2a16] shadow-[0_6px_16px_-8px_rgba(0,0,0,0.5)] transition hover:bg-[#9ae8ac] sm:inline-flex">
               <Plus size={14} /> Buat
             </Link>
+
+            <SearchButton />
 
             {/* notifications */}
             <div className="relative">
@@ -290,7 +283,7 @@ export function AppShell({
                logo: the brand lives once, in the topbar. This panel opens by
                saying which application you are in. ── */}
         <aside
-          className={`no-print sb-nav-scroll fixed inset-y-0 left-0 z-30 w-[264px] overflow-y-auto border-r border-line bg-white pt-[68px] transition-transform lg:sticky lg:top-[68px] lg:h-[calc(100dvh-68px)] lg:translate-x-0 ${
+          className={`no-print fixed inset-y-0 left-0 z-30 flex w-[264px] flex-col overflow-hidden border-r border-line bg-white pt-[68px] transition-transform lg:sticky lg:top-[68px] lg:h-[calc(100dvh-68px)] lg:pt-0 lg:translate-x-0 ${
             mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
           }`}
         >
@@ -298,7 +291,7 @@ export function AppShell({
                  sidebar, as a card that mirrors the banner: same deep green,
                  same photographic tint. The topbar keeps only the brand, the
                  search and the person. ── */}
-          <div className="relative mt-3 px-2.5 sm:px-3 lg:min-h-[136px]">
+          <div className="relative z-20 shrink-0 px-2.5 pb-2 pt-2 sm:px-3">
             <button
               type="button"
               onClick={() => { setLauncher((v) => !v); }}
@@ -382,7 +375,9 @@ export function AppShell({
             )}
           </div>
 
-          <nav className="px-2.5 pb-3 pt-2.5 sm:px-3.5" aria-label="Navigasi aplikasi">
+          {/* Everything below the pinned card scrolls; the card never does. */}
+          <div className="sb-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <nav className="px-2.5 pb-3 pt-1 sm:px-3.5" aria-label="Navigasi aplikasi">
             {nav.map((group, gi) => (
               <div key={gi} className={gi > 0 ? "mt-3 border-t border-line pt-3" : "mt-1"}>
                 {group.label ? (
@@ -485,6 +480,7 @@ export function AppShell({
             <Link href="/app" className="flex items-center justify-between rounded-[10px] px-2.5 py-2 text-[11.5px] font-semibold text-ink2 transition hover:bg-[#f4f7f2] hover:text-[#14351f]">
               Semua aplikasi <ArrowUpRight size={13} />
             </Link>
+          </div>
           </div>
         </aside>
 
