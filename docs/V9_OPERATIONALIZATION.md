@@ -38,8 +38,10 @@ Files applied on the isolated development branch:
 14. `db/migrations/0014_business_partnerships_crm.sql`
 15. `db/migrations/0015_business_catalog_inventory.sql`
 16. `db/migrations/0016_business_sales_orders.sql`
+17. `db/migrations/0017_native_finance_journal_core.sql`
+18. `db/migrations/0018_native_finance_integrity_hardening.sql`
 
-The `v9` schema currently includes 47 tables:
+The `v9` schema currently includes 50 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
@@ -52,6 +54,7 @@ The `v9` schema currently includes 47 tables:
 - Business partners, opportunities, agreements, and cooperation milestones;
 - Business products, warehouses, per-warehouse stock balances, and immutable inventory movements;
 - Business customers, sales-order headers, and snapshot order-item lines;
+- Finance chart of accounts, double-entry journal headers, and journal lines;
 - audit events, organization settings, outbox events, and migration history.
 
 Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, letter, activity history, or operational KPI is seeded.
@@ -226,6 +229,20 @@ Technical implementation:
 - Order status does not mean payment status. There is no payment capture, cash receipt, receivable, revenue recognition, tax invoice, or journal posting. The order workflow and stock movement are deliberately separate from Finance.
 - No sample customers, orders, or order items have been seeded. Development counts remain zero until authorized staff record real business activity.
 
+### Keuangan Native — chart of accounts, double-entry journals, review, posting, and reversals
+
+- Native Finance core uses migrations `0017_native_finance_journal_core.sql` and `0018_native_finance_integrity_hardening.sql`. The three organization-scoped tables are `v9.finance_accounts`, `v9.finance_journals`, and `v9.finance_journal_lines`.
+- The initial COA in `src/data/coa.ts` is a technical proposal, not an adopted organizational accounting policy. It is not inserted automatically. A finance user with `finance:accounts:write` may explicitly load the proposed template; every imported account starts in `draft` status. The generic bank-account label is intentionally not tied to a specific bank and must be reviewed before activation.
+- New accounts and account edits are saved as drafts. Only an account approver with `finance:accounts:approve` may activate or archive accounts. An account code, account type, normal balance, and posting capability cannot be structurally changed after the account is referenced by a journal. Accounts referenced by any journal line cannot be archived.
+- Journal drafts hold up to 100 lines. Each line must be either debit or credit, not both. The server calculates the total from the selected active postable accounts; it does not trust browser totals or account labels.
+- The workflow is `draft → submitted → approved → posted`, with `rejected → draft` available only to the original journal maker for correction. Submission is blocked unless there are at least two lines and positive equal debit and credit totals.
+- Review is a maker-checker control: the journal creator cannot approve or reject their own journal. Posting is a separate permission (`finance:journal:post`) and only an approved journal can be posted.
+- Posted journals and their lines are immutable. Journal headers cannot be deleted. A posted journal can be corrected by creating one linked reversal draft with debit and credit swapped; the unique `reversal_of_id` permits at most one reversal draft per original journal. The reversal must pass through review and posting like any other journal.
+- Database triggers enforce draft-only journal insertion, draft-only line changes, valid state transitions, balanced lines on submission/posting, active/postable accounts, separate approver, immutability after posting, and no line transfer across journals or organizations. Audit events are written with each server-side mutation.
+- The dashboard, chart of accounts, and journal workspace are now database-backed at `/app/keuangan`, `/app/keuangan/bagan-akun`, and `/app/keuangan/jurnal`. The previous seeded demo journal list is no longer used by these three screens.
+- This is the first accounting core, not yet the complete Finance application. Cash/bank accounts, bank reconciliation, member dues, funds/restricted grants, budget commitments and realization, accounts payable/receivable, payment capture, POS integration, inventory valuation, tax invoices, and automated postings from orders are not yet operational database modules.
+- No opening balances, accounts, or journal transactions are inserted by migrations. The COA template appears only after an authorized user explicitly loads it; no balances or sample journal entries are seeded.
+
 ## Verification performed
 
 **Latest repository state**
@@ -237,8 +254,8 @@ Technical implementation:
 
 **Database and query validation**
 
-- Neon development database: 47 V9 tables and 16 applied migrations. This is the isolated development branch, not the production database.
-- Role `v9_app` was verified to have the required read/insert/update privileges on Agriculture, Training, CRM, catalogue, inventory, customer, order, order-item, and audit tables, plus the associated business reference sequences. It cannot create schema objects or read legacy user records.
+- Neon development database: 50 V9 tables and 18 applied migrations. This is the isolated development branch, not the production database. This is the isolated development branch, not the production database.
+- Role `v9_app` was verified to have the required read/insert/update privileges on Agriculture, Training, CRM, catalogue, inventory, customer, order, order-item, Finance account/journal/journal-line, and audit tables, plus the associated reference sequences. Database triggers constrain Finance line changes to draft journals and prevent edits to posted journals. It cannot create schema objects or read legacy user records.
 - Query-plan checks passed for the Agriculture summary/list queries and its five mutations: plot creation/status, crop-cycle creation/status, visit recording, and harvest recording.
 - Query-plan checks passed for the Training session/enrollment lists, session creation/status, capacity-aware registration, attendance, pre/post assessment upsert, certificate issuance/revocation, and public training listings.
 - Query-plan checks passed for CRM summary and lists, partner creation/status, opportunity creation/stage changes, agreement creation/status, and milestone creation/status.
@@ -247,15 +264,17 @@ Technical implementation:
 - Query-plan checks also passed for the catalogue, warehouse, stock-balance, movement, customer, order, and order-item workspace read queries and for public product list/detail queries.
 - Concurrent stock handling now locks the balance rows before movement calculations. Order reservation, fulfillment, and cancellation acquire multiple stock-row locks in deterministic product/warehouse order.
 - Database trigger inspection confirmed inventory movement rows reject UPDATE and DELETE. Corrections must be entered as new movements.
-- Current development counts are zero for Agriculture records, Training records, CRM records, products, warehouses, stock balances, stock movements, customers, orders, and order items. No sample operational data was inserted.
+- Current development counts are zero for Agriculture records, Training records, CRM records, products, warehouses, stock balances, stock movements, customers, orders, order items, Finance accounts, journals, and journal lines. No sample operational data or opening balances were inserted.
 
 **Application checks**
 
-- Completed CI runs have passed `npm ci`, `npm run typecheck`, and `npm run build` for prior iterations of the Agriculture, Training, CRM, catalogue, and order modules.
+- Completed CI runs have passed `npm ci`, `npm run typecheck`, and `npm run build` for prior iterations of the Agriculture, Training, CRM, catalogue, and order modules. The latest Finance additions are being checked by the active branch workflow.
 - Public `/produk` and `/produk/[slug]` use database-backed published products. Public training uses database-backed open/completed sessions.
 - The Business workspace uses separate routes for CRM, catalogue, warehouse/stock, and customer/orders. The prior hardcoded Business demo table in the generic field section was replaced by links to these live modules.
 - No browser E2E suite is defined in the current `package.json`; no real browser interaction, multi-user concurrency test, or real-account UAT has been completed.
 - No real operational records were inserted as part of query-plan validation.
+- Finance SQL query plans passed for COA template import, account create/update/status, journal draft create/update, submission, maker-checker review, posting, reopening a rejected draft, and creation of a linked reversal draft. Read-query plans passed for the COA register, journal register/detail lines, and Finance overview dashboard.
+- Neon privilege checks confirmed `v9_app` can read/insert/update Finance account and journal headers, read/insert/update/delete journal lines, write audit events, and use the journal reference sequence. The line-level database triggers still restrict updates/deletes to draft journals.
 
 **Release boundary**
 
@@ -269,7 +288,7 @@ Technical implementation:
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
 3. Some remaining operational modules still use the original client reducer and browser `localStorage` demo state. Each must be migrated to server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, producer/member profiles and product media, public self-service ordering/checkout, payment capture, receivables, deliveries/returns, payment reconciliation, native Finance posting, POS, field evidence, budgets, reports, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, producer/member profiles and product media, public self-service ordering/checkout, payment capture, cash/bank, bank reconciliation, member dues, restricted-fund controls, budget commitments and realization, accounts payable/receivable, deliveries/returns, automated order-to-ledger posting, POS, inventory valuation, tax invoices, field evidence, reports, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
