@@ -12,7 +12,6 @@ import {
 import { APPS, type AppKey } from "@/config/apps";
 import { AppIcon } from "@/components/brand";
 import { SearchProvider, SearchButton } from "@/components/search-dialog";
-import { switchContext } from "@/app/actions/auth";
 import { MEMBERS } from "@/data/organization";
 import { demoNow } from "@/lib/store";
 import type { DemoIdentity } from "@/lib/identity";
@@ -244,24 +243,6 @@ export function AppShell({
                       <div className="text-[12.5px] font-semibold text-ink">{identity.name}</div>
                       <div className="text-[11px] text-muted">{identity.role} · {identity.scope}</div>
                       <div className="mt-1.5 text-[10.5px] leading-snug text-muted2">{identity.note}</div>
-                    </div>
-                    <div className="px-2 py-2">
-                      <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Ganti konteks (demo)</div>
-                      <ul className="max-h-[220px] overflow-y-auto">
-                        {accounts.map((a) => (
-                          <li key={a.key}>
-                            <form action={switchContext.bind(null, a.key)}>
-                              <button
-                                type="submit"
-                                className="flex w-full items-center justify-between gap-2 rounded-[7px] px-2 py-1.5 text-left text-[11.5px] text-ink2 hover:bg-surface2"
-                              >
-                                <span>{a.label}</span>
-                                {a.key === identity.memberId ? <Check size={12} className="text-primary-700" /> : null}
-                              </button>
-                            </form>
-                          </li>
-                        ))}
-                      </ul>
                     </div>
                     <div className="border-t border-line px-2 py-2">
                       <Link href="/app/anggota/profil" className="flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-[11.5px] text-ink2 hover:bg-surface2">Profil &amp; preferensi</Link>
