@@ -51,6 +51,7 @@ interface SessionRow {
   confirmed_count: number;
   waitlisted_count: number;
   present_count: number;
+  can_complete: boolean;
 }
 
 interface ProgramOption {
@@ -242,7 +243,18 @@ export async function FieldTrainingSection({
           FROM v9.training_enrollments AS enrollment
           WHERE enrollment.session_id = session.id
             AND enrollment.attendance_status = 'hadir'
-        ) AS present_count
+        ) AS present_count,
+        (
+          session.session_date <= current_date
+          AND EXISTS (
+            SELECT 1
+            FROM v9.training_enrollments AS enrollment
+            WHERE enrollment.session_id = session.id
+              AND enrollment.organization_id = session.organization_id
+              AND enrollment.registration_status <> 'cancelled'
+              AND enrollment.attendance_status = 'hadir'
+          )
+        ) AS can_complete
       FROM v9.training_sessions AS session
       LEFT JOIN v9.field_programs AS program
         ON program.id = session.program_id
@@ -535,7 +547,7 @@ export async function FieldTrainingSection({
                     <form action={updateTrainingSessionStatus}>
                       <input type="hidden" name="session_id" value={selected.id} />
                       <input type="hidden" name="next_status" value="completed" />
-                      <button type="submit" className="sb-btn sb-btn-primary !h-8 !px-3 text-[10.5px]">Tandai selesai</button>
+                      <button type="submit" disabled={!selected.can_complete} className="sb-btn sb-btn-primary !h-8 !px-3 text-[10.5px]">Tandai selesai</button>
                     </form>
                   ) : null}
                   {["planned","registration_open","in_progress"].includes(selected.status) ? (
