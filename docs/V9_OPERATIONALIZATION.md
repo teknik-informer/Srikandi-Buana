@@ -37,9 +37,9 @@ Files applied on the isolated development branch:
 13. `db/migrations/0013_training_capacity_counter.sql`
 14. `db/migrations/0014_business_partnerships_crm.sql`
 15. `db/migrations/0015_business_catalog_inventory.sql`
-14. `db/migrations/0014_business_partnerships_crm.sql`
+16. `db/migrations/0016_business_sales_orders.sql`
 
-The `v9` schema currently includes 44 tables:
+The `v9` schema currently includes 47 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
@@ -51,7 +51,7 @@ The `v9` schema currently includes 44 tables:
 - Training sessions, enrollments, pre/post assessments, and certificate register;
 - Business partners, opportunities, agreements, and cooperation milestones;
 - Business products, warehouses, per-warehouse stock balances, and immutable inventory movements;
-- business partners, cooperation opportunities, agreements, and milestones;
+- Business customers, sales-order headers, and snapshot order-item lines;
 - audit events, organization settings, outbox events, and migration history.
 
 Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, letter, activity history, or operational KPI is seeded.
@@ -212,6 +212,20 @@ Technical implementation:
 - Inventory, product catalogue, customer orders, stock movements, and financial posting remain separate domains. This CRM does not automatically create stock, payments, receivables, revenue, or ledger entries.
 - Development record counts are currently zero for partners, opportunities, agreements, and milestones. No sample partner or pipeline records were inserted.
 
+### Pelanggan & Pesanan — customer register, order lifecycle, reservation, and fulfillment
+
+- Order operations use migration `0016_business_sales_orders.sql` and three organization-scoped tables: `v9.business_customers`, `v9.business_orders`, and `v9.business_order_items`.
+- Customers have an organization-scoped reference, type, name, contact, phone/email, address, and active/inactive status. Orders keep snapshots of customer name and contact so later changes to a customer profile do not rewrite historical order details.
+- A new order is a draft. One order can hold up to 20 distinct products. SKU, product name, unit, and unit price are snapshotted from the active product catalogue on the server; prices sent from the browser are not trusted.
+- The order lifecycle is `draft → confirmed → processing → ready → fulfilled`. Draft, confirmed, processing, and ready orders may be cancelled. Fulfilled orders cannot be cancelled by the normal workflow.
+- Confirmation locks the order and required stock rows, checks the full order against available stock after reservations, and reserves the complete quantity atomically. If any stock line is insufficient, the confirmation action does not reserve only part of the order.
+- Fulfillment locks the order and reserved stock, reduces both physical `on_hand` and `reserved` balances, writes an immutable `sale` inventory movement for each tracked product, and writes an audit event in the same statement. If any line cannot be fulfilled, the order is not partially fulfilled.
+- Cancellation releases all reserved quantities before changing the order to cancelled. If reservations cannot be released consistently, the cancellation is blocked rather than partially applied.
+- The internal workspace is connected at `/app/bidang/usaha/pesanan`. It provides customer registration, multi-item order creation, order listing, confirmation, processing/ready transitions, fulfillment, and cancellation.
+- Order channels can be recorded as internal, WhatsApp, partner, website, or POS origin. This is source attribution only; there is no public checkout, customer login ordering, or POS integration in this stage.
+- Order status does not mean payment status. There is no payment capture, cash receipt, receivable, revenue recognition, tax invoice, or journal posting. The order workflow and stock movement are deliberately separate from Finance.
+- No sample customers, orders, or order items have been seeded. Development counts remain zero until authorized staff record real business activity.
+
 ## Verification performed
 
 - GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
@@ -227,14 +241,15 @@ Technical implementation:
 - PostgreSQL query-plan checks passed for training summary, session list, enrollment list, session creation/status, capacity-aware registration, attendance, assessment upsert, certificate issuance/revocation, and participant cancellation with waitlist promotion.
 - GitHub Actions for the latest training public-page/session-context build completed successfully: install, typecheck, and production build.
 - GitHub Actions for Business & Partnerships CRM commit `5b13f67bb7245a48db9262e1132927dd389c14e2` completed successfully: install, typecheck, and production build.
-- PostgreSQL query-plan checks passed for product/warehouse/stock/movement lists, product creation/status/publication, warehouse creation, stock movement posting, and public product list queries.
+- PostgreSQL query-plan checks passed for product/warehouse/stock/movement lists, product creation/status/publication, warehouse creation, stock movement posting, and public product list/detail queries.
+- PostgreSQL query-plan checks passed for customer creation, multi-item order creation, order confirmation/reservation, status advancement, stock fulfillment/sale movement, order cancellation/reservation release, and the six customer/product/warehouse/order workspace queries.
 - PostgreSQL query-plan checks passed for business CRM summary, partner/opportunity/agreement/milestone lists, partner creation/status, opportunity creation/stage change, agreement creation/status, and milestone creation/status.
 - PostgreSQL query-plan checks passed for CRM summary, partner/opportunity/agreement/milestone lists, opportunity stage changes, agreement status changes, and milestone status changes.
 - GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
-- Neon development schema check: 40 V9 tables and fourteen applied migrations. Training and CRM record counts remain zero; no sample sessions, partners, or pipeline values were seeded.
-- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, business partners/opportunities/agreements/milestones, business products/warehouses/stock balances/inventory movements, and audit records; it cannot create schema objects or read legacy user records.
-- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, agriculture summary/plot/cycle/visit/harvest lists and mutations, business CRM summary/list/partner/opportunity/agreement/milestone operations, product/catalog/warehouse/stock queries and mutations, and public product list/detail queries.
+- Neon development schema check: 47 V9 tables and sixteen applied migrations. Training, CRM, customer, order, order-item, product, warehouse, balance, and movement record counts remain zero; no sample operational records were seeded.
+- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, business partners/opportunities/agreements/milestones, business products/warehouses/stock balances/inventory movements, customers/orders/order items, and audit records; it cannot create schema objects or read legacy user records.
+- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, agriculture summary/plot/cycle/visit/harvest lists and mutations, business CRM summary/list/partner/opportunity/agreement/milestone operations, product/catalog/warehouse/stock queries and mutations, public product list/detail queries, customer/order queries and mutations, and reservation/fulfillment/cancellation flows.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
 - SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
 - No browser E2E, real account login, or real data insertion test has been completed yet.
@@ -244,9 +259,9 @@ Technical implementation:
 
 1. Email verification, invitation and password-reset tokens, plus a reliable outbox delivery worker (using the agreed email provider), are not yet implemented.
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
-3. Several remaining operational modules still use the original client reducer and browser `localStorage` demo state. Each must be migrated to server-side domain services and shared database persistence before operational use.
+3. Some remaining operational modules still use the original client reducer and browser `localStorage` demo state. Each must be migrated to server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, business catalog/orders/stock and stock movement, field evidence, budgets, reports, finance, POS, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, producer master records and product media, public self-service ordering/checkout, payments, receivables, delivery/returns, native Finance posting, POS, field evidence, budgets, reports, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
