@@ -165,6 +165,27 @@ export interface Product {
   hpp: number;
 }
 
+/**
+ * Barang & persediaan — milik aplikasi Usaha & Kemitraan.
+ *
+ * Sengaja dipisah dari `Product`: satu produk katalog bisa punya beberapa
+ * batch/varian barang (mis. kemasan 250 g dan 500 g). Stok di sini adalah stok
+ * gudang yang dihitung fisik; `Product.stock` adalah stok yang dijual lewat POS.
+ */
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  stock: number;
+  minStock: number;
+  costPrice: number;
+  sellPrice: number;
+  location: string;
+  supplier: string;
+  updatedAt: string;
+}
+
 export interface Partner {
   id: string;
   name: string;

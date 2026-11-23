@@ -21,12 +21,12 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { JOURNALS as SEED_JOURNALS, BANK_STATEMENT as SEED_BANK, BUDGETS as SEED_BUDGETS } from "@/data/finance";
-import { LETTERS as SEED_LETTERS, NOTICES as SEED_NOTICES, APPROVALS as SEED_APPROVALS } from "@/data/organization";
-import { TASKS as SEED_TASKS, PRODUCTS as SEED_PRODUCTS, PROGRAMS as SEED_PROGRAMS, TRAININGS as SEED_TRAININGS } from "@/data/operations";
+import { LETTERS as SEED_LETTERS, NOTICES as SEED_NOTICES, APPROVALS as SEED_APPROVALS, DOCUMENTS as SEED_DOCUMENTS } from "@/data/organization";
+import { TASKS as SEED_TASKS, PRODUCTS as SEED_PRODUCTS, PROGRAMS as SEED_PROGRAMS, TRAININGS as SEED_TRAININGS, INVENTORY as SEED_INVENTORY, LANDS as SEED_LANDS, PARTNERS as SEED_PARTNERS } from "@/data/operations";
 import { COA as COA_CLIENT } from "@/data/coa";
-import type { JournalEntry, JournalLine, Letter, Notice, Approval, Task, Product, BankStatementRow } from "@/data/types";
+import type { JournalEntry, JournalLine, Letter, Notice, Approval, Task, Product, BankStatementRow, InventoryItem, DocumentRow, LandPlot, Partner } from "@/data/types";
 
-export const STORE_VERSION = 5;
+export const STORE_VERSION = 6;
 export const STORE_KEY = `sb_state_v${STORE_VERSION}`;
 
 export interface AuditEvent {
@@ -36,7 +36,7 @@ export interface AuditEvent {
   actorRole: string;
   action: string;
   detail: string;
-  app: "pengurus" | "keuangan" | "sekretariat" | "pos" | "anggota" | "sistem";
+  app: "pengurus" | "keuangan" | "sekretariat" | "pos" | "anggota" | "usaha" | "sistem";
   href?: string;
 }
 
@@ -55,6 +55,14 @@ export interface State {
   approvals: Approval[];
   tasks: Task[];
   products: Product[];
+  /** Barang/persediaan milik aplikasi Usaha (master data yang bisa di-CRUD). */
+  inventories: InventoryItem[];
+  /** Master data Sekretariat: arsip dokumen yang bisa di-CRUD. */
+  documents: DocumentRow[];
+  /** Master data Pertanian: petak lahan yang bisa di-CRUD. */
+  lands: LandPlot[];
+  /** Master data Usaha: mitra & kemitraan yang bisa di-CRUD. */
+  partners: Partner[];
   programs: typeof SEED_PROGRAMS;
   bank: BankStatementRow[];
   budgets: typeof SEED_BUDGETS;
@@ -107,6 +115,10 @@ function seedState(): State {
     approvals: SEED_APPROVALS.map((a) => ({ ...a, history: [...a.history] })),
     tasks: SEED_TASKS.map((t) => ({ ...t })),
     products: SEED_PRODUCTS.map((p) => ({ ...p })),
+    inventories: SEED_INVENTORY.map((i) => ({ ...i })),
+    documents: SEED_DOCUMENTS.map((d) => ({ ...d })),
+    lands: SEED_LANDS.map((l) => ({ ...l })),
+    partners: SEED_PARTNERS.map((p) => ({ ...p })),
     programs: SEED_PROGRAMS.map((p) => ({ ...p })),
     bank: SEED_BANK.map((b) => ({ ...b })),
     budgets: SEED_BUDGETS.map((b) => ({ ...b })),
@@ -152,7 +164,20 @@ export type Action =
   | { type: "program.publish"; code: string; actor: Actor }
   | { type: "bank.reconcile"; id: string; journalId: string; actor: Actor }
   | { type: "budget.request"; budgetId: string; amount: number; note: string; actor: Actor }
-  | { type: "training.enroll"; trainingId: string; actor: Actor };
+  | { type: "training.enroll"; trainingId: string; actor: Actor }
+  /* Master data Usaha: barang & persediaan — create/update/delete yang tercatat. */
+  | { type: "inventory.create"; item: Omit<InventoryItem, "id" | "updatedAt"> & { id?: string }; actor: Actor }
+  | { type: "inventory.update"; id: string; patch: Partial<InventoryItem>; actor: Actor }
+  | { type: "inventory.delete"; id: string; actor: Actor }
+  | { type: "document.create"; row: Omit<DocumentRow, "id">; actor: Actor }
+  | { type: "document.update"; id: string; patch: Partial<DocumentRow>; actor: Actor }
+  | { type: "document.delete"; id: string; actor: Actor }
+  | { type: "land.create"; row: Omit<LandPlot, "id">; actor: Actor }
+  | { type: "land.update"; id: string; patch: Partial<LandPlot>; actor: Actor }
+  | { type: "land.delete"; id: string; actor: Actor }
+  | { type: "partner.create"; row: Omit<Partner, "id">; actor: Actor }
+  | { type: "partner.update"; id: string; patch: Partial<Partner>; actor: Actor }
+  | { type: "partner.delete"; id: string; actor: Actor };
 
 export interface ExecResult {
   ok: boolean;
@@ -628,6 +653,238 @@ function applyAction(state: State, action: Action): { state: State; result: Exec
           detail: number,
         },
       };
+    }
+
+    /* ---------------- master data: barang & persediaan ---------------- */
+    case "inventory.create": {
+      const seq = state.seq + 1;
+      const taken = new Set(state.inventories.map((i) => i.id));
+      const prefix = "BRG-";
+      const nextId = action.item.id?.trim() || uniqueId(prefix, seq + 100, taken).id;
+      if (taken.has(nextId)) return fail(`Kode barang ${nextId} sudah dipakai.`);
+      const row: InventoryItem = {
+        ...action.item,
+        id: nextId,
+        updatedAt: DEMO_DAY,
+      };
+      const next: State = {
+        ...state,
+        seq,
+        inventories: [row, ...state.inventories],
+        audit: addAudit(state, {
+          actor: action.actor.name,
+          actorRole: action.actor.role,
+          action: "Menambah barang",
+          detail: `${row.id} — ${row.name}, stok ${row.stock} ${row.unit}.`,
+          app: "usaha",
+          href: "/app/bidang/usaha/data",
+        }),
+      };
+      return ok(next, `Barang ${row.id} ditambahkan.`, "/app/bidang/usaha/data");
+    }
+    case "inventory.update": {
+      const before = state.inventories.find((i) => i.id === action.id);
+      if (!before) return fail("Barang tidak ditemukan.");
+      const after: InventoryItem = { ...before, ...action.patch, id: before.id, updatedAt: DEMO_DAY };
+      const changes: string[] = [];
+      for (const k of Object.keys(action.patch) as (keyof InventoryItem)[]) {
+        if (k === "id" || k === "updatedAt") continue;
+        if (String(before[k]) !== String(after[k])) changes.push(`${k}: ${String(before[k])} → ${String(after[k])}`);
+      }
+      const next: State = {
+        ...state,
+        inventories: state.inventories.map((i) => (i.id === action.id ? after : i)),
+        audit: addAudit(state, {
+          actor: action.actor.name,
+          actorRole: action.actor.role,
+          action: "Mengubah barang",
+          detail: `${after.id} — ${after.name}. ${changes.length ? changes.join("; ") : "Tanpa perubahan nilai."}`,
+          app: "usaha",
+          href: "/app/bidang/usaha/data",
+        }),
+      };
+      return ok(next, `Barang ${after.id} diperbarui.`);
+    }
+    case "inventory.delete": {
+      const row = state.inventories.find((i) => i.id === action.id);
+      if (!row) return fail("Barang tidak ditemukan.");
+      const next: State = {
+        ...state,
+        inventories: state.inventories.filter((i) => i.id !== action.id),
+        audit: addAudit(state, {
+          actor: action.actor.name,
+          actorRole: action.actor.role,
+          action: "Menghapus barang",
+          detail: `${row.id} — ${row.name} dihapus dari daftar barang.`,
+          app: "usaha",
+          href: "/app/bidang/usaha/data",
+        }),
+      };
+      return ok(next, `Barang ${row.id} dihapus.`);
+    }
+
+    /* ---------------- master data: dokumen, lahan, mitra ---------------- */
+    case "document.create": {
+      const taken = new Set(state.documents.map((d) => d.id));
+      const id = uniqueId("DOC", state.seq + 20, taken).id;
+      const row: DocumentRow = { ...action.row, id };
+      return ok(
+        {
+          ...state,
+          seq: state.seq + 1,
+          documents: [row, ...state.documents],
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Menambah dokumen",
+            detail: `${row.number} — ${row.title} (${row.category}, akses ${row.visibility}).`,
+            app: "sekretariat", href: "/app/sekretariat/dokumen",
+          }),
+        },
+        `Dokumen ${row.number} ditambahkan.`,
+      );
+    }
+    case "document.update": {
+      const before = state.documents.find((d) => d.id === action.id);
+      if (!before) return fail("Dokumen tidak ditemukan.");
+      const after = { ...before, ...action.patch, id: before.id };
+      return ok(
+        {
+          ...state,
+          documents: state.documents.map((d) => (d.id === action.id ? after : d)),
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Mengubah dokumen",
+            detail: `${after.number} — ${after.title}. Status ${before.status} → ${after.status}, akses ${before.visibility} → ${after.visibility}.`,
+            app: "sekretariat", href: "/app/sekretariat/dokumen",
+          }),
+        },
+        `Dokumen ${after.number} diperbarui.`,
+      );
+    }
+    case "document.delete": {
+      const row = state.documents.find((d) => d.id === action.id);
+      if (!row) return fail("Dokumen tidak ditemukan.");
+      return ok(
+        {
+          ...state,
+          documents: state.documents.filter((d) => d.id !== action.id),
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Menghapus dokumen",
+            detail: `${row.number} — ${row.title} dihapus dari arsip aktif.`,
+            app: "sekretariat", href: "/app/sekretariat/dokumen",
+          }),
+        },
+        `Dokumen ${row.number} dihapus.`,
+      );
+    }
+    case "land.create": {
+      const taken = new Set(state.lands.map((l) => l.id));
+      const id = uniqueId("L", state.lands.length + 10, taken).id;
+      const row: LandPlot = { ...action.row, id };
+      return ok(
+        {
+          ...state,
+          seq: state.seq + 1,
+          lands: [row, ...state.lands],
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Menambah petak lahan",
+            detail: `${row.id} — ${row.commodity}, ${row.areaHa} ha, pemilik ${row.owner}.`,
+            app: "pengurus", href: "/app/bidang/pertanian/data",
+          }),
+        },
+        `Petak ${row.id} ditambahkan.`,
+      );
+    }
+    case "land.update": {
+      const before = state.lands.find((l) => l.id === action.id);
+      if (!before) return fail("Petak tidak ditemukan.");
+      const after = { ...before, ...action.patch, id: before.id };
+      return ok(
+        {
+          ...state,
+          lands: state.lands.map((l) => (l.id === action.id ? after : l)),
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Mengubah petak lahan",
+            detail: `${after.id} — ${after.commodity}. Status ${before.status} → ${after.status}, luas ${before.areaHa} → ${after.areaHa} ha.`,
+            app: "pengurus", href: "/app/bidang/pertanian/data",
+          }),
+        },
+        `Petak ${after.id} diperbarui.`,
+      );
+    }
+    case "land.delete": {
+      const row = state.lands.find((l) => l.id === action.id);
+      if (!row) return fail("Petak tidak ditemukan.");
+      return ok(
+        {
+          ...state,
+          lands: state.lands.filter((l) => l.id !== action.id),
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Menghapus petak lahan",
+            detail: `${row.id} — ${row.commodity} (${row.owner}) dihapus dari daftar petak.`,
+            app: "pengurus", href: "/app/bidang/pertanian/data",
+          }),
+        },
+        `Petak ${row.id} dihapus.`,
+      );
+    }
+    case "partner.create": {
+      const taken = new Set(state.partners.map((p) => p.id));
+      const id = uniqueId("MT", state.partners.length + 10, taken).id;
+      const row: Partner = { ...action.row, id };
+      return ok(
+        {
+          ...state,
+          seq: state.seq + 1,
+          partners: [row, ...state.partners],
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Menambah mitra",
+            detail: `${row.id} — ${row.name} (${row.type}), status ${row.status}.`,
+            app: "usaha", href: "/app/bidang/usaha/data",
+          }),
+        },
+        `Mitra ${row.id} ditambahkan.`,
+      );
+    }
+    case "partner.update": {
+      const before = state.partners.find((p) => p.id === action.id);
+      if (!before) return fail("Mitra tidak ditemukan.");
+      const after = { ...before, ...action.patch, id: before.id };
+      return ok(
+        {
+          ...state,
+          partners: state.partners.map((p) => (p.id === action.id ? after : p)),
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Mengubah mitra",
+            detail: `${after.id} — ${after.name}. Status ${before.status} → ${after.status}.`,
+            app: "usaha", href: "/app/bidang/usaha/data",
+          }),
+        },
+        `Mitra ${after.id} diperbarui.`,
+      );
+    }
+    case "partner.delete": {
+      const row = state.partners.find((p) => p.id === action.id);
+      if (!row) return fail("Mitra tidak ditemukan.");
+      return ok(
+        {
+          ...state,
+          partners: state.partners.filter((p) => p.id !== action.id),
+          audit: addAudit(state, {
+            actor: action.actor.name, actorRole: action.actor.role,
+            action: "Menghapus mitra",
+            detail: `${row.id} — ${row.name} dihapus dari daftar mitra.`,
+            app: "usaha", href: "/app/bidang/usaha/data",
+          }),
+        },
+        `Mitra ${row.id} dihapus.`,
+      );
     }
 
     /* ---------------- notices ---------------- */

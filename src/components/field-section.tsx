@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { FieldDef } from "@/config/fields";
 import { TASKS, ACTIVITIES, PROGRAMS, LANDS, HARVESTS, TRAININGS, ATTENDANCE, PRODUCTS, ORDERS, PARTNERS } from "@/data/operations";
@@ -5,6 +7,9 @@ import { MEMBERS, DOCUMENTS, APPROVALS } from "@/data/organization";
 import { BUDGETS } from "@/data/finance";
 import { Badge, Card, CardHeader, EmptyState, Notice, PageHeader, Progress, StatusBadge } from "@/components/ui";
 import { formatDateID, formatIDR, relativeID, percent } from "@/lib/format";
+import { InventoryCrud } from "@/components/inventory-crud";
+import { DocumentCrud, LandCrud, PartnerCrud } from "@/components/master-crud";
+import { useStoreOptional } from "@/lib/store";
 
 const TITLES: Record<string, { title: string; desc: string }> = {
   "profil-mandat": { title: "Profil & Mandat", desc: "Nama resmi, dasar pengesahan, fungsi, ruang lingkup, dan masa berlaku." },
@@ -221,8 +226,9 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
             <>
               <Card>
                 <CardHeader title="Lahan / petak" subtitle={`${LANDS.length} petak · ${LANDS.reduce((s, l) => s + l.areaHa, 0).toFixed(2)} ha`} />
+                <div className="px-4 pb-1 pt-2 text-[11px] text-muted2">Ringkasan baca-saja; pengelolaan penuh ada di tabel petak di bawah.</div>
                 <TableWrap head={["ID", "Pemilik", "Komoditas", "Luas", "Desa", "Status", "Kunjungan"]}>
-                  {LANDS.map((l) => (
+                  {LANDS.slice(0, 6).map((l) => (
                     <tr key={l.id}>
                       <td className="font-mono text-[11.5px] text-muted">{l.id}</td>
                       <td className="font-medium text-ink">{l.owner}</td>
@@ -235,6 +241,13 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
                   ))}
                 </TableWrap>
               </Card>
+              <div>
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-display text-[16px] font-bold text-ink">Kelola petak lahan</h2>
+                  <p className="text-[11px] text-muted2">Tambah, ubah, lihat, dan hapus — tercatat di jejak audit.</p>
+                </div>
+                <LandCrud />
+              </div>
               <Card>
                 <CardHeader title="Catatan panen" subtitle={`${HARVESTS.length} catatan · ${HARVESTS.reduce((s, h) => s + h.weightKg, 0).toLocaleString("id-ID")} kg`} />
                 <TableWrap head={["Tanggal", "Petak", "Komoditas", "Berat", "Grade", "Harga/kg", "Catatan"]}>
@@ -302,6 +315,14 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
                   ))}
                 </TableWrap>
               </Card>
+              {/* barang & persediaan: the module's working master data */}
+              <div>
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-display text-[16px] font-bold text-ink">Barang &amp; persediaan</h2>
+                  <p className="text-[11px] text-muted2">Tambah, ubah, lihat, dan hapus — semua tercatat di jejak audit.</p>
+                </div>
+                <InventoryCrud />
+              </div>
               <Card>
                 <CardHeader title="Pesanan" subtitle="Terhubung ke POS dan posting service keuangan" />
                 <TableWrap head={["ID", "Pelanggan", "Tanggal", "Kanal", "Nilai", "Status", "Jurnal"]}>
@@ -318,6 +339,13 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
                   ))}
                 </TableWrap>
               </Card>
+              <div>
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-display text-[16px] font-bold text-ink">Mitra &amp; kemitraan</h2>
+                  <p className="text-[11px] text-muted2">Tambah, ubah, lihat, dan hapus — tercatat di jejak audit.</p>
+                </div>
+                <PartnerCrud />
+              </div>
             </>
           )}
           {code === "organisasi" && (
@@ -373,6 +401,14 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
       )}
 
       {section === "dokumen" && (
+        <div className="space-y-4">
+        <div>
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display text-[16px] font-bold text-ink">Arsip dokumen</h2>
+            <p className="text-[11px] text-muted2">Tambah, ubah, lihat, dan hapus — tercatat di jejak audit.</p>
+          </div>
+          <DocumentCrud />
+        </div>
         <Card>
           <CardHeader title="Dokumen & bukti bidang" subtitle="Klasifikasi akses melekat pada setiap dokumen" />
           <TableWrap head={["Nomor", "Judul", "Kategori", "Tanggal", "Pemilik", "Akses", "Status"]}>
@@ -389,6 +425,7 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
             ))}
           </TableWrap>
         </Card>
+        </div>
       )}
 
       {section === "anggaran" && (

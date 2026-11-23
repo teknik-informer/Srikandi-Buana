@@ -2,6 +2,7 @@
 
 import type {
   LandPlot, Harvest, Training, AttendanceRow, Program, Activity, Task, Product, Partner, Order,
+  InventoryItem,
 } from "./types";
 
 export const PROGRAMS: Program[] = [
@@ -193,4 +194,19 @@ export const ORDERS: Order[] = [
   { id: "ORD-1118", customer: "Pengunjung bazar — Ani", date: "2026-11-17", items: [{ productId: "P-05", qty: 3, price: 18_000 }, { productId: "P-06", qty: 2, price: 15_000 }], status: "lunas", channel: "pos", journalId: "JRN-0013" },
   { id: "ORD-1117", customer: "Ibu Ratna (Temanggung)", date: "2026-11-15", items: [{ productId: "P-02", qty: 2, price: 85_000 }], status: "dikirim", channel: "whatsapp" },
   { id: "ORD-1116", customer: "Toko Oleh-oleh Khas", date: "2026-11-12", items: [{ productId: "P-06", qty: 30, price: 13_500 }], status: "batal", channel: "whatsapp" },
+];
+
+/**
+ * Barang & persediaan gudang (aplikasi Usaha). Angkanya konsisten dengan
+ * katalog: setiap produk terbit punya satu baris gudang dengan harga jual sama.
+ */
+export const INVENTORY: InventoryItem[] = [
+  { id: "BRG-001", name: "Kopi Arabika Srikandi 250 g", category: "Kopi", unit: "bungkus", stock: 84, minStock: 20, costPrice: 29_500, sellPrice: 45_000, location: "Rak A-1", supplier: "Kelompok Kopi Ngadimulyo", updatedAt: "2026-11-21" },
+  { id: "BRG-002", name: "Madu Trigona Murni 250 ml", category: "Madu", unit: "botol", stock: 32, minStock: 12, costPrice: 52_000, sellPrice: 85_000, location: "Rak B-2", supplier: "Suprapti", updatedAt: "2026-11-20" },
+  { id: "BRG-003", name: "Gula Aren Cetak 500 g", category: "Olahan Pangan", unit: "keping", stock: 120, minStock: 40, costPrice: 15_500, sellPrice: 25_000, location: "Rak C-1", supplier: "Suyati", updatedAt: "2026-11-19" },
+  { id: "BRG-004", name: "Beras Merah Organik 2 kg", category: "Beras", unit: "pak", stock: 60, minStock: 25, costPrice: 24_000, sellPrice: 38_000, location: "Rak D-1", supplier: "Ngatinem", updatedAt: "2026-11-18" },
+  { id: "BRG-005", name: "Teh Herbal Kampung 20 kantong", category: "Olahan Pangan", unit: "kotak", stock: 46, minStock: 20, costPrice: 10_800, sellPrice: 18_000, location: "Rak C-3", supplier: "Sri Wulandari", updatedAt: "2026-11-17" },
+  { id: "BRG-006", name: "Keripik Pisang Tani 150 g", category: "Olahan Pangan", unit: "bungkus", stock: 96, minStock: 30, costPrice: 9_200, sellPrice: 15_000, location: "Rak E-2", supplier: "Kelompok Usaha Bersama", updatedAt: "2026-11-16" },
+  { id: "BRG-007", name: "Kemasan kraft 500 g (kosong)", category: "Kemasan", unit: "lembar", stock: 240, minStock: 100, costPrice: 1_200, sellPrice: 0, location: "Gudang belakang", supplier: "Toko Kemasan Temanggung", updatedAt: "2026-11-15" },
+  { id: "BRG-008", name: "Label stiker merek (rol)", category: "Kemasan", unit: "rol", stock: 8, minStock: 10, costPrice: 35_000, sellPrice: 0, location: "Gudang belakang", supplier: "Percetakan Kedu", updatedAt: "2026-11-14" },
 ];

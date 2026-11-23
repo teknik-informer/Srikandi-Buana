@@ -120,7 +120,7 @@ export function AppShell({
     <div className="min-h-dvh bg-[#f7f9fc]">
       {/* ── TOPBAR — deep green, matching the reference dashboard ── */}
       <header className="no-print sticky top-0 z-40 bg-[#14351f] text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]">
-        <div className="sb-bar flex h-[60px] items-center gap-1 sm:gap-2 lg:gap-3">
+        <div className="sb-bar flex h-[68px] items-center gap-1 sm:gap-2 lg:gap-3">
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 text-white lg:hidden"
@@ -149,7 +149,7 @@ export function AppShell({
               alt="Srikandi Buana"
               width={900}
               height={329}
-              className="h-[24px] w-auto sm:h-[28px] lg:h-[31px]"
+              className="h-[32px] w-auto sm:h-[36px] lg:h-[42px]"
               decoding="async"
               fetchPriority="high"
             />
@@ -290,7 +290,7 @@ export function AppShell({
                logo: the brand lives once, in the topbar. This panel opens by
                saying which application you are in. ── */}
         <aside
-          className={`no-print fixed inset-y-0 left-0 z-30 w-[264px] overflow-y-auto border-r border-line bg-white pt-[60px] transition-transform lg:sticky lg:top-[60px] lg:h-[calc(100dvh-60px)] lg:translate-x-0 ${
+          className={`no-print sb-nav-scroll fixed inset-y-0 left-0 z-30 w-[264px] overflow-y-auto border-r border-line bg-white pt-[68px] transition-transform lg:sticky lg:top-[68px] lg:h-[calc(100dvh-68px)] lg:translate-x-0 ${
             mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
           }`}
         >
@@ -298,13 +298,13 @@ export function AppShell({
                  sidebar, as a card that mirrors the banner: same deep green,
                  same photographic tint. The topbar keeps only the brand, the
                  search and the person. ── */}
-          <div className="relative mt-3 px-2.5 sm:px-3">
+          <div className="relative mt-3 px-2.5 sm:px-3 lg:min-h-[136px]">
             <button
               type="button"
               onClick={() => { setLauncher((v) => !v); }}
               aria-expanded={launcher}
               aria-label={`Aplikasi aktif: ${app.short}. Ganti aplikasi`}
-              className="group relative w-full overflow-hidden rounded-[14px] text-left shadow-[0_10px_24px_-16px_rgba(9,32,19,0.9)] ring-1 ring-inset ring-white/10 transition hover:ring-white/25"
+              className="group relative flex w-full overflow-hidden rounded-[14px] text-left shadow-[0_10px_24px_-16px_rgba(9,32,19,0.9)] ring-1 ring-inset ring-white/10 transition hover:ring-white/25 lg:h-[124px]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -318,7 +318,7 @@ export function AppShell({
               {/* copy plate first, so it sits BEHIND the words (a scrim drawn
                   after the text dimmed it instead of backing it) */}
               <span className="pointer-events-none absolute inset-y-0 left-0 w-[86%] bg-[linear-gradient(90deg,rgba(9,32,19,0.90)_0%,rgba(9,32,19,0.80)_64%,rgba(9,32,19,0)_100%)]" aria-hidden />
-              <span className="relative flex items-center gap-2.5 px-2.5 py-3">
+              <span className="relative flex h-full w-full items-center gap-2.5 px-2.5 py-3 lg:px-3 lg:py-4">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[#0d2b18]/85 text-[#e4f6e8] ring-1 ring-inset ring-white/25">
                   <AppIcon name={app.icon} size={18} />
                 </span>

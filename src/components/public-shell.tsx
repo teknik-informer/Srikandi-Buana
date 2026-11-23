@@ -91,16 +91,17 @@ export function PublicHeader() {
             <Link href="/" aria-label="Srikandi Buana — beranda" className="shrink-0" onMouseEnter={() => setOpen(null)}>
               {/* The real lock-up at every size — on a phone it is simply
                   shorter, never replaced by a different mark. */}
-              <span className="block sm:hidden"><Wordmark height={30} /></span>
-              <span className="hidden sm:block"><Wordmark height={46} /></span>
+              <span className="block sm:hidden"><Wordmark height={38} /></span>
+              <span className="hidden lg:block"><Wordmark height={64} /></span>
+              <span className="hidden sm:block lg:hidden"><Wordmark height={46} /></span>
             </Link>
 
             {/* ── desktop nav: Beranda · Produk · four grouped panels ── */}
-            <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Menu utama">
+            <nav className="hidden min-w-0 items-center gap-0 lg:flex xl:gap-0.5" aria-label="Menu utama">
               <Link
                 href="/"
                 onMouseEnter={() => setOpen(null)}
-                className={`inline-flex items-center rounded-full px-3.5 py-2 text-[13.5px] font-semibold transition ${
+                className={`inline-flex items-center rounded-full px-2.5 py-2 text-[13px] font-semibold transition xl:px-3.5 xl:text-[13.5px] ${
                   pathname === "/" ? "text-[#123d32]" : "text-ink2 hover:text-[#123d32]"
                 }`}
               >
@@ -110,7 +111,7 @@ export function PublicHeader() {
               <Link
                 href="/produk"
                 onMouseEnter={() => setOpen(null)}
-                className={`inline-flex items-center rounded-full px-3.5 py-2 text-[13.5px] font-semibold transition ${
+                className={`inline-flex items-center rounded-full px-2.5 py-2 text-[13px] font-semibold transition xl:px-3.5 xl:text-[13.5px] ${
                   matches([{ href: "/produk" }], pathname) ? "text-[#123d32]" : "text-ink2 hover:text-[#123d32]"
                 }`}
               >
@@ -129,7 +130,7 @@ export function PublicHeader() {
                     onMouseEnter={() => setOpen(group.heading)}
                     onFocus={() => setOpen(group.heading)}
                     onClick={() => setOpen(isOpen ? null : group.heading)}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13.5px] font-semibold transition ${
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-2 text-[13px] font-semibold transition xl:gap-1.5 xl:px-3.5 xl:text-[13.5px] ${
                       isOpen || isActive ? "text-[#123d32]" : "text-ink2 hover:text-[#123d32]"
                     }`}
                   >
@@ -147,15 +148,15 @@ export function PublicHeader() {
               <button
                 type="button"
                 onClick={() => setPalette(true)}
-                className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-white px-3 text-[12.5px] font-medium text-muted transition hover:border-primary-300 hover:text-ink"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-2.5 text-[12.5px] font-medium text-muted transition hover:border-primary-300 hover:text-ink xl:gap-2 xl:px-3"
                 aria-label="Cari di situs"
               >
                 <Search size={14} />
                 <span className="hidden xl:inline">Cari</span>
-                <kbd className="hidden rounded border border-line bg-[#fafaf9] px-1.5 py-0.5 font-sans text-[10px] text-muted2 xl:inline">⌘K</kbd>
+                <kbd className="hidden rounded border border-line bg-[#fafaf9] px-1.5 py-0.5 font-sans text-[10px] text-muted2 2xl:inline">⌘K</kbd>
               </button>
-              <Link href="/kontak" className="sb-btn sb-btn-primary shrink-0 !px-3 !py-2 text-[12.5px] xl:!px-4 xl:text-[13px]">
-                Hubungi kami
+              <Link href="/kontak" className="sb-btn sb-btn-primary shrink-0 !px-2.5 !py-2 text-[12px] xl:!px-4 xl:text-[13px]">
+                <span className="hidden xl:inline">Hubungi kami</span><span className="xl:hidden">Kontak</span>
                 <ArrowRight size={14} />
               </Link>
               <Link

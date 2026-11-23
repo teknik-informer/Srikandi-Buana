@@ -563,3 +563,9 @@ body {
   0%   { transform: translateX(-110%); }
   100% { transform: translateX(260%); }
 }
+
+/* ── Sidebar scroll: the navigation column can be long, but the scrollbar
+      itself is chrome. Hide it in every engine while keeping the column
+      scrollable for keyboard, wheel and touch. ── */
+.sb-nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.sb-nav-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
