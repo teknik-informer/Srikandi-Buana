@@ -387,7 +387,6 @@ export async function confirmBusinessOrder(formData: FormData): Promise<void> {
           AND requirement.field_key = stock.field_key
         WHERE requirement.track_stock = true
         ORDER BY stock.product_id, stock.warehouse_id
-        ORDER BY stock.product_id, stock.warehouse_id
         FOR UPDATE OF stock
       ),
       validation AS MATERIALIZED (
@@ -601,6 +600,7 @@ export async function fulfillBusinessOrder(formData: FormData): Promise<void> {
           AND requirement.organization_id = stock.organization_id
           AND requirement.field_key = stock.field_key
         WHERE requirement.track_stock = true AND requirement.stock_reserved > 0
+        ORDER BY stock.product_id, stock.warehouse_id
         FOR UPDATE OF stock
       ),
       validation AS MATERIALIZED (
@@ -790,6 +790,7 @@ export async function cancelBusinessOrder(formData: FormData): Promise<void> {
           AND requirement.warehouse_id = stock.warehouse_id
           AND requirement.organization_id = stock.organization_id
           AND requirement.field_key = stock.field_key
+        ORDER BY stock.product_id, stock.warehouse_id
         FOR UPDATE OF stock
       ),
       validation AS MATERIALIZED (
