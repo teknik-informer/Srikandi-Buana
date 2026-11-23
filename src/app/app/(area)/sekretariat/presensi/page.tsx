@@ -353,6 +353,7 @@ export default async function PresensiPage({
                           <input type="hidden" name="guest_name" value={row.display_name} />
                         )}
                         {row.role_label ? <input type="hidden" name="guest_role" value={row.role_label} /> : null}
+                        {row.attendance_note ? <input type="hidden" name="attendance_note" value={row.attendance_note} /> : null}
                         <select name="attendance_status" defaultValue={row.attendance_status} className="sb-input !h-8 min-w-[142px] text-[10.5px]" aria-label={`Status kehadiran ${row.display_name}`}>
                           <option value="hadir">Hadir</option>
                           <option value="izin">Izin</option>
