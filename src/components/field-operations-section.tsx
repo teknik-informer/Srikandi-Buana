@@ -1,11 +1,5 @@
 import Link from "next/link";
-import {
-  Activity,
-  CalendarDays,
-  ClipboardList,
-  FilePlus2,
-  MapPin,
-} from "lucide-react";
+import { CalendarDays, FilePlus2, MapPin, Plus } from "lucide-react";
 import {
   Badge,
   Card,
