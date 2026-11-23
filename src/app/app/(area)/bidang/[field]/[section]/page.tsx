@@ -12,7 +12,6 @@ import { FieldOperationsSection } from "@/components/field-operations-section";
 import { FieldTeamSection } from "@/components/field-team-section";
 import { FieldAgricultureSection } from "@/components/field-agriculture-section";
 import { FieldTrainingSection } from "@/components/field-training-section";
-import { FieldInventorySection } from "@/components/field-inventory-section";
 import { FieldBusinessSection } from "@/components/field-business-section";
 import { FieldBusinessCatalogSection } from "@/components/field-business-catalog-section";
 
@@ -405,18 +404,6 @@ export default async function BidangSection({
     const search = await searchParams;
     return (
       <FieldBusinessCatalogSection
-        field={field}
-        mode={section}
-        result={search?.result}
-      />
-    );
-  }
-
-  if (["katalog", "persediaan"].includes(section)) {
-    if (slug !== "usaha") notFound();
-    const search = await searchParams;
-    return (
-      <FieldInventorySection
         field={field}
         mode={section}
         result={search?.result}
