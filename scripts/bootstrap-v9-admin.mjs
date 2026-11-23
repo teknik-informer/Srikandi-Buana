@@ -55,6 +55,10 @@ const rows = await sql`
     INSERT INTO v9.bootstrap_state (id)
     SELECT 1
     WHERE NOT EXISTS (SELECT 1 FROM v9.user_accounts)
+      AND EXISTS (
+        SELECT 1 FROM v9.organizations
+        WHERE slug = 'srikandi-buana' AND status = 'active'
+      )
     ON CONFLICT (id) DO NOTHING
     RETURNING id
   ),
