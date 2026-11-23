@@ -26,8 +26,9 @@ function getFieldKey(formData: FormData): string {
   return String(formData.get("field_key") ?? "").trim();
 }
 
-function ensurePermission(fieldKey: string, permission: string): void {
+function ensurePermission(identity: Awaited<ReturnType<typeof requireIdentity>>, fieldKey: string, permission: string): void {
   if (!FIELDS_BY_SLUG[fieldKey]) redirect("/app/bidang");
+  if (!can(identity, permission)) redirect("/app");
 }
 
 function error(area: string, reason: unknown): void {
@@ -44,7 +45,7 @@ function fieldPath(fieldKey: string, section: string, result: string): string {
 export async function createFieldWorkplan(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
-  ensurePermission(fieldKey, `field:${fieldKey}:workplan:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:workplan:write`);
 
   const title = normalize(String(formData.get("title") ?? ""));
   const objective = String(formData.get("objective") ?? "").trim();
@@ -120,7 +121,7 @@ export async function submitFieldWorkplan(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
   const id = String(formData.get("workplan_id") ?? "").trim();
-  ensurePermission(fieldKey, `field:${fieldKey}:workplan:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:workplan:write`);
   if (!validUuid(id)) redirect(fieldPath(fieldKey, "rencana", "invalid"));
 
   let changed = false;
@@ -167,7 +168,7 @@ export async function submitFieldWorkplan(formData: FormData): Promise<void> {
 export async function createFieldProgram(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
-  ensurePermission(fieldKey, `field:${fieldKey}:program:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:program:write`);
 
   const title = normalize(String(formData.get("title") ?? ""));
   const objective = String(formData.get("objective") ?? "").trim();
@@ -247,7 +248,7 @@ export async function addFieldProgramIndicator(formData: FormData): Promise<void
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
   const programId = String(formData.get("program_id") ?? "").trim();
-  ensurePermission(fieldKey, `field:${fieldKey}:program:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:program:write`);
   const label = normalize(String(formData.get("indicator_label") ?? ""));
   const unitLabel = String(formData.get("unit_label") ?? "").trim();
   const targetText = String(formData.get("target_value") ?? "").trim();
@@ -315,7 +316,7 @@ export async function addFieldProgramIndicator(formData: FormData): Promise<void
 export async function createFieldActivity(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
-  ensurePermission(fieldKey, `field:${fieldKey}:activity:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:activity:write`);
 
   const title = normalize(String(formData.get("title") ?? ""));
   const programId = String(formData.get("program_id") ?? "").trim();
@@ -403,7 +404,7 @@ export async function updateFieldActivityStatus(formData: FormData): Promise<voi
   const fieldKey = getFieldKey(formData);
   const activityId = String(formData.get("activity_id") ?? "").trim();
   const next = String(formData.get("next_status") ?? "").trim();
-  ensurePermission(fieldKey, `field:${fieldKey}:activity:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:activity:write`);
 
   if (!validUuid(activityId) || !["in_progress","completed","cancelled"].includes(next)) {
     redirect(fieldPath(fieldKey, "kegiatan", "invalid"));
@@ -456,7 +457,7 @@ export async function updateFieldActivityStatus(formData: FormData): Promise<voi
 export async function createFieldTask(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
-  ensurePermission(fieldKey, `field:${fieldKey}:task:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:task:write`);
 
   const title = normalize(String(formData.get("title") ?? ""));
   const description = String(formData.get("description") ?? "").trim();
@@ -541,7 +542,7 @@ export async function updateFieldTaskStatus(formData: FormData): Promise<void> {
   const fieldKey = getFieldKey(formData);
   const taskId = String(formData.get("task_id") ?? "").trim();
   const next = String(formData.get("next_status") ?? "").trim();
-  ensurePermission(fieldKey, `field:${fieldKey}:task:write`);
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:task:write`);
 
   if (!validUuid(taskId) || !["belum","proses","selesai","dibatalkan"].includes(next)) {
     redirect(fieldPath(fieldKey, "tugas", "invalid"));
