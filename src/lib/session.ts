@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { SESSION_COOKIE, type AppIdentity } from "@/lib/identity";
+import { SESSION_COOKIE, can, type AppIdentity } from "@/lib/identity";
 
 export { SESSION_COOKIE, DEMO_ACCOUNTS, ACCOUNT_BY_KEY, can, FIELD_APP_STATUS_LABEL } from "@/lib/identity";
 export type { AppIdentity, DemoIdentity } from "@/lib/identity";
