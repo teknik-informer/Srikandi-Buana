@@ -16,10 +16,15 @@ import {
   reviewFinanceJournal,
   submitFinanceJournal,
 } from "@/app/actions/finance";
-import { FinanceJournalComposer, type FinanceAccountOption } from "@/components/finance-journal-composer";
+import {
+  FinanceJournalComposer,
+  type FinanceAccountOption,
+  type FinanceJournalDraft,
+} from "@/components/finance-journal-composer";
 
 interface JournalLineRow {
   line_number: number;
+  account_id: string;
   account_code: string;
   account_name: string;
   memo: string | null;
@@ -86,6 +91,7 @@ const sourceLabel: Record<string, string> = {
 
 const resultMessages: Record<string, { tone: "success" | "warning" | "danger"; text: string }> = {
   "journal-created": { tone: "success", text: "Jurnal draf berhasil disimpan." },
+  "journal-updated": { tone: "success", text: "Perubahan jurnal draf berhasil disimpan." },
   "journal-submitted": { tone: "success", text: "Jurnal diajukan untuk pemeriksaan. Isi jurnal tidak dapat diedit sampai ditolak atau diposting." },
   "journal-approved": { tone: "success", text: "Jurnal disetujui dan siap diposting." },
   "journal-rejected": { tone: "warning", text: "Jurnal ditolak dengan catatan pemeriksaan. Pembuat dapat membuka kembali draf untuk perbaikan." },
@@ -172,6 +178,7 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
           SELECT jsonb_agg(
             jsonb_build_object(
               'line_number', line.line_number,
+              'account_id', line.account_id::text,
               'account_code', account.account_code,
               'account_name', account.account_name,
               'memo', line.memo,
@@ -280,6 +287,31 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
                     </div>
 
                     {journal.review_note ? <p className="mt-2 border-l-2 border-line pl-2 text-[10.5px] text-muted">Catatan pemeriksaan: {journal.review_note}</p> : null}
+                    {journal.status === "draft" && canWrite && journal.created_by === identity.userId ? (
+                      <details className="mt-3 rounded-lg border border-line bg-paper">
+                        <summary className="cursor-pointer px-3 py-2.5 text-[10.5px] font-semibold text-primary-800">
+                          Ubah draf jurnal
+                        </summary>
+                        <div className="border-t border-line bg-white">
+                          <FinanceJournalComposer
+                            accounts={accounts}
+                            initialJournal={{
+                              id: journal.id,
+                              journal_date: journal.journal_date,
+                              description: journal.description,
+                              source_type: journal.source_type,
+                              source_reference: journal.source_reference,
+                              lines: lines.map((line) => ({
+                                account_id: line.account_id,
+                                debit: line.debit,
+                                credit: line.credit,
+                                memo: line.memo,
+                              })),
+                            } satisfies FinanceJournalDraft}
+                          />
+                        </div>
+                      </details>
+                    ) : null}
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                       {journal.status === "draft" && canWrite ? (
                         balanced ? (
