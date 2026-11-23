@@ -26,18 +26,20 @@ Files applied on the isolated development branch:
 2. `db/migrations/0002_membership_interest_context.sql`
 3. `db/migrations/0003_first_admin_bootstrap.sql`
 4. `db/migrations/0004_membership_interest_org_scope.sql`
+5. `db/migrations/0005_secretariat_letters.sql`
 
-The `v9` schema currently includes 15 tables:
+The `v9` schema currently includes 16 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
 - hashed-token sessions and login rate limits;
 - organization-scoped membership-interest submissions and bootstrap state;
+- Secretariat letter register;
 - audit events, organization settings, outbox events, and migration history.
 
-Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, activity history, or operational KPI is seeded.
+Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, letter, activity history, or operational KPI is seeded.
 
-The database role `v9_app` is restricted to read/write operations in schema `v9`. Privilege checks confirmed it cannot read the legacy `public.users` table and cannot create objects in schema `v9`.
+The database role `v9_app` has read/write access to application tables in schema `v9`. Privilege checks confirmed it cannot read the legacy `public.users` table and cannot create objects in schema `v9`.
 
 ## Implemented application boundaries
 
@@ -46,7 +48,7 @@ The database role `v9_app` is restricted to read/write operations in schema `v9`
 - Server-only Neon client in `src/lib/db.ts`.
 - Dedicated environment variable `V9_DATABASE_URL`; it does not fall back to an old generic database URL.
 - Shared result normalization for Neon query return shapes.
-- Authenticated identity includes the organization ID; member and review queries enforce that scope.
+- Authenticated identity includes the organization ID; member, letter, and review queries enforce that scope.
 
 ### Identity and authentication
 
@@ -57,7 +59,7 @@ The database role `v9_app` is restricted to read/write operations in schema `v9`
 - Login attempts are rate limited per HMAC-protected email/IP subject pair.
 - Logout revokes the database session before clearing the cookie.
 - Page layouts apply server-side permission/role checks for Pengurus, Keuangan, Sekretariat, Bidang, Anggota, POS, and Studio.
-- Membership activation has a separate permission check; application access alone does not permit status changes.
+- Membership activation and Secretariat letter mutations have separate permission checks.
 - First administrator provisioning is a one-time CLI operation: `npm run bootstrap:v9-admin`. It requires explicit environment values and a confirmation phrase; it has not been run and no real account has been created.
 
 ### Membership-interest and membership workflow
@@ -83,14 +85,24 @@ Technical implementation:
 - Secretariat verification page is a read-only, database-backed application tracker. It does not duplicate the initial decision authority of the Organization & Membership field app.
 - Membership status changes are organization-scoped and audited. Activating a membership does not automatically create a login account.
 
+### Secretariat letter register
+
+- Letter registration writes to `v9.secretariat_letters` and an audit event in one SQL statement.
+- Incoming and outgoing records share one organization-scoped source of data.
+- The external/official letter number is optional and never invented by the application; the system generates a separate internal `REG-YYYY-NNNNNN` reference for traceability.
+- Letter status changes follow the controlled forward transition `baru → diproses → selesai`, with server-side permission checks and audit events.
+- The Expedition page reads the same letter register; there is no duplicate localStorage dataset.
+- No real letter records or demo letters were seeded into the V9 database.
+
 ## Verification performed
 
-- GitHub Actions run for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
+- GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
   - `npm ci`
   - `npm run typecheck`
   - `npm run build`
-- Neon development schema check: 15 V9 tables and four applied migrations.
-- Privilege checks: `v9_app` can update V9 membership/audit tables but cannot read legacy users or create schema objects.
+- GitHub Actions for the first Secretariat letter UI/server-page commit `e4379b2d857d2c6814abf4c82e70b18f501d35a7` completed successfully through typecheck and production build.
+- Neon development schema check: 16 V9 tables and five applied migrations.
+- Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
 - SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
 - No browser E2E, real account login, or real data insertion test has been completed yet.
 - No V9 deployment, Vercel environment change, domain switch, or production database migration has been performed.
@@ -101,7 +113,7 @@ Technical implementation:
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
 3. Most operational modules still use the original client reducer and browser `localStorage` demo state. They must be migrated into server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Finance, inventory, POS, Secretariat records other than the membership book, field-app workflows, portal access, file storage, and CMS publishing need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, minutes, attendance, documents and archives, plus field-app workplans, activities, forms, evidence, reports, finance, inventory, POS, portals, file storage, and CMS publishing need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
