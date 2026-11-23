@@ -373,6 +373,7 @@ export async function recordAgricultureVisit(formData: FormData): Promise<void> 
   const identity = await requireIdentity("field:pertanian:read");
   ensureAgricultureWrite(identity);
 
+  const plotId = String(formData.get("plot_id") ?? "").trim();
   const cycleId = String(formData.get("cycle_id") ?? "").trim();
   const visitDate = String(formData.get("visit_date") ?? "").trim();
   const visitType = String(formData.get("visit_type") ?? "").trim();
