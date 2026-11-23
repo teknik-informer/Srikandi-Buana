@@ -526,9 +526,10 @@ export async function issueTrainingCertificate(formData: FormData): Promise<void
         WHERE enrollment.id = ${enrollmentId}
           AND enrollment.organization_id = ${identity.organizationId}
           AND enrollment.field_key = 'pelatihan'
-          AND enrollment.registration_status IN ('registered','confirmed')
+          AND enrollment.registration_status <> 'cancelled'
           AND enrollment.attendance_status = 'hadir'
           AND session.status = 'completed'
+          AND ${issueDate}::date >= session.session_date
       ),
       inserted AS (
         INSERT INTO v9.training_certificates (
