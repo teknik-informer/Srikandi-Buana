@@ -4,7 +4,7 @@ import { useStore, StoreProvider, type Actor } from "@/lib/store";
 import { Toaster } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
 import { SearchProvider } from "@/components/search-dialog";
-import { DEMO_ACCOUNTS, type DemoIdentity } from "@/lib/identity";
+import type { DemoIdentity } from "@/lib/identity";
 import { NOTICES } from "@/data/organization";
 import type { AppKey } from "@/config/apps";
 
@@ -24,9 +24,8 @@ export function CoreShell({
   nav: { label?: string; items: { label: string; href: string; badge?: number }[] }[];
   children: React.ReactNode;
 }) {
-  const accountKey = DEMO_ACCOUNTS.find((a) => a.identity.memberId === identity.memberId)?.key ?? "ketua";
   const actor: Actor = {
-    key: accountKey,
+    key: identity.memberId,
     name: identity.name,
     role: identity.role,
     scope: identity.scope,
@@ -83,7 +82,7 @@ function LiveChrome({
   return (
     <AppShell
       identity={identity}
-      accounts={DEMO_ACCOUNTS.map((a) => ({ key: a.key, label: a.label, scope: a.identity.scope }))}
+      accounts={[]}
       activeApp={activeApp}
       nav={liveBadges}
       notices={state.notices.map((n) => ({

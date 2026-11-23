@@ -1,11 +1,8 @@
-import { redirect } from "next/navigation";
-import { getIdentity } from "@/lib/session";
+import { requireIdentity } from "@/lib/session";
 import { CoreShell } from "@/components/core-shell";
 
 export default async function PosLayout({ children }: { children: React.ReactNode }) {
-  const identity = await getIdentity();
-
-  if (!identity) redirect("/masuk");
+  const identity = await requireIdentity("pos:sell");
   return (
     <CoreShell
       identity={identity}

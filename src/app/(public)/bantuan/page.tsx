@@ -1,12 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Card, CardHeader, Notice, Badge } from "@/components/ui";
-import { DEMO_ACCOUNTS } from "@/lib/session";
+import { Card, CardHeader, Notice } from "@/components/ui";
 import { BLUEPRINT_VERSION } from "@/config/org";
 
 export const metadata: Metadata = {
   title: "Pusat Bantuan",
-  description: "Panduan pengguna per peran untuk lingkungan demo Srikandi Buana V9.1.",
+  description: "Panduan akses dan penggunaan platform Srikandi Buana V9.1.",
 };
 
 export default function BantuanPage() {
@@ -15,25 +14,18 @@ export default function BantuanPage() {
       <div className="sb-label mb-2">Pusat bantuan</div>
       <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Panduan per peran.</h1>
       <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Lingkungan demo blueprint {BLUEPRINT_VERSION}. Akun demo di bawah dapat dipakai untuk
-        menelusuri aplikasi sesuai peran dan cakupan aksesnya.
+        Platform V9.1 menggunakan akun yang diberikan pengurus. Menu dan cakupan akses ditentukan
+        oleh penugasan aktif pada organisasi. Versi rancangan: {BLUEPRINT_VERSION}.
       </p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader title="Akun demo" subtitle="Kata sandi semua akun: demo1234" />
-          <div className="divide-y divide-line">
-            {DEMO_ACCOUNTS.map((a) => (
-              <div key={a.key} className="flex items-center justify-between gap-3 px-5 py-2.5">
-                <div className="min-w-0">
-                  <div className="text-[12.5px] font-semibold text-ink">{a.label}</div>
-                  <div className="truncate font-mono text-[11px] text-muted">{a.email}</div>
-                </div>
-                <Badge tone="neutral">{a.identity.scope}</Badge>
-              </div>
-            ))}
+          <CardHeader title="Akses akun" subtitle="Diberikan setelah verifikasi dan penetapan penugasan." />
+          <div className="space-y-3 px-5 py-4 text-[12.5px] leading-relaxed text-ink2">
+            <p>Gunakan surel dan kata sandi yang diberikan oleh pengurus. Akun hanya dapat masuk setelah status aktif dan verifikasi surel terpenuhi.</p>
+            <p>Hak akses mengikuti peran serta lingkup penugasan. Tidak semua pengguna dapat membuka seluruh aplikasi atau data organisasi.</p>
           </div>
-          <div className="px-5 py-3"><Link href="/masuk" className="sb-btn sb-btn-primary !py-2 text-[12.5px]">Buka halaman masuk</Link></div>
+          <div className="px-5 py-3"><Link href="/masuk" className="sb-btn sb-btn-primary !py-2 text-[12.5px]">Masuk ke ruang kerja</Link></div>
         </Card>
 
         <div className="space-y-4">
@@ -52,9 +44,10 @@ export default function BantuanPage() {
               <li><Link href="/studio" className="font-semibold text-primary-700 hover:underline">Studio Pengelola</Link> — website, aplikasi, tema.</li>
             </ul>
           </Card>
-          <Notice tone="info" title="Batasan demo">
-            Data bersifat contoh dan berlabel. Tidak ada data produksi, tidak ada pembayaran nyata,
-            dan tidak ada dependensi akuntansi eksternal (Blueprint §33).
+          <Notice tone="info" title="Status pengembangan">
+            Formulir minat bergabung telah menggunakan penyimpanan database V9. Beberapa modul ruang
+            kerja masih dalam migrasi dari penyimpanan peramban ke database bersama; data sampel
+            belum boleh diperlakukan sebagai catatan organisasi resmi.
           </Notice>
         </div>
       </div>
@@ -78,18 +71,20 @@ export default function BantuanPage() {
           <div className="mt-4 border-t border-line px-5 pt-4">
             <h2 className="font-display text-[16px] font-semibold text-ink">Kebijakan privasi</h2>
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink2">
-              Tidak ada data pribadi nyata yang dikumpulkan. Formulir demo tidak mengirim data ke
-              server mana pun; isian hanya tersimpan di peramban Anda dan dapat dihapus dengan
-              membersihkan penyimpanan situs.
+              Formulir minat bergabung mengumpulkan nama, nomor WhatsApp, alamat, minat kegiatan,
+              pengalaman tani, dan catatan opsional setelah persetujuan diberikan. Data disimpan
+              pada database V9 untuk verifikasi keanggotaan dan hanya boleh diakses petugas yang
+              berwenang. Pengajuan minat belum berarti seseorang telah menjadi anggota.
             </p>
           </div>
           <div id="penyimpanan" className="pointer-events-none absolute -top-px h-px w-px scroll-mt-24" aria-hidden />
           <div className="mt-4 border-t border-line px-5 py-4">
             <h2 className="font-display text-[16px] font-semibold text-ink">Cookie &amp; penyimpanan</h2>
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink2">
-              Satu cookie sesi demo menandai peran yang sedang dipakai, dan ruang kerja menyimpan
-              keadaan percobaan di <span className="font-mono text-[11.5px]">localStorage</span>
-              peramban. Keduanya dapat dihapus kapan saja tanpa kehilangan data organisasi.
+              Sesi masuk memakai cookie HttpOnly selama delapan jam dan dicabut ketika pengguna
+              keluar. Beberapa modul ruang kerja masih menggunakan
+              <span className="font-mono text-[11.5px]"> localStorage </span>
+              peramban selama proses migrasi; data di sana bukan sumber data lintas perangkat.
             </p>
           </div>
           <div id="publikasi" className="pointer-events-none absolute -top-px h-px w-px scroll-mt-24" aria-hidden />

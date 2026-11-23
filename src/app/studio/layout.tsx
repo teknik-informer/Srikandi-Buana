@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { getIdentity } from "@/lib/session";
+import { requireRoles } from "@/lib/session";
 import { CoreShell } from "@/components/core-shell";
 
 const STUDIO_NAV = [
@@ -25,8 +24,7 @@ const STUDIO_NAV = [
 ];
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
-  const identity = await getIdentity();
-  if (!identity) redirect("/masuk");
+  const identity = await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <CoreShell identity={identity} activeApp="studio" nav={STUDIO_NAV}>
       {children}

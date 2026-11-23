@@ -4,7 +4,7 @@ import { StoreProvider, type Actor } from "@/lib/store";
 import { Toaster } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
 import { SearchProvider } from "@/components/search-dialog";
-import { DEMO_ACCOUNTS, type DemoIdentity } from "@/lib/identity";
+import type { DemoIdentity } from "@/lib/identity";
 import { NOTICES } from "@/data/organization";
 import { FIELDS_BY_SLUG, type FieldDef } from "@/config/fields";
 import { fieldNav } from "@/config/field-nav";
@@ -47,15 +47,14 @@ export function FieldShellChrome({
       ]
     : [{ label: "Bidang", items: [{ label: "Peta bidang", href: "/app/bidang" }] }];
 
-  const accountKey = DEMO_ACCOUNTS.find((a) => a.identity.memberId === identity.memberId)?.key ?? "ketua";
-  const actor: Actor = { key: accountKey, name: identity.name, role: identity.role, scope: identity.scope };
+  const actor: Actor = { key: identity.memberId, name: identity.name, role: identity.role, scope: identity.scope };
 
   return (
     <StoreProvider actor={actor}>
     <SearchProvider>
     <AppShell
       identity={identity}
-      accounts={DEMO_ACCOUNTS.map((a) => ({ key: a.key, label: a.label, scope: a.identity.scope }))}
+      accounts={[]}
       activeApp={field ? FIELD_APP_KEY[fieldSlug] ?? "organisasi" : "organisasi"}
       nav={nav}
       notices={NOTICES.map((n) => ({ id: n.id, title: n.title, date: n.date, href: n.href, unread: !n.read }))}
