@@ -188,6 +188,7 @@ function resultNotice(result?: string): { tone: "success" | "warning" | "danger"
     "opportunity-created": { tone: "success", text: "Peluang kerja sama berhasil dicatat." },
     "opportunity-updated": { tone: "success", text: "Tahap peluang berhasil diperbarui." },
     "opportunity-transition-blocked": { tone: "warning", text: "Perubahan tahap tidak sesuai dengan alur peluang." },
+    "outcome-required": { tone: "warning", text: "Keputusan akhir memerlukan catatan alasan minimal 3 karakter dan persetujuan pengurus." },
     "agreement-created": { tone: "success", text: "Draf perjanjian berhasil dibuat." },
     "agreement-updated": { tone: "success", text: "Status perjanjian berhasil diperbarui." },
     "agreement-transition-blocked": { tone: "warning", text: "Perubahan status perjanjian tidak dapat dilakukan dari status saat ini." },
@@ -384,7 +385,7 @@ export async function FieldBusinessSection({
                         <option value="prospect">Penjajakan</option>
                         <option value="active">Aktif</option>
                         <option value="inactive">Tidak aktif</option>
-                        <option value="ended">Akhiri hubungan</option>
+                        <option value="ended" disabled={!canApprove}>Akhiri hubungan · persetujuan pengurus</option>
                       </select>
                       <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-2 text-[9.5px]">Simpan</button>
                     </form>
@@ -465,7 +466,7 @@ export async function FieldBusinessSection({
                     <form action={updateBusinessOpportunityStage} className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
                       <input type="hidden" name="opportunity_id" value={opportunity.id} />
                       <select name="stage" defaultValue={opportunity.stage} className="sb-input !h-8 min-w-0 flex-1 text-[10px]" aria-label={`Tahap ${opportunity.title}`}>
-                        {opportunity.stage === "lead" ? <><option value="qualified">Terkualifikasi</option><option value="on_hold">Tunda</option><option value="lost">Tidak berhasil</option></> : null}
+                        {opportunity.stage === "lead" ? <><option value="qualified">Terkualifikasi</option><option value="on_hold">Tunda</option><option value="lost" disabled={!canApprove}>Tidak berhasil · persetujuan pengurus</option></> : null}
                         {opportunity.stage === "qualified" ? <><option value="proposal">Ajukan proposal</option><option value="on_hold">Tunda</option><option value="lost">Tidak berhasil</option></> : null}
                         {opportunity.stage === "proposal" ? <><option value="negotiation">Negosiasi</option><option value="won" disabled={!canApprove}>Berhasil · persetujuan pengurus</option><option value="lost">Tidak berhasil</option><option value="on_hold">Tunda</option></> : null}
                         {opportunity.stage === "negotiation" ? <><option value="won" disabled={!canApprove}>Berhasil · persetujuan pengurus</option><option value="lost">Tidak berhasil</option><option value="on_hold">Tunda</option></> : null}
