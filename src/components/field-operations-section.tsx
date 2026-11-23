@@ -13,6 +13,7 @@ import { can, requireIdentity } from "@/lib/session";
 import type { FieldDef } from "@/config/fields";
 import {
   addFieldProgramIndicator,
+  updateFieldProgramIndicatorActual,
   createFieldActivity,
   createFieldProgram,
   createFieldTask,
@@ -147,6 +148,7 @@ function resultNotice(result?: string): ResultNotice | null {
     "workplan-submitted": { tone: "success", text: "Rencana kerja diajukan untuk proses persetujuan organisasi." },
     "program-created": { tone: "success", text: "Program berhasil diregistrasikan." },
     "indicator-created": { tone: "success", text: "Indikator program berhasil ditambahkan. Capaian aktual tetap kosong sampai ada hasil yang dicatat." },
+    "indicator-updated": { tone: "success", text: "Capaian aktual indikator berhasil diperbarui dan dicatat pada audit." },
     "activity-created": { tone: "success", text: "Kegiatan berhasil dijadwalkan." },
     "activity-updated": { tone: "success", text: "Status kegiatan berhasil diperbarui." },
     "task-created": { tone: "success", text: "Tugas berhasil ditambahkan ke papan bidang." },
@@ -405,7 +407,27 @@ export async function FieldOperationsSection({
                                 <tr key={indicator.id}>
                                   <td className="py-1.5 pr-2 text-ink2">{indicator.indicator_label}</td>
                                   <td className="py-1.5 pr-2 text-muted">{indicator.target_value ?? "Belum ditetapkan"} {indicator.unit_label ?? ""}</td>
-                                  <td className="py-1.5 text-ink2">{indicator.actual_value ?? "Belum dicatat"} {indicator.unit_label ?? ""}</td>
+                                  <td className="py-1.5 text-ink2">
+                                    {canWritePrograms && program.status !== "cancelled" ? (
+                                      <form action={updateFieldProgramIndicatorActual} className="flex min-w-[150px] items-center gap-1.5">
+                                        <input type="hidden" name="field_key" value={field.slug} />
+                                        <input type="hidden" name="indicator_id" value={indicator.id} />
+                                        <input
+                                          name="actual_value"
+                                          type="number"
+                                          min="0"
+                                          step="0.0001"
+                                          defaultValue={indicator.actual_value ?? ""}
+                                          className="sb-input !h-8 min-w-0 w-[92px] text-[10.5px]"
+                                          placeholder="Belum dicatat"
+                                          aria-label={`Capaian aktual ${indicator.indicator_label}`}
+                                        />
+                                        <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-2 text-[9.5px]">Simpan</button>
+                                      </form>
+                                    ) : (
+                                      <span>{indicator.actual_value ?? "Belum dicatat"} {indicator.unit_label ?? ""}</span>
+                                    )}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
