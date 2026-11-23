@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getIdentity, DEMO_ACCOUNTS } from "@/lib/session";
+import { getIdentity } from "@/lib/session";
 import { LoginForm } from "@/components/login-form";
-import { DEMO_BANNER } from "@/config/org";
 
 export const metadata: Metadata = {
   title: "Masuk",
@@ -110,25 +109,16 @@ export default async function MasukPage() {
               Selamat datang kembali.
             </h2>
             <p className="mt-1 text-[12.5px] text-muted">
-              Pilih peran demo, lalu masuk — satu layar, tanpa gulir.
+              Masukkan surel akun Anda. Hak akses ditentukan dari penugasan organisasi.
             </p>
-            <LoginForm
-              accounts={DEMO_ACCOUNTS.map((a) => ({
-                key: a.key,
-                email: a.email,
-                label: a.label,
-                description: a.description,
-                scope: a.identity.scope,
-              }))}
-            />
+            <LoginForm />
             <p className="mt-3 border-t border-line pt-2.5 text-[10.5px] leading-snug text-muted2">
-              Lingkungan demo — sesi disimpan sebagai cookie lokal. Produksi wajib memakai penyedia
-              autentikasi terverifikasi dan otorisasi server-side (Blueprint §16.2 &amp; §13).
+              Sesi menggunakan cookie HttpOnly. Peran dan cakupan akses diperiksa dari penugasan organisasi di server.
             </p>
           </div>
         </div>
 
-        <p className="shrink-0 text-center text-[10.5px] text-white/55">{DEMO_BANNER}</p>
+        <p className="shrink-0 text-center text-[10.5px] text-white/55">Akses terbatas untuk pengguna yang memiliki akun dan penugasan aktif.</p>
       </div>
     </div>
   );
