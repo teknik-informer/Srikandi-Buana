@@ -23,17 +23,7 @@ export default async function WebsiteStudio({ searchParams }: { searchParams: Pr
       />
 
       {/* Settings first: the footer is the part of the site people edit most. */}
-      <div className="mb-5">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-[15px] font-semibold text-ink">Pengaturan situs</h2>
-            <p className="text-[12px] text-muted">
-              Identitas footer, kontak, dan media sosial — tersimpan di jejak audit dan langsung
-              tampil di situs publik.
-            </p>
-          </div>
-          <a href="#pengaturan" className="text-[11.5px] font-semibold text-primary hover:underline">Ke pengaturan ↓</a>
-        </div>
+      <div className="mb-6">
         <SiteSettingsPanel />
       </div>
 

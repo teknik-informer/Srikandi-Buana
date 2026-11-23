@@ -11,6 +11,7 @@ import { NEWS } from "@/data/content";
 import { formatIDR, formatDateID } from "@/lib/format";
 import { Progress, SectionTitle } from "@/components/ui";
 import { FieldMark } from "@/components/brand";
+import { DashboardArt } from "@/components/dashboard-art";
 import { HeroRibbon } from "@/components/hero-ribbon";
 
 export const metadata: Metadata = {
@@ -139,75 +140,50 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───────────── SOLUSI — a real screenshot of the product ─────────────
-           The hand-drawn browser mockup that used to sit here read as a sketch:
-           8px labels, fake numbers, a tiny line chart. This is the actual
-           Pengurus dashboard at 2× and it says the same thing without
-           pretending — the numbers on it are the demo's own. */}
+      {/* ───────────── SOLUSI — a designed dashboard scene ─────────────
+           Not a screenshot: an SVG composition in the same green-and-gold
+           language as the hero, with abstract bars in place of real figures,
+           so it reads as an invitation to the product and can never be
+           mistaken for live data. */}
       <section className="sb-shell py-16">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary-700">Tampilan sebenarnya</div>
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary-700">Satu layar, semua urusan</div>
             <h2 className="font-display text-[30px] leading-[1.15] text-ink sm:text-[36px]">
               Kelola organisasi lebih mudah &amp; efisien
             </h2>
           </div>
           <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-[var(--sb-muted)]">
-            Dari administrasi hingga pelaporan, semuanya di satu layar kerja: ringkasan anggota, lahan,
-            kas, program, dan agenda — responsif di desktop, tablet, dan ponsel.
+            Ringkasan anggota, lahan, kas, program, dan agenda bertemu di satu layar kerja —
+            responsif di desktop, tablet, dan ponsel.
           </p>
         </div>
 
-        <div className="relative">
-          {/* the photo behind the frame gives the plate depth without a drop-shadow blob */}
-          <div className="absolute inset-x-6 top-6 -z-10 h-full rounded-[26px] bg-[var(--sb-tint-green)]" aria-hidden />
-          <figure className="overflow-hidden rounded-[20px] border border-line bg-white shadow-[0_40px_80px_-40px_rgba(9,32,19,0.55)]">
-            <div className="flex items-center gap-2 border-b border-line bg-[#f7f9f6] px-4 py-2.5">
-              <span className="flex gap-1.5" aria-hidden>
-                <span className="h-2.5 w-2.5 rounded-full bg-[#e2b2ab]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#e8d3a5]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#b8d6bd]" />
-              </span>
-              <span className="ml-2 flex-1 truncate rounded-full border border-line bg-white px-3 py-1 text-[10.5px] text-muted2">
-                srikandi-buana-v9.vercel.app/app/pengurus
-              </span>
-              <span className="hidden rounded-full bg-[var(--sb-primary-50)] px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.12em] text-primary-700 sm:block">
-                Data contoh
-              </span>
+        <div className="grid items-center gap-8 lg:grid-cols-[1.25fr_1fr]">
+          <DashboardArt className="h-auto w-full" />
+          <div>
+            <ul className="space-y-3">
+              {[
+                ["Akses cepat di desktop, tablet & mobile", "Satu tata letak, tiga ukuran layar — tanpa aplikasi tambahan."],
+                ["Keamanan data berstandar tinggi", "Peran dan kewenangan menentukan apa yang terlihat dan dapat diubah."],
+                ["Dukungan penuh untuk produktivitas", "CRUD, ekspor CSV, dan jejak audit tercatat di setiap modul."],
+              ].map(([title, note]) => (
+                <li key={title} className="flex items-start gap-3 rounded-[14px] border border-line bg-white p-4">
+                  <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-primary-700" aria-hidden />
+                  <span>
+                    <span className="block text-[13px] font-semibold text-ink">{title}</span>
+                    <span className="mt-1 block text-[12px] leading-relaxed text-[var(--sb-muted)]">{note}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6">
+              <Link href="/program" className="sb-btn sb-btn-primary !px-6 !py-3 text-[13.5px]">
+                Jelajahi Fitur Lengkap
+                <ArrowRight size={16} />
+              </Link>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/produk-dasbor.jpg"
-              alt="Dasbor Pengurus Srikandi Buana: kartu angka anggota, lahan, kas, program, grafik aktivitas, dan agenda hari ini"
-              width={2880}
-              height={1720}
-              loading="lazy"
-              decoding="async"
-              className="block w-full"
-            />
-          </figure>
-        </div>
-
-        <ul className="mt-6 grid gap-3 sm:grid-cols-3">
-          {[
-            ["Akses cepat di desktop, tablet & mobile", "Satu tata letak, tiga ukuran layar — tanpa aplikasi tambahan."],
-            ["Keamanan data berstandar tinggi", "Peran dan kewenangan menentukan apa yang terlihat dan dapat diubah."],
-            ["Dukungan penuh untuk produktivitas", "CRUD, ekspor CSV, dan jejak audit tercatat di setiap modul."],
-          ].map(([title, note]) => (
-            <li key={title} className="flex items-start gap-2.5 rounded-[14px] border border-line bg-white p-3.5">
-              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-primary-700" aria-hidden />
-              <span>
-                <span className="block text-[12.5px] font-semibold text-ink">{title}</span>
-                <span className="mt-0.5 block text-[11.5px] leading-relaxed text-[var(--sb-muted)]">{note}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-7">
-          <Link href="/program" className="sb-btn sb-btn-primary !px-6 !py-3 text-[13.5px]">
-            Jelajahi Fitur Lengkap
-            <ArrowRight size={16} />
-          </Link>
+          </div>
         </div>
       </section>
 

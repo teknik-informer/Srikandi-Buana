@@ -55,6 +55,12 @@ export interface DraftJournal {
  * the footer through a tiny subscription (see lib/site-settings.ts).
  */
 export interface SiteSettings {
+  /**
+   * Branding lock-up shown in the footer: a wordmark image **with text**, so it
+   * matches the header exactly. Chips below choose among the bundled assets;
+   * `brandImage` may also be a data-URL uploaded from the studio.
+   */
+  brandImage: string;
   /** Shown under the emblem in the footer. */
   creditName: string;
   /** One line under the name — leave empty to hide the line entirely. */
@@ -80,6 +86,7 @@ export const SOCIAL_LABEL: Record<SocialKey, string> = {
 };
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  brandImage: "/brand/wordmark-on-dark.png",
   creditName: "Srikandi Buana",
   creditLine: "Perempuan tani, penggerak kemandirian desa.",
   email: "halo@srikandibuana.org",

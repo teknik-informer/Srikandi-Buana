@@ -455,21 +455,21 @@ export function PublicFooter() {
           {/* brand — emblem and lock-up straight on the green, no plate behind it */}
           <div>
             <Link href="/" className="inline-flex flex-col gap-3" aria-label="Beranda Srikandi Buana">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/emblem-gold.png"
-                alt=""
-                aria-hidden
-                width={400}
-                height={400}
-                className="h-11 w-11 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)]"
-              />
+              {/* the wordmark *with text*, same artwork as the header */}
+              {site.brandImage ? (
+                <img
+                  src={site.brandImage}
+                  alt="Srikandi Buana"
+                  width={1155}
+                  height={403}
+                  className="h-[62px] w-auto max-w-[270px] object-contain object-left drop-shadow-[0_10px_22px_rgba(0,0,0,0.42)] sm:h-[68px]"
+                  decoding="async"
+                />
+              ) : null}
               <span className="flex flex-col">
-                <span className="font-display text-[26px] leading-none tracking-[-0.01em] text-[#f4e6c3]">
-                  {site.creditName}
-                </span>
+                <span className="sr-only">{site.creditName}</span>
                 {site.creditLine ? (
-                  <span className="mt-1.5 max-w-[34ch] text-[12px] leading-relaxed text-[#a8c7b1]">
+                  <span className="max-w-[34ch] text-[12px] leading-relaxed text-[#a8c7b1]">
                     {site.creditLine}
                   </span>
                 ) : null}
