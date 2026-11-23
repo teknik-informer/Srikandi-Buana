@@ -310,7 +310,7 @@ export async function updateBusinessProductPublication(formData: FormData): Prom
         UPDATE v9.business_products
         SET
           publication_status = ${publicationStatus},
-          published_by = CASE WHEN ${publicationStatus} = 'published' THEN ${identity.userId} ELSE NULL END,
+          published_by = CASE WHEN ${publicationStatus} = 'published' THEN ${identity.userId}::uuid ELSE NULL END,
           published_at = CASE WHEN ${publicationStatus} = 'published' THEN now() ELSE NULL END,
           updated_by = ${identity.userId},
           updated_at = now()
