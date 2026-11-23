@@ -467,11 +467,11 @@ export async function FieldBusinessSection({
                       <select name="stage" defaultValue={opportunity.stage} className="sb-input !h-8 min-w-0 flex-1 text-[10px]" aria-label={`Tahap ${opportunity.title}`}>
                         {opportunity.stage === "lead" ? <><option value="qualified">Terkualifikasi</option><option value="on_hold">Tunda</option><option value="lost">Tidak berhasil</option></> : null}
                         {opportunity.stage === "qualified" ? <><option value="proposal">Ajukan proposal</option><option value="on_hold">Tunda</option><option value="lost">Tidak berhasil</option></> : null}
-                        {opportunity.stage === "proposal" ? <><option value="negotiation">Negosiasi</option><option value="won">Berhasil</option><option value="lost">Tidak berhasil</option><option value="on_hold">Tunda</option></> : null}
-                        {opportunity.stage === "negotiation" ? <><option value="won">Berhasil</option><option value="lost">Tidak berhasil</option><option value="on_hold">Tunda</option></> : null}
-                        {opportunity.stage === "on_hold" ? <><option value="lead">Buka kembali</option><option value="qualified">Terkualifikasi</option><option value="proposal">Proposal</option><option value="negotiation">Negosiasi</option><option value="won">Berhasil</option><option value="lost">Tidak berhasil</option></> : null}
+                        {opportunity.stage === "proposal" ? <><option value="negotiation">Negosiasi</option><option value="won" disabled={!canApprove}>Berhasil · persetujuan pengurus</option><option value="lost">Tidak berhasil</option><option value="on_hold">Tunda</option></> : null}
+                        {opportunity.stage === "negotiation" ? <><option value="won" disabled={!canApprove}>Berhasil · persetujuan pengurus</option><option value="lost">Tidak berhasil</option><option value="on_hold">Tunda</option></> : null}
+                        {opportunity.stage === "on_hold" ? <><option value="lead">Buka kembali</option><option value="qualified">Terkualifikasi</option><option value="proposal">Proposal</option><option value="negotiation">Negosiasi</option><option value="won" disabled={!canApprove}>Berhasil · persetujuan pengurus</option><option value="lost">Tidak berhasil</option></> : null}
                       </select>
-                      <input name="outcome_note" maxLength={3000} className="sb-input !h-8 min-w-0 flex-1 text-[10px]" placeholder="Catatan hasil / tindak lanjut" />
+                      <input name="outcome_note" maxLength={3000} className="sb-input !h-8 min-w-0 flex-1 text-[10px]" placeholder="Alasan wajib bila tidak berhasil · catatan tindak lanjut" />
                       <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-2 text-[9.5px]">Ubah tahap</button>
                     </form>
                   ) : null}
