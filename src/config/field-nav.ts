@@ -15,6 +15,7 @@ const SECTIONS: { key: string; label: string; group: string }[] = [
   { key: "data", label: "Data Operasional", group: "Data Operasional" },
   { key: "katalog", label: "Katalog Produk", group: "Produk & Persediaan" },
   { key: "persediaan", label: "Gudang & Persediaan", group: "Produk & Persediaan" },
+  { key: "pesanan", label: "Pelanggan & Pesanan", group: "Penjualan" },
   { key: "formulir", label: "Formulir & Pendataan", group: "Formulir" },
   { key: "pengajuan", label: "Pengajuan Keanggotaan", group: "Formulir" },
   { key: "dokumen", label: "Dokumen & Bukti", group: "Dokumen" },
@@ -31,7 +32,7 @@ export function fieldNav(field: FieldDef): FieldNavGroup[] {
   const groups = new Map<string, { label: string; href: string }[]>();
   const visibleSections = SECTIONS.filter((section) => {
     if (section.key === "pengajuan") return field.slug === "organisasi";
-    if (section.key === "katalog" || section.key === "persediaan") return field.slug === "usaha";
+    if (section.key === "katalog" || section.key === "persediaan" || section.key === "pesanan") return field.slug === "usaha";
     return true;
   });
 
