@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import type { FieldDef } from "@/config/fields";
-import { TASKS, ACTIVITIES, PROGRAMS, LANDS, HARVESTS, TRAININGS, ATTENDANCE, PRODUCTS, ORDERS, PARTNERS } from "@/data/operations";
+import { TASKS, ACTIVITIES, PROGRAMS, LANDS, HARVESTS, TRAININGS, ATTENDANCE } from "@/data/operations";
 import { MEMBERS, DOCUMENTS, APPROVALS } from "@/data/organization";
 import { BUDGETS } from "@/data/finance";
 import { Badge, Card, CardHeader, EmptyState, Notice, PageHeader, Progress, StatusBadge } from "@/components/ui";
 import { formatDateID, formatIDR, relativeID, percent } from "@/lib/format";
-import { InventoryCrud } from "@/components/inventory-crud";
-import { DocumentCrud, LandCrud, PartnerCrud } from "@/components/master-crud";
+import { DocumentCrud, LandCrud } from "@/components/master-crud";
 import { useStoreOptional } from "@/lib/store";
 
 const TITLES: Record<string, { title: string; desc: string }> = {
@@ -298,55 +297,38 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
             </>
           )}
           {code === "usaha" && (
-            <>
-              <Card>
-                <CardHeader title="Katalog & stok" subtitle={`${PRODUCTS.length} produk · ${PRODUCTS.filter((p) => p.published).length} terpublikasi`} />
-                <TableWrap head={["Produk", "Kategori", "Harga", "HPP", "Margin", "Stok", "Publikasi"]}>
-                  {PRODUCTS.map((p) => (
-                    <tr key={p.id}>
-                      <td className="font-medium text-ink">{p.name}</td>
-                      <td>{p.category}</td>
-                      <td>{formatIDR(p.price)}</td>
-                      <td className="text-muted">{formatIDR(p.hpp)}</td>
-                      <td className="font-semibold text-primary-800">{percent(p.price - p.hpp, p.price)}%</td>
-                      <td>{p.stock}</td>
-                      <td><Badge tone={p.published ? "success" : "neutral"}>{p.published ? "Tayang" : "Draf"}</Badge></td>
-                    </tr>
-                  ))}
-                </TableWrap>
-              </Card>
-              {/* barang & persediaan: the module's working master data */}
-              <div>
-                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-[16px] font-bold text-ink">Barang &amp; persediaan</h2>
-                  <p className="text-[11px] text-muted2">Tambah, ubah, lihat, dan hapus — semua tercatat di jejak audit.</p>
-                </div>
-                <InventoryCrud />
-              </div>
-              <Card>
-                <CardHeader title="Pesanan" subtitle="Terhubung ke POS dan posting service keuangan" />
-                <TableWrap head={["ID", "Pelanggan", "Tanggal", "Kanal", "Nilai", "Status", "Jurnal"]}>
-                  {ORDERS.map((o) => (
-                    <tr key={o.id}>
-                      <td className="font-mono text-[11.5px] text-muted">{o.id}</td>
-                      <td className="font-medium text-ink">{o.customer}</td>
-                      <td className="text-muted">{formatDateID(o.date, "short")}</td>
-                      <td className="capitalize">{o.channel}</td>
-                      <td>{formatIDR(o.items.reduce((s, i) => s + i.qty * i.price, 0))}</td>
-                      <td><StatusBadge status={o.status === "lunas" ? "Lunas" : o.status} /></td>
-                      <td className="font-mono text-[11px] text-muted">{o.journalId ?? "—"}</td>
-                    </tr>
-                  ))}
-                </TableWrap>
-              </Card>
-              <div>
-                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-[16px] font-bold text-ink">Mitra &amp; kemitraan</h2>
-                  <p className="text-[11px] text-muted2">Tambah, ubah, lihat, dan hapus — tercatat di jejak audit.</p>
-                </div>
-                <PartnerCrud />
-              </div>
-            </>
+            <div className="grid gap-3 md:grid-cols-2">
+              {[
+                {
+                  title: "CRM Mitra & Peluang",
+                  description: "Register mitra, peluang usaha, perjanjian, dan milestone kerja sama.",
+                  href: `${field.appHref}/data`,
+                },
+                {
+                  title: "Katalog Produk",
+                  description: "Data produk, harga jual, HPP internal, status, dan persetujuan publikasi.",
+                  href: `${field.appHref}/katalog`,
+                },
+                {
+                  title: "Gudang & Persediaan",
+                  description: "Saldo per gudang, penerimaan, penyesuaian, reservasi, dan riwayat mutasi.",
+                  href: `${field.appHref}/persediaan`,
+                },
+                {
+                  title: "Pelanggan & Pesanan",
+                  description: "Register pelanggan, item pesanan, konfirmasi, pemenuhan, dan pembatalan.",
+                  href: `${field.appHref}/pesanan`,
+                },
+              ].map((module) => (
+                <Card key={module.href} className="p-4">
+                  <h2 className="text-[13px] font-semibold text-ink">{module.title}</h2>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-muted">{module.description}</p>
+                  <Link href={module.href} className="mt-3 inline-flex text-[11px] font-semibold text-primary-700 hover:underline">
+                    Buka modul <span aria-hidden="true">→</span>
+                  </Link>
+                </Card>
+              ))}
+            </div>
           )}
           {code === "organisasi" && (
             <Card>
