@@ -14,6 +14,7 @@ import { can, requireIdentity } from "@/lib/session";
 import type { FieldDef } from "@/config/fields";
 import {
   createTrainingSession,
+  cancelTrainingEnrollment,
   enrollTrainingParticipant,
   issueTrainingCertificate,
   recordTrainingAssessment,
@@ -129,6 +130,8 @@ function resultNotice(result?: string) {
     "session-created": { tone: "success", text: "Sesi pelatihan berhasil dibuat." },
     "session-updated": { tone: "success", text: "Status sesi berhasil diperbarui." },
     "participant-enrolled": { tone: "success", text: "Peserta berhasil didaftarkan. Periksa status pendaftaran atau daftar tunggu." },
+    "participant-cancelled": { tone: "success", text: "Pendaftaran dibatalkan. Satu peserta daftar tunggu teratas dipromosikan otomatis bila slot tersedia." },
+    "enrollment-cancel-blocked": { tone: "warning", text: "Pendaftaran tidak dapat dibatalkan pada status sesi atau presensi saat ini." },
     "attendance-updated": { tone: "success", text: "Presensi peserta berhasil diperbarui." },
     "assessment-saved": { tone: "success", text: "Nilai asesmen berhasil disimpan." },
     "certificate-issued": { tone: "success", text: "Register sertifikat internal berhasil diterbitkan." },
@@ -602,6 +605,13 @@ export async function FieldTrainingSection({
                           </Badge>
                         </div>
                       </div>
+
+                      {canWrite && selected.status === "registration_open" && enrollment.registration_status !== "cancelled" && enrollment.attendance_status === "not_marked" ? (
+                        <form action={cancelTrainingEnrollment} className="mt-3 flex justify-end border-t border-line pt-2">
+                          <input type="hidden" name="enrollment_id" value={enrollment.id} />
+                          <button type="submit" className="sb-btn sb-btn-ghost !h-8 !px-3 text-[10px]">Batalkan pendaftaran</button>
+                        </form>
+                      ) : null}
 
                       {canWrite && canRecordResults && enrollment.registration_status !== "cancelled" ? (
                         <div className="mt-3 grid gap-3 border-t border-line pt-3 lg:grid-cols-2">
