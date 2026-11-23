@@ -11,6 +11,7 @@ import { decideMembershipInterest } from "@/app/actions/membership";
 import { FieldOperationsSection } from "@/components/field-operations-section";
 import { FieldTeamSection } from "@/components/field-team-section";
 import { FieldAgricultureSection } from "@/components/field-agriculture-section";
+import { FieldTrainingSection } from "@/components/field-training-section";
 
 export const metadata: Metadata = { title: "Aplikasi Bidang" };
 
@@ -357,7 +358,7 @@ export default async function BidangSection({
   searchParams,
 }: {
   params: Promise<{ field: string; section: string }>;
-  searchParams?: Promise<{ result?: string }>;
+  searchParams?: Promise<{ result?: string; session_id?: string }>;
 }) {
   const { field: slug, section } = await params;
   const field = FIELDS_BY_SLUG[slug];
@@ -378,6 +379,17 @@ export default async function BidangSection({
   if (section === "data" && slug === "pertanian") {
     const search = await searchParams;
     return <FieldAgricultureSection field={field} result={search?.result} />;
+  }
+
+  if (section === "data" && slug === "pelatihan") {
+    const search = await searchParams;
+    return (
+      <FieldTrainingSection
+        field={field}
+        sessionId={search?.session_id}
+        result={search?.result}
+      />
+    );
   }
 
   if (["rencana", "kegiatan", "tugas"].includes(section)) {
