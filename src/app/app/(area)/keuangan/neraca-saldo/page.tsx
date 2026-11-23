@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { NeracaClient } from "./neraca-client";
+import { FinanceTrialBalanceSection } from "@/components/finance-trial-balance-section";
 
 export const metadata: Metadata = { title: "Neraca Saldo" };
 
-export default function NeracaSaldoPage() {
-  return <NeracaClient />;
+export default async function NeracaSaldoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ as_of?: string }>;
+}) {
+  const { as_of: asOf } = await searchParams;
+  return <FinanceTrialBalanceSection asOf={asOf} />;
 }
