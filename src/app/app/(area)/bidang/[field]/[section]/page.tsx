@@ -14,6 +14,7 @@ import { FieldAgricultureSection } from "@/components/field-agriculture-section"
 import { FieldTrainingSection } from "@/components/field-training-section";
 import { FieldBusinessSection } from "@/components/field-business-section";
 import { FieldBusinessCatalogSection } from "@/components/field-business-catalog-section";
+import { FieldBusinessOrdersSection } from "@/components/field-business-orders-section";
 
 export const metadata: Metadata = { title: "Aplikasi Bidang" };
 
@@ -409,6 +410,12 @@ export default async function BidangSection({
         result={search?.result}
       />
     );
+  }
+
+  if (section === "pesanan") {
+    if (slug !== "usaha") notFound();
+    const search = await searchParams;
+    return <FieldBusinessOrdersSection field={field} result={search?.result} />;
   }
 
   if (["rencana", "kegiatan", "tugas"].includes(section)) {
