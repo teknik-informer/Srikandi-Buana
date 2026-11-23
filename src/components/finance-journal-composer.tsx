@@ -1,13 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { createFinanceJournalDraft } from "@/app/actions/finance";
+import { Plus, Save, Trash2 } from "lucide-react";
+import {
+  createFinanceJournalDraft,
+  updateDraftFinanceJournal,
+} from "@/app/actions/finance";
 
 export interface FinanceAccountOption {
   id: string;
   account_code: string;
   account_name: string;
+}
+
+export interface FinanceJournalDraftLine {
+  account_id: string;
+  debit: string;
+  credit: string;
+  memo: string | null;
+}
+
+export interface FinanceJournalDraft {
+  id: string;
+  journal_date: string;
+  description: string;
+  source_type: string;
+  source_reference: string | null;
+  lines: FinanceJournalDraftLine[];
 }
 
 interface DraftLine {
@@ -34,14 +53,25 @@ function currency(value: number): string {
 
 export function FinanceJournalComposer({
   accounts,
+  initialJournal,
 }: {
   accounts: FinanceAccountOption[];
+  initialJournal?: FinanceJournalDraft;
 }) {
-  const [lines, setLines] = useState<DraftLine[]>([emptyLine(), emptyLine()]);
-  const [description, setDescription] = useState("");
-  const [journalDate, setJournalDate] = useState("");
-  const [sourceType, setSourceType] = useState("manual");
-  const [sourceReference, setSourceReference] = useState("");
+  const [lines, setLines] = useState<DraftLine[]>(() =>
+    initialJournal?.lines.map((line) => ({
+      account_id: line.account_id,
+      debit: Number(line.debit) > 0 ? line.debit : "",
+      credit: Number(line.credit) > 0 ? line.credit : "",
+      memo: line.memo ?? "",
+    })) ?? [emptyLine(), emptyLine()],
+  );
+  const [description, setDescription] = useState(initialJournal?.description ?? "");
+  const [journalDate, setJournalDate] = useState(initialJournal?.journal_date ?? "");
+  const [sourceType, setSourceType] = useState(initialJournal?.source_type ?? "manual");
+  const [sourceReference, setSourceReference] = useState(initialJournal?.source_reference ?? "");
+  const editing = Boolean(initialJournal);
+  const formAction = editing ? updateDraftFinanceJournal : createFinanceJournalDraft;
 
   const totals = useMemo(() => {
     const debit = lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
@@ -95,7 +125,8 @@ export function FinanceJournalComposer({
   }
 
   return (
-    <form action={createFinanceJournalDraft} className="grid gap-4 p-4">
+    <form action={formAction} className="grid gap-4 p-4">
+      {initialJournal ? <input type="hidden" name="journal_id" value={initialJournal.id} /> : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="journal-date" className="mb-1 block text-[11px] font-semibold text-ink2">Tanggal jurnal</label>
@@ -243,15 +274,16 @@ export function FinanceJournalComposer({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-xl text-[10.5px] leading-relaxed text-muted">
-          Simpan sebagai draf terlebih dahulu. Jurnal hanya dapat diajukan untuk pemeriksaan bila total
-          debit sama dengan total kredit dan semua akun masih aktif.
+          {editing
+            ? "Perubahan akan mengganti seluruh baris jurnal draf ini dalam satu transaksi."
+            : "Simpan sebagai draf terlebih dahulu. Jurnal hanya dapat diajukan untuk pemeriksaan bila total debit sama dengan total kredit dan semua akun masih aktif."}
         </p>
         <button
           type="submit"
           disabled={!journalDate || description.trim().length < 3 || !validLines}
           className="sb-btn sb-btn-primary !h-9 text-[11px]"
         >
-          Simpan jurnal draf
+          <Save size={13} /> {editing ? "Simpan perubahan draf" : "Simpan jurnal draf"}
         </button>
       </div>
     </form>
