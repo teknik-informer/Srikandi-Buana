@@ -35,8 +35,9 @@ Files applied on the isolated development branch:
 11. `db/migrations/0011_agriculture_production_records.sql`
 12. `db/migrations/0012_training_empowerment_operations.sql`
 13. `db/migrations/0013_training_capacity_counter.sql`
+14. `db/migrations/0014_business_partnerships_crm.sql`
 
-The `v9` schema currently includes 36 tables:
+The `v9` schema currently includes 40 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
@@ -46,6 +47,7 @@ The `v9` schema currently includes 36 tables:
 - field workplans, programs, indicators, activities, tasks, and field-team assignments;
 - Agriculture plots, cultivation cycles, field visits, and harvest entries;
 - Training sessions, enrollments, pre/post assessments, and certificate register;
+- business partners, cooperation opportunities, agreements, and milestones;
 - audit events, organization settings, outbox events, and migration history.
 
 Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, letter, activity history, or operational KPI is seeded.
@@ -178,6 +180,19 @@ Technical implementation:
 - Public visitors are directed to the Secretariat for registration. Public self-enrollment is not implemented in this stage.
 - No sample sessions, enrollments, attendance, assessment results, or certificates are seeded.
 
+### Usaha & Kemitraan — partner register, pipeline, agreements, and milestones
+
+- The CRM domain uses migration `0014_business_partnerships_crm.sql` and four organization-scoped tables: `v9.business_partners`, `v9.business_opportunities`, `v9.business_agreements`, and `v9.business_milestones`.
+- Partner records distinguish government, NGO/foundation, private company, cooperative, academic, community, individual, and other partner types. New records start as prospects; partner status history is not overwritten into a demo catalogue.
+- Opportunity records support market access, procurement, grant/funding, training, research, program, and other cooperation opportunities. Their pipeline follows controlled stages from lead/qualification through proposal and negotiation to won/lost/on-hold.
+- Estimated opportunity value is labelled as a pipeline estimate. It is not a receivable, revenue, cash balance, purchase order, grant disbursement, or ledger posting.
+- Agreements must be linked to a partner and may be linked to an opportunity for that same partner. The lifecycle starts as draft, moves to review, and requires `organization:team:approve` before signed, active, or expired status can be recorded.
+- Milestones must be linked to exactly one opportunity or agreement belonging to the same partner and organization. Status transitions and completion notes are stored with audit events.
+- The server actions enforce organization scope, field scope, coordinator write permission, and organization leadership approval for closing an opportunity as won or approving agreement status. Losing an opportunity requires a recorded outcome note.
+- The CRM workspace is connected at `/app/bidang/usaha/data`. Summary metrics and lists are derived from V9 database records; there are no seeded partner names, false opportunity values, or fabricated agreements.
+- Inventory, product catalogue, customer orders, stock movements, and financial posting remain separate domains. This CRM does not automatically create stock, payments, receivables, revenue, or ledger entries.
+- Development record counts are currently zero for partners, opportunities, agreements, and milestones. No sample partner or pipeline records were inserted.
+
 ## Verification performed
 
 - GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
@@ -191,9 +206,10 @@ Technical implementation:
 - GitHub Actions for field team roster commit `fc223bf77c5ae9db6abc7ca60bcf247fe9ab4db8` and corrected revalidation commit `c2d626db9ec477b4727f87f883e23186766022a6` completed successfully: install, typecheck, and production build.
 - GitHub Actions for Agriculture plot/cycle/visit/harvest implementation commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - PostgreSQL query-plan checks passed for training summary, session list, enrollment list, session creation/status, capacity-aware registration, attendance, assessment upsert, certificate issuance/revocation, and participant cancellation with waitlist promotion.
+- PostgreSQL query-plan checks passed for CRM summary, partner/opportunity/agreement/milestone lists, opportunity stage changes, agreement status changes, and milestone status changes.
 - GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
-- Neon development schema check: 36 V9 tables and thirteen applied migrations. Training record counts remain zero; no sample sessions or participants were seeded.
+- Neon development schema check: 40 V9 tables and fourteen applied migrations. Training and CRM record counts remain zero; no sample sessions, partners, or pipeline values were seeded.
 - Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, and audit records; it cannot create schema objects or read legacy user records.
 - PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, and agriculture summary/plot/cycle/visit/harvest lists and mutations.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
@@ -207,7 +223,7 @@ Technical implementation:
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
 3. Several remaining operational modules still use the original client reducer and browser `localStorage` demo state. Each must be migrated to server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, business catalog/orders/stock, field evidence, budgets, reports, finance, POS, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, business catalog/orders/stock and stock movement, field evidence, budgets, reports, finance, POS, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
