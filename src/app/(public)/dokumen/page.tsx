@@ -5,6 +5,8 @@ import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { formatDateID } from "@/lib/format";
 import { Badge, Card, CardHeader, EmptyState, Notice } from "@/components/ui";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Dokumen Publik",
   description: "Dokumen publik KWT Srikandi Buana yang telah difinalkan dan disetujui untuk diakses.",
