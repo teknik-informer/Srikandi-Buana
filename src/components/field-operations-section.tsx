@@ -4,10 +4,7 @@ import {
   CalendarDays,
   ClipboardList,
   FilePlus2,
-  Flag,
   MapPin,
-  Target,
-  UsersRound,
 } from "lucide-react";
 import {
   Badge,
@@ -16,7 +13,6 @@ import {
   EmptyState,
   Notice,
   PageHeader,
-  StatusBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, requireIdentity } from "@/lib/session";
@@ -85,7 +81,6 @@ interface ActivityRow {
   responsible_label: string | null;
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
   open_to_public: boolean;
-  attendee_count: number;
 }
 
 interface TaskRow {
@@ -472,12 +467,6 @@ export async function FieldOperationsSection({
           activity.responsible_label,
           activity.status,
           activity.open_to_public,
-          (
-            SELECT count(*)::int FROM v9.audit_events AS event
-            WHERE event.entity_type = 'field_activity_attendance'
-              AND event.entity_id = activity.id::text
-              AND event.action = 'field_activity_attendance.present'
-          ) AS attendee_count
         FROM v9.field_activities AS activity
         LEFT JOIN v9.field_programs AS program
           ON program.id = activity.program_id
