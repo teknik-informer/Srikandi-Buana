@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ClipboardCheck, MapPin, Scale, Sprout, Wheat } from "lucide-react";
+import { CalendarDays, ClipboardCheck, MapPin, Sprout, Wheat } from "lucide-react";
 import {
   Badge,
   Card,
