@@ -460,7 +460,7 @@ export async function FieldOperationsSection({
           activity.description,
           activity.responsible_label,
           activity.status,
-          activity.open_to_public,
+          activity.open_to_public
         FROM v9.field_activities AS activity
         LEFT JOIN v9.field_programs AS program
           ON program.id = activity.program_id
