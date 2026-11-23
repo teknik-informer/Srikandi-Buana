@@ -176,6 +176,8 @@ CREATE INDEX IF NOT EXISTS sessions_user_live_idx
   ON v9.sessions (user_id, expires_at)
   WHERE revoked_at IS NULL;
 
+CREATE SEQUENCE IF NOT EXISTS v9.membership_interest_reference_seq;
+
 CREATE TABLE IF NOT EXISTS v9.membership_interests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   reference_no text NOT NULL UNIQUE DEFAULT (
@@ -201,8 +203,6 @@ CREATE TABLE IF NOT EXISTS v9.membership_interests (
   CHECK (length(btrim(phone)) >= 8),
   CHECK (length(btrim(address)) >= 5)
 );
-
-CREATE SEQUENCE IF NOT EXISTS v9.membership_interest_reference_seq;
 
 CREATE INDEX IF NOT EXISTS membership_interests_status_created_idx
   ON v9.membership_interests (status, created_at DESC);
