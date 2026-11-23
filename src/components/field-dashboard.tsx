@@ -1,337 +1,380 @@
 import Link from "next/link";
+import { CalendarDays, CheckCircle2, ClipboardList, UsersRound } from "lucide-react";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  Notice,
+  PageHeader,
+  StatCard,
+} from "@/components/ui";
+import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { requireIdentity } from "@/lib/session";
 import type { FieldDef } from "@/config/fields";
-import { PROGRAMS, TASKS, ACTIVITIES, LANDS, HARVESTS, TRAININGS, PRODUCTS, ORDERS, PARTNERS } from "@/data/operations";
-import { MEMBERS } from "@/data/organization";
-import { Badge, Card, CardHeader, PageHeader, Progress, StatCard, StatusBadge, EmptyState } from "@/components/ui";
-import { FieldMark } from "@/components/brand";
-import { AppBanner } from "@/components/dash-kit";
-import { APP_IDENTITY } from "@/config/app-identity";
-import { formatIDR, formatDateID, relativeID, percent } from "@/lib/format";
 
-const BIDANG_LABEL: Record<string, string> = {
-  organisasi: "Organisasi & Keanggotaan",
-  pertanian: "Pertanian & Produksi",
-  pelatihan: "Pemberdayaan & Pelatihan",
-  usaha: "Usaha & Kemitraan",
+interface FieldStats {
+  member_count: number;
+  workplan_count: number;
+  program_count: number;
+  scheduled_activity_count: number;
+  open_task_count: number;
+  overdue_task_count: number;
+  completed_task_count: number;
+}
+
+interface RecentProgram {
+  id: string;
+  reference_no: string;
+  title: string;
+  status: "draft" | "planned" | "active" | "completed" | "paused" | "cancelled";
+  workplan_title: string | null;
+  created_at: string;
+}
+
+interface UpcomingActivity {
+  id: string;
+  reference_no: string;
+  title: string;
+  activity_date: string;
+  start_time: string | null;
+  location: string | null;
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
+}
+
+interface RecentTask {
+  id: string;
+  reference_no: string;
+  title: string;
+  assignee_label: string | null;
+  due_date: string | null;
+  priority: "tinggi" | "sedang" | "rendah";
+  status: "belum" | "proses" | "selesai" | "dibatalkan";
+}
+
+const programStatus: Record<RecentProgram["status"], string> = {
+  draft: "Draf",
+  planned: "Direncanakan",
+  active: "Berjalan",
+  completed: "Selesai",
+  paused: "Ditangguhkan",
+  cancelled: "Dibatalkan",
 };
 
-/** Domain table that differs per bidang — the template stays shared, the data does not. */
-function OperationalTable({ field }: { field: FieldDef }) {
-  const code = field.slug;
+const taskStatus: Record<RecentTask["status"], string> = {
+  belum: "Belum mulai",
+  proses: "Dikerjakan",
+  selesai: "Selesai",
+  dibatalkan: "Dibatalkan",
+};
 
-  if (code === "pertanian") {
-    return (
-      <div className="sb-scroll">
-        <table className="sb-table min-w-[620px]">
-          <thead><tr><th>Petak</th><th>Pemilik</th><th>Komoditas</th><th className="num">Luas</th><th>Kunjungan terakhir</th><th>Status</th></tr></thead>
-          <tbody>
-            {LANDS.slice(0, 6).map((l) => (
-              <tr key={l.id}>
-                <td className="font-mono text-[12px] text-muted">{l.id}</td>
-                <td className="font-medium text-ink">{l.owner}</td>
-                <td>{l.commodity}</td>
-                <td className="num">{l.areaHa.toFixed(2)} ha</td>
-                <td className="text-muted">{formatDateID(l.lastVisit, "short")}</td>
-                <td><StatusBadge status={l.status === "produktif" ? "Produktif" : l.status === "persiapan" ? "Persiapan" : "Istirahat"} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-  if (code === "pelatihan") {
-    return (
-      <div className="sb-scroll">
-        <table className="sb-table min-w-[620px]">
-          <thead><tr><th>Pelatihan</th><th>Tanggal</th><th>Narasumber</th><th className="num">Peserta</th><th>Status</th></tr></thead>
-          <tbody>
-            {TRAININGS.slice(0, 6).map((t) => (
-              <tr key={t.id}>
-                <td className="font-medium text-ink">{t.title}</td>
-                <td className="whitespace-nowrap text-muted">{formatDateID(t.date, "short")}</td>
-                <td className="text-muted">{t.trainer}</td>
-                <td className="num">{t.registered}/{t.seats}</td>
-                <td><StatusBadge status={t.status === "selesai" ? "Selesai" : t.status === "dibuka" ? "Dibuka" : "Rencana"} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-  if (code === "usaha") {
-    return (
-      <div className="sb-scroll">
-        <table className="sb-table min-w-[640px]">
-          <thead><tr><th>Produk</th><th>Kategori</th><th className="num">Harga</th><th className="num">Stok</th><th className="num">HPP</th><th>Publikasi</th></tr></thead>
-          <tbody>
-            {PRODUCTS.slice(0, 6).map((p) => (
-              <tr key={p.id}>
-                <td className="font-medium text-ink">{p.name}</td>
-                <td>{p.category}</td>
-                <td className="num">{formatIDR(p.price)}</td>
-                <td className="num">{p.stock}</td>
-                <td className="num text-muted">{formatIDR(p.hpp)}</td>
-                <td><Badge tone={p.published ? "success" : "neutral"}>{p.published ? "Terpublikasi" : "Draf"}</Badge></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-  return (
-    <div className="sb-scroll">
-      <table className="sb-table min-w-[600px]">
-        <thead><tr><th>Anggota</th><th>Peran</th><th>Cakupan</th><th>Bergabung</th><th>Status</th></tr></thead>
-        <tbody>
-          {MEMBERS.filter((m) => m.status === "aktif").slice(0, 6).map((m) => (
-            <tr key={m.id}>
-              <td className="font-medium text-ink">{m.name}</td>
-              <td>{m.role}</td>
-              <td className="text-muted">{m.scope}</td>
-              <td className="text-muted">{formatDateID(m.joined, "short")}</td>
-              <td><StatusBadge status="Aktif" /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+function dateLabel(value: string | null): string {
+  if (!value) return "Belum ditetapkan";
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(date);
 }
 
-function FieldSignals({ field }: { field: FieldDef }) {
-  const code = field.slug;
-  if (code === "pertanian") {
-    const total = HARVESTS.reduce((s, h) => s + h.weightKg, 0);
-    return (
-      <Card>
-        <CardHeader title="Panen bulan ini" subtitle={`${HARVESTS.length} catatan panen · ${total.toLocaleString("id-ID")} kg`} action={<Badge tone="accent">Live demo</Badge>} />
-        <ul className="divide-y divide-line">
-          {HARVESTS.slice(0, 5).map((h) => (
-            <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-              <div>
-                <div className="text-[12.5px] font-medium text-ink">{h.commodity}</div>
-                <div className="text-[10.5px] text-muted2">{formatDateID(h.date, "short")} · {h.plotId} · grade {h.grade}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[12.5px] font-semibold text-primary-800">{h.weightKg.toLocaleString("id-ID")} kg</div>
-                <div className="text-[10.5px] text-muted2">{formatIDR(h.pricePerKg)}/kg</div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Card>
-    );
-  }
-  if (code === "pelatihan") {
-    const done = TRAININGS.filter((t) => t.status === "selesai");
-    return (
-      <Card>
-        <CardHeader title="Capaian pembelajaran" subtitle="Pre/post assessment dari kelas terlaksana" />
-        <div className="space-y-3 px-4 py-3">
-          {done.map((t) => (
-            <div key={t.id}>
-              <div className="flex items-center justify-between text-[12px]">
-                <span className="font-medium text-ink">{t.title}</span>
-                <span className="font-semibold text-primary-800">{t.preScore} → {t.postScore}</span>
-              </div>
-              <div className="mt-1 flex gap-1">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface2">
-                  <div className="h-full rounded-full bg-primary-300" style={{ width: `${t.preScore}%` }} />
-                </div>
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface2">
-                  <div className="h-full rounded-full bg-primary-600" style={{ width: `${t.postScore}%` }} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    );
-  }
-  if (code === "usaha") {
-    return (
-      <Card>
-        <CardHeader title="Pesanan terbaru" subtitle="Kanal POS, WhatsApp, dan mitra" action={<Link href="/app/pos" className="text-[11.5px] font-semibold text-primary-700">Buka POS</Link>} />
-        <ul className="divide-y divide-line">
-          {ORDERS.slice(0, 5).map((o) => {
-            const total = o.items.reduce((s, i) => s + i.qty * i.price, 0);
-            return (
-              <li key={o.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <div>
-                  <div className="text-[12.5px] font-medium text-ink">{o.customer}</div>
-                  <div className="text-[10.5px] text-muted2">{o.id} · {o.channel} · {formatDateID(o.date, "short")}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[12.5px] font-semibold text-primary-800">{formatIDR(total)}</div>
-                  <StatusBadge status={o.status === "lunas" ? "Lunas" : o.status === "baru" ? "Baru" : o.status} />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
-    );
-  }
-  const waiting = MEMBERS.filter((m) => m.status === "menunggu");
-  return (
-    <Card>
-      <CardHeader title="Partisipasi & usulan" subtitle="Dari survei kebutuhan dan usulan anggota" />
-      <div className="space-y-3 px-4 py-3">
-        <div>
-          <div className="mb-1 flex justify-between text-[11.5px] text-muted"><span>Partisipasi kegiatan bulan ini</span><span className="font-semibold text-ink">76%</span></div>
-          <Progress value={76} />
-        </div>
-        <div>
-          <div className="mb-1 flex justify-between text-[11.5px] text-muted"><span>Usulan anggota ditindaklanjuti</span><span className="font-semibold text-ink">6/9</span></div>
-          <Progress value={67} tone="accent" />
-        </div>
-        <div className="rounded-sb-sm border border-warning/30 bg-[var(--sb-warning-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-warning)]">
-          {waiting.length} calon anggota menunggu verifikasi data.
-        </div>
-      </div>
-    </Card>
-  );
+function programTone(status: RecentProgram["status"]): "success" | "info" | "warning" | "neutral" {
+  if (status === "active" || status === "completed") return "success";
+  if (status === "planned") return "info";
+  if (status === "draft" || status === "paused") return "warning";
+  return "neutral";
 }
 
-export function FieldDashboard({ field }: { field: FieldDef }) {
-  const code = field.slug;
-  const programs = PROGRAMS.filter((p) => p.bidang === code);
-  const tasks = TASKS.filter((t) => t.bidang === code);
-  const agenda = ACTIVITIES.filter((a) => a.bidang === code && a.status === "terjadwal");
+export async function FieldDashboard({ field }: { field: FieldDef }) {
+  const identity = await requireIdentity(`field:${field.slug}:read`);
+  const sql = getV9Sql();
+
+  const [statsResult, programsResult, activitiesResult, tasksResult] = await Promise.all([
+    sql`
+      SELECT
+        (
+          SELECT count(*)::int
+          FROM v9.memberships AS membership
+          INNER JOIN v9.field_applications AS application
+            ON application.unit_id = membership.unit_id
+            AND application.organization_id = membership.organization_id
+          WHERE membership.organization_id = ${identity.organizationId}
+            AND application.field_key = ${field.slug}
+            AND application.is_enabled = true
+            AND membership.status = 'active'
+        ) AS member_count,
+        (
+          SELECT count(*)::int
+          FROM v9.field_workplans AS workplan
+          WHERE workplan.organization_id = ${identity.organizationId}
+            AND workplan.field_key = ${field.slug}
+            AND workplan.status <> 'cancelled'
+        ) AS workplan_count,
+        (
+          SELECT count(*)::int
+          FROM v9.field_programs AS program
+          WHERE program.organization_id = ${identity.organizationId}
+            AND program.field_key = ${field.slug}
+            AND program.status <> 'cancelled'
+        ) AS program_count,
+        (
+          SELECT count(*)::int
+          FROM v9.field_activities AS activity
+          WHERE activity.organization_id = ${identity.organizationId}
+            AND activity.field_key = ${field.slug}
+            AND activity.status = 'scheduled'
+            AND activity.activity_date >= current_date
+        ) AS scheduled_activity_count,
+        (
+          SELECT count(*)::int
+          FROM v9.field_tasks AS task
+          WHERE task.organization_id = ${identity.organizationId}
+            AND task.field_key = ${field.slug}
+            AND task.status IN ('belum','proses')
+        ) AS open_task_count,
+        (
+          SELECT count(*)::int
+          FROM v9.field_tasks AS task
+          WHERE task.organization_id = ${identity.organizationId}
+            AND task.field_key = ${field.slug}
+            AND task.status IN ('belum','proses')
+            AND task.due_date < current_date
+        ) AS overdue_task_count,
+        (
+          SELECT count(*)::int
+          FROM v9.field_tasks AS task
+          WHERE task.organization_id = ${identity.organizationId}
+            AND task.field_key = ${field.slug}
+            AND task.status = 'selesai'
+        ) AS completed_task_count
+    `,
+    sql`
+      SELECT
+        program.id::text AS id,
+        program.reference_no,
+        program.title,
+        program.status,
+        workplan.title AS workplan_title,
+        program.created_at::text AS created_at
+      FROM v9.field_programs AS program
+      LEFT JOIN v9.field_workplans AS workplan
+        ON workplan.id = program.workplan_id
+        AND workplan.organization_id = program.organization_id
+        AND workplan.field_key = program.field_key
+      WHERE program.organization_id = ${identity.organizationId}
+        AND program.field_key = ${field.slug}
+        AND program.status <> 'cancelled'
+      ORDER BY program.created_at DESC
+      LIMIT 5
+    `,
+    sql`
+      SELECT
+        activity.id::text AS id,
+        activity.reference_no,
+        activity.title,
+        activity.activity_date::text AS activity_date,
+        to_char(activity.start_time, 'HH24:MI') AS start_time,
+        activity.location,
+        activity.status
+      FROM v9.field_activities AS activity
+      WHERE activity.organization_id = ${identity.organizationId}
+        AND activity.field_key = ${field.slug}
+        AND activity.status IN ('scheduled','in_progress')
+        AND activity.activity_date >= current_date
+      ORDER BY activity.activity_date, activity.start_time NULLS FIRST
+      LIMIT 5
+    `,
+    sql`
+      SELECT
+        task.id::text AS id,
+        task.reference_no,
+        task.title,
+        task.assignee_label,
+        task.due_date::text AS due_date,
+        task.priority,
+        task.status
+      FROM v9.field_tasks AS task
+      WHERE task.organization_id = ${identity.organizationId}
+        AND task.field_key = ${field.slug}
+        AND task.status IN ('belum','proses')
+      ORDER BY task.due_date NULLS LAST, task.created_at DESC
+      LIMIT 5
+    `,
+  ]);
+
+  const stats = rowsFromResult<FieldStats>(statsResult)[0] ?? {
+    member_count: 0,
+    workplan_count: 0,
+    program_count: 0,
+    scheduled_activity_count: 0,
+    open_task_count: 0,
+    overdue_task_count: 0,
+    completed_task_count: 0,
+  };
+  const programs = rowsFromResult<RecentProgram>(programsResult);
+  const activities = rowsFromResult<UpcomingActivity>(activitiesResult);
+  const tasks = rowsFromResult<RecentTask>(tasksResult);
 
   return (
     <div className="pb-10">
-      <AppBanner
-        {...(APP_IDENTITY[field.slug] ?? APP_IDENTITY.bidang)}
-        facts={[
-          `${programs.length} program`,
-          `${tasks.filter((t) => t.status !== "selesai").length} tugas terbuka`,
-          `${field.teamSize} orang tim`,
-          `${field.modules.length} modul`,
-        ]}
-        badge={<StatusBadge status={field.appStatus === "aktif" ? "Aktif" : field.appStatus} />}
-        actions={[
-          { href: `${field.appHref}/profil-mandat`, label: "Profil & mandat", primary: true },
-          { href: `${field.appHref}/rencana`, label: "Rencana kerja" },
-        ]}
+      <PageHeader
+        eyebrow={field.name}
+        title={field.shortName}
+        description={field.mandate}
+        actions={
+          <>
+            <Link href={`${field.appHref}/rencana`} className="sb-btn sb-btn-outline">Rencana kerja</Link>
+            <Link href={`${field.appHref}/kegiatan`} className="sb-btn sb-btn-primary">Kegiatan</Link>
+          </>
+        }
       />
 
-      <div className="mt-3 mb-3 flex items-start gap-3 rounded-sb border border-line bg-white p-3.5">
-        <FieldMark icon={field.icon} accent={field.accent} />
-        <div className="grid flex-1 gap-x-6 gap-y-1 text-[11.5px] sm:grid-cols-3">
-          <div><span className="text-muted">Dasar keputusan:</span> <span className="font-medium text-ink2">{field.decision.kind}</span></div>
-          <div><span className="text-muted">Nomor:</span> <span className="font-medium text-ink2">{field.decision.number}</span></div>
-          <div><span className="text-muted">Koordinator:</span> <span className="font-medium text-ink2">{field.coordinator}</span></div>
+      <Card className="mb-4">
+        <div className="grid gap-3 p-4 sm:grid-cols-3">
+          <div>
+            <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted">Dasar keputusan</div>
+            <div className="mt-1 text-[12px] font-medium text-ink2">{field.decision.number}</div>
+            <div className="mt-0.5 text-[10.5px] text-muted">{field.decision.date}</div>
+          </div>
+          <div>
+            <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted">Koordinator</div>
+            <div className="mt-1 text-[12px] font-medium text-ink2">{field.coordinator}</div>
+            <div className="mt-0.5 text-[10.5px] text-muted">{field.coordinatorNote}</div>
+          </div>
+          <div>
+            <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted">Status aplikasi</div>
+            <div className="mt-1"><Badge tone={field.appStatus === "aktif" ? "success" : "warning"}>{field.appStatus === "aktif" ? "Aktif" : field.appStatus}</Badge></div>
+            <div className="mt-0.5 text-[10.5px] text-muted">Aplikasi bidang · {field.fieldId}</div>
+          </div>
         </div>
-      </div>
+      </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {field.kpis.map((k, i) => (
-          <StatCard key={k.label} label={k.label} value={k.value} note={k.note} tone={i === 0 ? "success" : i === 1 ? "info" : "accent"} />
-        ))}
-        <StatCard label="Tugas terbuka" value={tasks.filter((t) => t.status !== "selesai").length} note={`${tasks.filter((t) => t.status === "terlambat").length} terlambat`} tone="warning" />
+        <StatCard label="Anggota aktif bidang" value={stats.member_count} note="Keanggotaan terhubung ke unit resmi" tone="success" />
+        <StatCard label="Rencana kerja" value={stats.workplan_count} note="Tidak termasuk yang dibatalkan" tone="info" />
+        <StatCard label="Program" value={stats.program_count} note="Program yang tercatat" tone="accent" />
+        <StatCard label="Kegiatan terjadwal" value={stats.scheduled_activity_count} note="Agenda mendatang" tone="info" />
+        <StatCard label="Tugas terbuka" value={stats.open_task_count} note={`${stats.overdue_task_count} melewati tenggat`} tone="warning" />
+        <StatCard label="Tugas selesai" value={stats.completed_task_count} note="Akumulasi pada bidang ini" tone="success" />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-6 grid gap-4 xl:grid-cols-[1.15fr_1fr]">
         <div className="space-y-4">
           <Card>
             <CardHeader
-              title="Program & capaian"
-              subtitle="Target, indikator, dan realisasi dari bidang ini"
-              action={<Link href={`${field.appHref}/rencana`} className="text-[11.5px] font-semibold text-primary-700">Rencana kerja →</Link>}
+              title="Program bidang"
+              subtitle={`${programs.length} program terbaru · data V9`}
+              action={<Link href={`${field.appHref}/rencana`} className="text-[11px] font-semibold text-primary-700">Kelola program</Link>}
             />
-            <div className="divide-y divide-line">
-              {programs.map((p) => (
-                <div key={p.code} className="px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-[13px] font-semibold text-ink">{p.name}</div>
-                    <StatusBadge status={p.status === "berjalan" ? "Berjalan" : p.status === "perencanaan" ? "Perencanaan" : p.status} />
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
-                    <span>{p.period}</span>
-                    <span>Anggaran {formatIDR(p.budget)}</span>
-                    <span>Realisasi {formatIDR(p.spent)} ({percent(p.spent, p.budget)}%)</span>
-                  </div>
-                  <div className="mt-2"><Progress value={p.progress} /></div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {p.indicators.map((i) => (
-                      <span key={i.label} className="sb-chip !text-[10px]">{i.label}: <strong>{i.actual}</strong>/{i.target}</span>
-                    ))}
-                  </div>
+            {programs.length ? (
+              <div className="divide-y divide-line">
+                {programs.map((program) => (
+                  <article key={program.id} className="px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-mono text-[9.5px] text-muted2">{program.reference_no}</div>
+                        <h3 className="mt-1 text-[12.5px] font-semibold text-ink">{program.title}</h3>
+                        {program.workplan_title ? <div className="mt-0.5 text-[10.5px] text-muted">Rencana: {program.workplan_title}</div> : null}
+                      </div>
+                      <Badge tone={programTone(program.status)}>{programStatus[program.status]}</Badge>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="px-5 py-9">
+                <EmptyState title="Belum ada program" body="Program akan tampil setelah bidang meregistrasikan program kerja." />
+              </div>
+            )}
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Agenda mendatang"
+              subtitle="Kegiatan yang belum dibatalkan dan belum lewat tanggal"
+              action={<Link href={`${field.appHref}/kegiatan`} className="text-[11px] font-semibold text-primary-700">Kelola kegiatan</Link>}
+            />
+            {activities.length ? (
+              <div className="divide-y divide-line">
+                {activities.map((activity) => (
+                  <article key={activity.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-[9px] text-muted2">{activity.reference_no}</div>
+                      <h3 className="mt-1 text-[12px] font-semibold text-ink">{activity.title}</h3>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-muted">
+                        <span>{dateLabel(activity.activity_date)}</span>
+                        {activity.start_time ? <span>{activity.start_time} WIB</span> : null}
+                        {activity.location ? <span>{activity.location}</span> : null}
+                      </div>
+                    </div>
+                    <Badge tone={activity.status === "in_progress" ? "success" : "info"}>
+                      {activity.status === "in_progress" ? "Berjalan" : "Terjadwal"}
+                    </Badge>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="px-5 py-8">
+                <EmptyState title="Belum ada agenda mendatang" body="Agenda kegiatan akan ditampilkan setelah dicatat oleh bidang." />
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          <Card>
+            <CardHeader
+              title="Tugas prioritas"
+              subtitle={`${tasks.length} tugas terbuka terbaru`}
+              action={<Link href={`${field.appHref}/tugas`} className="text-[11px] font-semibold text-primary-700">Papan tugas</Link>}
+            />
+            {tasks.length ? (
+              <div className="divide-y divide-line">
+                {tasks.map((task) => (
+                  <article key={task.id} className="px-4 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${task.priority === "tinggi" ? "bg-[var(--sb-warning)]" : task.priority === "sedang" ? "bg-primary-500" : "bg-muted2"}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="font-mono text-[9px] text-muted2">{task.reference_no}</div>
+                        <div className="mt-1 text-[12px] font-medium text-ink">{task.title}</div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-muted">
+                          {task.assignee_label ? <span>PIC {task.assignee_label}</span> : <span>Belum ada PIC</span>}
+                          <span>{dateLabel(task.due_date)}</span>
+                        </div>
+                      </div>
+                      <Badge tone={task.status === "proses" ? "info" : "warning"}>{taskStatus[task.status]}</Badge>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="px-5 py-8">
+                <EmptyState title="Belum ada tugas terbuka" body="Tugas baru akan tampil setelah dicatat di papan tugas bidang." />
+              </div>
+            )}
+          </Card>
+
+          <Card>
+            <CardHeader title="Modul aplikasi" subtitle="Ruang kerja sesuai mandat bidang" />
+            <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-1">
+              {field.modules.map((module) => (
+                <div key={module} className="flex items-center gap-2 rounded-[8px] border border-line bg-paper/50 px-3 py-2 text-[11px] text-ink2">
+                  <CheckCircle2 size={13} className="shrink-0 text-primary-700" />
+                  {module}
                 </div>
               ))}
-              {programs.length === 0 && <EmptyState title="Belum ada program" body="Program untuk bidang ini belum dibuat pada periode berjalan." />}
             </div>
-          </Card>
-
-          <Card>
-            <CardHeader
-              title="Data operasional bidang"
-              subtitle={field.operationalData.map((d) => `${d.entity} (${d.count})`).join(" · ")}
-              action={<Link href={`${field.appHref}/data`} className="text-[11.5px] font-semibold text-primary-700">Buka data →</Link>}
-            />
-            <OperationalTable field={field} />
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <FieldSignals field={field} />
-          <Card>
-            <CardHeader title="Agenda bidang" action={<Link href={`${field.appHref}/kegiatan`} className="text-[11.5px] font-semibold text-primary-700">Semua</Link>} />
-            <ul className="divide-y divide-line">
-              {agenda.map((a) => (
-                <li key={a.id} className="px-4 py-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[12.5px] font-medium text-ink">{a.name}</div>
-                    <span className="shrink-0 text-[10.5px] font-semibold text-accent-700">{relativeID(a.date)}</span>
-                  </div>
-                  <div className="mt-0.5 text-[10.5px] text-muted2">{formatDateID(a.date, "short")} · {a.time} · {a.location}</div>
-                </li>
-              ))}
-              {agenda.length === 0 && <li className="px-4 py-4 text-[12px] text-muted">Tidak ada agenda terjadwal.</li>}
-            </ul>
-          </Card>
-          <Card>
-            <CardHeader title="Tugas bidang" action={<Link href={`${field.appHref}/tugas`} className="text-[11.5px] font-semibold text-primary-700">Papan tugas</Link>} />
-            <ul className="divide-y divide-line">
-              {tasks.slice(0, 4).map((t) => (
-                <li key={t.id} className="flex items-start gap-2.5 px-4 py-2.5">
-                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${t.status === "terlambat" ? "bg-[var(--sb-danger)]" : t.priority === "tinggi" ? "bg-accent" : "bg-primary-400"}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[12.5px] font-medium leading-snug text-ink">{t.title}</div>
-                    <div className="text-[10.5px] text-muted2">{t.assignee} · {relativeID(t.due)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
           </Card>
         </div>
       </div>
 
-      {code === "usaha" && (
-        <Card className="mt-4">
-          <CardHeader title="Mitra & kemitraan" subtitle={`${PARTNERS.filter((p) => p.status === "aktif").length} aktif · ${PARTNERS.filter((p) => p.status === "penjajakan").length} penjajakan`} />
-          <div className="sb-scroll">
-            <table className="sb-table min-w-[600px]">
-              <thead><tr><th>Mitra</th><th>Jenis</th><th>Sejak</th><th>Milestone</th><th>Status</th></tr></thead>
-              <tbody>
-                {PARTNERS.map((p) => (
-                  <tr key={p.id}>
-                    <td className="font-medium text-ink">{p.name}</td>
-                    <td className="capitalize">{p.type}</td>
-                    <td className="text-muted">{formatDateID(p.since, "short")}</td>
-                    <td className="text-muted">{p.milestone}</td>
-                    <td><StatusBadge status={p.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <div className="mt-5">
+        <Notice tone="info" title="Sumber angka dashboard">
+          Seluruh jumlah di halaman ini dihitung dari data V9 pada organisasi dan bidang yang sedang
+          dibuka. Angka nol berarti belum ada catatan operasional yang tersimpan; tidak ada data contoh
+          yang ditampilkan sebagai capaian.
+        </Notice>
+      </div>
     </div>
   );
 }
