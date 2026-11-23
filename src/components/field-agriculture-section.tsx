@@ -640,16 +640,9 @@ export async function FieldAgricultureSection({
               <form action={recordAgricultureHarvest} className="grid gap-3 p-4">
                 <div>
                   <label htmlFor="harvest-cycle" className="mb-1 block text-[11.5px] font-semibold text-ink2">Siklus / petak</label>
-                  <select id="harvest-cycle" name="cycle_id" required defaultValue="" className="sb-input" onChange={undefined}>
+                  <select id="harvest-cycle" name="cycle_id" required defaultValue="" className="sb-input">
                     <option value="" disabled>Pilih siklus tanaman</option>
                     {harvestableCycles.map((cycle) => <option key={cycle.id} value={cycle.id}>{cycle.plot_code} · {cycle.crop_name} · {cycleStatus[cycle.status]}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="harvest-plot" className="mb-1 block text-[11.5px] font-semibold text-ink2">ID petak</label>
-                  <select id="harvest-plot" name="plot_id" required defaultValue="" className="sb-input">
-                    <option value="" disabled>Pilih petak yang sama dengan siklus</option>
-                    {availablePlots.map((plot) => <option key={plot.id} value={plot.id}>{plot.plot_code} · {plot.owner_label}</option>)}
                   </select>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
