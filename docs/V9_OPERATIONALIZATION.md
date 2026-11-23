@@ -33,7 +33,7 @@ Files applied on the isolated development branch:
 9. `db/migrations/0009_field_applications_operational_core.sql`
 10. `db/migrations/0010_field_team_assignments.sql`
 11. `db/migrations/0011_agriculture_production_records.sql`
-11. `db/migrations/0011_agriculture_production_records.sql`
+12. `db/migrations/0012_training_empowerment_operations.sql`
 
 The `v9` schema currently includes 32 tables:
 
@@ -42,8 +42,9 @@ The `v9` schema currently includes 32 tables:
 - hashed-token sessions and login rate limits;
 - organization-scoped membership-interest submissions and bootstrap state;
 - Secretariat letter register, meetings, versioned minutes, meeting decisions, meeting attendance, document register, and revisioned file storage;
-- field workplans, programs, indicators, activities, tasks, field-team assignments, and Agriculture plots/cycles/visits/harvests;
-- agriculture plots, cultivation cycles, field visits, and harvest entries;
+- field workplans, programs, indicators, activities, tasks, and field-team assignments;
+- Agriculture plots, cultivation cycles, field visits, and harvest entries;
+- Training sessions, enrollments, pre/post assessments, and certificate register;
 - audit events, organization settings, outbox events, and migration history.
 
 Structural seed data is limited to one Srikandi Buana organization, seven organization units, and four approved field applications. No initial administrator, login account, actual member, financial balance, transaction, letter, activity history, or operational KPI is seeded.
@@ -145,33 +146,35 @@ Technical implementation:
 - Field coordinators can propose/end assignments within their field scope. Activation requires the separate `organization:team:approve` permission. Team assignment does not automatically grant an application login role or change the person's system permissions.
 - Current development data has no active memberships assigned to the four field units, so the dashboard member counts and eligible team lists correctly show zero/empty. No demo staff or sample task records were inserted.
 
-### Agriculture & Production — land, cultivation, field visits, and harvest
+### Agriculture & Production — land, crop cycles, field visits, and harvests
 
-- Agriculture records are stored in `v9.agriculture_plots`, `v9.agriculture_cycles`, `v9.agriculture_visits`, and `v9.agriculture_harvests`.
-- The records are restricted to the approved `pertanian` field key and the current organization. Composite foreign keys ensure that a cycle, visit, and harvest belong to the same plot and organization.
-- Plot registration records a plot code, owner/manager label, optional link to an active member, hamlet, village, commodity, land use, area in hectares, and a field-location note. Plot code is unique within the organization.
-- A plot can hold multiple crop cycles. Cycle status follows `planned → planted → growing → harvested`; cancellation is separately recorded. A cycle cannot be marked harvested unless at least one harvest entry exists.
-- Field visits can be linked to a plot and optionally to a cycle on that same plot. Visit types include monitoring, cultivation, pest/disease, agricultural facilities, harvest, and other.
-- Harvest entries require a valid cycle in growing/harvested status, a positive weight, and a harvest date not earlier than the planting date. The system records commodity, weight, quality label, optional moisture percentage, recorder, and notes.
-- Plot archival is blocked while active/planned/growing crop cycles remain. Plot status changes, cycle state changes, visits, and harvest entries are audited.
-- The Agriculture dashboard calculates plot count, registered area, active crop cycles, field visits this year, and harvest weight this year from these records only.
-- Precise GPS coordinates are intentionally not collected yet. The current form captures a location note; precise geotagging needs a defined consent, accuracy, and access policy first.
-- Harvest data is a production record, not an accounting transaction. It does not automatically change inventory, stock, receivables, or the Finance ledger.
-- Current development counts are zero plots, zero cycles, zero visits, and zero harvests. No sample production data has been seeded.
-
-### Agriculture & Production — land, crop cycles, visits, and harvests
-
-- Agriculture records are isolated to `field_key = 'pertanian'` and the authenticated organization: `v9.agriculture_plots`, `v9.agriculture_cycles`, `v9.agriculture_visits`, and `v9.agriculture_harvests`.
-- Plot registration records a code, owner/manager label, optional link to an active organization membership, hamlet, village, commodity, land use, area in hectares, and location note.
-- A plot can be paused or archived. Archiving is blocked while there are crop cycles still planned, planted, or growing.
-- Crop cycles are tied to a specific plot through a composite foreign key. Their status follows a controlled path: planned → planted → growing → harvested, with cancellation available before completion.
-- A cycle can be marked harvested only after one or more harvest records exist. A harvest row derives the plot relationship from the selected cycle, avoiding a user-selected mismatched plot.
+- Agriculture records are isolated to the authenticated organization and `field_key = 'pertanian'`: `v9.agriculture_plots`, `v9.agriculture_cycles`, `v9.agriculture_visits`, and `v9.agriculture_harvests`.
+- Plot registration records a unique plot code, owner/manager label, optional link to an active organization membership, hamlet, village, commodity, land use, area in hectares, and location note.
+- A plot can be paused or archived. Archiving is blocked while planned, planted, or growing crop cycles remain.
+- Crop cycles are tied to a specific plot through composite foreign keys. Their status follows `planned → planted → growing → harvested`, with cancellation separately recorded.
+- A cycle can be marked harvested only after one or more harvest records exist. The harvest action derives the plot from the selected cycle; the user cannot attach a harvest to a different plot.
 - Field visits are tied to a plot and optionally to a cycle on that same plot. Visit types include monitoring, cultivation, pest/disease, farm inputs, harvest, and other.
-- Harvest records store actual harvest date, commodity, weight in kilograms, optional quality grade and moisture percentage, recorder, and notes. Database checks reject non-positive weights and moisture percentages outside 0–100.
-- Dashboard totals are calculated from stored plot area, cycle statuses, visit dates, and harvest weights. No plot, area, harvest, or crop-cycle examples are seeded.
-- The application currently stores location notes, not precision GPS coordinates. GPS collection needs a separate consent, purpose, access, and retention design before implementation.
-- Harvest records do not create ledger entries or sales transactions. Finance and commerce remain separate domains.
-- The agriculture data page is connected at `/app/bidang/pertanian/data`; agriculture server actions check the scoped `field:pertanian:data:write` permission and write audit events.
+- Harvest records store actual harvest date, commodity, positive weight in kilograms, optional quality grade and moisture percentage, recorder, and notes. The database checks weight, moisture, and harvest date against the planting date.
+- The Agriculture dashboard calculates plot count, registered area, active cycles, visits this year, and harvest weight this year from stored records only.
+- The current form stores a location note, not precise GPS coordinates. Geotagging needs a defined consent, purpose, access, accuracy, and retention policy before implementation.
+- Harvest records are production records, not accounting transactions. They do not automatically change inventory, stock, receivables, or the Finance ledger.
+- The Agriculture workspace is connected at `/app/bidang/pertanian/data`. Server actions require `field:pertanian:data:write` and write audit events.
+- Development currently has no sample plots, cycles, visits, or harvests; counts are zero until actual field information is entered.
+
+### Pemberdayaan & Pelatihan — sessions, enrollment, attendance, assessment, and certificates
+
+- The training domain uses the already-applied migration `0012_training_empowerment_operations.sql` and its four tables: `v9.training_sessions`, `v9.training_enrollments`, `v9.training_assessments`, and `v9.training_certificates`.
+- Training sessions are linked to the `pelatihan` field and can optionally be linked to a program in the same field and organization. The session lifecycle is `planned → registration_open → in_progress → completed`, with cancellation before completion.
+- Registration is accepted only while a session is open. A participant can be an active member or an external guest. The database enforces unique membership or normalized guest registration per session.
+- If the session capacity is full, new registrations are retained with `waitlisted` status rather than discarded. The enrollment action locks the session row while checking capacity.
+- Attendance is recorded as `hadir`, `izin`, `sakit`, or `alpa`, with the identity and timestamp of the staff member recording it.
+- Pre- and post-assessments are stored separately in `v9.training_assessments`, with scores from 0 to 100. Scores are entered by authorized staff; the application does not invent participant results.
+- A session can be marked completed only after its scheduled date and after at least one non-cancelled participant is recorded present.
+- An internal certificate reference can be issued only for a participant recorded present in a completed session. Issuance requires `field:pelatihan:certificate:issue`; revocation requires `organization:team:approve` and a recorded reason.
+- Certificate references are internal system records. They do not claim external accreditation, professional licensing, or recognition by another institution.
+- The internal workspace is connected at `/app/bidang/pelatihan/data`. The public `/pelatihan` page now lists only sessions with registration open and completed sessions from the database; the previous `TRAININGS` demo array is no longer used there.
+- Public visitors are directed to the Secretariat for registration. Public self-enrollment is not implemented in this stage.
+- No sample sessions, enrollments, attendance, assessment results, or certificates are seeded.
 
 ## Verification performed
 
@@ -185,10 +188,11 @@ Technical implementation:
 - GitHub Actions for field dashboard commit `cc874297c270e0aefbf96bdc0b50d5f29c485f56` completed successfully: install, typecheck, and production build.
 - GitHub Actions for field team roster commit `fc223bf77c5ae9db6abc7ca60bcf247fe9ab4db8` and corrected revalidation commit `c2d626db9ec477b4727f87f883e23186766022a6` completed successfully: install, typecheck, and production build.
 - GitHub Actions for Agriculture plot/cycle/visit/harvest implementation commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
+- GitHub Actions for the selected-session context, training action hardening, and public database-backed training page completed successfully; the latest exact result is tracked by the branch workflow.
 - GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
-- Neon development schema check: 32 V9 tables and eleven applied migrations.
-- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, and audit records; it cannot create schema objects or read legacy user records.
+- Neon development schema check: 32 V9 tables and twelve applied migrations.
+- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, and audit records; it cannot create schema objects or read legacy user records.
 - PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, and agriculture summary/plot/cycle/visit/harvest lists and mutations.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
 - SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
@@ -201,7 +205,7 @@ Technical implementation:
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
 3. Several remaining operational modules still use the original client reducer and browser `localStorage` demo state. Each must be migrated to server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, training sessions and attendance, business catalog/orders/stock, field evidence, budgets, reports, finance, POS, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, business catalog/orders/stock, field evidence, budgets, reports, finance, POS, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
