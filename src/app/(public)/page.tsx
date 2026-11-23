@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  ArrowRight, LayoutGrid, Users, CalendarCheck, Wallet, FileBarChart, ShieldCheck,
+  ArrowRight, LayoutGrid, Play, Rocket, Users, CalendarCheck, Wallet, FileBarChart, ShieldCheck,
   Sprout, GraduationCap, Store, MessageCircle, CheckCircle2, CalendarDays, BadgeCheck,
 } from "lucide-react";
 import { ORG } from "@/config/org";
@@ -11,6 +11,7 @@ import { NEWS } from "@/data/content";
 import { formatIDR, formatDateID } from "@/lib/format";
 import { Progress, SectionTitle } from "@/components/ui";
 import { FieldMark } from "@/components/brand";
+import { HeroRibbon } from "@/components/hero-ribbon";
 
 export const metadata: Metadata = {
   title: "Beranda",
@@ -44,56 +45,79 @@ export default function HomePage() {
 
   return (
     <div className="bg-white">
-      {/* ───────────── HERO — two columns, copy left, photo right ───────────── */}
-      <section className="relative isolate overflow-hidden bg-white">
+      {/* ───────────── HERO — one full photograph, copy on it, closed by the
+           gold-and-green ribbon. The reference does not box the photo in a
+           card: it fills the band, its left side darkens just enough for the
+           words, and the page opens out of a curved green field. ───────────── */}
+      <section className="relative isolate flex min-h-[430px] flex-col overflow-hidden bg-[#0b2b18] sm:min-h-[480px] lg:min-h-[540px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <picture>
+          <source srcSet="/images/hero-pemanen.webp" type="image/webp" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/hero-pemanen.jpg"
+            alt="Empat anggota Srikandi Buana memanen kopi di kebun terasering dengan latar pegunungan"
+            className="absolute inset-0 h-full w-full object-cover object-[68%_38%] sm:object-[64%_40%] lg:object-[62%_42%]"
+            width={1536}
+            height={1024}
+            fetchPriority="high"
+            decoding="async"
+          />
+        </picture>
+
+        {/* Legibility, done in three soft passes instead of a flat black film:
+            a wide left-to-right wash for the copy column, a gentle top shade so
+            the header never fights the sky, and a bottom shade that hands the
+            photograph over to the ribbon. */}
         <div
-          className="pointer-events-none absolute -right-40 -top-40 -z-10 h-[520px] w-[520px] rounded-full opacity-70 blur-3xl"
-          style={{ background: "radial-gradient(circle, #e8f6ec 0%, #ffffff 70%)" }}
+          className="absolute inset-0 bg-[linear-gradient(96deg,rgba(6,28,16,0.94)_0%,rgba(7,32,18,0.88)_34%,rgba(8,38,21,0.62)_52%,rgba(9,44,24,0.14)_72%,rgba(9,44,24,0)_100%)]"
           aria-hidden
         />
-        <div className="sb-shell relative grid items-center gap-10 pb-12 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:pb-16 lg:pt-16">
-          <div className="animate-rise">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--sb-primary-50)] px-3.5 py-1.5 text-[11.5px] font-bold text-primary-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
-              Platform Kolaborasi &amp; Produktivitas
+        <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(to_bottom,rgba(4,20,11,0.55),rgba(4,20,11,0))]" aria-hidden />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(to_top,rgba(6,30,17,0.62),rgba(6,30,17,0))]" aria-hidden />
+
+        <div className="sb-shell relative flex min-h-[330px] flex-1 flex-col justify-center pb-10 pt-10 sm:min-h-[380px] sm:pb-12 sm:pt-12 lg:min-h-[430px] lg:pb-14 lg:pt-14">
+          <div className="max-w-[640px]" data-contrast-bg="#082617">
+            <div className="flex items-center gap-3">
+              <span className="h-px w-9 bg-[#e6c56a]" aria-hidden />
+              <span className="text-[10.5px] font-bold uppercase tracking-[0.24em] text-[#f0d79a]">
+                Platform Kolaborasi &amp; Produktivitas
+              </span>
             </div>
-            <h1 className="font-display text-[40px] leading-[1.06] tracking-tight text-[var(--sb-ink)] sm:text-[52px] lg:text-[58px]">
+            <h1 className="mt-4 font-display text-[38px] leading-[1.02] tracking-[-0.03em] text-white sm:text-[50px] lg:text-[60px]">
               <span className="block">Srikandi Buana</span>
-              <span className="block text-primary-700">Bersama, Berkarya,</span>
-              <span className="block text-primary-700">Berdaya</span>
+              <span className="mt-1 block text-[#f2d493]">
+                Bersama, Berkarya,
+                <br />
+                Berdaya
+              </span>
             </h1>
-            <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--sb-muted)]">
-              Platform terpadu untuk mengelola organisasi, menjalankan kegiatan, dan mewujudkan tujuan
-              bersama dengan mudah, aman dan modern.
+            <p className="mt-5 max-w-[46ch] text-[14px] leading-relaxed text-[#e2efe4] sm:text-[15px]">
+              Platform terpadu untuk mengelola organisasi, menjalankan kegiatan, dan mewujudkan
+              tujuan bersama — mudah, aman, dan modern.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/gabung" className="sb-btn sb-btn-primary !px-6 !py-3 text-[13.5px]">
-                Mulai Sekarang
-                <ArrowRight size={16} />
+            <div className="mt-7 flex flex-wrap items-center gap-2.5">
+              <Link
+                href="/gabung"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#127e2f] px-4 py-2.5 text-[12.5px] font-bold text-white sm:px-5 sm:py-3 sm:text-[13px] shadow-[0_16px_30px_-16px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/25 transition hover:bg-[#159a3a]"
+              >
+                <Rocket size={15} /> Mulai Sekarang
+                <ArrowRight size={15} />
               </Link>
-              <Link href="/profil" className="sb-btn sb-btn-outline !px-6 !py-3 text-[13.5px]">
+              <Link
+                href="/profil"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-2.5 text-[12.5px] font-bold text-white sm:px-5 sm:py-3 sm:text-[13px] backdrop-blur-sm transition hover:border-white/60 hover:bg-white/15"
+              >
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[#0d3a1f]">
+                  <Play size={11} className="translate-x-[1px]" fill="currentColor" />
+                </span>
                 Pelajari Lebih Lanjut
               </Link>
             </div>
           </div>
-
-          <div className="relative animate-rise" style={{ animationDelay: "90ms" }}>
-            <div className="overflow-hidden rounded-[26px] shadow-[var(--sb-shadow-lg)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/hero-kebun.jpg"
-                alt="Anggota Srikandi Buana memetik kopi di terasering kebun desa"
-                className="aspect-[4/3] w-full object-cover"
-                width={960}
-                height={720}
-              />
-            </div>
-            <div className="absolute -right-2 top-6 hidden rotate-[3deg] rounded-2xl bg-white/95 px-4 py-2.5 shadow-[var(--sb-shadow)] backdrop-blur sm:block">
-              <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-primary-700">Kolaborasi</div>
-              <div className="text-[12.5px] font-semibold text-ink">untuk Masa Depan</div>
-            </div>
-          </div>
         </div>
+
+        <HeroRibbon id="landing" />
       </section>
 
       {/* ───────────── STRIP 6 CAPABILITIES ───────────── */}
