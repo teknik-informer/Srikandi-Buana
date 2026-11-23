@@ -11,6 +11,7 @@ import {
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, requireIdentity } from "@/lib/session";
 import {
+  createFinanceReversalJournal,
   postFinanceJournal,
   reopenRejectedFinanceJournal,
   reviewFinanceJournal,
@@ -47,6 +48,7 @@ interface JournalRow {
   created_by_name: string;
   approved_by_name: string | null;
   posted_by_name: string | null;
+  is_reversed: boolean;
   line_count: number;
   lines: JournalLineRow[];
 }
@@ -92,6 +94,11 @@ const sourceLabel: Record<string, string> = {
 const resultMessages: Record<string, { tone: "success" | "warning" | "danger"; text: string }> = {
   "journal-created": { tone: "success", text: "Jurnal draf berhasil disimpan." },
   "journal-updated": { tone: "success", text: "Perubahan jurnal draf berhasil disimpan." },
+  "reversal-draft-created": { tone: "success", text: "Jurnal pembalik dibuat sebagai draf. Ajukan, periksa, dan posting melalui alur yang sama." },
+  "reversal-already-exists": { tone: "warning", text: "Jurnal pembalik untuk jurnal ini sudah pernah dibuat." },
+  "reversal-not-eligible": { tone: "warning", text: "Jurnal tidak terposting, sudah berupa pembalik, atau tidak memenuhi syarat pembalikan." },
+  "invalid-reversal": { tone: "warning", text: "Tanggal dan alasan jurnal pembalik wajib diisi dengan benar." },
+  "reversal-error": { tone: "danger", text: "Jurnal pembalik belum dapat dibuat. Periksa data dan log aplikasi." },
   "journal-submitted": { tone: "success", text: "Jurnal diajukan untuk pemeriksaan. Isi jurnal tidak dapat diedit sampai ditolak atau diposting." },
   "journal-approved": { tone: "success", text: "Jurnal disetujui dan siap diposting." },
   "journal-rejected": { tone: "warning", text: "Jurnal ditolak dengan catatan pemeriksaan. Pembuat dapat membuka kembali draf untuk perbaikan." },
@@ -168,6 +175,11 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
         COALESCE(created_person.full_name, created_account.email) AS created_by_name,
         COALESCE(approved_person.full_name, approved_account.email) AS approved_by_name,
         COALESCE(posted_person.full_name, posted_account.email) AS posted_by_name,
+        EXISTS (
+          SELECT 1 FROM v9.finance_journals AS reversal
+          WHERE reversal.reversal_of_id = journal.id
+            AND reversal.organization_id = journal.organization_id
+        ) AS is_reversed,
         (
           SELECT count(*)::int
           FROM v9.finance_journal_lines line
@@ -343,6 +355,17 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
                           <input type="hidden" name="journal_id" value={journal.id} />
                           <button type="submit" className="sb-btn sb-btn-primary !h-8 !px-3 text-[10px]"><Scale size={13} /> Posting ke buku besar</button>
                         </form>
+                      ) : null}
+                      {journal.status === "posted" && journal.source_type !== "reversal" && canWrite && !journal.is_reversed ? (
+                        <form action={createFinanceReversalJournal} className="flex flex-wrap items-center gap-2">
+                          <input type="hidden" name="journal_id" value={journal.id} />
+                          <input name="journal_date" type="date" required className="sb-input !h-8 w-[145px] text-[10px]" aria-label="Tanggal jurnal pembalik" />
+                          <input name="reason" required minLength={3} maxLength={400} className="sb-input !h-8 min-w-[170px] flex-1 text-[10px]" placeholder="Alasan pembalikan" />
+                          <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-3 text-[10px]">Buat jurnal pembalik</button>
+                        </form>
+                      ) : null}
+                      {journal.status === "posted" && journal.is_reversed ? (
+                        <Badge tone="info">Sudah memiliki jurnal pembalik</Badge>
                       ) : null}
                       {journal.status === "rejected" && canWrite && journal.created_by === identity.userId ? (
                         <form action={reopenRejectedFinanceJournal}>
