@@ -565,7 +565,7 @@ export async function fulfillBusinessOrder(formData: FormData): Promise<void> {
     const result = await sql`
       WITH locked_order AS MATERIALIZED (
         SELECT order_row.id, order_row.organization_id, order_row.field_key,
-          order_row.warehouse_id
+          order_row.reference_no, order_row.warehouse_id
         FROM v9.business_orders AS order_row
         WHERE order_row.id = ${orderId}
           AND order_row.organization_id = ${identity.organizationId}
