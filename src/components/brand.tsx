@@ -107,13 +107,39 @@ export function Emblem({ size = 84 }: { size?: number }) {
   return <img src="/brand/emblem-light.png" alt="" aria-hidden width={167} height={256} style={{ height: size, width: "auto" }} decoding="async" />;
 }
 
-export function FieldMark({ icon, accent }: { icon: string; accent: string }): ReactNode {
+/**
+ * The four field glyphs. A flat 40px square with a 19px stroke icon read as a
+ * placeholder next to the rest of the page, so the mark is layered: a tinted
+ * plate, a hairline ring in the same hue, and the glyph on a light disc that
+ * keeps the icon legible instead of white-on-colour mud.
+ */
+export function FieldMark({
+  icon,
+  accent,
+  size = "md",
+}: {
+  icon: string;
+  accent: string;
+  size?: "md" | "lg";
+}): ReactNode {
+  const outer = size === "lg" ? "h-12 w-12 rounded-[14px]" : "h-11 w-11 rounded-[13px]";
+  const inner = size === "lg" ? "h-8 w-8" : "h-7 w-7";
   return (
     <span
-      className="inline-flex h-10 w-10 items-center justify-center rounded-[11px] text-white shadow-sm"
-      style={{ backgroundColor: accent }}
+      className={`relative inline-flex shrink-0 items-center justify-center ${outer}`}
+      style={{
+        background: `linear-gradient(150deg, ${accent}1f 0%, ${accent}0d 62%, ${accent}1a 100%)`,
+        boxShadow: `inset 0 0 0 1px ${accent}33, inset 0 1px 0 rgba(255,255,255,0.7)`,
+      }}
     >
-      <AppIcon name={icon} size={19} />
+      <span
+        className={`grid place-items-center rounded-full bg-white shadow-[0_1px_2px_rgba(15,26,43,0.16),0_0_0_0.5px_rgba(15,26,43,0.06)] ${inner}`}
+        style={{ color: accent }}
+      >
+        <span style={{ display: "grid", strokeWidth: 2.15 }}>
+          <AppIcon name={icon} size={size === "lg" ? 20 : 18} />
+        </span>
+      </span>
     </span>
   );
 }

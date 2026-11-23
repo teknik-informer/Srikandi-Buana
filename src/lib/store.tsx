@@ -26,7 +26,7 @@ import { TASKS as SEED_TASKS, PRODUCTS as SEED_PRODUCTS, PROGRAMS as SEED_PROGRA
 import { COA as COA_CLIENT } from "@/data/coa";
 import type { JournalEntry, JournalLine, Letter, Notice, Approval, Task, Product, BankStatementRow, InventoryItem, DocumentRow, LandPlot, Partner } from "@/data/types";
 
-export const STORE_VERSION = 6;
+export const STORE_VERSION = 7;
 export const STORE_KEY = `sb_state_v${STORE_VERSION}`;
 
 export interface AuditEvent {
@@ -48,7 +48,56 @@ export interface DraftJournal {
   idempotencyKey?: string;
 }
 
+/**
+ * Site settings — the parts of the public footer (and the credit line) that the
+ * organisation should be able to change without a developer. Kept in the same
+ * store as everything else so every edit lands in the audit trail, and read by
+ * the footer through a tiny subscription (see lib/site-settings.ts).
+ */
+export interface SiteSettings {
+  /** Shown under the emblem in the footer. */
+  creditName: string;
+  /** One line under the name — leave empty to hide the line entirely. */
+  creditLine: string;
+  email: string;
+  hours: string;
+  /** Footer badges: the blueprint stamp and the demo notice. */
+  showBlueprint: boolean;
+  showDemoNotice: boolean;
+  /** Social links, in the order they appear under the emblem. */
+  social: { key: SocialKey; href: string; on: boolean }[];
+}
+
+export type SocialKey = "instagram" | "youtube" | "facebook" | "whatsapp" | "tiktok" | "email";
+
+export const SOCIAL_LABEL: Record<SocialKey, string> = {
+  instagram: "Instagram",
+  youtube: "YouTube",
+  facebook: "Facebook",
+  whatsapp: "WhatsApp",
+  tiktok: "TikTok",
+  email: "Email",
+};
+
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  creditName: "Srikandi Buana",
+  creditLine: "Perempuan tani, penggerak kemandirian desa.",
+  email: "halo@srikandibuana.org",
+  hours: "Senin–Jumat, 08.00–15.00 WIB",
+  showBlueprint: true,
+  showDemoNotice: true,
+  social: [
+    { key: "instagram", href: "https://instagram.com/", on: true },
+    { key: "youtube", href: "https://youtube.com/", on: true },
+    { key: "facebook", href: "https://facebook.com/", on: true },
+    { key: "whatsapp", href: "https://wa.me/6281200000000", on: true },
+    { key: "tiktok", href: "https://tiktok.com/", on: false },
+    { key: "email", href: "mailto:halo@srikandibuana.org", on: false },
+  ],
+};
+
 export interface State {
+  site: SiteSettings;
   journals: JournalEntry[];
   letters: Letter[];
   notices: Notice[];
@@ -109,6 +158,7 @@ export { DEMO_DAY };
 
 function seedState(): State {
   return {
+    site: { ...DEFAULT_SITE_SETTINGS, social: DEFAULT_SITE_SETTINGS.social.map((x) => ({ ...x })) },
     journals: SEED_JOURNALS.map((j) => ({ ...j })),
     letters: SEED_LETTERS.map((l) => ({ ...l })),
     notices: SEED_NOTICES.map((n) => ({ ...n })),
@@ -161,6 +211,8 @@ export type Action =
   | { type: "notice.read"; id: string }
   | { type: "notice.readAll" }
   | { type: "profile.update"; name: string; village: string; phone: string; interests: string[]; actor: Actor }
+  | { type: "site.update"; patch: Partial<Omit<SiteSettings, "social">>; actor: Actor }
+  | { type: "site.social"; key: SocialKey; href?: string; on?: boolean; actor: Actor }
   | { type: "program.publish"; code: string; actor: Actor }
   | { type: "bank.reconcile"; id: string; journalId: string; actor: Actor }
   | { type: "budget.request"; budgetId: string; amount: number; note: string; actor: Actor }
@@ -900,6 +952,45 @@ function applyAction(state: State, action: Action): { state: State; result: Exec
       return ok(next, "Semua notifikasi ditandai sudah dibaca.");
     }
 
+    /* ---------------- site settings ---------------- */
+    case "site.update": {
+      const next: State = {
+        ...state,
+        seq: state.seq + 1,
+        site: { ...state.site, ...action.patch },
+        audit: addAudit(state, {
+          actor: action.actor.name,
+          actorRole: action.actor.role,
+          action: "Memperbarui pengaturan situs",
+          detail: Object.keys(action.patch).join(", "),
+          app: "sistem",
+          href: "/studio/website#pengaturan",
+        }),
+      };
+      return ok(next, "Pengaturan situs tersimpan.");
+    }
+    case "site.social": {
+      const next: State = {
+        ...state,
+        seq: state.seq + 1,
+        site: {
+          ...state.site,
+          social: state.site.social.map((x) =>
+            x.key === action.key ? { ...x, href: action.href ?? x.href, on: action.on ?? x.on } : x,
+          ),
+        },
+        audit: addAudit(state, {
+          actor: action.actor.name,
+          actorRole: action.actor.role,
+          action: "Mengubah tautan sosial",
+          detail: `${action.key}${action.on === undefined ? "" : action.on ? " diaktifkan" : " dimatikan"}`,
+          app: "sistem",
+          href: "/studio/website#pengaturan",
+        }),
+      };
+      return ok(next, "Tautan sosial diperbarui.");
+    }
+
     /* ---------------- member profile ---------------- */
     case "profile.update": {
       if (action.name.trim().length < 3) return fail("Nama minimal 3 karakter.");
@@ -1140,6 +1231,9 @@ export function StoreProvider({ actor, children }: { actor: Actor; children: Rea
       setState(s);
       try {
         localStorage.removeItem(STORE_KEY);
+        // the footer keeps its own copy (see lib/site-settings.ts) — clear both
+        localStorage.removeItem("sb_site_settings_v1");
+        window.dispatchEvent(new CustomEvent("sb:site-settings"));
       } catch {
         /* ignore */
       }

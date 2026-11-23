@@ -139,97 +139,75 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───────────── SOLUSI — dashboard mockup + benefits ───────────── */}
+      {/* ───────────── SOLUSI — a real screenshot of the product ─────────────
+           The hand-drawn browser mockup that used to sit here read as a sketch:
+           8px labels, fake numbers, a tiny line chart. This is the actual
+           Pengurus dashboard at 2× and it says the same thing without
+           pretending — the numbers on it are the demo's own. */}
       <section className="sb-shell py-16">
-        <div className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
-          {/* mockup */}
-          <div className="relative">
-            <div className="overflow-hidden rounded-[20px] border border-line shadow-[var(--sb-shadow-lg)]">
-              <div className="flex">
-                {/* mini sidebar */}
-                <div className="w-[86px] shrink-0 bg-[var(--sb-primary-900)] p-2.5 sm:w-[104px]">
-                  <div className="mb-3 flex items-center gap-1.5">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/15 text-[9px] font-bold text-white">SB</span>
-                    <span className="hidden text-[8.5px] font-bold leading-tight text-white sm:block">Srikandi<br />Buana</span>
-                  </div>
-                  {["Dashboard", "Anggota", "Kegiatan", "Keuangan", "Laporan"].map((m, i) => (
-                    <div
-                      key={m}
-                      className={`mb-1 flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[8px] font-semibold ${
-                        i === 0 ? "bg-[var(--sb-primary-700)] text-white" : "text-primary-100/90"
-                      }`}
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-sm ${i === 0 ? "bg-white" : "bg-primary-300/60"}`} />
-                      {m}
-                    </div>
-                  ))}
-                </div>
-                {/* mini canvas */}
-                <div className="min-w-0 flex-1 bg-[var(--sb-canvas)] p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-ink">Dashboard</span>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-[7.5px] text-[var(--sb-muted)]">Cari…</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {[
-                      { l: "Anggota Aktif", v: "128", bg: "var(--sb-tint-green)", c: "#127e2f" },
-                      { l: "Kegiatan", v: "12", bg: "var(--sb-tint-amber)", c: "#7a5210" },
-                      { l: "Transaksi", v: "Rp 245 jt", bg: "var(--sb-tint-blue)", c: "#1d6fa5" },
-                    ].map((s) => (
-                      <div key={s.l} className="rounded-lg p-1.5" style={{ background: s.bg }}>
-                        <div className="text-[6.5px] font-bold uppercase tracking-wide" style={{ color: s.c }}>{s.l}</div>
-                        <div className="text-[10px] font-extrabold" style={{ color: s.c }}>{s.v}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-2 rounded-lg bg-white p-2">
-                    <div className="mb-1.5 text-[7.5px] font-bold text-ink">Aktivitas Organisasi</div>
-                    <svg viewBox="0 0 200 56" className="h-14 w-full" aria-hidden>
-                      <polyline
-                        points="0,44 25,38 50,40 75,28 100,32 125,20 150,24 175,12 200,16"
-                        fill="none" stroke="#127e2f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      />
-                      <polyline
-                        points="0,52 25,48 50,49 75,42 100,44 125,36 150,38 175,30 200,32"
-                        fill="none" stroke="#f0b429" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="absolute -bottom-4 -left-4 hidden h-20 w-20 rounded-2xl bg-[var(--sb-tint-green)] sm:block" aria-hidden />
-          </div>
-
-          {/* copy */}
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--sb-primary-50)] px-3 py-1.5 text-[11px] font-bold text-primary-700">
-              Solusi Lengkap untuk Organisasi
-            </div>
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary-700">Tampilan sebenarnya</div>
             <h2 className="font-display text-[30px] leading-[1.15] text-ink sm:text-[36px]">
-              Kelola Organisasi<br />Lebih Mudah &amp; Efisien
+              Kelola organisasi lebih mudah &amp; efisien
             </h2>
-            <p className="mt-4 max-w-lg text-[14px] leading-relaxed text-[var(--sb-muted)]">
-              Dari administrasi hingga pelaporan, semua terintegrasi dalam satu platform yang intuitif
-              dan responsif di semua perangkat.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                "Akses cepat di desktop, tablet & mobile",
-                "Keamanan data berstandar tinggi",
-                "Dukungan penuh untuk produktivitas Anda",
-              ].map((t) => (
-                <li key={t} className="flex items-center gap-2.5 text-[13.5px] text-ink">
-                  <CheckCircle2 size={18} className="shrink-0 text-primary-700" aria-hidden />
-                  {t}
-                </li>
-              ))}
-            </ul>
-            <Link href="/program" className="sb-btn sb-btn-primary mt-7 !px-6 !py-3 text-[13.5px]">
-              Jelajahi Fitur Lengkap
-              <ArrowRight size={16} />
-            </Link>
           </div>
+          <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-[var(--sb-muted)]">
+            Dari administrasi hingga pelaporan, semuanya di satu layar kerja: ringkasan anggota, lahan,
+            kas, program, dan agenda — responsif di desktop, tablet, dan ponsel.
+          </p>
+        </div>
+
+        <div className="relative">
+          {/* the photo behind the frame gives the plate depth without a drop-shadow blob */}
+          <div className="absolute inset-x-6 top-6 -z-10 h-full rounded-[26px] bg-[var(--sb-tint-green)]" aria-hidden />
+          <figure className="overflow-hidden rounded-[20px] border border-line bg-white shadow-[0_40px_80px_-40px_rgba(9,32,19,0.55)]">
+            <div className="flex items-center gap-2 border-b border-line bg-[#f7f9f6] px-4 py-2.5">
+              <span className="flex gap-1.5" aria-hidden>
+                <span className="h-2.5 w-2.5 rounded-full bg-[#e2b2ab]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#e8d3a5]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#b8d6bd]" />
+              </span>
+              <span className="ml-2 flex-1 truncate rounded-full border border-line bg-white px-3 py-1 text-[10.5px] text-muted2">
+                srikandi-buana-v9.vercel.app/app/pengurus
+              </span>
+              <span className="hidden rounded-full bg-[var(--sb-primary-50)] px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.12em] text-primary-700 sm:block">
+                Data contoh
+              </span>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/produk-dasbor.jpg"
+              alt="Dasbor Pengurus Srikandi Buana: kartu angka anggota, lahan, kas, program, grafik aktivitas, dan agenda hari ini"
+              width={2880}
+              height={1720}
+              loading="lazy"
+              decoding="async"
+              className="block w-full"
+            />
+          </figure>
+        </div>
+
+        <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+          {[
+            ["Akses cepat di desktop, tablet & mobile", "Satu tata letak, tiga ukuran layar — tanpa aplikasi tambahan."],
+            ["Keamanan data berstandar tinggi", "Peran dan kewenangan menentukan apa yang terlihat dan dapat diubah."],
+            ["Dukungan penuh untuk produktivitas", "CRUD, ekspor CSV, dan jejak audit tercatat di setiap modul."],
+          ].map(([title, note]) => (
+            <li key={title} className="flex items-start gap-2.5 rounded-[14px] border border-line bg-white p-3.5">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-primary-700" aria-hidden />
+              <span>
+                <span className="block text-[12.5px] font-semibold text-ink">{title}</span>
+                <span className="mt-0.5 block text-[11.5px] leading-relaxed text-[var(--sb-muted)]">{note}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-7">
+          <Link href="/program" className="sb-btn sb-btn-primary !px-6 !py-3 text-[13.5px]">
+            Jelajahi Fitur Lengkap
+            <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
@@ -280,7 +258,7 @@ export default function HomePage() {
           {FIELDS.map((f) => (
             <article key={f.fieldId} className="sb-card group relative overflow-hidden p-5 transition hover:-translate-y-0.5 hover:shadow-[var(--sb-shadow-lg)]">
               <div className="flex items-start gap-3.5">
-                <FieldMark icon={f.icon} accent={f.accent} />
+                <FieldMark icon={f.icon} accent={f.accent} size="lg" />
                 <div className="min-w-0">
                   <h3 className="text-[16px] font-bold leading-snug text-ink">{f.name}</h3>
                   <p className="mt-1.5 line-clamp-3 text-[12.5px] leading-relaxed text-[var(--sb-muted)]">{f.mandate}</p>
@@ -460,32 +438,93 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───────────── CTA BAND ───────────── */}
-      <section className="sb-shell pb-4 pt-10">
-        <div className="relative overflow-hidden rounded-[22px] bg-[var(--sb-forest)] px-6 py-8 sm:px-10">
-          <div
-            className="pointer-events-none absolute -right-20 -top-24 -z-10 h-64 w-64 rounded-full opacity-20 blur-2xl"
-            style={{ background: "radial-gradient(circle, #8ed4a2 0%, transparent 70%)" }}
-            aria-hidden
-          />
-          <div className="relative flex flex-wrap items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <span className="mt-0.5 hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 sm:flex">
-                <Sprout size={20} className="text-[var(--sb-accent-500)]" aria-hidden />
-              </span>
-              <div>
-                <h2 className="font-display text-[22px] leading-tight text-white sm:text-[26px]">
-                  Mari bersama membangun organisasi yang lebih maju
-                </h2>
-                <p className="mt-1.5 max-w-xl text-[12.5px] text-primary-100/85">
-                  {ORG.shortName} — platform untuk bekerja, berkarya, dan berdaya bersama.
-                </p>
+      {/* ───────────── CTA BAND ─────────────
+           The old band was a flat `--sb-forest` rectangle with a Lucide sprout
+           in a 44px box. Now it carries the organisation's own emblem — the
+           mark alone, no wordmark — on a deep green gradient with a gold rule
+           and a soft crest, so the ask reads as part of the brand rather than
+           a generic call to action. */}
+      <section className="pb-10 pt-10 sm:pb-14">
+        <div className="sb-shell">
+          <div className="relative isolate overflow-hidden rounded-[24px] ring-1 ring-inset ring-white/10">
+            <div
+              className="absolute inset-0 -z-10"
+              style={{
+                background:
+                  "linear-gradient(118deg,#062b17 0%,#0b3a20 38%,#0f4b29 64%,#146033 100%)",
+              }}
+              aria-hidden
+            />
+            {/* two soft crests, echoing the hero ribbon without repeating it */}
+            <svg
+              className="pointer-events-none absolute -bottom-24 -right-24 -z-10 h-[340px] w-[760px]"
+              viewBox="0 0 760 340"
+              aria-hidden
+              style={{ filter: "blur(26px)" }}
+            >
+              <defs>
+                <linearGradient id="ctaCrest" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#8ed4a2" stopOpacity="0" />
+                  <stop offset="55%" stopColor="#8ed4a2" stopOpacity="0.16" />
+                  <stop offset="100%" stopColor="#8ed4a2" stopOpacity="0.26" />
+                </linearGradient>
+                <linearGradient id="ctaGold" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#e6c56a" stopOpacity="0" />
+                  <stop offset="70%" stopColor="#e6c56a" stopOpacity="0.20" />
+                  <stop offset="100%" stopColor="#e6c56a" stopOpacity="0.30" />
+                </linearGradient>
+              </defs>
+              <path d="M0 250 C 190 165, 430 140, 760 205 L760 340 L0 340 Z" fill="url(#ctaCrest)" />
+              <path d="M0 300 C 230 230, 480 220, 760 275 L760 340 L0 340 Z" fill="url(#ctaGold)" />
+            </svg>
+            {/* a warm light source behind the emblem, so the mark sits in the field */}
+            <div
+              className="pointer-events-none absolute -left-10 top-1/2 -z-10 h-[320px] w-[320px] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(230,197,106,0.16),transparent_62%)]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-px bg-[linear-gradient(90deg,rgba(230,197,106,0.55),rgba(230,197,106,0.1)_40%,transparent)]"
+              aria-hidden
+            />
+
+            <div className="relative flex flex-wrap items-center justify-between gap-6 px-6 py-8 sm:px-9 sm:py-9">
+              <div className="flex items-center gap-4 sm:gap-5">
+                {/* emblem only — no text lock-up */}
+                <span className="relative grid h-16 w-16 shrink-0 place-items-center rounded-[18px] bg-white/[0.07] ring-1 ring-inset ring-[#e6c56a]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_16px_30px_-20px_rgba(0,0,0,0.9)] sm:h-[72px] sm:w-[72px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/brand/emblem-gold.png"
+                    alt=""
+                    aria-hidden
+                    width={400}
+                    height={400}
+                    loading="lazy"
+                    className="h-10 w-10 drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)] sm:h-11 sm:w-11"
+                  />
+                </span>
+                <div data-contrast-bg="#0a3a20">
+                  <div className="mb-1.5 flex items-center gap-2.5">
+                    <span className="h-px w-7 bg-[#e6c56a]" aria-hidden />
+                    <span className="text-[9.5px] font-bold uppercase tracking-[0.22em] text-[#f0d79a]">
+                      Bergabung
+                    </span>
+                  </div>
+                  <h2 className="max-w-[24ch] font-display text-[21px] leading-[1.15] text-white sm:text-[26px]">
+                    Mari bersama membangun organisasi yang lebih maju
+                  </h2>
+                  <p className="mt-1.5 max-w-xl text-[12.5px] leading-relaxed text-[#d6ead9]">
+                    {ORG.shortName} — platform untuk bekerja, berkarya, dan berdaya bersama.
+                  </p>
+                </div>
               </div>
+              <Link
+                href="/gabung"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f2d493] px-5 py-3 text-[13px] font-bold text-[#14351f] shadow-[0_14px_28px_-16px_rgba(0,0,0,0.8)] transition hover:bg-[#f8e3b4]"
+              >
+                Daftar Sekarang
+                <ArrowRight size={16} />
+              </Link>
             </div>
-            <Link href="/gabung" className="sb-btn bg-white !px-6 !py-3 text-[13.5px] text-primary-800 hover:bg-[var(--sb-primary-50)]">
-              Daftar Sekarang
-              <ArrowRight size={16} />
-            </Link>
           </div>
         </div>
       </section>

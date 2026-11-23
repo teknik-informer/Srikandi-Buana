@@ -4,6 +4,7 @@ import { STUDIO_PAGES, MENU_DRAFT } from "@/data/content";
 import { BLOCK_REGISTRY, PAGE_COMPOSITIONS } from "@/config/blocks";
 import { MEGA_MENU } from "@/config/navigation";
 import { Badge, Card, CardHeader, Notice, PageHeader, StatCard, StatusBadge } from "@/components/ui";
+import { SiteSettingsPanel } from "./site-settings-panel";
 
 export const metadata: Metadata = { title: "Website Studio" };
 
@@ -16,10 +17,27 @@ export default async function WebsiteStudio({ searchParams }: { searchParams: Pr
     <div className="pb-10">
       <PageHeader
         eyebrow="Website Studio"
-        title="Halaman, block & menu"
+        title="Halaman, block, menu & pengaturan"
         description="Bangun halaman dari block terdaftar. Konten draf tidak memengaruhi website live sampai diterbitkan; setiap perubahan tercatat pada riwayat revisi."
         actions={<Link href="/" className="sb-btn sb-btn-outline">Lihat live</Link>}
       />
+
+      {/* Settings first: the footer is the part of the site people edit most. */}
+      <div className="mb-5">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-[15px] font-semibold text-ink">Pengaturan situs</h2>
+            <p className="text-[12px] text-muted">
+              Identitas footer, kontak, dan media sosial — tersimpan di jejak audit dan langsung
+              tampil di situs publik.
+            </p>
+          </div>
+          <a href="#pengaturan" className="text-[11.5px] font-semibold text-primary hover:underline">Ke pengaturan ↓</a>
+        </div>
+        <SiteSettingsPanel />
+      </div>
+
+      <h2 className="mb-2 text-[15px] font-semibold text-ink">Halaman &amp; menu</h2>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Halaman" value={STUDIO_PAGES.length} note={`${STUDIO_PAGES.filter((p) => p.status === "published").length} terbit`} tone="success" />

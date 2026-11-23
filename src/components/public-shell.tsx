@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ArrowUpRight, ChevronDown, Menu, Search, ShieldCheck, X } from "lucide-react";
+import {
+  ArrowRight, ArrowUpRight, ChevronDown, Menu, Search, ShieldCheck, X,
+  Instagram, Youtube, Facebook, MessageCircle, Music2, Mail,
+} from "lucide-react";
 import { MEGA_MENU, MEGA_TAGLINE, FOOTER_MENU } from "@/config/navigation";
 import { ORG, DEMO_BANNER } from "@/config/org";
 import { AppIcon, Wordmark } from "@/components/brand";
+import { useSiteSettings } from "@/lib/site-settings";
+import type { SocialKey } from "@/lib/store";
 
 const slug = (s: string) => s.toLowerCase();
 
@@ -409,43 +414,133 @@ function SitePalette({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Social glyphs stay in one place so the studio and the footer agree. */
+export const SOCIAL_ICON: Record<SocialKey, typeof Instagram> = {
+  instagram: Instagram,
+  youtube: Youtube,
+  facebook: Facebook,
+  whatsapp: MessageCircle,
+  tiktok: Music2,
+  email: Mail,
+};
+
 export function PublicFooter() {
+  const site = useSiteSettings();
+  const live = site.social.filter((s) => s.on);
+
   return (
-    <footer className="no-print border-t border-white/10 bg-[#123d32] text-primary-100">
-      <div className="sb-shell py-12 sm:py-14">
-        <div className="grid gap-10 md:grid-cols-[1.3fr_repeat(4,1fr)]">
+    <footer className="no-print relative isolate overflow-hidden bg-[#082617] text-primary-100">
+      {/* One continuous deep-green field: a lit top edge, a warm ember low right,
+          and the gold hairline that closes the hero's frame — so the page opens
+          and shuts on the same material instead of on a flat rectangle. */}
+      <div
+        className="absolute inset-0 -z-10"
+        style={{
+          background:
+            "linear-gradient(168deg,#071f12 0%,#0a2b18 42%,#0b3320 72%,#0e3d26 100%)",
+        }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-px bg-[linear-gradient(90deg,transparent,rgba(230,197,106,0.55),transparent)]"
+        aria-hidden
+      />
+      <svg className="pointer-events-none absolute -bottom-24 right-[-8%] -z-10 h-[420px] w-[820px] opacity-[0.14]" viewBox="0 0 820 420" aria-hidden>
+        <path d="M0 320 C 220 240, 470 220, 820 290 L820 420 L0 420 Z" fill="#5fbb84" />
+        <path d="M0 360 C 250 305, 520 300, 820 345 L820 420 L0 420 Z" fill="#e6c56a" opacity="0.5" />
+      </svg>
+
+      <div className="sb-shell pb-7 pt-12 sm:pt-14">
+        <div className="grid gap-10 md:grid-cols-[1.45fr_repeat(4,1fr)]">
+          {/* brand — emblem and lock-up straight on the green, no plate behind it */}
           <div>
-            <span className="inline-flex items-center gap-2.5 rounded-[10px] bg-white px-3 py-2">
-              <Wordmark height={38} />
-            </span>
-            <p className="mt-4 max-w-[26ch] text-[12.5px] leading-relaxed text-primary-200/90">
-              {ORG.legalName}. {ORG.village}, {ORG.district}, {ORG.regency}, {ORG.province}.
-            </p>
-            <p className="mt-3 text-[12px] text-primary-300/90">{ORG.address}</p>
-            <p className="mt-2 text-[12px] text-primary-300/90">
-              {ORG.email} · {ORG.hours}
-            </p>
+            <Link href="/" className="inline-flex flex-col gap-3" aria-label="Beranda Srikandi Buana">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/emblem-gold.png"
+                alt=""
+                aria-hidden
+                width={400}
+                height={400}
+                className="h-11 w-11 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)]"
+              />
+              <span className="flex flex-col">
+                <span className="font-display text-[26px] leading-none tracking-[-0.01em] text-[#f4e6c3]">
+                  {site.creditName}
+                </span>
+                {site.creditLine ? (
+                  <span className="mt-1.5 max-w-[34ch] text-[12px] leading-relaxed text-[#a8c7b1]">
+                    {site.creditLine}
+                  </span>
+                ) : null}
+              </span>
+            </Link>
+
+            {/* socials sit directly under the branding, as asked */}
+            {live.length > 0 && (
+              <ul className="mt-5 flex flex-wrap items-center gap-2" aria-label="Media sosial Srikandi Buana">
+                {live.map(({ key, href }) => {
+                  const Icon = SOCIAL_ICON[key];
+                  return (
+                    <li key={key}>
+                      <a
+                        href={href}
+                        target={href.startsWith("mailto:") ? undefined : "_blank"}
+                        rel="noreferrer noopener"
+                        aria-label={key}
+                        title={key}
+                        className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/[0.06] text-[#d9e9dd] transition hover:border-[#e6c56a]/60 hover:bg-white/[0.12] hover:text-[#f4e6c3]"
+                      >
+                        <Icon size={15} aria-hidden />
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {(site.email || site.hours) && (
+              <div className="mt-4 space-y-1 text-[11.5px] leading-relaxed text-[#8fb29b]">
+                {site.email ? (
+                  <p>
+                    <a href={`mailto:${site.email}`} className="underline decoration-white/20 underline-offset-4 hover:text-[#f4e6c3]">
+                      {site.email}
+                    </a>
+                  </p>
+                ) : null}
+                {site.hours ? <p>{site.hours}</p> : null}
+              </div>
+            )}
           </div>
+
           {FOOTER_MENU.map((group) => (
-            <div key={group.heading}>
-              <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-primary-300">{group.heading}</div>
+            <nav key={group.heading} aria-label={group.heading}>
+              <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-[#e6c56a]/85">{group.heading}</div>
               <ul className="space-y-1.5">
                 {group.items.map((item) => (
                   <li key={item.href + item.label}>
-                    <Link href={item.href} className="text-[12.5px] text-primary-200/95 transition hover:text-white">
+                    <Link href={item.href} className="text-[12.5px] text-[#c4d8ca] transition hover:text-white">
                       {item.label}
                     </Link>
                   </li>
                 ))}
               </ul>
-            </div>
+            </nav>
           ))}
         </div>
-        <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-5 text-[11.5px] text-primary-100/90 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 {ORG.legalName}. Seluruh hak dilindungi.</p>
-          <p>Blueprint {ORG.docVersion} · Lingkungan demo · Data contoh berlabel</p>
+
+        <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-5 text-[11.5px] text-[#93b6a0] sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 {ORG.shortName}. Seluruh hak dilindungi.</p>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            {site.showBlueprint && (
+              <p>Blueprint {ORG.docVersion} · Lingkungan demo · Data contoh berlabel</p>
+            )}
+            {site.showDemoNotice && site.showBlueprint && <span className="hidden text-white/20 sm:inline">•</span>}
+            {site.showDemoNotice && <p>Seluruh isi situs dapat diubah di Studio → Website.</p>}
+          </div>
         </div>
       </div>
     </footer>
   );
 }
+
