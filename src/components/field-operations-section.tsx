@@ -560,7 +560,6 @@ export async function FieldOperationsSection({
                     {activity.description ? <p className="mt-2 text-[11px] text-muted">{activity.description}</p> : null}
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                       {activity.open_to_public ? <Badge tone="info">Publik</Badge> : null}
-                      <span className="text-[10.5px] text-muted2">{activity.attendee_count} catatan peserta</span>
                       {canWriteActivities && activity.status === "scheduled" ? (
                         <>
                           <form action={updateFieldActivityStatus}>
