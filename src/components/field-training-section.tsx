@@ -82,6 +82,7 @@ interface EnrollmentRow {
 
 interface CertificateRow {
   id: string;
+  session_id: string;
   reference_no: string;
   participant_name: string;
   session_title: string;
@@ -276,6 +277,7 @@ export async function FieldTrainingSection({
     sql`
       SELECT
         certificate.id::text AS id,
+        enrollment.session_id::text AS session_id,
         certificate.reference_no,
         enrollment.participant_name,
         session.title AS session_title,
@@ -608,6 +610,7 @@ export async function FieldTrainingSection({
 
                       {canWrite && selected.status === "registration_open" && enrollment.registration_status !== "cancelled" && enrollment.attendance_status === "not_marked" ? (
                         <form action={cancelTrainingEnrollment} className="mt-3 flex justify-end border-t border-line pt-2">
+                          <input type="hidden" name="session_id" value={selected.id} />
                           <input type="hidden" name="enrollment_id" value={enrollment.id} />
                           <button type="submit" className="sb-btn sb-btn-ghost !h-8 !px-3 text-[10px]">Batalkan pendaftaran</button>
                         </form>
@@ -616,6 +619,7 @@ export async function FieldTrainingSection({
                       {canWrite && canRecordResults && enrollment.registration_status !== "cancelled" ? (
                         <div className="mt-3 grid gap-3 border-t border-line pt-3 lg:grid-cols-2">
                           <form action={updateTrainingAttendance} className="flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="session_id" value={selected.id} />
                             <input type="hidden" name="enrollment_id" value={enrollment.id} />
                             <select name="attendance_status" defaultValue={enrollment.attendance_status === "not_marked" ? "hadir" : enrollment.attendance_status} className="sb-input !h-8 min-w-0 flex-1 text-[10.5px]" aria-label={`Presensi ${enrollment.participant_name}`}>
                               <option value="hadir">Hadir</option>
@@ -628,6 +632,7 @@ export async function FieldTrainingSection({
 
                           <div className="grid gap-2 sm:grid-cols-2">
                             <form action={recordTrainingAssessment} className="flex items-center gap-1.5">
+                              <input type="hidden" name="session_id" value={selected.id} />
                               <input type="hidden" name="enrollment_id" value={enrollment.id} />
                               <input type="hidden" name="assessment_type" value="pre" />
                               <label className="sr-only" htmlFor={`pre-score-${enrollment.id}`}>Nilai pre-test</label>
@@ -635,6 +640,7 @@ export async function FieldTrainingSection({
                               <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-2 text-[9.5px]">Simpan</button>
                             </form>
                             <form action={recordTrainingAssessment} className="flex items-center gap-1.5">
+                              <input type="hidden" name="session_id" value={selected.id} />
                               <input type="hidden" name="enrollment_id" value={enrollment.id} />
                               <input type="hidden" name="assessment_type" value="post" />
                               <label className="sr-only" htmlFor={`post-score-${enrollment.id}`}>Nilai post-test</label>
@@ -706,6 +712,7 @@ export async function FieldTrainingSection({
                 <Badge tone={certificate.status === "issued" ? "success" : "warning"}>{certificate.status === "issued" ? "Terbit" : "Dicabut"}</Badge>
                 {certificate.status === "issued" && canRevokeCertificate ? (
                   <form action={revokeTrainingCertificate} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="session_id" value={certificate.session_id} />
                     <input type="hidden" name="certificate_id" value={certificate.id} />
                     <input name="revocation_note" required minLength={3} maxLength={1000} className="sb-input !h-8 w-[200px] text-[10px]" placeholder="Alasan pencabutan" />
                     <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-2.5 text-[9.5px]">Cabut</button>
