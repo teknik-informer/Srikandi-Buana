@@ -5,6 +5,8 @@ import { Badge, Card, CardHeader, EmptyState, Notice, Progress } from "@/compone
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { formatDateID } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Pelatihan",
   description: "Jadwal pelatihan dan kelas keterampilan yang secara resmi dibuka oleh KWT Srikandi Buana.",
