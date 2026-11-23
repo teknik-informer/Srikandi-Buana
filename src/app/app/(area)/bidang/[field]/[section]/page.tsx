@@ -9,6 +9,7 @@ import { FIELD_SECTION_KEYS } from "@/config/field-nav";
 import { FieldSectionView } from "@/components/field-section";
 import { decideMembershipInterest } from "@/app/actions/membership";
 import { FieldOperationsSection } from "@/components/field-operations-section";
+import { FieldTeamSection } from "@/components/field-team-section";
 
 export const metadata: Metadata = { title: "Aplikasi Bidang" };
 
@@ -366,6 +367,11 @@ export default async function BidangSection({
     await requireIdentity("field:organisasi:review");
     const search = await searchParams;
     return <MembershipInterestQueue result={search?.result} />;
+  }
+
+  if (section === "tim") {
+    const search = await searchParams;
+    return <FieldTeamSection field={field} result={search?.result} />;
   }
 
   if (["rencana", "kegiatan", "tugas"].includes(section)) {
