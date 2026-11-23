@@ -1,0 +1,685 @@
+"use server";
+
+import { randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { COA } from "@/data/coa";
+import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { can, requireIdentity } from "@/lib/session";
+
+type MutationRow = { id: string; reference_no?: string };
+
+const ACCOUNT_TYPES = ["aset","kewajiban","ekuitas","pendapatan","beban"] as const;
+const NORMAL_BALANCES = ["debit","credit"] as const;
+const SOURCES = ["manual","cash","bank","contribution","grant","purchase","sale","adjustment","reversal"] as const;
+
+function validUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function validDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0,10) === value;
+}
+
+function normalize(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function financePath(result: string, journalId?: string): string {
+  const query = new URLSearchParams({ result });
+  if (journalId && validUuid(journalId)) query.set("journal_id", journalId);
+  return `/app/keuangan/jurnal?${query.toString()}`;
+}
+
+function accountPath(result: string): string {
+  return `/app/keuangan/bagan-akun?result=${encodeURIComponent(result)}`;
+}
+
+function fail(area: string, reason: unknown): void {
+  console.error(
+    `[${area}] Operation failed:`,
+    reason instanceof Error ? reason.message : "Unknown error",
+  );
+}
+
+function refreshFinance(): void {
+  revalidatePath("/app/keuangan");
+  revalidatePath("/app/keuangan/jurnal");
+  revalidatePath("/app/keuangan/bagan-akun");
+  revalidatePath("/app/keuangan/buku-besar");
+  revalidatePath("/app/keuangan/neraca-saldo");
+  revalidatePath("/app/keuangan/laporan");
+}
+
+export async function loadFinanceAccountTemplate(): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:accounts:write")) redirect("/app");
+
+  const template = COA.map((account) => ({
+    account_code: account.code,
+    account_name: account.code === "1-1100" ? "Bank Organisasi (tentukan bank)" : account.name,
+    account_type: account.type,
+    normal_balance: account.normal === "debit" ? "debit" : "credit",
+    group_label: account.group,
+    note: account.code === "1-1100"
+      ? "Nama rekening belum ditetapkan. Sesuaikan sebelum akun diaktifkan."
+      : account.note ?? null,
+    is_postable: true,
+  }));
+  let inserted: MutationRow[] = [];
+
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH template AS MATERIALIZED (
+        SELECT
+          item.account_code,
+          item.account_name,
+          item.account_type,
+          item.normal_balance,
+          item.group_label,
+          item.note,
+          item.is_postable
+        FROM jsonb_to_recordset(${JSON.stringify(template)}::jsonb) AS item(
+          account_code text,
+          account_name text,
+          account_type text,
+          normal_balance text,
+          group_label text,
+          note text,
+          is_postable boolean
+        )
+      ),
+      created AS (
+        INSERT INTO v9.finance_accounts (
+          organization_id, account_code, account_name, account_type,
+          normal_balance, group_label, note, is_postable, status,
+          created_by, updated_by
+        )
+        SELECT
+          ${identity.organizationId},
+          template.account_code,
+          template.account_name,
+          template.account_type,
+          template.normal_balance,
+          template.group_label,
+          template.note,
+          template.is_postable,
+          'draft',
+          ${identity.userId},
+          ${identity.userId}
+        FROM template
+        WHERE NOT EXISTS (
+          SELECT 1 FROM v9.finance_accounts account
+          WHERE account.organization_id = ${identity.organizationId}
+        )
+        RETURNING id, organization_id, account_code, account_name, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          organization_id,
+          ${identity.userId},
+          'finance_coa.template_loaded',
+          'finance_account',
+          id::text,
+          jsonb_build_object('account_code', account_code, 'account_name', account_name, 'status', status)
+        FROM created
+        RETURNING id
+      )
+      SELECT created.id::text AS id, created.account_code AS reference_no
+      FROM created
+      INNER JOIN audit ON true
+    `;
+    inserted = rowsFromResult<MutationRow>(result);
+  } catch (reason) {
+    fail("finance-coa-template", reason);
+    redirect(accountPath("error"));
+  }
+
+  if (!inserted.length) redirect(accountPath("accounts-already-exist"));
+  refreshFinance();
+  redirect(accountPath("template-loaded"));
+}
+
+export async function createFinanceAccount(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:accounts:write")) redirect("/app");
+
+  const code = normalize(String(formData.get("account_code") ?? ""));
+  const name = normalize(String(formData.get("account_name") ?? ""));
+  const type = String(formData.get("account_type") ?? "").trim();
+  const normal = String(formData.get("normal_balance") ?? "").trim();
+  const group = normalize(String(formData.get("group_label") ?? ""));
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (
+    !/^[0-9]+-[0-9]{3,6}$/.test(code) ||
+    name.length < 2 || name.length > 180 ||
+    !ACCOUNT_TYPES.includes(type as (typeof ACCOUNT_TYPES)[number]) ||
+    !NORMAL_BALANCES.includes(normal as (typeof NORMAL_BALANCES)[number]) ||
+    group.length < 2 || group.length > 120 ||
+    note.length > 2000
+  ) {
+    redirect(accountPath("invalid"));
+  }
+
+  let created: MutationRow | undefined;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH inserted AS (
+        INSERT INTO v9.finance_accounts (
+          organization_id, account_code, account_name, account_type,
+          normal_balance, group_label, note, status, is_postable,
+          created_by, updated_by
+        )
+        VALUES (
+          ${identity.organizationId},
+          ${code},
+          ${name},
+          ${type},
+          ${normal},
+          ${group},
+          NULLIF(${note}, ''),
+          'draft',
+          true,
+          ${identity.userId},
+          ${identity.userId}
+        )
+        RETURNING id, organization_id, account_code, account_name, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_account.created',
+          'finance_account', id::text,
+          jsonb_build_object('account_code', account_code, 'account_name', account_name, 'status', status)
+        FROM inserted
+        RETURNING id
+      )
+      SELECT inserted.id::text AS id, inserted.account_code AS reference_no
+      FROM inserted
+      INNER JOIN audit ON true
+    `;
+    created = rowsFromResult<MutationRow>(result)[0];
+  } catch (reason) {
+    fail("finance-account-create", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("finance_accounts_organization_id_account_code_key")) {
+      redirect(accountPath("duplicate-account-code"));
+    }
+    redirect(accountPath("error"));
+  }
+
+  if (!created) redirect(accountPath("error"));
+  refreshFinance();
+  redirect(accountPath("account-created"));
+}
+
+export async function updateDraftFinanceAccount(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:accounts:write")) redirect("/app");
+
+  const accountId = String(formData.get("account_id") ?? "").trim();
+  const name = normalize(String(formData.get("account_name") ?? ""));
+  const type = String(formData.get("account_type") ?? "").trim();
+  const normal = String(formData.get("normal_balance") ?? "").trim();
+  const group = normalize(String(formData.get("group_label") ?? ""));
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (
+    !validUuid(accountId) ||
+    name.length < 2 || name.length > 180 ||
+    !ACCOUNT_TYPES.includes(type as (typeof ACCOUNT_TYPES)[number]) ||
+    !NORMAL_BALANCES.includes(normal as (typeof NORMAL_BALANCES)[number]) ||
+    group.length < 2 || group.length > 120 ||
+    note.length > 2000
+  ) {
+    redirect(accountPath("invalid"));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_accounts
+        SET
+          account_name = ${name},
+          account_type = ${type},
+          normal_balance = ${normal},
+          group_label = ${group},
+          note = NULLIF(${note}, ''),
+          updated_by = ${identity.userId},
+          updated_at = now()
+        WHERE id = ${accountId}
+          AND organization_id = ${identity.organizationId}
+          AND status = 'draft'
+        RETURNING id, organization_id, account_code, account_name, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_account.draft_updated',
+          'finance_account', id::text,
+          jsonb_build_object('account_code', account_code, 'account_name', account_name, 'status', status)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-account-draft-update", reason);
+    redirect(accountPath("error"));
+  }
+
+  if (!changed) redirect(accountPath("account-not-draft"));
+  refreshFinance();
+  redirect(accountPath("account-updated"));
+}
+
+export async function updateFinanceAccountStatus(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:accounts:approve")) redirect("/app");
+
+  const accountId = String(formData.get("account_id") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+  if (!validUuid(accountId) || !["active","archived"].includes(status)) {
+    redirect(accountPath("invalid"));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_accounts
+        SET status = ${status}, updated_by = ${identity.userId}, updated_at = now()
+        WHERE id = ${accountId}
+          AND organization_id = ${identity.organizationId}
+          AND status <> 'archived'
+        RETURNING id, organization_id, account_code, account_name, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_account.status.' || status,
+          'finance_account', id::text,
+          jsonb_build_object('account_code', account_code, 'account_name', account_name, 'status', status)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-account-status", reason);
+    redirect(accountPath("account-status-blocked"));
+  }
+
+  if (!changed) redirect(accountPath("account-status-blocked"));
+  refreshFinance();
+  redirect(accountPath("account-status-updated"));
+}
+
+export async function createFinanceJournalDraft(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:write")) redirect("/app");
+
+  const journalDate = String(formData.get("journal_date") ?? "").trim();
+  const description = normalize(String(formData.get("description") ?? ""));
+  const sourceType = String(formData.get("source_type") ?? "manual").trim();
+  const sourceReference = normalize(String(formData.get("source_reference") ?? ""));
+  const linesText = String(formData.get("lines_json") ?? "[]");
+  let lines: { line_number: number; account_id: string; debit: number; credit: number; memo?: string }[];
+
+  try {
+    const parsed: unknown = JSON.parse(linesText);
+    if (!Array.isArray(parsed)) throw new Error("Journal lines must be an array");
+    lines = parsed as typeof lines;
+  } catch {
+    redirect(financePath("invalid-lines"));
+  }
+
+  const seenLineNumbers = new Set<number>();
+  if (
+    !validDate(journalDate) ||
+    description.length < 3 || description.length > 500 ||
+    !SOURCES.includes(sourceType as (typeof SOURCES)[number]) ||
+    sourceReference.length > 160 ||
+    lines.length < 2 || lines.length > 100 || linesText.length > 40000 ||
+    lines.some((line) => {
+      if (!line || !validUuid(String(line.account_id ?? ""))) return true;
+      if (!Number.isInteger(line.line_number) || line.line_number < 1 || line.line_number > 100 || seenLineNumbers.has(line.line_number)) return true;
+      seenLineNumbers.add(line.line_number);
+      if (line.memo && line.memo.length > 500) return true;
+      const debit = Number(line.debit);
+      const credit = Number(line.credit);
+      if (!Number.isFinite(debit) || !Number.isFinite(credit) || debit < 0 || credit < 0) return true;
+      if (Math.round(debit * 100) !== debit * 100 || Math.round(credit * 100) !== credit * 100) return true;
+      if (debit > 9999999999999999 || credit > 9999999999999999) return true;
+      return !((debit > 0 && credit === 0) || (credit > 0 && debit === 0));
+    })
+  ) {
+    redirect(financePath("invalid-lines"));
+  }
+
+  const idempotencyKey = randomUUID();
+  let created: MutationRow | undefined;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH input AS MATERIALIZED (
+        SELECT item.line_number, item.account_id, item.debit, item.credit, item.memo
+        FROM jsonb_to_recordset(${linesText}::jsonb) AS item(
+          line_number smallint, account_id uuid, debit numeric, credit numeric, memo text
+        )
+      ),
+      selected_accounts AS MATERIALIZED (
+        SELECT
+          input.line_number,
+          input.account_id,
+          input.debit,
+          input.credit,
+          input.memo
+        FROM input
+        INNER JOIN v9.finance_accounts AS account
+          ON account.id = input.account_id
+          AND account.organization_id = ${identity.organizationId}
+          AND account.status = 'active'
+          AND account.is_postable = true
+      ),
+      inserted AS (
+        INSERT INTO v9.finance_journals (
+          organization_id, journal_date, description, source_type,
+          source_reference, idempotency_key, status, created_by
+        )
+        SELECT
+          ${identity.organizationId},
+          ${journalDate}::date,
+          ${description},
+          ${sourceType},
+          NULLIF(${sourceReference}, ''),
+          ${idempotencyKey},
+          'draft',
+          ${identity.userId}
+        WHERE (SELECT count(*) FROM selected_accounts) = (SELECT count(*) FROM input)
+        RETURNING id, organization_id, reference_no, journal_date, description, status
+      ),
+      inserted_lines AS (
+        INSERT INTO v9.finance_journal_lines (
+          organization_id, journal_id, account_id, line_number, memo, debit, credit
+        )
+        SELECT
+          inserted.organization_id,
+          inserted.id,
+          selected_accounts.account_id,
+          selected_accounts.line_number,
+          NULLIF(selected_accounts.memo, ''),
+          selected_accounts.debit,
+          selected_accounts.credit
+        FROM inserted
+        CROSS JOIN selected_accounts
+        RETURNING journal_id, debit, credit
+      ),
+      totals AS (
+        SELECT
+          journal_id,
+          sum(debit)::numeric(18,2) AS debit_total,
+          sum(credit)::numeric(18,2) AS credit_total
+        FROM inserted_lines
+        GROUP BY journal_id
+      ),
+      updated AS (
+        UPDATE v9.finance_journals AS journal
+        SET
+          total_debit = totals.debit_total,
+          total_credit = totals.credit_total,
+          updated_at = now()
+        FROM totals
+        WHERE journal.id = totals.journal_id
+          AND journal.organization_id = ${identity.organizationId}
+        RETURNING journal.id, journal.organization_id, journal.reference_no,
+          journal.journal_date, journal.description, journal.status,
+          journal.total_debit, journal.total_credit
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_journal.draft_created',
+          'finance_journal', id::text,
+          jsonb_build_object('reference_no', reference_no, 'journal_date', journal_date,
+            'description', description, 'status', status, 'total_debit', total_debit,
+            'total_credit', total_credit)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id, updated.reference_no
+      FROM updated
+      INNER JOIN audit ON true
+    `;
+    created = rowsFromResult<MutationRow>(result)[0];
+  } catch (reason) {
+    fail("finance-journal-create", reason);
+    redirect(financePath("error"));
+  }
+
+  if (!created) redirect(financePath("account-unavailable"));
+  refreshFinance();
+  redirect(financePath("journal-created", created.id));
+}
+
+export async function submitFinanceJournal(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:write")) redirect("/app");
+
+  const journalId = String(formData.get("journal_id") ?? "").trim();
+  if (!validUuid(journalId)) redirect(financePath("invalid", journalId));
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_journals
+        SET status = 'submitted',
+          submitted_by = ${identity.userId},
+          submitted_at = now(),
+          updated_at = now()
+        WHERE id = ${journalId}
+          AND organization_id = ${identity.organizationId}
+          AND status = 'draft'
+        RETURNING id, organization_id, reference_no, status, total_debit, total_credit
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_journal.submitted',
+          'finance_journal', id::text,
+          jsonb_build_object('reference_no', reference_no, 'status', status,
+            'total_debit', total_debit, 'total_credit', total_credit)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-journal-submit", reason);
+    redirect(financePath("journal-not-balanced", journalId));
+  }
+
+  if (!changed) redirect(financePath("journal-not-draft", journalId));
+  refreshFinance();
+  redirect(financePath("journal-submitted", journalId));
+}
+
+export async function reviewFinanceJournal(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:approve")) redirect("/app");
+
+  const journalId = String(formData.get("journal_id") ?? "").trim();
+  const decision = String(formData.get("decision") ?? "").trim();
+  const reviewNote = String(formData.get("review_note") ?? "").trim();
+  if (
+    !validUuid(journalId) ||
+    !["approved","rejected"].includes(decision) ||
+    (decision === "rejected" && reviewNote.length < 3) ||
+    reviewNote.length > 2000
+  ) {
+    redirect(financePath("invalid", journalId));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_journals
+        SET
+          status = ${decision},
+          approved_by = CASE WHEN ${decision} = 'approved' THEN ${identity.userId}::uuid ELSE NULL END,
+          approved_at = CASE WHEN ${decision} = 'approved' THEN now() ELSE NULL END,
+          rejected_by = CASE WHEN ${decision} = 'rejected' THEN ${identity.userId}::uuid ELSE NULL END,
+          rejected_at = CASE WHEN ${decision} = 'rejected' THEN now() ELSE NULL END,
+          review_note = CASE WHEN ${decision} = 'rejected' THEN ${reviewNote} ELSE NULL END,
+          updated_at = now()
+        WHERE id = ${journalId}
+          AND organization_id = ${identity.organizationId}
+          AND status = 'submitted'
+          AND created_by <> ${identity.userId}
+        RETURNING id, organization_id, reference_no, status, created_by,
+          approved_by, rejected_by, review_note, total_debit, total_credit
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_journal.' || status,
+          'finance_journal', id::text,
+          jsonb_build_object('reference_no', reference_no, 'status', status,
+            'created_by', created_by, 'approved_by', approved_by,
+            'rejected_by', rejected_by, 'review_note', review_note,
+            'total_debit', total_debit, 'total_credit', total_credit)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-journal-review", reason);
+    redirect(financePath("review-failed", journalId));
+  }
+
+  if (!changed) redirect(financePath("review-not-eligible", journalId));
+  refreshFinance();
+  redirect(financePath(decision === "approved" ? "journal-approved" : "journal-rejected", journalId));
+}
+
+export async function postFinanceJournal(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:post")) redirect("/app");
+
+  const journalId = String(formData.get("journal_id") ?? "").trim();
+  if (!validUuid(journalId)) redirect(financePath("invalid", journalId));
+
+  let posted = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_journals
+        SET status = 'posted',
+          posted_by = ${identity.userId}::uuid,
+          posted_at = now(),
+          updated_at = now()
+        WHERE id = ${journalId}
+          AND organization_id = ${identity.organizationId}
+          AND status = 'approved'
+        RETURNING id, organization_id, reference_no, journal_date,
+          description, status, total_debit, total_credit, approved_by
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_journal.posted',
+          'finance_journal', id::text,
+          jsonb_build_object('reference_no', reference_no, 'journal_date', journal_date,
+            'description', description, 'status', status, 'total_debit', total_debit,
+            'total_credit', total_credit, 'approved_by', approved_by)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    posted = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-journal-post", reason);
+    redirect(financePath("posting-blocked", journalId));
+  }
+
+  if (!posted) redirect(financePath("journal-not-approved", journalId));
+  refreshFinance();
+  redirect(financePath("journal-posted", journalId));
+}
+
+export async function reopenRejectedFinanceJournal(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:write")) redirect("/app");
+
+  const journalId = String(formData.get("journal_id") ?? "").trim();
+  if (!validUuid(journalId)) redirect(financePath("invalid", journalId));
+
+  let reopened = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_journals
+        SET status = 'draft',
+          submitted_by = NULL,
+          submitted_at = NULL,
+          rejected_by = NULL,
+          rejected_at = NULL,
+          review_note = NULL,
+          updated_at = now()
+        WHERE id = ${journalId}
+          AND organization_id = ${identity.organizationId}
+          AND status = 'rejected'
+          AND created_by = ${identity.userId}
+        RETURNING id, organization_id, reference_no, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_journal.reopened',
+          'finance_journal', id::text,
+          jsonb_build_object('reference_no', reference_no, 'status', status)
+        FROM updated RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    reopened = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-journal-reopen", reason);
+    redirect(financePath("error", journalId));
+  }
+
+  if (!reopened) redirect(financePath("journal-not-rejected-or-not-owner", journalId));
+  refreshFinance();
+  redirect(financePath("journal-reopened", journalId));
+}
