@@ -5,6 +5,7 @@ export const SESSION_COOKIE = "sb_v9_session";
 
 export interface AppIdentity {
   userId: string;
+  organizationId: string;
   memberId: string;
   name: string;
   role: string;
