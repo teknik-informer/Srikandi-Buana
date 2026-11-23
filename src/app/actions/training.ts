@@ -776,7 +776,7 @@ export async function cancelTrainingEnrollment(formData: FormData): Promise<void
       )
       SELECT changed.id::text AS id
       FROM changed
-      INNER JOIN audit ON audit.id IS NOT NULL
+      WHERE EXISTS (SELECT 1 FROM audit)
     `;
     cancelled = rowsFromResult<MutationRow>(result).length === 1;
   } catch (reason) {
