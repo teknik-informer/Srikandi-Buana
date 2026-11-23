@@ -65,7 +65,7 @@ function formatDate(value: string): string {
 }
 
 async function MembershipInterestQueue({ result }: { result?: string }) {
-  await requireIdentity("field:organisasi:review");
+  const identity = await requireIdentity("field:organisasi:review");
   const sql = getV9Sql();
   const query = await sql`
     SELECT
@@ -82,6 +82,7 @@ async function MembershipInterestQueue({ result }: { result?: string }) {
       reviewed_at,
       review_note
     FROM v9.membership_interests
+    WHERE organization_id = ${identity.organizationId}
     ORDER BY
       CASE status
         WHEN 'submitted' THEN 1
