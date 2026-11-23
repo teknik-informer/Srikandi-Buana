@@ -304,10 +304,10 @@ export async function updateBusinessOpportunityStage(formData: FormData): Promis
     redirect(businessPath("invalid"));
   }
 
-  if (nextStage === "won" && !can(identity, "organization:team:approve")) {
+  if (["won", "lost"].includes(nextStage) && !can(identity, "organization:team:approve")) {
     redirect("/app");
   }
-  if (nextStage === "lost" && outcomeNote.length < 3) {
+  if (["won", "lost"].includes(nextStage) && outcomeNote.length < 3) {
     redirect(businessPath("outcome-required"));
   }
 
