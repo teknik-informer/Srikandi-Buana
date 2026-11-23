@@ -11,6 +11,7 @@ export type { AppIdentity, DemoIdentity } from "@/lib/identity";
 
 interface IdentityRow {
   user_id: string;
+  organization_id: string;
   name: string;
   member_number: string | null;
   role_key: string;
@@ -58,7 +59,7 @@ function permissionsFor(roleKey: string, fieldKey: string | null): string[] {
     case "secretary":
       return [
         "secretariat:*", "documents:*", "cms:publish",
-        "approval:read", "field:read", "organization:read", "finance:read",
+        "approval:read", "field:read", "organization:read", "finance:read", "membership:activate",
       ];
     case "treasurer":
       return ["finance:*", "approval:read", "organization:read"];
@@ -101,6 +102,7 @@ export async function getIdentity(): Promise<AppIdentity | null> {
   const result = await sql`
     SELECT
       account.id AS user_id,
+      organization.id AS organization_id,
       COALESCE(person.full_name, account.email) AS name,
       membership.member_number,
       assignment.role_key,
@@ -172,6 +174,7 @@ export async function getIdentity(): Promise<AppIdentity | null> {
 
   return {
     userId: row.user_id,
+    organizationId: row.organization_id,
     memberId: row.member_number ?? row.user_id,
     name: row.name,
     role: roleLabel,
