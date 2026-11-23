@@ -36,6 +36,7 @@ Files applied on the isolated development branch:
 12. `db/migrations/0012_training_empowerment_operations.sql`
 13. `db/migrations/0013_training_capacity_counter.sql`
 14. `db/migrations/0014_business_partnerships_crm.sql`
+14. `db/migrations/0014_business_partnerships_crm.sql`
 
 The `v9` schema currently includes 40 tables:
 
@@ -47,6 +48,7 @@ The `v9` schema currently includes 40 tables:
 - field workplans, programs, indicators, activities, tasks, and field-team assignments;
 - Agriculture plots, cultivation cycles, field visits, and harvest entries;
 - Training sessions, enrollments, pre/post assessments, and certificate register;
+- Business partners, opportunities, agreements, and cooperation milestones;
 - business partners, cooperation opportunities, agreements, and milestones;
 - audit events, organization settings, outbox events, and migration history.
 
@@ -193,6 +195,18 @@ Technical implementation:
 - Inventory, product catalogue, customer orders, stock movements, and financial posting remain separate domains. This CRM does not automatically create stock, payments, receivables, revenue, or ledger entries.
 - Development record counts are currently zero for partners, opportunities, agreements, and milestones. No sample partner or pipeline records were inserted.
 
+### Usaha & Kemitraan — CRM, opportunities, agreements, and milestones
+
+- The CRM domain uses migration `0014_business_partnerships_crm.sql` and four organization-scoped tables: `v9.business_partners`, `v9.business_opportunities`, `v9.business_agreements`, and `v9.business_milestones`.
+- Partner records support government, NGO/foundation, private business, cooperative, academic, community, individual, and other partner types. Contact, relationship summary, source, owner, and review dates are stored separately from membership records.
+- Opportunities can be linked to a partner, carry an estimated value and expected decision date, and progress through lead, qualified, proposal, negotiation, won, lost, or on-hold stages.
+- Agreements are created as drafts, can be submitted for review, and need an authorized approver before being marked signed, active, or expired. Their partner and optional opportunity links must belong to the same organization and field.
+- Each milestone is linked to exactly one opportunity or agreement and to the same partner. Completion requires a completion note and records the completing account and timestamp.
+- All eight server actions check organization scope and field permissions, validate the input, and append an audit event in the same SQL statement: partner create/status, opportunity create/stage, agreement create/status, and milestone create/status.
+- The CRM workspace is connected at `/app/bidang/usaha/data`. The page reads summary totals and partner/opportunity/agreement/milestone registers from the V9 database. No static `PARTNERS` demo records are used in this workspace.
+- Current CRM records are intentionally empty; no demo partners, opportunities, agreements, or milestones were seeded. Only records entered by authorized users will appear.
+- This CRM stage does not yet include product catalogue, producers, HPP and price controls, inventory movements, sales orders, POS, or automatic accounting. CRM opportunity estimates are not accounting income or grant receipts.
+
 ## Verification performed
 
 - GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
@@ -206,12 +220,15 @@ Technical implementation:
 - GitHub Actions for field team roster commit `fc223bf77c5ae9db6abc7ca60bcf247fe9ab4db8` and corrected revalidation commit `c2d626db9ec477b4727f87f883e23186766022a6` completed successfully: install, typecheck, and production build.
 - GitHub Actions for Agriculture plot/cycle/visit/harvest implementation commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - PostgreSQL query-plan checks passed for training summary, session list, enrollment list, session creation/status, capacity-aware registration, attendance, assessment upsert, certificate issuance/revocation, and participant cancellation with waitlist promotion.
+- GitHub Actions for the latest training public-page/session-context build completed successfully: install, typecheck, and production build.
+- GitHub Actions for Business & Partnerships CRM commit `5b13f67bb7245a48db9262e1132927dd389c14e2` completed successfully: install, typecheck, and production build.
+- PostgreSQL query-plan checks passed for business CRM summary, partner/opportunity/agreement/milestone lists, partner creation/status, opportunity creation/stage change, agreement creation/status, and milestone creation/status.
 - PostgreSQL query-plan checks passed for CRM summary, partner/opportunity/agreement/milestone lists, opportunity stage changes, agreement status changes, and milestone status changes.
 - GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
 - Neon development schema check: 40 V9 tables and fourteen applied migrations. Training and CRM record counts remain zero; no sample sessions, partners, or pipeline values were seeded.
-- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, and audit records; it cannot create schema objects or read legacy user records.
-- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, and agriculture summary/plot/cycle/visit/harvest lists and mutations.
+- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, business partners/opportunities/agreements/milestones, and audit records; it cannot create schema objects or read legacy user records.
+- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, agriculture summary/plot/cycle/visit/harvest lists and mutations, and business CRM summary/list/partner/opportunity/agreement/milestone operations.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
 - SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
 - No browser E2E, real account login, or real data insertion test has been completed yet.
