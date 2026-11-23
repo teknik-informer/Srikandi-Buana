@@ -516,6 +516,23 @@ export async function recordBusinessInventoryMovement(formData: FormData): Promi
           AND warehouse.status = 'active'
         FOR UPDATE OF product, warehouse
       ),
+      locked_stock AS MATERIALIZED (
+        SELECT
+          stock.product_id,
+          stock.warehouse_id,
+          stock.organization_id,
+          stock.field_key,
+          stock.on_hand,
+          stock.reserved
+        FROM v9.business_product_stock AS stock
+        INNER JOIN locked
+          ON locked.product_id = stock.product_id
+          AND locked.warehouse_id = stock.warehouse_id
+          AND locked.organization_id = stock.organization_id
+          AND locked.field_key = stock.field_key
+        ORDER BY stock.product_id, stock.warehouse_id
+        FOR UPDATE OF stock
+      ),
       current_balance AS MATERIALIZED (
         SELECT
           locked.product_id,
@@ -525,7 +542,7 @@ export async function recordBusinessInventoryMovement(formData: FormData): Promi
           COALESCE(stock.on_hand, 0)::numeric(14,3) AS on_hand_before,
           COALESCE(stock.reserved, 0)::numeric(14,3) AS reserved
         FROM locked
-        LEFT JOIN v9.business_product_stock AS stock
+        LEFT JOIN locked_stock AS stock
           ON stock.product_id = locked.product_id
           AND stock.warehouse_id = locked.warehouse_id
           AND stock.organization_id = locked.organization_id
