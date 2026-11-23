@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, Warehouse, Boxes, ArrowDownToLine, ArrowUpFromLine, Plus } from "lucide-react";
+import { Package, Warehouse, Boxes, Plus } from "lucide-react";
 import {
   Badge,
   Card,
