@@ -420,6 +420,11 @@ export async function confirmBusinessOrder(formData: FormData): Promise<void> {
           updated_by = ${identity.userId},
           updated_at = now()
         FROM requirements AS requirement
+        INNER JOIN validation AS valid
+          ON valid.id = requirement.order_id
+          AND valid.item_count > 0
+          AND valid.tracked_count = valid.locked_stock_count
+          AND COALESCE(valid.stock_is_available,false) = true
         INNER JOIN locked_stock AS locked
           ON locked.product_id = requirement.product_id
           AND locked.warehouse_id = requirement.warehouse_id
@@ -628,6 +633,11 @@ export async function fulfillBusinessOrder(formData: FormData): Promise<void> {
           updated_by = ${identity.userId},
           updated_at = now()
         FROM requirements AS requirement
+        INNER JOIN validation AS valid
+          ON valid.id = requirement.order_id
+          AND valid.item_count > 0
+          AND valid.tracked_count = valid.locked_stock_count
+          AND COALESCE(valid.stock_is_available,false) = true
         INNER JOIN locked_stock AS locked
           ON locked.product_id = requirement.product_id
           AND locked.warehouse_id = requirement.warehouse_id
@@ -780,12 +790,34 @@ export async function cancelBusinessOrder(formData: FormData): Promise<void> {
           AND requirement.field_key = stock.field_key
         FOR UPDATE OF stock
       ),
+      validation AS MATERIALIZED (
+        SELECT
+          order_row.id,
+          count(requirement.item_id)::int AS requirement_count,
+          count(stock.product_id)::int AS locked_stock_count,
+          bool_and(
+            stock.product_id IS NOT NULL
+            AND stock.reserved >= requirement.stock_reserved
+          ) AS reservation_is_valid
+        FROM locked_order AS order_row
+        LEFT JOIN requirements AS requirement ON requirement.order_id = order_row.id
+        LEFT JOIN locked_stock AS stock
+          ON stock.product_id = requirement.product_id
+          AND stock.warehouse_id = requirement.warehouse_id
+          AND stock.organization_id = requirement.organization_id
+          AND stock.field_key = requirement.field_key
+        GROUP BY order_row.id
+      ),
       released_stock AS (
         UPDATE v9.business_product_stock AS stock
         SET reserved = stock.reserved - requirement.stock_reserved,
           updated_by = ${identity.userId},
           updated_at = now()
         FROM requirements AS requirement
+        INNER JOIN validation AS valid
+          ON valid.id = requirement.order_id
+          AND valid.requirement_count = valid.locked_stock_count
+          AND COALESCE(valid.reservation_is_valid,true) = true
         INNER JOIN locked_stock AS locked
           ON locked.product_id = requirement.product_id
           AND locked.warehouse_id = requirement.warehouse_id
