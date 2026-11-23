@@ -117,6 +117,7 @@ export default async function KeanggotaanPage({
     inactive: { tone: "warning", text: "Status keanggotaan telah diubah menjadi nonaktif." },
     left: { tone: "warning", text: "Status keanggotaan telah dicatat sebagai keluar." },
     stale: { tone: "warning", text: "Data sudah berubah atau tidak ditemukan. Muat ulang halaman." },
+    duplicate: { tone: "danger", text: "Nomor anggota sudah digunakan. Periksa kembali nomor yang dimasukkan." },
     invalid: { tone: "danger", text: "Data perubahan tidak valid. Periksa nomor anggota dan catatan." },
   };
 
@@ -127,9 +128,11 @@ export default async function KeanggotaanPage({
         title="Anggota & keanggotaan"
         description="Daftar ini membaca catatan keanggotaan dari database organisasi. Pengajuan yang disetujui masuk sebagai calon anggota dengan status menunggu verifikasi."
         actions={
-          <Link href="/app/bidang/organisasi/pengajuan" className="sb-btn sb-btn-outline">
-            Antrean pengajuan
-          </Link>
+          can(identity, "field:organisasi:review") ? (
+            <Link href="/app/bidang/organisasi/pengajuan" className="sb-btn sb-btn-outline">
+              Antrean pengajuan
+            </Link>
+          ) : undefined
         }
       />
 
