@@ -558,7 +558,7 @@ export async function recordSecretariatAttendance(formData: FormData): Promise<v
           ${signatureRecorded},
           ${identity.userId}
         FROM source
-        ON CONFLICT DO UPDATE SET
+        ON CONFLICT (meeting_id, attendee_key) DO UPDATE SET
           attendance_status = EXCLUDED.attendance_status,
           attendance_note = EXCLUDED.attendance_note,
           signature_recorded = EXCLUDED.signature_recorded,
