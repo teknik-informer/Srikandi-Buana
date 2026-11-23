@@ -61,7 +61,7 @@ export async function submitJoinInterest(
 
   try {
     const sql = getV9Sql();
-    const [submission] = await sql`
+    const queryResult = await sql`
       WITH submitted AS (
         INSERT INTO v9.membership_interests (
           applicant_name,
@@ -109,6 +109,11 @@ export async function submitJoinInterest(
       FROM submitted
       INNER JOIN queued ON true
     `;
+
+    const resultRows = Array.isArray(queryResult)
+      ? (queryResult as Array<{ reference_no: string }>)
+      : (queryResult as { rows: Array<{ reference_no: string }> }).rows;
+    const submission = resultRows[0];
 
     if (!submission?.reference_no) {
       throw new Error("Membership interest insert returned no reference.");
