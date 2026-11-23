@@ -36,9 +36,10 @@ Files applied on the isolated development branch:
 12. `db/migrations/0012_training_empowerment_operations.sql`
 13. `db/migrations/0013_training_capacity_counter.sql`
 14. `db/migrations/0014_business_partnerships_crm.sql`
+15. `db/migrations/0015_business_catalog_inventory.sql`
 14. `db/migrations/0014_business_partnerships_crm.sql`
 
-The `v9` schema currently includes 40 tables:
+The `v9` schema currently includes 44 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
@@ -49,6 +50,7 @@ The `v9` schema currently includes 40 tables:
 - Agriculture plots, cultivation cycles, field visits, and harvest entries;
 - Training sessions, enrollments, pre/post assessments, and certificate register;
 - Business partners, opportunities, agreements, and cooperation milestones;
+- Business products, warehouses, per-warehouse stock balances, and immutable inventory movements;
 - business partners, cooperation opportunities, agreements, and milestones;
 - audit events, organization settings, outbox events, and migration history.
 
@@ -182,6 +184,21 @@ Technical implementation:
 - Public visitors are directed to the Secretariat for registration. Public self-enrollment is not implemented in this stage.
 - No sample sessions, enrollments, attendance, assessment results, or certificates are seeded.
 
+### Katalog Produk & Persediaan — products, warehouses, balances, and movement ledger
+
+- The V9 catalog/inventory domain uses the already-applied `0015_business_catalog_inventory.sql` migration. Its tables are `v9.business_products`, `v9.business_warehouses`, `v9.business_product_stock`, and `v9.business_inventory_movements`.
+- Products are stored with an organization-unique SKU and slug, product kind (physical/service), category, unit, selling price, optional internal cost estimate/HPP, description, producer label, operational status, publication status, and stock-tracking flag.
+- A new product is created as `draft/private`. It must be activated before publication; publication requires `organization:team:approve`, a positive selling price, and the product status must remain active.
+- Public product list and detail pages read only `status = 'active'` and `publication_status = 'published'` records. They do not query or expose `cost_estimate`, stock balances, or reservations. Public availability is confirmed through the Secretariat; exact internal stock is not disclosed.
+- The internal catalog at `/app/bidang/usaha/katalog` supports product creation, price/cost maintenance, activation, hiding, publication, and archival. HPP is shown only to users with internal business write/approval permissions.
+- Warehouses are recorded separately with unique organization-scoped codes. Product stock is stored per warehouse in `business_product_stock`, distinguishing `on_hand` from `reserved`; available stock is their difference.
+- Stock receipts, positive/negative adjustments, and returns are recorded through one transaction: the product and warehouse rows are locked, a non-negative balance that does not fall below reservations is checked, the balance is updated, an immutable movement is appended, and an audit event is written.
+- The database trigger rejects UPDATE/DELETE of stock-movement rows. Corrections must be made with a new correcting movement. Warehouse archival is blocked while stock/reservations remain; product archival is blocked while non-zero balances remain and requires leadership approval.
+- The inventory workspace is connected at `/app/bidang/usaha/persediaan`. Public `/produk` and `/produk/[slug]` pages now read the approved V9 product records; the previous `PRODUCTS` demo array is no longer used there.
+- Producer information is currently stored as a label on each product. A separate producer register and membership-linked producer profile are not yet implemented. Product image/media management also remains pending.
+- Orders, order-item lines, customer CRM, reservations, fulfillment, POS, and automatic finance posting are not implemented in this catalog/inventory stage. Stock movements do not create sales, cash receipts, receivables, or accounting journals.
+- No sample products, warehouses, stock balances, or inventory movements have been seeded.
+
 ### Usaha & Kemitraan — partner register, pipeline, agreements, and milestones
 
 - The CRM domain uses migration `0014_business_partnerships_crm.sql` and four organization-scoped tables: `v9.business_partners`, `v9.business_opportunities`, `v9.business_agreements`, and `v9.business_milestones`.
@@ -210,13 +227,14 @@ Technical implementation:
 - PostgreSQL query-plan checks passed for training summary, session list, enrollment list, session creation/status, capacity-aware registration, attendance, assessment upsert, certificate issuance/revocation, and participant cancellation with waitlist promotion.
 - GitHub Actions for the latest training public-page/session-context build completed successfully: install, typecheck, and production build.
 - GitHub Actions for Business & Partnerships CRM commit `5b13f67bb7245a48db9262e1132927dd389c14e2` completed successfully: install, typecheck, and production build.
+- PostgreSQL query-plan checks passed for product/warehouse/stock/movement lists, product creation/status/publication, warehouse creation, stock movement posting, and public product list queries.
 - PostgreSQL query-plan checks passed for business CRM summary, partner/opportunity/agreement/milestone lists, partner creation/status, opportunity creation/stage change, agreement creation/status, and milestone creation/status.
 - PostgreSQL query-plan checks passed for CRM summary, partner/opportunity/agreement/milestone lists, opportunity stage changes, agreement status changes, and milestone status changes.
 - GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
 - Neon development schema check: 40 V9 tables and fourteen applied migrations. Training and CRM record counts remain zero; no sample sessions, partners, or pipeline values were seeded.
-- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, business partners/opportunities/agreements/milestones, and audit records; it cannot create schema objects or read legacy user records.
-- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, agriculture summary/plot/cycle/visit/harvest lists and mutations, and business CRM summary/list/partner/opportunity/agreement/milestone operations.
+- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, business partners/opportunities/agreements/milestones, business products/warehouses/stock balances/inventory movements, and audit records; it cannot create schema objects or read legacy user records.
+- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, agriculture summary/plot/cycle/visit/harvest lists and mutations, business CRM summary/list/partner/opportunity/agreement/milestone operations, product/catalog/warehouse/stock queries and mutations, and public product list/detail queries.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
 - SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
 - No browser E2E, real account login, or real data insertion test has been completed yet.
