@@ -199,38 +199,22 @@ export async function saveSecretariatMinutes(formData: FormData): Promise<void> 
   try {
     const sql = getV9Sql();
     const result = await sql`
-      WITH target AS (
-        SELECT id
-        FROM v9.secretariat_meetings
-        WHERE id = ${meetingId}
-          AND organization_id = ${identity.organizationId}
-          AND status <> 'cancelled'
-        LIMIT 1
-      ),
-      saved_minutes AS (
-        INSERT INTO v9.secretariat_minutes (
-          meeting_id, revision_no, status, opening_notes,
-          discussion_notes, closing_notes, prepared_by, prepared_by_label
-        )
-        SELECT
-          target.id,
-          1,
-          'draft',
-          NULLIF(${opening}, ''),
-          NULLIF(${discussion}, ''),
-          NULLIF(${closing}, ''),
-          ${identity.userId},
-          ${identity.name}
-        FROM target
-        ON CONFLICT (meeting_id) WHERE status = 'draft'
-        DO UPDATE SET
-          opening_notes = EXCLUDED.opening_notes,
-          discussion_notes = EXCLUDED.discussion_notes,
-          closing_notes = EXCLUDED.closing_notes,
-          prepared_by = EXCLUDED.prepared_by,
-          prepared_by_label = EXCLUDED.prepared_by_label,
+      WITH updated AS (
+        UPDATE v9.secretariat_minutes AS minutes
+        SET
+          opening_notes = NULLIF(${opening}, ''),
+          discussion_notes = NULLIF(${discussion}, ''),
+          closing_notes = NULLIF(${closing}, ''),
+          prepared_by = ${identity.userId},
+          prepared_by_label = ${identity.name},
           updated_at = now()
-        RETURNING id, meeting_id, revision_no
+        FROM v9.secretariat_meetings AS meeting
+        WHERE meeting.id = ${meetingId}
+          AND meeting.organization_id = ${identity.organizationId}
+          AND meeting.status <> 'cancelled'
+          AND minutes.meeting_id = meeting.id
+          AND minutes.status = 'draft'
+        RETURNING minutes.id, minutes.meeting_id, minutes.revision_no
       ),
       audit AS (
         INSERT INTO v9.audit_events (
@@ -241,13 +225,13 @@ export async function saveSecretariatMinutes(formData: FormData): Promise<void> 
           ${identity.userId},
           'secretariat_minutes.draft_saved',
           'secretariat_minutes',
-          saved_minutes.id::text,
-          jsonb_build_object('meeting_id', saved_minutes.meeting_id, 'revision_no', saved_minutes.revision_no)
-        FROM saved_minutes
+          updated.id::text,
+          jsonb_build_object('meeting_id', updated.meeting_id, 'revision_no', updated.revision_no)
+        FROM updated
         RETURNING id
       )
-      SELECT saved_minutes.id
-      FROM saved_minutes
+      SELECT updated.id
+      FROM updated
       INNER JOIN audit ON true
     `;
     saved = rowsFromResult<{ id: string }>(result).length === 1;
@@ -256,11 +240,10 @@ export async function saveSecretariatMinutes(formData: FormData): Promise<void> 
     redirect("/app/sekretariat/notulen?result=error");
   }
 
-  if (!saved) redirect("/app/sekretariat/notulen?result=stale");
+  if (!saved) redirect(`/app/sekretariat/notulen?meeting_id=${meetingId}&result=revision-required`);
   revalidatePath("/app/sekretariat/notulen");
   redirect(`/app/sekretariat/notulen?meeting_id=${meetingId}&result=saved`);
 }
-
 export async function addSecretariatDecision(formData: FormData): Promise<void> {
   const identity = await requireIdentity("secretariat:minutes:write");
   const meetingId = String(formData.get("meeting_id") ?? "").trim();
@@ -284,20 +267,12 @@ export async function addSecretariatDecision(formData: FormData): Promise<void> 
           AND meeting.organization_id = ${identity.organizationId}
           AND meeting.status <> 'cancelled'
       ),
-      draft AS (
-        INSERT INTO v9.secretariat_minutes (meeting_id, revision_no, status, prepared_by, prepared_by_label)
-        SELECT target_meeting.id, 1, 'draft', ${identity.userId}, ${identity.name}
-        FROM target_meeting
-        ON CONFLICT (meeting_id) WHERE status = 'draft' DO NOTHING
-        RETURNING id, meeting_id
-      ),
       current_draft AS (
         SELECT minutes.id, minutes.meeting_id
         FROM v9.secretariat_minutes AS minutes
         INNER JOIN target_meeting ON target_meeting.id = minutes.meeting_id
         WHERE minutes.status = 'draft'
-        UNION ALL
-        SELECT draft.id, draft.meeting_id FROM draft
+        FOR UPDATE OF minutes
       ),
       next_order AS (
         SELECT current_draft.id AS minutes_id,
@@ -343,11 +318,10 @@ export async function addSecretariatDecision(formData: FormData): Promise<void> 
     redirect("/app/sekretariat/notulen?result=error");
   }
 
-  if (!added) redirect("/app/sekretariat/notulen?result=stale");
+  if (!added) redirect(`/app/sekretariat/notulen?meeting_id=${meetingId}&result=revision-required`);
   revalidatePath("/app/sekretariat/notulen");
   redirect(`/app/sekretariat/notulen?meeting_id=${meetingId}&result=decision-added`);
 }
-
 export async function finalizeSecretariatMinutes(formData: FormData): Promise<void> {
   const identity = await requireIdentity("secretariat:minutes:write");
   const meetingId = String(formData.get("meeting_id") ?? "").trim();
@@ -365,6 +339,7 @@ export async function finalizeSecretariatMinutes(formData: FormData): Promise<vo
           ON meeting.id = minutes.meeting_id
         WHERE meeting.id = ${meetingId}
           AND meeting.organization_id = ${identity.organizationId}
+          AND meeting.status = 'completed'
           AND minutes.status = 'draft'
         FOR UPDATE OF minutes
       ),
