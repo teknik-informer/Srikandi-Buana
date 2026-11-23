@@ -333,7 +333,7 @@ export async function updateAgricultureCycleStatus(formData: FormData): Promise<
                 WHERE harvest.cycle_id = cycle.id
                   AND harvest.organization_id = cycle.organization_id
               )
-              AND ${harvestedOn}::date >= COALESCE(
+              AND NULLIF(${harvestedOn}, '')::date >= COALESCE(
                 (SELECT max(harvest.harvest_date)
                  FROM v9.agriculture_harvests AS harvest
                  WHERE harvest.cycle_id = cycle.id
