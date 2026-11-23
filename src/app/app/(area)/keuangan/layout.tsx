@@ -11,10 +11,7 @@ export default async function KeuanganLayout({ children }: { children: React.Rea
       nav={[
         {
           label: "Keuangan Native",
-          items: CORE_NAV.keuangan.map((i) => ({
-            ...i,
-            badge: i.label === "Kas & Bank" ? 1 : undefined,
-          })),
+          items: CORE_NAV.keuangan,
         },
         { label: "Pintasan", items: [
           { label: "Posting rule & kontrol", href: "/app/keuangan/pengaturan" },
