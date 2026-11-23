@@ -35,7 +35,9 @@ export async function updateMembershipStatus(formData: FormData): Promise<void> 
 
   const memberNumber = rawMemberNumber ? rawMemberNumber.toUpperCase() : null;
   const sql = getV9Sql();
-  const result = await sql`
+  let result: unknown;
+  try {
+    result = await sql`
     WITH target AS (
       SELECT membership.id
       FROM v9.memberships AS membership
@@ -97,7 +99,15 @@ export async function updateMembershipStatus(formData: FormData): Promise<void> 
     SELECT updated.id::text AS id, updated.status
     FROM updated
     INNER JOIN audit ON true
-  `;
+    `;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown membership update error";
+    console.error("[membership-status] Update failed:", message);
+    if (message.toLowerCase().includes("unique")) {
+      redirect("/app/pengurus/anggota?result=duplicate");
+    }
+    redirect("/app/pengurus/anggota?result=error");
+  }
 
   const rows = rowsFromResult<MembershipStatusResult>(result);
   if (rows.length !== 1) {
