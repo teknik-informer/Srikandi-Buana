@@ -155,6 +155,7 @@ export async function updateBusinessPartnerStatus(formData: FormData): Promise<v
   if (!validUuid(partnerId) || !PARTNER_STATUSES.includes(status as (typeof PARTNER_STATUSES)[number])) {
     redirect(businessPath("invalid"));
   }
+  if (status === "ended" && !can(identity, "organization:team:approve")) redirect("/app");
 
   let updated = false;
   try {
