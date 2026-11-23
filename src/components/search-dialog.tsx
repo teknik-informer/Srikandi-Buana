@@ -12,6 +12,7 @@ import { AppIcon } from "@/components/brand";
 import { searchAll, countHits, type SearchGroup } from "@/lib/search";
 
 const TONE: Record<SearchGroup, string> = {
+  Menu: "bg-[#eef4ff] text-[#1f4f8f]",
   Anggota: "bg-[#e8f2ff] text-[#1f5fa0]",
   Program: "bg-[#efe9ff] text-[#5b3fa8]",
   Produk: "bg-[#fff2e0] text-[#8a5a00]",

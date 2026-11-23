@@ -7,11 +7,13 @@
  * hit always lands somewhere real.
  */
 import { MEMBERS, DOCUMENTS } from "@/data/organization";
+import { APPS } from "@/config/apps";
 import { PROGRAMS, PRODUCTS, LANDS } from "@/data/operations";
 import { NEWS } from "@/data/content";
 import { JOURNALS } from "@/data/finance";
 
 export type SearchGroup =
+  | "Menu"
   | "Anggota"
   | "Dokumen"
   | "Program"
@@ -29,8 +31,49 @@ export interface SearchHit {
   hay: string;
 }
 
+/**
+ * Destinations, not records. The previous site's search opened a dialog that
+ * searched the *navigation* first — typing "jurnal" or "persetujuan" there
+ * took you somewhere. Records alone made the placeholder a promise the index
+ * could not keep ("jurnal" matched no member, document or line item).
+ */
+const PLACES: { label: string; meta: string; href: string; words: string }[] = [
+  { label: "Jurnal keuangan", meta: "Keuangan · buku besar", href: "/app/keuangan/jurnal", words: "jurnal keuangan buku besar akuntansi transaksi" },
+  { label: "Buku besar", meta: "Keuangan · akun & saldo", href: "/app/keuangan/buku-besar", words: "buku besar ledger akun saldo" },
+  { label: "Kas & bank", meta: "Keuangan · rekonsiliasi", href: "/app/keuangan/kas-bank", words: "kas bank rekonsiliasi setoran mutasi" },
+  { label: "Anggaran", meta: "Keuangan · rencana & realisasi", href: "/app/keuangan/anggaran", words: "anggaran budget rencana realisasi" },
+  { label: "Persetujuan", meta: "Pengurus · keputusan menunggu", href: "/app/pengurus/persetujuan", words: "persetujuan approval setuju keputusan menunggu" },
+  { label: "Agenda & rapat", meta: "Pengurus · jadwal", href: "/app/pengurus/rapat", words: "agenda rapat jadwal pertemuan notulen" },
+  { label: "Dokumen keputusan", meta: "Sekretariat · arsip", href: "/app/sekretariat/dokumen", words: "dokumen surat arsip keputusan sk" },
+  { label: "Data anggota", meta: "Bidang · organisasi & keanggotaan", href: "/app/bidang/organisasi/data", words: "anggota data keanggotaan profil" },
+  { label: "Lahan & petak", meta: "Bidang · pertanian", href: "/app/bidang/pertanian/data", words: "lahan petak pertanian komoditas panen" },
+  { label: "Produk & stok", meta: "Bidang · usaha", href: "/app/bidang/usaha/data", words: "produk stok usaha inventaris barang" },
+  { label: "Data pelatihan", meta: "Bidang · pemberdayaan", href: "/app/bidang/pelatihan/data", words: "pelatihan peserta kelas materi" },
+  { label: "Kasir POS", meta: "POS · transaksi penjualan", href: "/app/pos", words: "pos kasir penjualan struk bayar" },
+  { label: "Notifikasi", meta: "Beranda · pemberitahuan", href: "/app/notifikasi", words: "notifikasi pemberitahuan pesan" },
+  { label: "Studio Pengelola", meta: "Platform · konfigurasi", href: "/studio", words: "studio pengelola konfigurasi website tema" },
+];
+
 function collect(): SearchHit[] {
   const rows: SearchHit[] = [];
+  for (const a of APPS) {
+    rows.push({
+      group: "Menu",
+      label: a.short,
+      meta: a.audience,
+      href: a.href,
+      hay: `${a.name} ${a.short} ${a.audience} ${a.description} aplikasi`.toLowerCase(),
+    });
+  }
+  for (const p of PLACES) {
+    rows.push({
+      group: "Menu",
+      label: p.label,
+      meta: p.meta,
+      href: p.href,
+      hay: `${p.label} ${p.meta} ${p.words}`.toLowerCase(),
+    });
+  }
   for (const m of MEMBERS) {
     rows.push({
       group: "Anggota",
@@ -116,7 +159,7 @@ export function searchAll(query: string, limitPerGroup = 6): { group: SearchGrou
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s || a.h.label.localeCompare(b.h.label));
 
-  const order: SearchGroup[] = ["Anggota", "Program", "Produk", "Dokumen", "Lahan", "Jurnal", "Kabar"];
+  const order: SearchGroup[] = ["Menu", "Anggota", "Program", "Produk", "Dokumen", "Lahan", "Jurnal", "Kabar"];
   const buckets = new Map<SearchGroup, SearchHit[]>();
   for (const { h } of scored) {
     const list = buckets.get(h.group) ?? [];
