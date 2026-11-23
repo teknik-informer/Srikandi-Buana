@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { SESSION_COOKIE, type AppIdentity } from "@/lib/identity";
 
@@ -178,6 +179,21 @@ export async function getIdentity(): Promise<AppIdentity | null> {
     permissions: permissionsFor(row.role_key, row.field_key),
     note: `Hak akses ${roleLabel.toLowerCase()} pada lingkup ${scope.toLowerCase()}.`,
   };
+}
+
+/** Require a signed-in account and, when supplied, an effective permission. */
+export async function requireIdentity(permission?: string): Promise<AppIdentity> {
+  const identity = await getIdentity();
+  if (!identity) redirect("/masuk");
+  if (permission && !can(identity, permission)) redirect("/app");
+  return identity;
+}
+
+/** Restrict an application surface to explicit server-resolved role keys. */
+export async function requireRoles(allowedRoles: readonly string[]): Promise<AppIdentity> {
+  const identity = await requireIdentity();
+  if (!allowedRoles.includes(identity.roleKey)) redirect("/app");
+  return identity;
 }
 
 /** Revoke the server-side session first, then remove the browser cookie. */
