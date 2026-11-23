@@ -14,6 +14,7 @@ import { FieldAgricultureSection } from "@/components/field-agriculture-section"
 import { FieldTrainingSection } from "@/components/field-training-section";
 import { FieldInventorySection } from "@/components/field-inventory-section";
 import { FieldBusinessSection } from "@/components/field-business-section";
+import { FieldBusinessCatalogSection } from "@/components/field-business-catalog-section";
 
 export const metadata: Metadata = { title: "Aplikasi Bidang" };
 
@@ -397,6 +398,18 @@ export default async function BidangSection({
   if (section === "data" && slug === "usaha") {
     const search = await searchParams;
     return <FieldBusinessSection field={field} result={search?.result} />;
+  }
+
+  if (section === "katalog" || section === "persediaan") {
+    if (slug !== "usaha") notFound();
+    const search = await searchParams;
+    return (
+      <FieldBusinessCatalogSection
+        field={field}
+        mode={section}
+        result={search?.result}
+      />
+    );
   }
 
   if (["katalog", "persediaan"].includes(section)) {
