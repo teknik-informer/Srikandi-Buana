@@ -56,9 +56,12 @@ function permissionsFor(roleKey: string, fieldKey: string | null): string[] {
     case "chair":
       return ["*"];
     case "secretary":
-      return ["secretariat:*", "documents:*", "cms:publish", "approval:read", "field:read"];
+      return [
+        "secretariat:*", "documents:*", "cms:publish",
+        "approval:read", "field:read", "organization:read", "finance:read",
+      ];
     case "treasurer":
-      return ["finance:*", "approval:read"];
+      return ["finance:*", "approval:read", "organization:read"];
     case "field_coordinator":
       return fieldKey
         ? [`field:${fieldKey}:*`, "approval:submit", "finance:request"]
