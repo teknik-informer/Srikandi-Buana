@@ -127,8 +127,8 @@ export async function FinanceGeneralLedgerSection({
         WHERE line.organization_id = ${identity.organizationId}
           AND line.account_id = ${selected.id}
           AND journal.status = 'posted'
-          AND ${start} <> ''
-          AND journal.journal_date < ${start}::date
+          AND NULLIF(${start}, '') IS NOT NULL
+          AND journal.journal_date < NULLIF(${start}, '')::date
       ),
       period_lines AS (
         SELECT line.debit, line.credit
@@ -139,8 +139,8 @@ export async function FinanceGeneralLedgerSection({
         WHERE line.organization_id = ${identity.organizationId}
           AND line.account_id = ${selected.id}
           AND journal.status = 'posted'
-          AND (${start} = '' OR journal.journal_date >= ${start}::date)
-          AND (${end} = '' OR journal.journal_date <= ${end}::date)
+          AND (NULLIF(${start}, '') IS NULL OR journal.journal_date >= NULLIF(${start}, '')::date)
+          AND (NULLIF(${end}, '') IS NULL OR journal.journal_date <= NULLIF(${end}, '')::date)
       )
       SELECT
         opening.balance::text AS opening_balance,
@@ -173,8 +173,8 @@ export async function FinanceGeneralLedgerSection({
         WHERE line.organization_id = ${identity.organizationId}
           AND line.account_id = ${selected.id}
           AND journal.status = 'posted'
-          AND ${start} <> ''
-          AND journal.journal_date < ${start}::date
+          AND NULLIF(${start}, '') IS NOT NULL
+          AND journal.journal_date < NULLIF(${start}, '')::date
       ),
       period_lines AS (
         SELECT
@@ -194,8 +194,8 @@ export async function FinanceGeneralLedgerSection({
         WHERE line.organization_id = ${identity.organizationId}
           AND line.account_id = ${selected.id}
           AND journal.status = 'posted'
-          AND (${start} = '' OR journal.journal_date >= ${start}::date)
-          AND (${end} = '' OR journal.journal_date <= ${end}::date)
+          AND (NULLIF(${start}, '') IS NULL OR journal.journal_date >= NULLIF(${start}, '')::date)
+          AND (NULLIF(${end}, '') IS NULL OR journal.journal_date <= NULLIF(${end}, '')::date)
       )
       SELECT
         period_lines.id::text AS id,
