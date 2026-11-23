@@ -246,20 +246,7 @@ export async function enrollTrainingParticipant(formData: FormData): Promise<voi
   try {
     const sql = getV9Sql();
     const result = await sql`
-      WITH target AS (
-        SELECT
-          session.id,
-          session.organization_id,
-          session.field_key,
-          session.max_participants
-        FROM v9.training_sessions AS session
-        WHERE session.id = ${sessionId}
-          AND session.organization_id = ${identity.organizationId}
-          AND session.field_key = 'pelatihan'
-          AND session.status = 'registration_open'
-        FOR UPDATE
-      ),
-      member AS (
+      WITH member AS (
         SELECT membership.id, person.full_name
         FROM v9.memberships AS membership
         INNER JOIN v9.people AS person ON person.id = membership.person_id
@@ -267,22 +254,52 @@ export async function enrollTrainingParticipant(formData: FormData): Promise<voi
           AND membership.organization_id = ${identity.organizationId}
           AND membership.status = 'active'
       ),
+      participant AS (
+        SELECT member.id AS membership_id, member.full_name AS participant_name
+        FROM member
+        WHERE NULLIF(${membershipId}, '') IS NOT NULL
+        UNION ALL
+        SELECT NULL::uuid, ${participantName}
+        WHERE NULLIF(${membershipId}, '') IS NULL
+          AND length(btrim(${participantName})) >= 2
+      ),
+      target AS (
+        SELECT
+          session.id,
+          session.organization_id,
+          session.field_key,
+          session.max_participants,
+          session.registered_count,
+          (
+            session.max_participants IS NULL
+            OR session.registered_count < session.max_participants
+          ) AS has_slot
+        FROM v9.training_sessions AS session
+        CROSS JOIN participant
+        WHERE session.id = ${sessionId}
+          AND session.organization_id = ${identity.organizationId}
+          AND session.field_key = 'pelatihan'
+          AND session.status = 'registration_open'
+        FOR UPDATE OF session
+      ),
+      capacity_update AS (
+        UPDATE v9.training_sessions AS session
+        SET
+          registered_count = session.registered_count
+            + CASE WHEN target.has_slot THEN 1 ELSE 0 END,
+          updated_at = now()
+        FROM target
+        WHERE session.id = target.id
+        RETURNING session.id
+      ),
       capacity AS (
         SELECT
           target.id AS session_id,
           target.organization_id,
           target.field_key,
-          CASE
-            WHEN target.max_participants IS NULL THEN 'registered'
-            WHEN (
-              SELECT count(*)
-              FROM v9.training_enrollments AS enrollment
-              WHERE enrollment.session_id = target.id
-                AND enrollment.registration_status IN ('registered','confirmed')
-            ) < target.max_participants THEN 'registered'
-            ELSE 'waitlisted'
-          END AS registration_status
+          CASE WHEN target.has_slot THEN 'registered' ELSE 'waitlisted' END AS registration_status
         FROM target
+        INNER JOIN capacity_update ON capacity_update.id = target.id
       ),
       inserted AS (
         INSERT INTO v9.training_enrollments (
@@ -294,16 +311,15 @@ export async function enrollTrainingParticipant(formData: FormData): Promise<voi
           capacity.organization_id,
           capacity.field_key,
           capacity.session_id,
-          member.id,
-          COALESCE(member.full_name, ${participantName}),
+          participant.membership_id,
+          participant.participant_name,
           NULLIF(${affiliation}, ''),
           capacity.registration_status,
           'not_marked',
           ${identity.userId},
           NULLIF(${note}, '')
         FROM capacity
-        LEFT JOIN member ON NULLIF(${membershipId}, '') IS NOT NULL
-        WHERE NULLIF(${membershipId}, '') IS NULL OR member.id IS NOT NULL
+        CROSS JOIN participant
         RETURNING id, organization_id, field_key, session_id, membership_id,
           participant_name, registration_status
       ),
@@ -343,7 +359,6 @@ export async function enrollTrainingParticipant(formData: FormData): Promise<voi
   refreshTraining();
   redirect(path("participant-enrolled", sessionId));
 }
-
 export async function updateTrainingAttendance(formData: FormData): Promise<void> {
   const identity = await requireIdentity("field:pelatihan:read");
   ensureTrainingWrite(identity);
@@ -727,7 +742,7 @@ export async function cancelTrainingEnrollment(formData: FormData): Promise<void
           AND candidate.attendance_status = 'not_marked'
         ORDER BY candidate.registered_at, candidate.id
         LIMIT 1
-        FOR UPDATE OF candidate SKIP LOCKED
+        FOR UPDATE OF candidate
       ),
       promoted AS (
         UPDATE v9.training_enrollments AS enrollment
@@ -738,6 +753,23 @@ export async function cancelTrainingEnrollment(formData: FormData): Promise<void
         WHERE enrollment.id = next_waitlist.id
         RETURNING enrollment.id, enrollment.organization_id, enrollment.field_key,
           enrollment.session_id, enrollment.participant_name
+      ),
+      capacity_adjustment AS (
+        UPDATE v9.training_sessions AS session
+        SET
+          registered_count = GREATEST(
+            0,
+            session.registered_count
+              - CASE
+                  WHEN target.previous_status IN ('registered','confirmed') THEN 1
+                  ELSE 0
+                END
+              + (SELECT count(*)::int FROM promoted)
+          ),
+          updated_at = now()
+        FROM target
+        WHERE session.id = target.session_id
+        RETURNING session.id
       ),
       audit_rows AS (
         SELECT
@@ -772,6 +804,7 @@ export async function cancelTrainingEnrollment(formData: FormData): Promise<void
             'participant_name', audit_rows.participant_name
           )
         FROM audit_rows
+        INNER JOIN capacity_adjustment ON true
         RETURNING id
       )
       SELECT changed.id::text AS id
