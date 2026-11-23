@@ -38,7 +38,7 @@ export async function decideMembershipInterest(formData: FormData): Promise<void
     organization AS (
       SELECT id
       FROM v9.organizations
-      WHERE slug = 'srikandi-buana'
+      WHERE id = ${identity.organizationId}
         AND status = 'active'
       LIMIT 1
     ),
@@ -92,7 +92,7 @@ export async function decideMembershipInterest(formData: FormData): Promise<void
         status,
         valid_from
       )
-      SELECT organization.id, person.id, 'pending', current_date
+      SELECT organization.id, person.id, 'pending', NULL::date
       FROM resolved_person AS person
       CROSS JOIN organization
       WHERE ${decision} = 'approved'
