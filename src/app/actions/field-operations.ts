@@ -38,8 +38,12 @@ function error(area: string, reason: unknown): void {
   );
 }
 
+function sectionPath(fieldKey: string, section: string): string {
+  return `/app/bidang/${fieldKey}/${section}`;
+}
+
 function fieldPath(fieldKey: string, section: string, result: string): string {
-  return `/app/bidang/${fieldKey}/${section}?result=${result}`;
+  return `${sectionPath(fieldKey, section)}?result=${result}`;
 }
 
 export async function createFieldWorkplan(formData: FormData): Promise<void> {
@@ -113,7 +117,7 @@ export async function createFieldWorkplan(formData: FormData): Promise<void> {
 
   if (!created) redirect(fieldPath(fieldKey, "rencana", "unavailable"));
   revalidatePath(`/app/bidang/${fieldKey}`);
-  revalidatePath(fieldPath(fieldKey, "rencana", ""));
+  revalidatePath(sectionPath(fieldKey, "rencana"));
   redirect(fieldPath(fieldKey, "rencana", "workplan-created"));
 }
 
@@ -161,7 +165,7 @@ export async function submitFieldWorkplan(formData: FormData): Promise<void> {
   }
 
   if (!changed) redirect(fieldPath(fieldKey, "rencana", "stale"));
-  revalidatePath(fieldPath(fieldKey, "rencana", ""));
+  revalidatePath(sectionPath(fieldKey, "rencana"));
   redirect(fieldPath(fieldKey, "rencana", "workplan-submitted"));
 }
 
@@ -240,7 +244,7 @@ export async function createFieldProgram(formData: FormData): Promise<void> {
   }
 
   if (!created) redirect(fieldPath(fieldKey, "rencana", "unavailable"));
-  revalidatePath(fieldPath(fieldKey, "rencana", ""));
+  revalidatePath(sectionPath(fieldKey, "rencana"));
   redirect(fieldPath(fieldKey, "rencana", "program-created"));
 }
 
@@ -309,7 +313,7 @@ export async function addFieldProgramIndicator(formData: FormData): Promise<void
   }
 
   if (!created) redirect(fieldPath(fieldKey, "rencana", "stale"));
-  revalidatePath(fieldPath(fieldKey, "rencana", ""));
+  revalidatePath(sectionPath(fieldKey, "rencana"));
   redirect(fieldPath(fieldKey, "rencana", "indicator-created"));
 }
 
@@ -395,7 +399,7 @@ export async function createFieldActivity(formData: FormData): Promise<void> {
 
   if (!created) redirect(fieldPath(fieldKey, "kegiatan", "unavailable"));
   revalidatePath(`/app/bidang/${fieldKey}`);
-  revalidatePath(fieldPath(fieldKey, "kegiatan", ""));
+  revalidatePath(sectionPath(fieldKey, "kegiatan"));
   redirect(fieldPath(fieldKey, "kegiatan", "activity-created"));
 }
 
@@ -450,7 +454,7 @@ export async function updateFieldActivityStatus(formData: FormData): Promise<voi
 
   if (!changed) redirect(fieldPath(fieldKey, "kegiatan", "stale"));
   revalidatePath(`/app/bidang/${fieldKey}`);
-  revalidatePath(fieldPath(fieldKey, "kegiatan", ""));
+  revalidatePath(sectionPath(fieldKey, "kegiatan"));
   redirect(fieldPath(fieldKey, "kegiatan", "activity-updated"));
 }
 
@@ -533,7 +537,7 @@ export async function createFieldTask(formData: FormData): Promise<void> {
   }
 
   if (!created) redirect(fieldPath(fieldKey, "tugas", "unavailable"));
-  revalidatePath(fieldPath(fieldKey, "tugas", ""));
+  revalidatePath(sectionPath(fieldKey, "tugas"));
   redirect(fieldPath(fieldKey, "tugas", "task-created"));
 }
 
@@ -561,8 +565,10 @@ export async function updateFieldTaskStatus(formData: FormData): Promise<void> {
         WHERE id = ${taskId}
           AND organization_id = ${identity.organizationId}
           AND field_key = ${fieldKey}
-          AND status <> 'dibatalkan'
-          AND (${next} <> 'dibatalkan' OR status <> 'selesai')
+          AND (
+            (status = 'belum' AND ${next} IN ('proses','dibatalkan'))
+            OR (status = 'proses' AND ${next} IN ('belum','selesai','dibatalkan'))
+          )
         RETURNING id, reference_no, organization_id, field_key, title, status
       ),
       audit AS (
@@ -585,6 +591,80 @@ export async function updateFieldTaskStatus(formData: FormData): Promise<void> {
 
   if (!changed) redirect(fieldPath(fieldKey, "tugas", "stale"));
   revalidatePath(`/app/bidang/${fieldKey}`);
-  revalidatePath(fieldPath(fieldKey, "tugas", ""));
+  revalidatePath(sectionPath(fieldKey, "tugas"));
   redirect(fieldPath(fieldKey, "tugas", "task-updated"));
+}
+
+export async function updateFieldProgramIndicatorActual(formData: FormData): Promise<void> {
+  const identity = await requireIdentity();
+  const fieldKey = getFieldKey(formData);
+  const indicatorId = String(formData.get("indicator_id") ?? "").trim();
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:program:write`);
+
+  const actualText = String(formData.get("actual_value") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim();
+  const actual = actualText === "" ? null : Number(actualText);
+
+  if (!validUuid(indicatorId) || note.length > 1000 ||
+      (actual !== null && (!Number.isFinite(actual) || actual < 0 || actual > 1_000_000_000_000))) {
+    redirect(fieldPath(fieldKey, "rencana", "invalid"));
+  }
+
+  let updated = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH changed AS (
+        UPDATE v9.field_program_indicators AS indicator
+        SET
+          actual_value = ${actual},
+          note = NULLIF(${note}, ''),
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM v9.field_programs AS program
+        WHERE indicator.id = ${indicatorId}
+          AND indicator.program_id = program.id
+          AND indicator.organization_id = ${identity.organizationId}
+          AND indicator.field_key = ${fieldKey}
+          AND program.organization_id = ${identity.organizationId}
+          AND program.field_key = ${fieldKey}
+          AND program.status <> 'cancelled'
+        RETURNING indicator.id, indicator.program_id, indicator.indicator_label,
+          indicator.target_value, indicator.actual_value, indicator.unit_label
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          ${identity.organizationId},
+          ${identity.userId},
+          'field_program_indicator.actual_updated',
+          'field_program_indicator',
+          changed.id::text,
+          jsonb_build_object(
+            'program_id', changed.program_id,
+            'field_key', ${fieldKey},
+            'indicator_label', changed.indicator_label,
+            'target_value', changed.target_value,
+            'actual_value', changed.actual_value,
+            'unit_label', changed.unit_label
+          )
+        FROM changed
+        RETURNING id
+      )
+      SELECT changed.id::text AS id
+      FROM changed
+      INNER JOIN audit ON true
+    `;
+    updated = rowsFromResult<FieldStatusResult>(result).length === 1;
+  } catch (reason) {
+    error("field-program-indicator-actual", reason);
+    redirect(fieldPath(fieldKey, "rencana", "error"));
+  }
+
+  if (!updated) redirect(fieldPath(fieldKey, "rencana", "stale"));
+  revalidatePath(sectionPath(fieldKey, "rencana"));
+  revalidatePath(`/app/bidang/${fieldKey}`);
+  redirect(fieldPath(fieldKey, "rencana", "indicator-updated"));
 }
