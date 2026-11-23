@@ -112,7 +112,7 @@ export async function submitJoinInterest(
 
     const resultRows = Array.isArray(queryResult)
       ? (queryResult as Array<{ reference_no: string }>)
-      : (queryResult as { rows: Array<{ reference_no: string }> }).rows;
+      : (queryResult as unknown as { rows: Array<{ reference_no: string }> }).rows;
     const submission = resultRows[0];
 
     if (!submission?.reference_no) {
