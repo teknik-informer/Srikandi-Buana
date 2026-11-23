@@ -239,7 +239,9 @@ Technical implementation:
 - Review is a maker-checker control: the journal creator cannot approve or reject their own journal. Posting is a separate permission (`finance:journal:post`) and only an approved journal can be posted.
 - Posted journals and their lines are immutable. Journal headers cannot be deleted. A posted journal can be corrected by creating one linked reversal draft with debit and credit swapped; the unique `reversal_of_id` permits at most one reversal draft per original journal. The reversal must pass through review and posting like any other journal.
 - Database triggers enforce draft-only journal insertion, draft-only line changes, valid state transitions, balanced lines on submission/posting, active/postable accounts, separate approver, immutability after posting, and no line transfer across journals or organizations. Audit events are written with each server-side mutation.
-- The dashboard, chart of accounts, and journal workspace are now database-backed at `/app/keuangan`, `/app/keuangan/bagan-akun`, and `/app/keuangan/jurnal`. The previous seeded demo journal list is no longer used by these three screens.
+- The dashboard, chart of accounts, journal workspace, general ledger, and trial balance are database-backed at `/app/keuangan`, `/app/keuangan/bagan-akun`, `/app/keuangan/jurnal`, `/app/keuangan/buku-besar`, and `/app/keuangan/neraca-saldo`. These screens no longer read the seeded demo journal list or derive balances from browser `localStorage`.
+- General Ledger calculates opening balance before the selected start date, period debit/credit movement, and running closing balance for the selected active account. It includes only posted journals.
+- Trial Balance aggregates each active postable account through the selected report date and splits net debit/credit balances. Draft, submitted, approved-but-not-posted, and rejected journals are excluded.
 - This is the first accounting core, not yet the complete Finance application. Cash/bank accounts, bank reconciliation, member dues, funds/restricted grants, budget commitments and realization, accounts payable/receivable, payment capture, POS integration, inventory valuation, tax invoices, and automated postings from orders are not yet operational database modules.
 - No opening balances, accounts, or journal transactions are inserted by migrations. The COA template appears only after an authorized user explicitly loads it; no balances or sample journal entries are seeded.
 
@@ -249,12 +251,11 @@ Technical implementation:
 
 - Development branch: `feat/v9-operational-core`.
 - Latest verified source baseline before this documentation update: `6fbf8f5b2f327df924683bc096b79f4979822ee2`.
-- The latest completed GitHub Actions run before the current documentation-only change passed dependency installation, TypeScript validation, and Next.js production build on commit `ae67ee9bddc92825c67cd3ae84a6c866fe95d5a9`.
-- A newer GitHub Actions run for the FieldSection cleanup is in progress; its result must be checked before calling that commit build-verified.
+- Earlier completed GitHub Actions runs passed dependency installation, TypeScript validation, and Next.js production build for the operational Agriculture, Training, CRM, catalogue, orders, and Finance journal iterations. The latest run for the Finance ledger/trial-balance pages is being checked.
 
 **Database and query validation**
 
-- Neon development database: 50 V9 tables and 18 applied migrations. This is the isolated development branch, not the production database. This is the isolated development branch, not the production database.
+- Neon development database: 50 V9 tables and 18 applied migrations. This is the isolated development branch, not the production database.
 - Role `v9_app` was verified to have the required read/insert/update privileges on Agriculture, Training, CRM, catalogue, inventory, customer, order, order-item, Finance account/journal/journal-line, and audit tables, plus the associated reference sequences. Database triggers constrain Finance line changes to draft journals and prevent edits to posted journals. It cannot create schema objects or read legacy user records.
 - Query-plan checks passed for the Agriculture summary/list queries and its five mutations: plot creation/status, crop-cycle creation/status, visit recording, and harvest recording.
 - Query-plan checks passed for the Training session/enrollment lists, session creation/status, capacity-aware registration, attendance, pre/post assessment upsert, certificate issuance/revocation, and public training listings.
@@ -273,7 +274,7 @@ Technical implementation:
 - The Business workspace uses separate routes for CRM, catalogue, warehouse/stock, and customer/orders. The prior hardcoded Business demo table in the generic field section was replaced by links to these live modules.
 - No browser E2E suite is defined in the current `package.json`; no real browser interaction, multi-user concurrency test, or real-account UAT has been completed.
 - No real operational records were inserted as part of query-plan validation.
-- Finance SQL query plans passed for COA template import, account create/update/status, journal draft create/update, submission, maker-checker review, posting, reopening a rejected draft, and creation of a linked reversal draft. Read-query plans passed for the COA register, journal register/detail lines, and Finance overview dashboard.
+- Finance SQL query plans passed for COA template import, account create/update/status, journal draft create/update, submission, maker-checker review, posting, reopening a rejected draft, and creation of a linked reversal draft. Read-query plans passed for the COA register, journal register/detail lines, Finance overview dashboard, general-ledger summary/running balance, and trial-balance aggregation.
 - Neon privilege checks confirmed `v9_app` can read/insert/update Finance account and journal headers, read/insert/update/delete journal lines, write audit events, and use the journal reference sequence. The line-level database triggers still restrict updates/deletes to draft journals.
 
 **Release boundary**
