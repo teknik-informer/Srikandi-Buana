@@ -185,27 +185,15 @@ Technical implementation:
 ### Usaha & Kemitraan — partner register, pipeline, agreements, and milestones
 
 - The CRM domain uses migration `0014_business_partnerships_crm.sql` and four organization-scoped tables: `v9.business_partners`, `v9.business_opportunities`, `v9.business_agreements`, and `v9.business_milestones`.
-- Partner records distinguish government, NGO/foundation, private company, cooperative, academic, community, individual, and other partner types. New records start as prospects; partner status history is not overwritten into a demo catalogue.
+- Partner records distinguish government, NGO/foundation, private company, cooperative, academic, community, individual, and other partner types. Contact, relationship summary, source, owner, and review dates are stored separately from membership records. New records start as prospects.
 - Opportunity records support market access, procurement, grant/funding, training, research, program, and other cooperation opportunities. Their pipeline follows controlled stages from lead/qualification through proposal and negotiation to won/lost/on-hold.
 - Estimated opportunity value is labelled as a pipeline estimate. It is not a receivable, revenue, cash balance, purchase order, grant disbursement, or ledger posting.
 - Agreements must be linked to a partner and may be linked to an opportunity for that same partner. The lifecycle starts as draft, moves to review, and requires `organization:team:approve` before signed, active, or expired status can be recorded.
 - Milestones must be linked to exactly one opportunity or agreement belonging to the same partner and organization. Status transitions and completion notes are stored with audit events.
-- The server actions enforce organization scope, field scope, coordinator write permission, and organization leadership approval for closing an opportunity as won or approving agreement status. Losing an opportunity requires a recorded outcome note.
-- The CRM workspace is connected at `/app/bidang/usaha/data`. Summary metrics and lists are derived from V9 database records; there are no seeded partner names, false opportunity values, or fabricated agreements.
+- The eight server actions enforce organization scope, field scope, coordinator write permission, and append audit events in the same SQL statement. Closing an opportunity as won/lost and ending a partner relationship require organization leadership approval; a final opportunity outcome requires a reason.
+- The CRM workspace is connected at `/app/bidang/usaha/data`. Summary metrics and lists are derived from V9 database records; no static `PARTNERS` demo records are used in this workspace.
 - Inventory, product catalogue, customer orders, stock movements, and financial posting remain separate domains. This CRM does not automatically create stock, payments, receivables, revenue, or ledger entries.
 - Development record counts are currently zero for partners, opportunities, agreements, and milestones. No sample partner or pipeline records were inserted.
-
-### Usaha & Kemitraan — CRM, opportunities, agreements, and milestones
-
-- The CRM domain uses migration `0014_business_partnerships_crm.sql` and four organization-scoped tables: `v9.business_partners`, `v9.business_opportunities`, `v9.business_agreements`, and `v9.business_milestones`.
-- Partner records support government, NGO/foundation, private business, cooperative, academic, community, individual, and other partner types. Contact, relationship summary, source, owner, and review dates are stored separately from membership records.
-- Opportunities can be linked to a partner, carry an estimated value and expected decision date, and progress through lead, qualified, proposal, negotiation, won, lost, or on-hold stages.
-- Agreements are created as drafts, can be submitted for review, and need an authorized approver before being marked signed, active, or expired. Their partner and optional opportunity links must belong to the same organization and field.
-- Each milestone is linked to exactly one opportunity or agreement and to the same partner. Completion requires a completion note and records the completing account and timestamp.
-- All eight server actions check organization scope and field permissions, validate the input, and append an audit event in the same SQL statement: partner create/status, opportunity create/stage, agreement create/status, and milestone create/status.
-- The CRM workspace is connected at `/app/bidang/usaha/data`. The page reads summary totals and partner/opportunity/agreement/milestone registers from the V9 database. No static `PARTNERS` demo records are used in this workspace.
-- Current CRM records are intentionally empty; no demo partners, opportunities, agreements, or milestones were seeded. Only records entered by authorized users will appear.
-- This CRM stage does not yet include product catalogue, producers, HPP and price controls, inventory movements, sales orders, POS, or automatic accounting. CRM opportunity estimates are not accounting income or grant receipts.
 
 ## Verification performed
 
