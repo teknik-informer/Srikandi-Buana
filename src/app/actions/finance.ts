@@ -683,3 +683,165 @@ export async function reopenRejectedFinanceJournal(formData: FormData): Promise<
   refreshFinance();
   redirect(financePath("journal-reopened", journalId));
 }
+
+
+export async function updateDraftFinanceJournal(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:write")) redirect("/app");
+
+  const journalId = String(formData.get("journal_id") ?? "").trim();
+  const journalDate = String(formData.get("journal_date") ?? "").trim();
+  const description = normalize(String(formData.get("description") ?? ""));
+  const sourceType = String(formData.get("source_type") ?? "manual").trim();
+  const sourceReference = normalize(String(formData.get("source_reference") ?? ""));
+  const linesText = String(formData.get("lines_json") ?? "[]");
+  let lines: { line_number: number; account_id: string; debit: number; credit: number; memo?: string }[];
+
+  try {
+    const parsed: unknown = JSON.parse(linesText);
+    if (!Array.isArray(parsed)) throw new Error("Journal lines must be an array");
+    lines = parsed as typeof lines;
+  } catch {
+    redirect(financePath("invalid-lines", journalId));
+  }
+
+  const seenLineNumbers = new Set<number>();
+  if (
+    !validUuid(journalId) ||
+    !validDate(journalDate) ||
+    description.length < 3 || description.length > 500 ||
+    !SOURCES.includes(sourceType as (typeof SOURCES)[number]) ||
+    sourceReference.length > 160 ||
+    lines.length < 2 || lines.length > 100 || linesText.length > 40000 ||
+    lines.some((line) => {
+      if (!line || !validUuid(String(line.account_id ?? ""))) return true;
+      if (!Number.isInteger(line.line_number) || line.line_number < 1 || line.line_number > 100 || seenLineNumbers.has(line.line_number)) return true;
+      seenLineNumbers.add(line.line_number);
+      if (line.memo && line.memo.length > 500) return true;
+      const debit = Number(line.debit);
+      const credit = Number(line.credit);
+      if (!Number.isFinite(debit) || !Number.isFinite(credit) || debit < 0 || credit < 0) return true;
+      if (Math.round(debit * 100) !== debit * 100 || Math.round(credit * 100) !== credit * 100) return true;
+      if (debit > 9999999999999999 || credit > 9999999999999999) return true;
+      return !((debit > 0 && credit === 0) || (credit > 0 && debit === 0));
+    })
+  ) {
+    redirect(financePath("invalid-lines", journalId));
+  }
+
+  let updated = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH locked_journal AS MATERIALIZED (
+        SELECT journal.id, journal.organization_id
+        FROM v9.finance_journals AS journal
+        WHERE journal.id = ${journalId}
+          AND journal.organization_id = ${identity.organizationId}
+          AND journal.created_by = ${identity.userId}
+          AND journal.status = 'draft'
+        FOR UPDATE
+      ),
+      input AS MATERIALIZED (
+        SELECT item.line_number, item.account_id, item.debit, item.credit, item.memo
+        FROM jsonb_to_recordset(${linesText}::jsonb) AS item(
+          line_number smallint, account_id uuid, debit numeric, credit numeric, memo text
+        )
+      ),
+      selected_accounts AS MATERIALIZED (
+        SELECT
+          input.line_number,
+          input.account_id,
+          input.debit,
+          input.credit,
+          input.memo
+        FROM input
+        INNER JOIN v9.finance_accounts AS account
+          ON account.id = input.account_id
+          AND account.organization_id = ${identity.organizationId}
+          AND account.status = 'active'
+          AND account.is_postable = true
+      ),
+      deleted_lines AS (
+        DELETE FROM v9.finance_journal_lines AS line
+        USING locked_journal
+        WHERE line.journal_id = locked_journal.id
+          AND line.organization_id = locked_journal.organization_id
+          AND (SELECT count(*) FROM selected_accounts) = (SELECT count(*) FROM input)
+        RETURNING line.id
+      ),
+      inserted_lines AS (
+        INSERT INTO v9.finance_journal_lines (
+          organization_id, journal_id, account_id, line_number, memo, debit, credit
+        )
+        SELECT
+          locked_journal.organization_id,
+          locked_journal.id,
+          selected_accounts.account_id,
+          selected_accounts.line_number,
+          NULLIF(selected_accounts.memo, ''),
+          selected_accounts.debit,
+          selected_accounts.credit
+        FROM locked_journal
+        CROSS JOIN selected_accounts
+        WHERE (SELECT count(*) FROM selected_accounts) = (SELECT count(*) FROM input)
+          AND (SELECT count(*) FROM deleted_lines) >= 0
+        RETURNING journal_id, debit, credit
+      ),
+      totals AS (
+        SELECT
+          journal_id,
+          sum(debit)::numeric(18,2) AS debit_total,
+          sum(credit)::numeric(18,2) AS credit_total,
+          count(*)::int AS line_count
+        FROM inserted_lines
+        GROUP BY journal_id
+      ),
+      changed AS (
+        UPDATE v9.finance_journals AS journal
+        SET
+          journal_date = ${journalDate}::date,
+          description = ${description},
+          source_type = ${sourceType},
+          source_reference = NULLIF(${sourceReference}, ''),
+          total_debit = totals.debit_total,
+          total_credit = totals.credit_total,
+          updated_at = now()
+        FROM locked_journal
+        INNER JOIN totals ON totals.journal_id = locked_journal.id
+        WHERE journal.id = locked_journal.id
+          AND journal.organization_id = locked_journal.organization_id
+          AND journal.status = 'draft'
+          AND totals.line_count = (SELECT count(*) FROM input)
+        RETURNING journal.id, journal.organization_id, journal.reference_no,
+          journal.journal_date, journal.description, journal.status,
+          journal.total_debit, journal.total_credit
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          organization_id,
+          ${identity.userId},
+          'finance_journal.draft_updated',
+          'finance_journal',
+          id::text,
+          jsonb_build_object('reference_no', reference_no, 'journal_date', journal_date,
+            'description', description, 'status', status,
+            'total_debit', total_debit, 'total_credit', total_credit)
+        FROM changed
+        RETURNING id
+      )
+      SELECT changed.id::text AS id FROM changed INNER JOIN audit ON true
+    `;
+    updated = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-journal-draft-update", reason);
+    redirect(financePath("error", journalId));
+  }
+
+  if (!updated) redirect(financePath("journal-not-draft-or-account-unavailable", journalId));
+  refreshFinance();
+  redirect(financePath("journal-updated", journalId));
+}
