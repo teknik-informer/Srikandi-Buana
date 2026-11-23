@@ -1,4 +1,4 @@
-import { BookOpenCheck, ClipboardCheck, Scale } from "lucide-react";
+import { BookOpenCheck, CircleCheck, ClipboardCheck, Scale } from "lucide-react";
 import {
   Badge,
   Card,
