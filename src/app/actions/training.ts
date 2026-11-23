@@ -75,7 +75,7 @@ export async function createTrainingSession(formData: FormData): Promise<void> {
     redirect(path("invalid"));
   }
 
-  let created = false;
+  let created: MutationRow | undefined;
   try {
     const sql = getV9Sql();
     const result = await sql`
@@ -137,7 +137,7 @@ export async function createTrainingSession(formData: FormData): Promise<void> {
       FROM inserted
       INNER JOIN audit ON true
     `;
-    created = rowsFromResult<MutationRow>(result).length === 1;
+    created = rowsFromResult<MutationRow>(result)[0];
   } catch (reason) {
     logFailure("training-session-create", reason);
     redirect(path("error"));
@@ -145,7 +145,7 @@ export async function createTrainingSession(formData: FormData): Promise<void> {
 
   if (!created) redirect(path("program-unavailable"));
   refreshTraining();
-  redirect(path("session-created"));
+  redirect(path("session-created", created.id));
 }
 
 export async function updateTrainingSessionStatus(formData: FormData): Promise<void> {
