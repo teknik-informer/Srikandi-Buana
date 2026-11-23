@@ -1,82 +1,167 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PRODUCTS } from "@/data/operations";
-import { formatIDR } from "@/lib/format";
-import { Badge, Card, Notice } from "@/components/ui";
+import { ArrowLeft, Package, Store } from "lucide-react";
+import { Badge, Card, EmptyState, Notice } from "@/components/ui";
+import { getV9Sql, rowsFromResult } from "@/lib/db";
 
-export function generateStaticParams() {
-  return PRODUCTS.filter((p) => p.published).map((p) => ({ slug: p.slug }));
+export const dynamic = "force-dynamic";
+
+interface PublicProduct {
+  id: string;
+  slug: string;
+  reference_no: string;
+  product_name: string;
+  category_label: string | null;
+  product_kind: "physical" | "service";
+  unit_label: string;
+  selling_price: string;
+  description: string | null;
+  producer_label: string | null;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
-  const p = PRODUCTS.find((x) => x.slug === slug && x.published);
-  if (!p) return { title: "Produk tidak ditemukan" };
-  return { title: p.name, description: p.story };
+async function findPublishedProduct(slug: string): Promise<PublicProduct | null> {
+  const sql = getV9Sql();
+  const result = await sql`
+    SELECT
+      product.id::text AS id,
+      product.slug,
+      product.reference_no,
+      product.product_name,
+      product.category_label,
+      product.product_kind,
+      product.unit_label,
+      product.selling_price::text AS selling_price,
+      product.description,
+      product.producer_label
+    FROM v9.business_products AS product
+    INNER JOIN v9.organizations AS organization
+      ON organization.id = product.organization_id
+    WHERE organization.slug = 'srikandi-buana'
+      AND organization.status = 'active'
+      AND product.field_key = 'usaha'
+      AND product.slug = ${slug}
+      AND product.status = 'active'
+      AND product.publication_status = 'published'
+    LIMIT 1
+  `;
+  return rowsFromResult<PublicProduct>(result)[0] ?? null;
 }
 
-export default async function ProductDetail({ params }: { params: Promise<{ slug: string }> }) {
+function priceLabel(value: string): string {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0
+    ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount)
+    : "Hubungi Sekretariat untuk informasi harga";
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
-  const p = PRODUCTS.find((x) => x.slug === slug && x.published);
-  if (!p) notFound();
-  const related = PRODUCTS.filter((x) => x.published && x.id !== p.id && x.category === p.category).slice(0, 3);
+  const product = await findPublishedProduct(slug);
+  if (!product) return { title: "Produk tidak ditemukan" };
+  return {
+    title: product.product_name,
+    description: product.description ?? `Informasi produk ${product.product_name} dari KWT Srikandi Buana.`,
+  };
+}
+
+export default async function ProductDetail({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const product = await findPublishedProduct(slug);
+  if (!product) notFound();
+
+  const sql = getV9Sql();
+  const relatedResult = product.category_label
+    ? await sql`
+        SELECT id::text AS id, slug, product_name, category_label, unit_label, selling_price::text AS selling_price
+        FROM v9.business_products
+        WHERE organization_id = (
+          SELECT id FROM v9.organizations
+          WHERE slug = 'srikandi-buana' AND status = 'active'
+          LIMIT 1
+        )
+          AND field_key = 'usaha'
+          AND publication_status = 'published'
+          AND status = 'active'
+          AND category_label = ${product.category_label}
+          AND id <> ${product.id}::uuid
+        ORDER BY product_name
+        LIMIT 3
+      `
+    : [];
+  const related = rowsFromResult<Pick<PublicProduct, "id" | "slug" | "product_name" | "category_label" | "unit_label" | "selling_price">>(relatedResult);
 
   return (
     <div className="sb-shell py-10">
-      <nav className="mb-5 text-[12px] text-muted">
-        <Link href="/produk" className="hover:underline">Katalog</Link>
-        <span className="mx-1.5">/</span>
-        <span className="text-ink2">{p.name}</span>
+      <nav className="mb-5 flex items-center gap-2 text-[12px] text-muted">
+        <Link href="/produk" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Katalog</Link>
+        <span>/</span>
+        <span className="text-ink2">{product.product_name}</span>
       </nav>
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-[18px] border border-line bg-white">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.image} alt={p.name} className="aspect-square w-full object-cover" width={900} height={900} />
-        </div>
+
+      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+        <Card className="flex min-h-[300px] flex-col items-center justify-center bg-paper p-8 text-center">
+          <div className="flex size-20 items-center justify-center rounded-full border border-line bg-white text-primary-800">
+            {product.product_kind === "physical" ? <Package size={34} strokeWidth={1.4} /> : <Store size={32} strokeWidth={1.4} />}
+          </div>
+          <div className="mt-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted2">{product.reference_no}</div>
+          <div className="mt-2 font-display text-[20px] font-semibold text-ink">{product.product_name}</div>
+          <div className="mt-1 text-[11px] text-muted">{product.category_label ?? "Produk anggota"}</div>
+        </Card>
+
         <div>
-          <Badge tone="neutral">{p.category}</Badge>
-          <h1 className="mt-3 font-display text-[32px] leading-tight font-semibold text-ink sm:text-[38px]">{p.name}</h1>
-          <p className="mt-2 text-[13px] text-muted">Diproduksi oleh <span className="font-semibold text-ink2">{p.producer}</span> · {p.unit}</p>
-          <div className="mt-5 font-display text-[30px] font-semibold text-primary-800">{formatIDR(p.price)}</div>
-          <p className="mt-4 max-w-lg text-[14px] leading-relaxed text-ink2">{p.story}</p>
+          <Badge tone="neutral">{product.category_label ?? "Produk"}</Badge>
+          <h1 className="mt-3 font-display text-[32px] font-semibold leading-tight text-ink sm:text-[38px]">{product.product_name}</h1>
+          <p className="mt-2 text-[12px] text-muted">
+            {product.producer_label ? <>Diproduksi oleh <span className="font-semibold text-ink2">{product.producer_label}</span> · </> : null}
+            {product.unit_label}
+          </p>
+          <div className="mt-5 font-display text-[26px] font-semibold text-primary-800">{priceLabel(product.selling_price)}</div>
+          {product.description ? <p className="mt-4 max-w-lg whitespace-pre-wrap text-[14px] leading-relaxed text-ink2">{product.description}</p> : null}
           <div className="mt-6">
-            <Notice tone={p.stock > 0 ? "success" : "warning"} title={p.stock > 0 ? "Tersedia untuk dipesan" : "Stok sedang habis"}>
-              Ketersediaan mengikuti proyeksi publik yang disetujui. Konfirmasi akhir diberikan saat pemesanan.
+            <Notice tone="info" title="Konfirmasi pesanan">
+              Ketersediaan stok, harga akhir, dan jadwal pengiriman perlu dikonfirmasi kepada
+              Sekretariat sebelum pesanan disepakati. Saldo gudang internal tidak ditampilkan di sini.
             </Notice>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/produk/pemesanan" className="sb-btn sb-btn-primary">Cara memesan</Link>
-            <Link href="/kontak" className="sb-btn sb-btn-outline">Tanya produk</Link>
+            <Link href="/kontak?tujuan=produk" className="sb-btn sb-btn-primary">Hubungi Sekretariat</Link>
+            <Link href="/produk" className="sb-btn sb-btn-outline">Kembali ke katalog</Link>
           </div>
           <dl className="mt-7 grid grid-cols-2 gap-3 border-t border-line pt-5 text-[12px]">
-            <div><dt className="text-muted">Kategori</dt><dd className="font-semibold text-ink2">{p.category}</dd></div>
-            <div><dt className="text-muted">Kemasan</dt><dd className="font-semibold text-ink2">{p.unit}</dd></div>
-            <div><dt className="text-muted">Pelaku usaha</dt><dd className="font-semibold text-ink2">{p.producer}</dd></div>
-            <div><dt className="text-muted">Asal</dt><dd className="font-semibold text-ink2">Ngadimulyo, Kedu</dd></div>
+            <div><dt className="text-muted">Kategori</dt><dd className="font-semibold text-ink2">{product.category_label ?? "Produk anggota"}</dd></div>
+            <div><dt className="text-muted">Kemasan / satuan</dt><dd className="font-semibold text-ink2">{product.unit_label}</dd></div>
+            <div><dt className="text-muted">Pelaku usaha</dt><dd className="font-semibold text-ink2">{product.producer_label ?? "Belum dicatat"}</dd></div>
+            <div><dt className="text-muted">Asal organisasi</dt><dd className="font-semibold text-ink2">KWT Srikandi Buana</dd></div>
           </dl>
         </div>
       </div>
 
-      {related.length > 0 && (
+      {related.length ? (
         <section className="mt-14">
-          <h2 className="font-display text-[22px] font-semibold text-ink">Produk serupa</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            {related.map((r) => (
-              <Link key={r.id} href={`/produk/${r.slug}`} className="group">
-                <div className="overflow-hidden rounded-[14px] border border-line bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={r.image} alt={r.name} className="aspect-[4/3] w-full object-cover transition group-hover:scale-[1.03]" width={520} height={390} loading="lazy" />
-                </div>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <span className="text-[13px] font-semibold text-ink group-hover:text-primary-800">{r.name}</span>
-                  <span className="text-[12.5px] font-semibold text-primary-800">{formatIDR(r.price)}</span>
-                </div>
+          <h2 className="font-display text-[22px] font-semibold text-ink">Produk dalam kategori yang sama</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {related.map((item) => (
+              <Link key={item.id} href={`/produk/${item.slug}`} className="group">
+                <Card className="h-full p-4 transition-shadow group-hover:shadow-md">
+                  <Badge tone="neutral">{item.category_label ?? "Produk"}</Badge>
+                  <div className="mt-3 font-display text-[16px] font-semibold text-ink group-hover:text-primary-800">{item.product_name}</div>
+                  <div className="mt-1 text-[10.5px] text-muted">{item.unit_label}</div>
+                  <div className="mt-3 text-[13px] font-semibold text-primary-800">{priceLabel(item.selling_price)}</div>
+                </Card>
               </Link>
             ))}
           </div>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }
