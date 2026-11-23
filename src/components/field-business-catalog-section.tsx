@@ -390,12 +390,10 @@ export async function FieldBusinessCatalogSection({
                             <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-3 text-[9.5px]">Aktifkan kembali</button>
                           </form>
                         )}
-                        {product.status !== "archived" ? (
-                          <form action={updateBusinessProductStatus}>
-                            <input type="hidden" name="product_id" value={product.id} /><input type="hidden" name="status" value="archived" />
-                            <button type="submit" disabled={!canApprove || Number(product.total_on_hand) > 0 || Number(product.total_reserved) > 0} className="sb-btn sb-btn-outline !h-8 !px-3 text-[9.5px]">Arsipkan</button>
-                          </form>
-                        ) : null}
+                        <form action={updateBusinessProductStatus}>
+                          <input type="hidden" name="product_id" value={product.id} /><input type="hidden" name="status" value="archived" />
+                          <button type="submit" disabled={!canApprove || Number(product.total_on_hand) > 0 || Number(product.total_reserved) > 0} className="sb-btn sb-btn-outline !h-8 !px-3 text-[9.5px]">Arsipkan</button>
+                        </form>
                       </div>
                     </div>
                   ) : null}
