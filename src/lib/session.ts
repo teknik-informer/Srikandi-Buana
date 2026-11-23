@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import type { AppIdentity } from "@/lib/identity";
+import { SESSION_COOKIE, type AppIdentity } from "@/lib/identity";
 
 export { SESSION_COOKIE, DEMO_ACCOUNTS, ACCOUNT_BY_KEY, can, FIELD_APP_STATUS_LABEL } from "@/lib/identity";
 export type { AppIdentity, DemoIdentity } from "@/lib/identity";
@@ -89,7 +89,7 @@ function homeFor(roleKey: string, fieldKey: string | null): string {
 /** Resolve the current account from a hash of the opaque session cookie. */
 export async function getIdentity(): Promise<AppIdentity | null> {
   const jar = await cookies();
-  const token = jar.get("sb_v9_session")?.value;
+  const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
   const tokenHash = createHash("sha256").update(token).digest("hex");
@@ -183,7 +183,7 @@ export async function getIdentity(): Promise<AppIdentity | null> {
 /** Revoke the server-side session first, then remove the browser cookie. */
 export async function revokeCurrentSession(): Promise<void> {
   const jar = await cookies();
-  const token = jar.get("sb_v9_session")?.value;
+  const token = jar.get(SESSION_COOKIE)?.value;
 
   try {
     if (token) {
@@ -196,7 +196,12 @@ export async function revokeCurrentSession(): Promise<void> {
           AND revoked_at IS NULL
       `;
     }
+  } catch (error) {
+    console.error(
+      "[auth] Session revocation failed:",
+      error instanceof Error ? error.message : "Unknown session error",
+    );
   } finally {
-    jar.delete("sb_v9_session");
+    jar.delete(SESSION_COOKIE);
   }
 }
