@@ -34,8 +34,9 @@ Files applied on the isolated development branch:
 10. `db/migrations/0010_field_team_assignments.sql`
 11. `db/migrations/0011_agriculture_production_records.sql`
 12. `db/migrations/0012_training_empowerment_operations.sql`
+13. `db/migrations/0013_training_capacity_counter.sql`
 
-The `v9` schema currently includes 32 tables:
+The `v9` schema currently includes 36 tables:
 
 - organization, organizational units, and four field-application registry rows;
 - people, user accounts, memberships, and scoped role assignments;
@@ -163,16 +164,17 @@ Technical implementation:
 
 ### Pemberdayaan & Pelatihan — sessions, enrollment, attendance, assessment, and certificates
 
-- The training domain uses the already-applied migration `0012_training_empowerment_operations.sql` and its four tables: `v9.training_sessions`, `v9.training_enrollments`, `v9.training_assessments`, and `v9.training_certificates`.
+- The training domain uses migrations `0012_training_empowerment_operations.sql` and `0013_training_capacity_counter.sql` and its four tables: `v9.training_sessions`, `v9.training_enrollments`, `v9.training_assessments`, and `v9.training_certificates`. The session table also maintains an atomic registered-seat counter.
 - Training sessions are linked to the `pelatihan` field and can optionally be linked to a program in the same field and organization. The session lifecycle is `planned → registration_open → in_progress → completed`, with cancellation before completion.
 - Registration is accepted only while a session is open. A participant can be an active member or an external guest. The database enforces unique membership or normalized guest registration per session.
-- If the session capacity is full, new registrations are retained with `waitlisted` status rather than discarded. The enrollment action locks the session row while checking capacity.
+- If the session capacity is full, new registrations are retained with `waitlisted` status rather than discarded. The session row is locked and its `registered_count` counter is updated atomically with enrolment, avoiding concurrent overbooking.
+- When an unmarked participant cancels while registration remains open, the used-seat counter is decremented and the earliest eligible waitlisted participant is promoted into the freed slot in the same SQL operation. Cancellation and promotion each write an audit event.
 - Attendance is recorded as `hadir`, `izin`, `sakit`, or `alpa`, with the identity and timestamp of the staff member recording it.
 - Pre- and post-assessments are stored separately in `v9.training_assessments`, with scores from 0 to 100. Scores are entered by authorized staff; the application does not invent participant results.
 - A session can be marked completed only after its scheduled date and after at least one non-cancelled participant is recorded present.
 - An internal certificate reference can be issued only for a participant recorded present in a completed session. Issuance requires `field:pelatihan:certificate:issue`; revocation requires `organization:team:approve` and a recorded reason.
 - Certificate references are internal system records. They do not claim external accreditation, professional licensing, or recognition by another institution.
-- The internal workspace is connected at `/app/bidang/pelatihan/data`. The public `/pelatihan` page now lists only sessions with registration open and completed sessions from the database; the previous `TRAININGS` demo array is no longer used there.
+- The internal workspace is connected at `/app/bidang/pelatihan/data`. The public `/pelatihan` page now lists only sessions with registration open and completed sessions from the database; the previous `TRAININGS` demo array is no longer used there. Both `/pelatihan` and `/dokumen` run at request time rather than requiring database access during static build.
 - Public visitors are directed to the Secretariat for registration. Public self-enrollment is not implemented in this stage.
 - No sample sessions, enrollments, attendance, assessment results, or certificates are seeded.
 
@@ -188,10 +190,10 @@ Technical implementation:
 - GitHub Actions for field dashboard commit `cc874297c270e0aefbf96bdc0b50d5f29c485f56` completed successfully: install, typecheck, and production build.
 - GitHub Actions for field team roster commit `fc223bf77c5ae9db6abc7ca60bcf247fe9ab4db8` and corrected revalidation commit `c2d626db9ec477b4727f87f883e23186766022a6` completed successfully: install, typecheck, and production build.
 - GitHub Actions for Agriculture plot/cycle/visit/harvest implementation commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
-- GitHub Actions for the selected-session context, training action hardening, and public database-backed training page completed successfully; the latest exact result is tracked by the branch workflow.
+- PostgreSQL query-plan checks passed for training summary, session list, enrollment list, session creation/status, capacity-aware registration, attendance, assessment upsert, certificate issuance/revocation, and participant cancellation with waitlist promotion.
 - GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
 - Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
-- Neon development schema check: 32 V9 tables and twelve applied migrations.
+- Neon development schema check: 36 V9 tables and thirteen applied migrations. Training record counts remain zero; no sample sessions or participants were seeded.
 - Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, and audit records; it cannot create schema objects or read legacy user records.
 - PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, and agriculture summary/plot/cycle/visit/harvest lists and mutations.
 - Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
