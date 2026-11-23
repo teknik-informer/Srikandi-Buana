@@ -530,7 +530,6 @@ export async function recordBusinessInventoryMovement(formData: FormData): Promi
           AND stock.warehouse_id = locked.warehouse_id
           AND stock.organization_id = locked.organization_id
           AND stock.field_key = locked.field_key
-        FOR UPDATE OF stock
       ),
       calculated AS (
         SELECT
