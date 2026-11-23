@@ -228,32 +228,40 @@ Technical implementation:
 
 ## Verification performed
 
-- GitHub Actions for commit `8378bcb9e5d4db4d444a9a4964e706828c03b149` completed successfully:
-  - `npm ci`
-  - `npm run typecheck`
-  - `npm run build`
-- GitHub Actions for the Secretariat letter UI/server-page commit `e4379b2d857d2c6814abf4c82e70b18f501d35a7` completed successfully through typecheck and production build.
-- GitHub Actions for the V9 meeting/minutes/agenda/attendance implementation commit `364bef67b7a039a39378361b92d23114da8d45b3` completed successfully: install, typecheck, and production build.
-- GitHub Actions for the document register, file download route, and public documents page commit `ef127aa1f96f60dade8f8eeb3bbd969b00f1b7eb` completed successfully: install, typecheck, and production build.
-- GitHub Actions for field dashboard commit `cc874297c270e0aefbf96bdc0b50d5f29c485f56` completed successfully: install, typecheck, and production build.
-- GitHub Actions for field team roster commit `fc223bf77c5ae9db6abc7ca60bcf247fe9ab4db8` and corrected revalidation commit `c2d626db9ec477b4727f87f883e23186766022a6` completed successfully: install, typecheck, and production build.
-- GitHub Actions for Agriculture plot/cycle/visit/harvest implementation commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
-- PostgreSQL query-plan checks passed for training summary, session list, enrollment list, session creation/status, capacity-aware registration, attendance, assessment upsert, certificate issuance/revocation, and participant cancellation with waitlist promotion.
-- GitHub Actions for the latest training public-page/session-context build completed successfully: install, typecheck, and production build.
-- GitHub Actions for Business & Partnerships CRM commit `5b13f67bb7245a48db9262e1132927dd389c14e2` completed successfully: install, typecheck, and production build.
-- PostgreSQL query-plan checks passed for product/warehouse/stock/movement lists, product creation/status/publication, warehouse creation, stock movement posting, and public product list/detail queries.
-- PostgreSQL query-plan checks passed for customer creation, multi-item order creation, order confirmation/reservation, status advancement, stock fulfillment/sale movement, order cancellation/reservation release, and the six customer/product/warehouse/order workspace queries.
-- PostgreSQL query-plan checks passed for business CRM summary, partner/opportunity/agreement/milestone lists, partner creation/status, opportunity creation/stage change, agreement creation/status, and milestone creation/status.
-- PostgreSQL query-plan checks passed for CRM summary, partner/opportunity/agreement/milestone lists, opportunity stage changes, agreement status changes, and milestone status changes.
-- GitHub Actions for Agriculture data workspace commit `bfd1c0eb19e30a020f2fa3b7de2daa1889ac4bc4` completed successfully: install, typecheck, and production build.
-- Privilege checks: `v9_app` can read/insert/update document records and read/insert file revisions; it can write audit events and use the document reference sequence.
-- Neon development schema check: 47 V9 tables and sixteen applied migrations. Training, CRM, customer, order, order-item, product, warehouse, balance, and movement record counts remain zero; no sample operational records were seeded.
-- Role privilege checks: `v9_app` can read/insert/update meeting, minutes, decisions, attendance, field plans/programs/indicators/activities/tasks, field team assignments, agriculture plots/cycles/visits/harvests, training sessions/enrollments/assessments/certificates, business partners/opportunities/agreements/milestones, business products/warehouses/stock balances/inventory movements, customers/orders/order items, and audit records; it cannot create schema objects or read legacy user records.
-- PostgreSQL query-plan checks passed for meeting creation, minutes draft save, decision insertion, finalization, revision creation, attendance upsert, document registration, metadata update, file upload, finalization, archive, public listing, download, field dashboard, field program/indicator/activity/task queries, field team roster/proposal/approval/end, agriculture summary/plot/cycle/visit/harvest lists and mutations, business CRM summary/list/partner/opportunity/agreement/milestone operations, product/catalog/warehouse/stock queries and mutations, public product list/detail queries, customer/order queries and mutations, and reservation/fulfillment/cancellation flows.
-- Privilege checks: `v9_app` can read/insert/update the Secretariat letters table and write audit records, but cannot read legacy users or create schema objects.
-- SQL query plans were obtained for organization-scoped public submission/outbox insertion, membership review/approval, and membership status update.
-- No browser E2E, real account login, or real data insertion test has been completed yet.
-- No V9 deployment, Vercel environment change, domain switch, or production database migration has been performed.
+**Latest repository state**
+
+- Development branch: `feat/v9-operational-core`.
+- Latest verified source baseline before this documentation update: `6fbf8f5b2f327df924683bc096b79f4979822ee2`.
+- The latest completed GitHub Actions run before the current documentation-only change passed dependency installation, TypeScript validation, and Next.js production build on commit `ae67ee9bddc92825c67cd3ae84a6c866fe95d5a9`.
+- A newer GitHub Actions run for the FieldSection cleanup is in progress; its result must be checked before calling that commit build-verified.
+
+**Database and query validation**
+
+- Neon development database: 47 V9 tables and 16 applied migrations. This is the isolated development branch, not the production database.
+- Role `v9_app` was verified to have the required read/insert/update privileges on Agriculture, Training, CRM, catalogue, inventory, customer, order, order-item, and audit tables, plus the associated business reference sequences. It cannot create schema objects or read legacy user records.
+- Query-plan checks passed for the Agriculture summary/list queries and its five mutations: plot creation/status, crop-cycle creation/status, visit recording, and harvest recording.
+- Query-plan checks passed for the Training session/enrollment lists, session creation/status, capacity-aware registration, attendance, pre/post assessment upsert, certificate issuance/revocation, and public training listings.
+- Query-plan checks passed for CRM summary and lists, partner creation/status, opportunity creation/stage changes, agreement creation/status, and milestone creation/status.
+- Query-plan checks passed for all seven catalogue/inventory SQL operations: product creation/update/status/publication, warehouse creation/status, and stock movement posting.
+- Query-plan checks passed for all six order SQL operations: customer creation, multi-item order creation, confirmation/reservation, status advancement, fulfillment/sale movement, and cancellation/reservation release.
+- Query-plan checks also passed for the catalogue, warehouse, stock-balance, movement, customer, order, and order-item workspace read queries and for public product list/detail queries.
+- Concurrent stock handling now locks the balance rows before movement calculations. Order reservation, fulfillment, and cancellation acquire multiple stock-row locks in deterministic product/warehouse order.
+- Database trigger inspection confirmed inventory movement rows reject UPDATE and DELETE. Corrections must be entered as new movements.
+- Current development counts are zero for Agriculture records, Training records, CRM records, products, warehouses, stock balances, stock movements, customers, orders, and order items. No sample operational data was inserted.
+
+**Application checks**
+
+- Completed CI runs have passed `npm ci`, `npm run typecheck`, and `npm run build` for prior iterations of the Agriculture, Training, CRM, catalogue, and order modules.
+- Public `/produk` and `/produk/[slug]` use database-backed published products. Public training uses database-backed open/completed sessions.
+- The Business workspace uses separate routes for CRM, catalogue, warehouse/stock, and customer/orders. The prior hardcoded Business demo table in the generic field section was replaced by links to these live modules.
+- No browser E2E suite is defined in the current `package.json`; no real browser interaction, multi-user concurrency test, or real-account UAT has been completed.
+- No real operational records were inserted as part of query-plan validation.
+
+**Release boundary**
+
+- No V9 deployment, Vercel environment change, production database migration, or domain switch has been performed.
+- No production data has been changed by this implementation work.
+- A successful TypeScript/build check and PostgreSQL query plan do not by themselves certify a module as accepted for production; role-based browser UAT and end-to-end transaction tests remain mandatory.
 
 ## Remaining blockers and work
 
@@ -261,7 +269,7 @@ Technical implementation:
 2. The initial administrator still needs to be provisioned through the one-time CLI using an organization-authorized name, email, and password.
 3. Some remaining operational modules still use the original client reducer and browser `localStorage` demo state. Each must be migrated to server-side domain services and shared database persistence before operational use.
 4. Sample dashboard figures and seeded content must not be represented as actual organizational records.
-5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, producer master records and product media, public self-service ordering/checkout, payments, receivables, delivery/returns, native Finance posting, POS, field evidence, budgets, reports, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
+5. Secretariat agenda, meetings, minutes, decisions, attendance, and document/archive register now use the V9 database. Field workplans, programs, indicators, activities, tasks, team assignments, and dashboard now use the V9 database. Workplan approval, producer/member profiles and product media, public self-service ordering/checkout, payment capture, receivables, deliveries/returns, payment reconciliation, native Finance posting, POS, field evidence, budgets, reports, portals, invitations, public calendar publishing, and CMS publishing still need their own domain schemas, authorization, transactional services, and tests.
 6. V9.1 Vercel project access is not currently visible in the connected Vercel team. Preview deployment is blocked until the correct Vercel project/team is authorized.
 7. Production release remains blocked until preview, migration rehearsal, automated tests, role-based UAT, responsive/accessibility checks, security review, backups, and rollback readiness are complete.
 
