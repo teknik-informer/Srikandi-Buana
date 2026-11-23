@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { KeuanganDashboardClient } from "./dashboard-client";
+import { FinanceDashboardSection } from "@/components/finance-dashboard-section";
 
 export const metadata: Metadata = { title: "Ringkasan Keuangan" };
 
 export default function KeuanganDashboard() {
-  return <KeuanganDashboardClient />;
+  return <FinanceDashboardSection />;
 }
