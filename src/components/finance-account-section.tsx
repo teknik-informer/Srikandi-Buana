@@ -1,4 +1,4 @@
-import { BookOpen, CircleCheck, FilePlus2, Landmark } from "lucide-react";
+import { BookOpen, CircleCheck, FilePlus2 } from "lucide-react";
 import {
   Badge,
   Card,
@@ -10,7 +10,8 @@ import {
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, requireIdentity } from "@/lib/session";
-import type { AccountType, AccountNormalBalance } from "@/components/finance-types";
+type AccountType = "aset" | "kewajiban" | "ekuitas" | "pendapatan" | "beban";
+type AccountNormalBalance = "debit" | "credit";
 import {
   createFinanceAccount,
   loadFinanceAccountTemplate,
