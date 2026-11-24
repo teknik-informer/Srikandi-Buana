@@ -40,7 +40,16 @@ export default async function KeanggotaanPage() {
   const [summaryResult, memberResult] = await Promise.all([
     sql`
       SELECT
-        (SELECT count(*)::int FROM v9.memberships WHERE organization_id = ${identity.organizationId} AND status = 'active') AS active_count,
+        (SELECT count(*)::int
+          FROM v9.memberships AS membership
+          INNER JOIN v9.people AS person
+            ON person.id = membership.person_id
+            AND person.status = 'active'
+          WHERE membership.organization_id = ${identity.organizationId}
+            AND membership.status = 'active'
+            AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+            AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+        ) AS active_count,
         (SELECT count(*)::int FROM v9.memberships WHERE organization_id = ${identity.organizationId} AND status = 'pending') AS pending_count,
         (SELECT count(*)::int FROM v9.memberships WHERE organization_id = ${identity.organizationId} AND status = 'inactive') AS inactive_count,
         (SELECT count(*)::int FROM v9.memberships WHERE organization_id = ${identity.organizationId} AND status = 'left') AS left_count,
@@ -61,6 +70,9 @@ export default async function KeanggotaanPage() {
         AND unit.organization_id = membership.organization_id
       WHERE membership.organization_id = ${identity.organizationId}
         AND membership.status = 'active'
+        AND person.status = 'active'
+        AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+        AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
       ORDER BY membership.created_at DESC
       LIMIT 50
     `,
