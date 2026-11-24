@@ -39,6 +39,8 @@ const exactCoreTitles = [
 for (const title of exactCoreTitles) {
   assert.ok(structure.includes(title), `Exact executive position is missing: ${title}`);
 }
+assert.ok(structure.includes("const [organizationResult, unitResult, rosterSummaryResult, peopleResult] = await Promise.all(["), "Structure aggregate result must map to the roster summary, not the member rows.");
+assert.ok(structure.includes("people = rowsFromResult<PersonRow>(peopleResult)") && structure.includes("rowsFromResult<RosterSummaryRow>(rosterSummaryResult)"), "Structure list and summary results must be mapped to their matching query outputs.");
 assert.ok(structure.includes("CORE_POSITION_TITLES.has(normalized)"), "Core positions must use exact title matching.");
 assert.ok(!structure.includes("return /^(ketua|wakil ketua|sekretaris"), "Prefix-based title matching must not classify Ketua Bidang as Ketua.");
 
