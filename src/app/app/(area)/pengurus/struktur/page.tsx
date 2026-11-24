@@ -124,7 +124,7 @@ export default async function StrukturPage() {
         SELECT
           count(*)::int AS active_count,
           count(*) FILTER (
-            WHERE lower(regexp_replace(btrim(COALESCE(membership.position_title, '')), '\\s+', ' ', 'g'))
+            WHERE lower(regexp_replace(btrim(COALESCE(membership.position_title, '')), '[[:space:]]+', ' ', 'g'))
               = ANY (ARRAY['ketua', 'wakil ketua', 'sekretaris', 'wakil sekretaris', 'bendahara', 'wakil bendahara']::text[])
           )::int AS core_count
         FROM v9.memberships AS membership
