@@ -1,83 +1,169 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, UserPlus, CheckCircle2, Circle, Loader2, AlertTriangle, CalendarClock } from "lucide-react";
+import { Plus, UserPlus, CheckCircle2, Circle, Loader2, AlertTriangle, CalendarClock, Database } from "lucide-react";
 import { FIELDS } from "@/config/fields";
-import { MEMBERS } from "@/data/organization";
-import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
-import { Btn, DemoStateChip, Field, Modal, NoRows, SearchBox, SearchProvider, Select, Segmented, TextInput, useSearch, match } from "@/components/act";
-import { useStore } from "@/lib/store";
+import { Badge, Card, CardHeader, Notice, StatCard } from "@/components/ui";
+import { Btn, Field, Modal, NoRows, SearchBox, SearchProvider, Select, Segmented, TextInput, useSearch, match } from "@/components/act";
 import { daysUntil, formatDateID } from "@/lib/format";
-import type { Task } from "@/data/types";
+import {
+  createManagementTask,
+  updateManagementTaskStatus,
+  reassignManagementTask,
+} from "@/app/actions/management-tasks";
 
-const STATUS_TONE = { belum: "neutral", proses: "info", selesai: "success", terlambat: "danger" } as const;
+type TaskStatus = "belum" | "proses" | "selesai" | "dibatalkan";
+type TaskPriority = "tinggi" | "sedang" | "rendah";
+
+export interface ManagementTask {
+  id: string;
+  referenceNo: string;
+  title: string;
+  fieldKey: string;
+  fieldName: string;
+  assigneeLabel: string;
+  dueDate: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  programCode: string | null;
+  isOverdue: boolean;
+}
+
+const STATUS_TONE = {
+  belum: "neutral",
+  proses: "info",
+  selesai: "success",
+  dibatalkan: "neutral",
+  terlambat: "danger",
+} as const;
 const PRIORITY_TONE = { tinggi: "danger", sedang: "warning", rendah: "neutral" } as const;
 
 type Filter = "terbuka" | "terlambat" | "selesai" | "semua";
 
-export function TugasClient() {
+export function TugasClient({
+  tasks,
+  canManage,
+  loadError,
+}: {
+  tasks: ManagementTask[];
+  canManage: boolean;
+  loadError: boolean;
+}) {
   return (
     <SearchProvider>
-      <Inner />
+      <Inner tasks={tasks} canManage={canManage} loadError={loadError} />
     </SearchProvider>
   );
 }
 
-function Inner() {
-  const { state, exec, actor } = useStore();
+function Inner({
+  tasks,
+  canManage,
+  loadError,
+}: {
+  tasks: ManagementTask[];
+  canManage: boolean;
+  loadError: boolean;
+}) {
+  const router = useRouter();
   const { q } = useSearch();
   const [filter, setFilter] = useState<Filter>("terbuka");
   const [createOpen, setCreateOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState<string | null>(null);
-
-  const [form, setForm] = useState({ title: "", bidang: "pertanian", assignee: MEMBERS[1]?.name ?? "", due: "2026-11-30", priority: "sedang" as Task["priority"] });
+  const [form, setForm] = useState({
+    title: "",
+    fieldKey: "pertanian",
+    assigneeLabel: "",
+    dueDate: "",
+    priority: "sedang" as TaskPriority,
+  });
   const [assignee, setAssignee] = useState("");
-  const [due, setDue] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  const open = state.tasks.filter((t) => t.status !== "selesai");
-  const late = state.tasks.filter((t) => t.status === "terlambat");
-  const today = "2026-11-22";
+  const open = tasks.filter((t) => t.status !== "selesai" && t.status !== "dibatalkan");
+  const late = tasks.filter((t) => t.isOverdue);
+  const completed = tasks.filter((t) => t.status === "selesai");
+  const target = tasks.find((t) => t.id === assignOpen);
 
   const list = useMemo(
     () =>
-      [...state.tasks]
+      [...tasks]
         .filter((t) =>
-          filter === "terbuka" ? t.status !== "selesai"
-          : filter === "terlambat" ? t.status === "terlambat"
+          filter === "terbuka" ? t.status !== "selesai" && t.status !== "dibatalkan"
+          : filter === "terlambat" ? t.isOverdue
           : filter === "selesai" ? t.status === "selesai"
           : true,
         )
-        .filter((t) => match(`${t.title} ${t.assignee} ${t.bidang} ${t.programCode ?? ""}`, q))
-        .sort((a, b) => a.due.localeCompare(b.due)),
-    [state.tasks, filter, q],
+        .filter((t) => match(`${t.title} ${t.assigneeLabel} ${t.fieldName} ${t.referenceNo} ${t.programCode ?? ""}`, q))
+        .sort((a, b) => (a.dueDate ?? "9999-12-31").localeCompare(b.dueDate ?? "9999-12-31")),
+    [tasks, filter, q],
   );
 
-  const target = state.tasks.find((t) => t.id === assignOpen);
-
-  function cycle(t: Task) {
-    const order: Task["status"][] = ["belum", "proses", "selesai"];
-    const idx = order.indexOf(t.status);
-    const next = t.status === "terlambat" ? "proses" : order[Math.min(order.length - 1, idx + 1)];
-    exec({ type: "task.status", id: t.id, status: next, actor });
-  }
-
-  function create() {
+  async function cycle(task: ManagementTask) {
+    if (!canManage || pending || task.status === "selesai" || task.status === "dibatalkan") return;
     setErr(null);
-    const r = exec({ type: "task.create", title: form.title, bidang: form.bidang, assignee: form.assignee, due: form.due, priority: form.priority, actor });
-    if (r.ok) {
-      setCreateOpen(false);
-      setForm({ ...form, title: "" });
-    } else setErr(r.message);
+    setPending(true);
+    try {
+      const nextStatus = task.status === "proses" ? "selesai" : "proses";
+      const result = await updateManagementTaskStatus(task.id, nextStatus);
+      if (!result.ok) {
+        setErr(result.message);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
   }
 
-  function saveAssign() {
-    if (!assignOpen) return;
-    const r = exec({ type: "task.assign", id: assignOpen, assignee: assignee || target?.assignee || "", due: due || target?.due || today, actor });
-    if (r.ok) setAssignOpen(null);
-    else setErr(r.message);
+  async function create() {
+    if (!canManage || pending) return;
+    setErr(null);
+    setPending(true);
+    try {
+      const result = await createManagementTask(form);
+      if (!result.ok) {
+        setErr(result.message);
+        return;
+      }
+      setCreateOpen(false);
+      setForm({ ...form, title: "", assigneeLabel: "", dueDate: "" });
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
   }
+
+  async function saveAssign() {
+    if (!canManage || !assignOpen || pending) return;
+    setErr(null);
+    setPending(true);
+    try {
+      const result = await reassignManagementTask(assignOpen, assignee, dueDate);
+      if (!result.ok) {
+        setErr(result.message);
+        return;
+      }
+      setAssignOpen(null);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const programTasks = tasks.filter((t) => t.programCode);
+  const displayStatus = (task: ManagementTask) => task.isOverdue ? "terlambat" : task.status;
+  const statusLabel: Record<keyof typeof STATUS_TONE, string> = {
+    belum: "Belum",
+    proses: "Proses",
+    selesai: "Selesai",
+    dibatalkan: "Dibatalkan",
+    terlambat: "Terlambat",
+  };
 
   return (
     <div className="pb-10">
@@ -86,22 +172,41 @@ function Inner() {
           <div className="sb-label mb-1.5">Pengurus Harian</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Tugas pengurus</h1>
           <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
-            Beban kerja lintas peran: persetujuan, rekonsiliasi, kesekretariatan, dan tindak lanjut usulan anggota.
+            Penugasan lintas bidang yang tersimpan di basis data organisasi dan tercatat pada jejak audit.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <DemoStateChip compact />
-          <Btn variant="primary" icon={<Plus size={15} />} onClick={() => { setErr(null); setCreateOpen(true); }}>
-            Tugas baru
-          </Btn>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-2.5 py-1 text-[10.5px] font-medium text-muted">
+            <Database size={12} /> Data organisasi
+          </span>
+          {canManage ? (
+            <Btn variant="primary" icon={<Plus size={15} />} onClick={() => { setErr(null); setCreateOpen(true); }}>
+              Tugas baru
+            </Btn>
+          ) : null}
         </div>
       </header>
 
+      {loadError ? (
+        <Notice tone="danger" title="Data tugas belum dapat dimuat">
+          Layanan data organisasi sedang tidak tersedia. Daftar di bawah tidak ditampilkan sebagai data kosong palsu.
+          Muat ulang halaman setelah koneksi pulih.
+        </Notice>
+      ) : null}
+      {!canManage ? (
+        <div className="mb-4">
+          <Notice tone="info" title="Akses baca">
+            Akun Anda dapat melihat daftar tugas, tetapi perubahan tugas dan delegasi hanya dapat dilakukan oleh Ketua atau Administrator Organisasi.
+          </Notice>
+        </div>
+      ) : null}
+      {err ? <p className="mb-4 rounded-sb-sm border border-[var(--sb-danger)] bg-[var(--sb-danger-bg)] px-3 py-2 text-[12px] text-[var(--sb-danger)]" role="alert">{err}</p> : null}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Tugas terbuka" value={open.length} note={`${state.tasks.length} tugas tercatat`} tone="info" icon={<Circle size={17} />} />
-        <StatCard label="Terlambat" value={late.length} note={late.length ? "Perlu tindakan hari ini" : "Tidak ada yang lewat tenggat"} tone={late.length ? "danger" : "success"} icon={<AlertTriangle size={17} />} />
+        <StatCard label="Tugas terbuka" value={open.length} note={`${tasks.length} tugas tersimpan`} tone="info" icon={<Circle size={17} />} />
+        <StatCard label="Terlambat" value={late.length} note={late.length ? "Perlu tindak lanjut" : "Tidak ada yang lewat tenggat"} tone={late.length ? "danger" : "success"} icon={<AlertTriangle size={17} />} />
         <StatCard label="Urgensi tinggi" value={open.filter((t) => t.priority === "tinggi").length} note="Prioritas tinggi & belum selesai" tone="warning" icon={<CalendarClock size={17} />} />
-        <StatCard label="Selesai" value={state.tasks.filter((t) => t.status === "selesai").length} note="Dari sesi ini dan data awal" tone="success" icon={<CheckCircle2 size={17} />} />
+        <StatCard label="Selesai" value={completed.length} note="Tugas yang telah ditutup" tone="success" icon={<CheckCircle2 size={17} />} />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -112,62 +217,70 @@ function Inner() {
           options={[
             { key: "terbuka", label: "Terbuka", count: open.length },
             { key: "terlambat", label: "Terlambat", count: late.length },
-            { key: "selesai", label: "Selesai", count: state.tasks.filter((t) => t.status === "selesai").length },
-            { key: "semua", label: "Semua", count: state.tasks.length },
+            { key: "selesai", label: "Selesai", count: completed.length },
+            { key: "semua", label: "Semua", count: tasks.length },
           ]}
         />
         <SearchBox placeholder="Cari tugas atau penanggung jawab…" className="w-full sm:w-[320px]" />
       </div>
 
       <Card className="mt-4">
-        <CardHeader title="Daftar tugas" subtitle="Klik status untuk memajukannya — tercatat di jejak audit" action={<Badge tone="neutral">{list.length} baris</Badge>} />
+        <CardHeader title="Daftar tugas" subtitle="Status dan tenggat diambil langsung dari data organisasi" action={<Badge tone="neutral">{list.length} baris</Badge>} />
         <div className="sb-scroll">
           <table className="sb-table min-w-[840px]">
             <thead>
               <tr><th>Tugas</th><th>Bidang</th><th>Penanggung jawab</th><th>Tenggat</th><th>Prioritas</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr>
             </thead>
             <tbody>
-              {list.map((t) => {
-                const field = FIELDS.find((f) => f.slug === t.bidang);
-                const d = daysUntil(t.due);
+              {list.map((task) => {
+                const dueIn = task.dueDate ? daysUntil(task.dueDate) : null;
+                const status = displayStatus(task);
+                const canAdvance = canManage && task.status !== "selesai" && task.status !== "dibatalkan";
                 return (
-                  <tr key={t.id}>
+                  <tr key={task.id}>
                     <td className="font-medium text-ink">
-                      {t.title}
-                      {t.programCode ? <div className="mt-0.5 font-mono text-[10px] text-muted2">{t.programCode}</div> : null}
+                      {task.title}
+                      <div className="mt-0.5 font-mono text-[10px] text-muted2">{task.referenceNo}</div>
+                      {task.programCode ? <div className="mt-0.5 font-mono text-[10px] text-muted2">{task.programCode}</div> : null}
                     </td>
-                    <td className="text-muted">{field?.shortName ?? t.bidang}</td>
-                    <td className="text-ink2">{t.assignee}</td>
+                    <td className="text-muted">{task.fieldName}</td>
+                    <td className="text-ink2">{task.assigneeLabel || "Belum ditentukan"}</td>
                     <td className="whitespace-nowrap text-muted">
-                      {formatDateID(t.due, "short")}
-                      <div className={`text-[10.5px] ${d < 0 ? "text-[var(--sb-danger)]" : "text-muted2"}`}>
-                        {t.status === "selesai" ? "selesai" : d < 0 ? `lewat ${Math.abs(d)} hari` : d === 0 ? "hari ini" : `${d} hari lagi`}
-                      </div>
+                      {task.dueDate ? formatDateID(task.dueDate, "short") : "Belum ditetapkan"}
+                      {task.dueDate ? (
+                        <div className={`text-[10.5px] ${dueIn !== null && dueIn < 0 ? "text-[var(--sb-danger)]" : "text-muted2"}`}>
+                          {task.status === "selesai" ? "selesai" : dueIn !== null && dueIn < 0 ? `lewat ${Math.abs(dueIn)} hari` : dueIn === 0 ? "hari ini" : `${dueIn} hari lagi`}
+                        </div>
+                      ) : null}
                     </td>
-                    <td><Badge tone={PRIORITY_TONE[t.priority]}>{t.priority}</Badge></td>
+                    <td><Badge tone={PRIORITY_TONE[task.priority]}>{task.priority}</Badge></td>
                     <td>
                       <button
                         type="button"
-                        onClick={() => cycle(t)}
-                        className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-line bg-white px-2.5 text-[11.5px] font-semibold text-ink transition hover:border-primary-300 hover:bg-primary-50"
-                        title={`Ubah status tugas (sekarang: ${t.status})`}
+                        onClick={() => void cycle(task)}
+                        disabled={!canAdvance || pending}
+                        className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-line bg-white px-2.5 text-[11.5px] font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-70"
+                        title={canAdvance ? "Ubah status tugas" : "Status tidak dapat diubah"}
                       >
-                        {t.status === "selesai" ? <CheckCircle2 size={13} className="text-[var(--sb-success)]" />
-                          : t.status === "proses" ? <Loader2 size={13} className="text-[var(--sb-info)]" />
-                          : t.status === "terlambat" ? <AlertTriangle size={13} className="text-[var(--sb-danger)]" />
+                        {status === "selesai" ? <CheckCircle2 size={13} className="text-[var(--sb-success)]" />
+                          : status === "proses" ? <Loader2 size={13} className="text-[var(--sb-info)]" />
+                          : status === "terlambat" ? <AlertTriangle size={13} className="text-[var(--sb-danger)]" />
                           : <Circle size={13} className="text-muted2" />}
-                        {t.status}
+                        {statusLabel[status]}
                       </button>
                     </td>
                     <td className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => { setAssignOpen(t.id); setAssignee(t.assignee); setDue(t.due); setErr(null); }}
-                        className="inline-flex min-h-[32px] items-center gap-1 rounded-full px-2 text-[11.5px] font-semibold text-primary-700 hover:bg-primary-50"
-                        title="Delegasikan ulang"
-                      >
-                        <UserPlus size={13} /> Delegasi
-                      </button>
+                      {canManage && task.status !== "selesai" && task.status !== "dibatalkan" ? (
+                        <button
+                          type="button"
+                          onClick={() => { setAssignOpen(task.id); setAssignee(task.assigneeLabel); setDueDate(task.dueDate ?? ""); setErr(null); }}
+                          disabled={pending}
+                          className="inline-flex min-h-[32px] items-center gap-1 rounded-full px-2 text-[11.5px] font-semibold text-primary-700 hover:bg-primary-50 disabled:opacity-50"
+                          title="Delegasikan ulang"
+                        >
+                          <UserPlus size={13} /> Delegasi
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 );
@@ -175,21 +288,27 @@ function Inner() {
             </tbody>
           </table>
         </div>
-        {list.length === 0 ? <NoRows q={q} /> : null}
+        {!loadError && list.length === 0 ? (
+          q ? <NoRows q={q} /> : (
+            <div className="px-4 py-8 text-center text-[12.5px] text-muted">
+              Belum ada tugas tersimpan pada organisasi. Gunakan "Tugas baru" untuk membuat penugasan pertama.
+            </div>
+          )
+        ) : null}
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Beban per bidang" subtitle="Tugas belum selesai" />
+          <CardHeader title="Beban per bidang" subtitle="Tugas yang belum ditutup" />
           <ul className="divide-y divide-line">
-            {FIELDS.map((f) => {
-              const n = state.tasks.filter((t) => t.bidang === f.slug && t.status !== "selesai").length;
+            {FIELDS.map((field) => {
+              const count = tasks.filter((task) => task.fieldKey === field.slug && task.status !== "selesai" && task.status !== "dibatalkan").length;
               return (
-                <li key={f.fieldId} className="flex items-center justify-between gap-2 px-4 py-2.5">
-                  <span className="text-[12.5px] text-ink">{f.shortName}</span>
+                <li key={field.fieldId} className="flex items-center justify-between gap-2 px-4 py-2.5">
+                  <span className="text-[12.5px] text-ink">{field.shortName}</span>
                   <div className="flex items-center gap-2">
-                    {f.appHref ? <Link href={f.appHref} className="text-[11px] font-semibold text-primary-700">Buka</Link> : null}
-                    <Badge tone={n ? "info" : "success"}>{n} terbuka</Badge>
+                    <Link href={field.appHref} className="text-[11px] font-semibold text-primary-700">Buka</Link>
+                    <Badge tone={count ? "info" : "success"}>{count} terbuka</Badge>
                   </div>
                 </li>
               );
@@ -197,69 +316,78 @@ function Inner() {
           </ul>
         </Card>
         <Card>
-          <CardHeader title="Terkait program" subtitle="Tugas yang menopang program aktif" />
-          <ul className="divide-y divide-line">
-            {state.programs.filter((p) => p.status === "berjalan").map((p) => {
-              const n = state.tasks.filter((t) => t.programCode === p.code && t.status !== "selesai").length;
-              return (
-                <li key={p.code} className="flex items-center justify-between gap-2 px-4 py-2.5">
-                  <span className="min-w-0 text-[12.5px] text-ink">{p.name}</span>
-                  <Badge tone={n ? "warning" : "success"}>{n} tugas</Badge>
-                </li>
-              );
-            })}
-          </ul>
+          <CardHeader title="Terkait program" subtitle="Program yang memiliki penugasan" />
+          {programTasks.length ? (
+            <ul className="divide-y divide-line">
+              {[...new Set(programTasks.map((task) => task.programCode).filter(Boolean))].map((code) => {
+                const count = programTasks.filter((task) => task.programCode === code && task.status !== "selesai" && task.status !== "dibatalkan").length;
+                return (
+                  <li key={code} className="flex items-center justify-between gap-2 px-4 py-2.5">
+                    <span className="min-w-0 font-mono text-[11.5px] text-ink">{code}</span>
+                    <Badge tone={count ? "warning" : "success"}>{count} terbuka</Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="px-4 py-6 text-[12px] text-muted">Belum ada tugas yang ditautkan ke program.</p>
+          )}
         </Card>
       </div>
 
-      {/* Create */}
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Tugas baru"
-        description="Tugas langsung masuk daftar dan tercatat di jejak audit."
-        footer={<><Btn variant="ghost" onClick={() => setCreateOpen(false)}>Batal</Btn><Btn variant="primary" onClick={create}>Buat tugas</Btn></>}
+        description="Penugasan disimpan ke database organisasi dan dapat ditindaklanjuti dari aplikasi bidang."
+        footer={<><Btn variant="ghost" onClick={() => setCreateOpen(false)} disabled={pending}>Batal</Btn><Btn variant="primary" onClick={() => void create()} loading={pending}>Simpan tugas</Btn></>}
       >
         <div className="space-y-3">
-          <Field label="Judul tugas" required error={err ?? undefined}>
-            {(id) => <TextInput id={id} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="mis. Menyusun draf laporan triwulan" />}
+          <Field label="Judul tugas" required>
+            {(id) => <TextInput id={id} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="mis. Menyusun draf laporan kegiatan" />}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Bidang">{(id) => (
-              <Select id={id} value={form.bidang} onChange={(e) => setForm({ ...form, bidang: e.target.value })}>
-                {FIELDS.map((f) => <option key={f.slug} value={f.slug}>{f.shortName}</option>)}
-              </Select>
-            )}</Field>
-            <Field label="Penanggung jawab">{(id) => (
-              <Select id={id} value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })}>
-                {MEMBERS.map((m) => <option key={m.id} value={m.name}>{m.name} — {m.role}</option>)}
-              </Select>
-            )}</Field>
-            <Field label="Tenggat" required>{(id) => <TextInput id={id} type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} />}</Field>
-            <Field label="Prioritas">{(id) => (
-              <Select id={id} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Task["priority"] })}>
-                <option value="tinggi">Tinggi</option><option value="sedang">Sedang</option><option value="rendah">Rendah</option>
-              </Select>
-            )}</Field>
+            <Field label="Bidang">
+              {(id) => (
+                <Select id={id} value={form.fieldKey} onChange={(e) => setForm({ ...form, fieldKey: e.target.value })}>
+                  {FIELDS.map((field) => <option key={field.slug} value={field.slug}>{field.shortName}</option>)}
+                </Select>
+              )}
+            </Field>
+            <Field label="Penanggung jawab">
+              {(id) => <TextInput id={id} value={form.assigneeLabel} onChange={(e) => setForm({ ...form, assigneeLabel: e.target.value })} placeholder="Nama penanggung jawab (opsional)" />}
+            </Field>
+            <Field label="Tenggat" required>
+              {(id) => <TextInput id={id} type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />}
+            </Field>
+            <Field label="Prioritas">
+              {(id) => (
+                <Select id={id} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}>
+                  <option value="tinggi">Tinggi</option>
+                  <option value="sedang">Sedang</option>
+                  <option value="rendah">Rendah</option>
+                </Select>
+              )}
+            </Field>
           </div>
+          {err ? <p className="text-[11.5px] font-medium text-[var(--sb-danger)]" role="alert">{err}</p> : null}
         </div>
       </Modal>
 
-      {/* Assign */}
       <Modal
         open={!!target}
         onClose={() => setAssignOpen(null)}
         title="Delegasikan tugas"
         description={target?.title}
-        footer={<><Btn variant="ghost" onClick={() => setAssignOpen(null)}>Batal</Btn><Btn variant="primary" onClick={saveAssign}>Simpan delegasi</Btn></>}
+        footer={<><Btn variant="ghost" onClick={() => setAssignOpen(null)} disabled={pending}>Batal</Btn><Btn variant="primary" onClick={() => void saveAssign()} loading={pending}>Simpan delegasi</Btn></>}
       >
         <div className="space-y-3">
-          <Field label="Penanggung jawab baru">{(id) => (
-            <Select id={id} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-              {MEMBERS.map((m) => <option key={m.id} value={m.name}>{m.name} — {m.role}</option>)}
-            </Select>
-          )}</Field>
-          <Field label="Tenggat baru">{(id) => <TextInput id={id} type="date" value={due} onChange={(e) => setDue(e.target.value)} />}</Field>
+          <Field label="Penanggung jawab baru">
+            {(id) => <TextInput id={id} value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="Nama penanggung jawab" />}
+          </Field>
+          <Field label="Tenggat baru" required>
+            {(id) => <TextInput id={id} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />}
+          </Field>
           {err ? <p className="text-[11.5px] font-medium text-[var(--sb-danger)]" role="alert">{err}</p> : null}
         </div>
       </Modal>
