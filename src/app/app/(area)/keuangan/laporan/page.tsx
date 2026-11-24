@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileSpreadsheet, Scale, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, FileSpreadsheet, Scale, TrendingDown, TrendingUp } from "lucide-react";
 import {
   Badge,
   Card,
