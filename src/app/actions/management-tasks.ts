@@ -11,6 +11,7 @@ type CreateTaskInput = {
   title: string;
   fieldKey: string;
   assigneeLabel: string;
+  assigneeUserId: string;
   dueDate: string;
   priority: "tinggi" | "sedang" | "rendah";
 };
@@ -19,6 +20,10 @@ function validDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function validUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function normalize(value: string): string {
@@ -39,13 +44,21 @@ function failed(area: string, reason: unknown): MutationResult {
   };
 }
 
-/** Create an organization-scoped task and audit event in one database statement. */
+function refreshTaskRoutes(fieldKey?: string): void {
+  revalidatePath("/app/pengurus/tugas");
+  revalidatePath("/app/anggota");
+  revalidatePath("/app/anggota/tugas");
+  if (fieldKey) revalidatePath(`/app/bidang/${fieldKey}/tugas`);
+}
+
+/** Create an organization-scoped task and optionally link it to a verified member account. */
 export async function createManagementTask(input: CreateTaskInput): Promise<MutationResult> {
   const identity = await requireIdentity("organization:tasks:write");
 
   const title = normalize(String(input?.title ?? ""));
   const fieldKey = String(input?.fieldKey ?? "").trim();
   const assigneeLabel = normalize(String(input?.assigneeLabel ?? ""));
+  const assigneeUserId = String(input?.assigneeUserId ?? "").trim();
   const dueDate = String(input?.dueDate ?? "").trim();
   const priority = String(input?.priority ?? "");
 
@@ -53,6 +66,7 @@ export async function createManagementTask(input: CreateTaskInput): Promise<Muta
     title.length < 3 || title.length > 300 ||
     !FIELDS_BY_SLUG[fieldKey] ||
     assigneeLabel.length > 160 ||
+    (assigneeUserId && !validUuid(assigneeUserId)) ||
     !validDate(dueDate) ||
     !["tinggi", "sedang", "rendah"].includes(priority)
   ) {
@@ -62,12 +76,39 @@ export async function createManagementTask(input: CreateTaskInput): Promise<Muta
   try {
     const sql = getV9Sql();
     const rows = rowsFromResult<{ id: string }>(await sql`
-      WITH inserted AS (
+      WITH target_assignee AS (
+        SELECT
+          account.id AS user_id,
+          COALESCE(person.preferred_name, person.full_name) AS person_name,
+          active_membership.id AS membership_id
+        FROM (SELECT 1) AS seed
+        LEFT JOIN v9.user_accounts AS account
+          ON account.id = NULLIF(${assigneeUserId}, '')::uuid
+          AND account.status = 'active'
+        LEFT JOIN v9.people AS person
+          ON person.id = account.person_id
+          AND person.status = 'active'
+        LEFT JOIN LATERAL (
+          SELECT membership.id
+          FROM v9.memberships AS membership
+          WHERE membership.person_id = person.id
+            AND membership.organization_id = ${identity.organizationId}
+            AND membership.status = 'active'
+            AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
+            AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+          ORDER BY membership.created_at DESC
+          LIMIT 1
+        ) AS active_membership ON true
+        WHERE NULLIF(${assigneeUserId}, '') IS NULL
+          OR active_membership.id IS NOT NULL
+      ),
+      inserted AS (
         INSERT INTO v9.field_tasks (
           organization_id,
           field_key,
           title,
           assignee_label,
+          assigned_to_user_id,
           due_date,
           priority,
           status,
@@ -78,17 +119,20 @@ export async function createManagementTask(input: CreateTaskInput): Promise<Muta
           application.organization_id,
           application.field_key,
           ${title},
-          NULLIF(${assigneeLabel}, ''),
+          COALESCE(NULLIF(target_assignee.person_name, ''), NULLIF(${assigneeLabel}, '')),
+          target_assignee.user_id,
           ${dueDate}::date,
           ${priority},
           'belum',
           ${identity.userId},
           ${identity.userId}
         FROM v9.field_applications AS application
+        CROSS JOIN target_assignee
         WHERE application.organization_id = ${identity.organizationId}
           AND application.field_key = ${fieldKey}
           AND application.is_enabled = true
-        RETURNING id, reference_no, organization_id, field_key, title, status, priority, due_date
+        RETURNING id, reference_no, organization_id, field_key, title, assignee_label,
+          assigned_to_user_id, status, priority, due_date
       ),
       audit AS (
         INSERT INTO v9.audit_events (
@@ -104,6 +148,8 @@ export async function createManagementTask(input: CreateTaskInput): Promise<Muta
             'reference_no', inserted.reference_no,
             'field_key', inserted.field_key,
             'title', inserted.title,
+            'assignee_label', inserted.assignee_label,
+            'assigned_to_user_id', inserted.assigned_to_user_id,
             'status', inserted.status,
             'priority', inserted.priority,
             'due_date', inserted.due_date
@@ -117,11 +163,15 @@ export async function createManagementTask(input: CreateTaskInput): Promise<Muta
     `);
 
     if (rows.length !== 1) {
-      return { ok: false, message: "Bidang belum aktif untuk menerima tugas." };
+      return {
+        ok: false,
+        message: assigneeUserId
+          ? "Akun penanggung jawab tidak memiliki keanggotaan aktif pada organisasi ini."
+          : "Bidang belum aktif untuk menerima tugas.",
+      };
     }
 
-    revalidatePath("/app/pengurus/tugas");
-    revalidatePath(`/app/bidang/${fieldKey}/tugas`);
+    refreshTaskRoutes(fieldKey);
     return { ok: true, message: "Tugas berhasil disimpan." };
   } catch (reason) {
     return failed("management-task-create", reason);
@@ -136,7 +186,7 @@ export async function updateManagementTaskStatus(
   const identity = await requireIdentity("organization:tasks:write");
   const id = String(taskId ?? "").trim();
 
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+  if (!validUuid(id)) {
     return { ok: false, message: "Identitas tugas tidak valid." };
   }
   if (!["belum", "proses", "selesai", "dibatalkan"].includes(nextStatus)) {
@@ -189,47 +239,83 @@ export async function updateManagementTaskStatus(
       return { ok: false, message: "Status tidak berubah. Tugas mungkin sudah diproses oleh pengguna lain." };
     }
 
-    revalidatePath("/app/pengurus/tugas");
-    revalidatePath(`/app/bidang/${rows[0].field_key}/tugas`);
+    refreshTaskRoutes(rows[0].field_key);
     return { ok: true, message: "Status tugas berhasil diperbarui." };
   } catch (reason) {
     return failed("management-task-status", reason);
   }
 }
 
-/** Reassign a task and change its deadline without leaving the Pengurus workspace. */
+/** Reassign only to an active member account, or store a clearly unlinked label. */
 export async function reassignManagementTask(
   taskId: string,
+  assigneeUserIdValue: string,
   assigneeLabelValue: string,
   dueDateValue: string,
 ): Promise<MutationResult> {
   const identity = await requireIdentity("organization:tasks:write");
   const id = String(taskId ?? "").trim();
+  const assigneeUserId = String(assigneeUserIdValue ?? "").trim();
   const assigneeLabel = normalize(String(assigneeLabelValue ?? ""));
   const dueDate = String(dueDateValue ?? "").trim();
 
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+  if (!validUuid(id)) {
     return { ok: false, message: "Identitas tugas tidak valid." };
   }
-  if (assigneeLabel.length > 160 || !validDate(dueDate)) {
+  if (
+    assigneeLabel.length > 160 ||
+    (assigneeUserId && !validUuid(assigneeUserId)) ||
+    !validDate(dueDate)
+  ) {
     return { ok: false, message: "Penanggung jawab atau tenggat tidak valid." };
   }
 
   try {
     const sql = getV9Sql();
     const rows = rowsFromResult<{ id: string; field_key: string }>(await sql`
-      WITH changed AS (
-        UPDATE v9.field_tasks
+      WITH target_assignee AS (
+        SELECT
+          account.id AS user_id,
+          COALESCE(person.preferred_name, person.full_name) AS person_name,
+          active_membership.id AS membership_id
+        FROM (SELECT 1) AS seed
+        LEFT JOIN v9.user_accounts AS account
+          ON account.id = NULLIF(${assigneeUserId}, '')::uuid
+          AND account.status = 'active'
+        LEFT JOIN v9.people AS person
+          ON person.id = account.person_id
+          AND person.status = 'active'
+        LEFT JOIN LATERAL (
+          SELECT membership.id
+          FROM v9.memberships AS membership
+          WHERE membership.person_id = person.id
+            AND membership.organization_id = ${identity.organizationId}
+            AND membership.status = 'active'
+            AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
+            AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+          ORDER BY membership.created_at DESC
+          LIMIT 1
+        ) AS active_membership ON true
+        WHERE NULLIF(${assigneeUserId}, '') IS NULL
+          OR active_membership.id IS NOT NULL
+      ),
+      changed AS (
+        UPDATE v9.field_tasks AS task
         SET
-          assignee_label = NULLIF(${assigneeLabel}, ''),
-          assigned_to_user_id = NULL,
+          assignee_label = COALESCE(
+            NULLIF(target_assignee.person_name, ''),
+            NULLIF(${assigneeLabel}, '')
+          ),
+          assigned_to_user_id = target_assignee.user_id,
           due_date = ${dueDate}::date,
           updated_by = ${identity.userId},
           updated_at = now()
-        WHERE id = ${id}
-          AND organization_id = ${identity.organizationId}
-          AND status IN ('belum', 'proses')
-        RETURNING id, organization_id, field_key, reference_no, title, assignee_label, due_date, status
+        FROM target_assignee
+        WHERE task.id = ${id}
+          AND task.organization_id = ${identity.organizationId}
+          AND task.status IN ('belum', 'proses')
+        RETURNING task.id, task.organization_id, task.field_key, task.reference_no, task.title,
+          task.assignee_label, task.assigned_to_user_id, task.due_date, task.status
       ),
       audit AS (
         INSERT INTO v9.audit_events (
@@ -246,6 +332,7 @@ export async function reassignManagementTask(
             'field_key', changed.field_key,
             'title', changed.title,
             'assignee_label', changed.assignee_label,
+            'assigned_to_user_id', changed.assigned_to_user_id,
             'due_date', changed.due_date,
             'status', changed.status
           )
@@ -258,11 +345,15 @@ export async function reassignManagementTask(
     `);
 
     if (!rows[0]) {
-      return { ok: false, message: "Tugas tidak ditemukan atau sudah ditutup." };
+      return {
+        ok: false,
+        message: assigneeUserId
+          ? "Akun penanggung jawab tidak memiliki keanggotaan aktif, atau tugas sudah ditutup."
+          : "Tugas tidak ditemukan atau sudah ditutup.",
+      };
     }
 
-    revalidatePath("/app/pengurus/tugas");
-    revalidatePath(`/app/bidang/${rows[0].field_key}/tugas`);
+    refreshTaskRoutes(rows[0].field_key);
     return { ok: true, message: "Delegasi dan tenggat berhasil diperbarui." };
   } catch (reason) {
     return failed("management-task-reassign", reason);
