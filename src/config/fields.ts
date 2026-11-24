@@ -20,14 +20,11 @@ export interface FieldDef {
   period: { start: string; end: string };
   coordinator: string;
   coordinatorNote: string;
-  teamSize: number;
   appStatus: FieldAppStatus;
   appHref: string;
   icon: "users" | "sprout" | "graduation" | "store";
   accent: string;
   modules: string[];
-  kpis: { label: string; value: string; note?: string }[];
-  operationalData: { entity: string; count: number; note: string }[];
   /** URL slug of the field app — matches the `bidang` key used across data modules. */
   slug: string;
 }
@@ -50,8 +47,7 @@ export const FIELDS: FieldDef[] = [
     period: { start: "Belum tercatat", end: "Belum tercatat" },
     coordinator: "Belum tercatat",
     coordinatorNote: "Koordinator definitif menunggu keputusan organisasi.",
-    teamSize: 7,
-    appStatus: "aktif",
+    appStatus: "disiapkan",
     appHref: "/app/bidang/organisasi",
     icon: "users",
     accent: "#5d8432",
@@ -64,16 +60,6 @@ export const FIELDS: FieldDef[] = [
       "Usulan anggota",
       "Survei kebutuhan",
       "Koordinasi kegiatan anggota",
-    ],
-    kpis: [
-      { label: "Anggota terdaftar", value: "128", note: "+6 sejak Jan 2026" },
-      { label: "Partisipasi bulan ini", value: "76%", note: "target 70%" },
-      { label: "Usulan anggota terbuka", value: "9" },
-    ],
-    operationalData: [
-      { entity: "Peta minat & keterampilan", count: 128, note: "Tersinkron dengan master anggota" },
-      { entity: "Catatan partisipasi", count: 214, note: "12 bulan terakhir" },
-      { entity: "Usulan & aspirasi anggota", count: 9, note: "3 menunggu tindak lanjut" },
     ],
   },
   {
@@ -93,8 +79,7 @@ export const FIELDS: FieldDef[] = [
     period: { start: "Belum tercatat", end: "Belum tercatat" },
     coordinator: "Belum tercatat",
     coordinatorNote: "Koordinator definitif menunggu keputusan organisasi.",
-    teamSize: 9,
-    appStatus: "aktif",
+    appStatus: "disiapkan",
     appHref: "/app/bidang/pertanian",
     icon: "sprout",
     accent: "#38571a",
@@ -110,16 +95,6 @@ export const FIELDS: FieldDef[] = [
       "Pascapanen",
       "Kualitas",
       "Sarana pertanian",
-    ],
-    kpis: [
-      { label: "Petak terdata", value: "42", note: "18,6 ha total" },
-      { label: "Panen bulan ini", value: "2.340 kg", note: "kopi arabika 61%" },
-      { label: "Kalender tanam aktif", value: "6", note: "MT Oktober–Maret" },
-    ],
-    operationalData: [
-      { entity: "Lahan / petak", count: 42, note: "Ownership per anggota" },
-      { entity: "Siklus budidaya", count: 17, note: "6 komoditas" },
-      { entity: "Catatan panen", count: 96, note: "Musim 2025–2026" },
     ],
   },
   {
@@ -139,8 +114,7 @@ export const FIELDS: FieldDef[] = [
     period: { start: "Belum tercatat", end: "Belum tercatat" },
     coordinator: "Belum tercatat",
     coordinatorNote: "Koordinator definitif menunggu keputusan organisasi.",
-    teamSize: 6,
-    appStatus: "aktif",
+    appStatus: "disiapkan",
     appHref: "/app/bidang/pelatihan",
     icon: "graduation",
     accent: "#bd7400",
@@ -156,16 +130,6 @@ export const FIELDS: FieldDef[] = [
       "Evaluasi",
       "Sertifikat (bila sah)",
       "Tindak lanjut",
-    ],
-    kpis: [
-      { label: "Pelatihan tahun ini", value: "18", note: "+4 vs 2025" },
-      { label: "Peserta unik", value: "112", note: "87% anggota" },
-      { label: "Kehadiran rata-rata", value: "91%" },
-    ],
-    operationalData: [
-      { entity: "Rencana pelatihan", count: 18, note: "Anggaran tahun 2026" },
-      { entity: "Sesi & presensi", count: 42, note: "Termasuk praktik lapangan" },
-      { entity: "Asesmen peserta", count: 330, note: "Pre & post test" },
     ],
   },
   {
@@ -185,8 +149,7 @@ export const FIELDS: FieldDef[] = [
     period: { start: "Belum tercatat", end: "Belum tercatat" },
     coordinator: "Belum tercatat",
     coordinatorNote: "Koordinator definitif menunggu keputusan organisasi.",
-    teamSize: 8,
-    appStatus: "aktif",
+    appStatus: "disiapkan",
     appHref: "/app/bidang/usaha",
     icon: "store",
     accent: "#a16200",
@@ -204,16 +167,6 @@ export const FIELDS: FieldDef[] = [
       "Database mitra",
       "Proposal & perjanjian",
       "Milestone kerja sama",
-    ],
-    kpis: [
-      { label: "Produk terpublikasi", value: "9", note: "dari 12 item katalog" },
-      { label: "Pesanan bulan ini", value: "38", note: "Rp 12,4 jt nilai" },
-      { label: "Mitra aktif", value: "5", note: "2 dalam penjajakan" },
-    ],
-    operationalData: [
-      { entity: "Katalog produk", count: 12, note: "9 terpublikasi di website" },
-      { entity: "Pesanan & penjualan", count: 38, note: "November 2026" },
-      { entity: "Profil mitra", count: 7, note: "5 aktif, 2 penjajakan" },
     ],
   },
 ];
