@@ -139,7 +139,7 @@ export async function getIdentity(): Promise<AppIdentity | null> {
       AND session.revoked_at IS NULL
       AND session.expires_at > now()
       AND account.status = 'active'
-      AND account.email_verified_at IS NOT NULL
+      AND (account.email_verified_at IS NOT NULL OR account.legacy_auth_eligible = true)
       AND organization.status = 'active'
       AND assignment.is_active = true
       AND assignment.valid_from <= now()
