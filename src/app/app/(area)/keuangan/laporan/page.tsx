@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, FileSpreadsheet, Scale, TrendingDown, TrendingUp } from "lucide-react";
+import { FileSpreadsheet, Scale, TrendingDown, TrendingUp } from "lucide-react";
 import {
   Badge,
   Card,
@@ -82,8 +82,10 @@ export default async function LaporanPage({
   const params = await searchParams;
   const today = jakartaToday();
   const defaultStart = today.slice(0, 7) + "-01";
-  const start = validDate(params?.start) ? params.start : defaultStart;
-  const end = validDate(params?.end) ? params.end : today;
+  const startParam = params?.start;
+  const endParam = params?.end;
+  const start = validDate(startParam) ? startParam : defaultStart;
+  const end = validDate(endParam) ? endParam : today;
   const dateRangeValid = start <= end;
 
   let summary: ReportSummary | null = null;
