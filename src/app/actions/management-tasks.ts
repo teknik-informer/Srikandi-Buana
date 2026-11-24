@@ -222,6 +222,7 @@ export async function reassignManagementTask(
         UPDATE v9.field_tasks
         SET
           assignee_label = NULLIF(${assigneeLabel}, ''),
+          assigned_to_user_id = NULL,
           due_date = ${dueDate}::date,
           updated_by = ${identity.userId},
           updated_at = now()
