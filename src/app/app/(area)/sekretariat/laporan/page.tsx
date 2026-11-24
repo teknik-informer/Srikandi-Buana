@@ -333,15 +333,15 @@ export default async function LaporanSekretariatPage({
             <Card>
               <CardHeader title="Buku induk anggota" subtitle="Status keanggotaan saat ini" action={<Users size={16} className="text-muted2" />} />
               <ul className="divide-y divide-line">
-                {[
-                  ["Aktif", members.active_count, "success" as const],
-                  ["Menunggu", members.pending_count, "warning" as const],
-                  ["Nonaktif", members.inactive_count, "neutral" as const],
-                  ["Keluar", members.left_count, "neutral" as const],
-                ].map(([label, count, tone]) => (
-                  <li key={String(label)} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="text-[12px] font-medium text-ink">{label}</span>
-                    <Badge tone={tone}>{count}</Badge>
+                {([
+                  { label: "Aktif", count: members.active_count, tone: "success" },
+                  { label: "Menunggu", count: members.pending_count, tone: "warning" },
+                  { label: "Nonaktif", count: members.inactive_count, tone: "neutral" },
+                  { label: "Keluar", count: members.left_count, tone: "neutral" },
+                ] as const).map((item) => (
+                  <li key={item.label} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <span className="text-[12px] font-medium text-ink">{item.label}</span>
+                    <Badge tone={item.tone}>{item.count}</Badge>
                   </li>
                 ))}
               </ul>
