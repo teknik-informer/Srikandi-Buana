@@ -33,6 +33,10 @@ interface WorkloadRow {
   field_key: string;
   open_task_count: number;
   overdue_task_count: number;
+}
+
+interface ActivityRow {
+  field_key: string;
   activity_count: number;
 }
 
@@ -47,11 +51,12 @@ export default async function LintasBidangPage() {
   let fields: FieldRow[] = [];
   let programs: ProgramRow[] = [];
   let workload: WorkloadRow[] = [];
+  let activities: ActivityRow[] = [];
   let unavailable = false;
 
   try {
     const sql = getV9Sql();
-    const [fieldResult, programResult, workloadResult] = await Promise.all([
+    const [fieldResult, programResult, workloadResult, activityResult] = await Promise.all([
       sql`
         SELECT
           application.field_key,
@@ -88,19 +93,18 @@ export default async function LintasBidangPage() {
           count(*) FILTER (
             WHERE status IN ('belum', 'proses')
               AND due_date < (now() AT TIME ZONE 'Asia/Jakarta')::date
-          )::int AS overdue_task_count,
-          (
-            SELECT count(*)::int
-            FROM v9.field_activities AS activity
-            WHERE activity.organization_id = ${identity.organizationId}
-              AND activity.field_key = task_field.field_key
-              AND activity.status <> 'cancelled'
-          ) AS activity_count
-        FROM (
-          SELECT field_key, status, due_date
-          FROM v9.field_tasks
-          WHERE organization_id = ${identity.organizationId}
-        ) AS task_field
+          )::int AS overdue_task_count
+        FROM v9.field_tasks
+        WHERE organization_id = ${identity.organizationId}
+        GROUP BY field_key
+      `,
+      sql`
+        SELECT
+          field_key,
+          count(*)::int AS activity_count
+        FROM v9.field_activities
+        WHERE organization_id = ${identity.organizationId}
+          AND status <> 'cancelled'
         GROUP BY field_key
       `,
     ]);
@@ -108,6 +112,7 @@ export default async function LintasBidangPage() {
     fields = rowsFromResult<FieldRow>(fieldResult);
     programs = rowsFromResult<ProgramRow>(programResult);
     workload = rowsFromResult<WorkloadRow>(workloadResult);
+    activities = rowsFromResult<ActivityRow>(activityResult);
   } catch (reason) {
     unavailable = true;
     console.warn("[pengurus-fields] Source unavailable", safeErrorType(reason));
@@ -116,7 +121,7 @@ export default async function LintasBidangPage() {
   const programCount = programs.reduce((sum, row) => sum + row.total_count, 0);
   const activeProgramCount = programs.reduce((sum, row) => sum + row.active_count, 0);
   const openTaskCount = workload.reduce((sum, row) => sum + row.open_task_count, 0);
-  const activityCount = workload.reduce((sum, row) => sum + row.activity_count, 0);
+  const activityCount = activities.reduce((sum, row) => sum + row.activity_count, 0);
 
   return (
     <div className="pb-10">
@@ -156,6 +161,7 @@ export default async function LintasBidangPage() {
             const design = FIELDS.find((item) => item.slug === field.field_key);
             const program = programs.find((row) => row.field_key === field.field_key);
             const load = workload.find((row) => row.field_key === field.field_key);
+            const activity = activities.find((row) => row.field_key === field.field_key);
             return (
               <Card key={field.field_key}>
                 <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
@@ -189,7 +195,7 @@ export default async function LintasBidangPage() {
                     <div><div className="text-[10px] text-muted2">Program</div><div className="mt-0.5 text-[13px] font-semibold tabular-nums text-ink">{program?.total_count ?? 0}</div><div className="text-[9.5px] text-muted2">{program?.active_count ?? 0} berjalan</div></div>
                     <div><div className="text-[10px] text-muted2">Direncanakan</div><div className="mt-0.5 text-[13px] font-semibold tabular-nums text-ink">{program?.planned_count ?? 0}</div><div className="text-[9.5px] text-muted2">{program?.paused_count ?? 0} ditunda</div></div>
                     <div><div className="text-[10px] text-muted2">Tugas terbuka</div><div className="mt-0.5 text-[13px] font-semibold tabular-nums text-ink">{load?.open_task_count ?? 0}</div><div className="text-[9.5px] text-muted2">{load?.overdue_task_count ?? 0} terlambat</div></div>
-                    <div><div className="text-[10px] text-muted2">Kegiatan</div><div className="mt-0.5 text-[13px] font-semibold tabular-nums text-ink">{load?.activity_count ?? 0}</div><div className="text-[9.5px] text-muted2">{program?.completed_count ?? 0} program selesai</div></div>
+                    <div><div className="text-[10px] text-muted2">Kegiatan</div><div className="mt-0.5 text-[13px] font-semibold tabular-nums text-ink">{activity?.activity_count ?? 0}</div><div className="text-[9.5px] text-muted2">{program?.completed_count ?? 0} program selesai</div></div>
                   </div>
                 </div>
               </Card>
