@@ -194,6 +194,15 @@ export default async function LaporanSekretariatPage({
   const incoming = letters.find((row) => row.direction === "masuk");
   const outgoing = letters.find((row) => row.direction === "keluar");
 
+  const memberStatusRows: { label: string; count: number; tone: "success" | "warning" | "neutral" }[] = members
+    ? [
+        { label: "Aktif", count: members.active_count, tone: "success" },
+        { label: "Menunggu", count: members.pending_count, tone: "warning" },
+        { label: "Nonaktif", count: members.inactive_count, tone: "neutral" },
+        { label: "Keluar", count: members.left_count, tone: "neutral" },
+      ]
+    : [];
+
   return (
     <div className="pb-10">
       <PageHeader
@@ -333,12 +342,7 @@ export default async function LaporanSekretariatPage({
             <Card>
               <CardHeader title="Buku induk anggota" subtitle="Status keanggotaan saat ini" action={<Users size={16} className="text-muted2" />} />
               <ul className="divide-y divide-line">
-                {([
-                  { label: "Aktif", count: members.active_count, tone: "success" },
-                  { label: "Menunggu", count: members.pending_count, tone: "warning" },
-                  { label: "Nonaktif", count: members.inactive_count, tone: "neutral" },
-                  { label: "Keluar", count: members.left_count, tone: "neutral" },
-                ] as const).map((item) => (
+                {memberStatusRows.map((item) => (
                   <li key={item.label} className="flex items-center justify-between gap-3 px-4 py-3">
                     <span className="text-[12px] font-medium text-ink">{item.label}</span>
                     <Badge tone={item.tone}>{item.count}</Badge>
