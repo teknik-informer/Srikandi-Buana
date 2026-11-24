@@ -192,6 +192,7 @@ export async function advanceSecretariatLetter(formData: FormData): Promise<void
     redirect("/app/sekretariat/surat?result=transition");
   }
 
+  revalidatePath("/app/sekretariat");
   revalidatePath("/app/sekretariat/surat");
   revalidatePath("/app/sekretariat/ekspedisi");
   redirect("/app/sekretariat/surat?result=updated");
