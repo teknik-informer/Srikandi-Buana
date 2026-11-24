@@ -26,6 +26,7 @@ export async function approveSubmittedWorkplan(formData: FormData): Promise<void
     redirect("/app/pengurus/persetujuan?result=workplan-invalid");
   }
 
+  let changed: { id: string; field_key: string } | undefined;
   try {
     const sql = getV9Sql();
     const rows = rowsFromResult<{ id: string; field_key: string }>(await sql`
@@ -69,18 +70,15 @@ export async function approveSubmittedWorkplan(formData: FormData): Promise<void
       FROM updated
       INNER JOIN audit ON true
     `);
-
-    if (!rows[0]) {
-      redirect("/app/pengurus/persetujuan?result=workplan-stale");
-    }
-
-    revalidatePath("/app/pengurus/persetujuan");
-    revalidatePath(`/app/bidang/${rows[0].field_key}/rencana`);
-    revalidatePath(`/app/bidang/${rows[0].field_key}`);
-    redirect("/app/pengurus/persetujuan?result=workplan-approved");
+    changed = rows[0];
   } catch (reason) {
-    const errorType = safeErrorName(reason);
-    console.warn("[workplan-approval] Update failed", errorType);
+    console.warn("[workplan-approval] Update failed", safeErrorName(reason));
     redirect("/app/pengurus/persetujuan?result=workplan-error");
   }
+
+  if (!changed) redirect("/app/pengurus/persetujuan?result=workplan-stale");
+  revalidatePath("/app/pengurus/persetujuan");
+  revalidatePath(`/app/bidang/${changed.field_key}/rencana`);
+  revalidatePath(`/app/bidang/${changed.field_key}`);
+  redirect("/app/pengurus/persetujuan?result=workplan-approved");
 }
