@@ -50,7 +50,7 @@ function refreshCatalog(): void {
 }
 
 export async function createBusinessProduct(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const sku = normalize(String(formData.get("sku") ?? "")).toUpperCase();
@@ -148,7 +148,7 @@ export async function createBusinessProduct(formData: FormData): Promise<void> {
 }
 
 export async function updateBusinessProduct(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const productId = String(formData.get("product_id") ?? "").trim();
@@ -220,7 +220,7 @@ export async function updateBusinessProduct(formData: FormData): Promise<void> {
 }
 
 export async function updateBusinessProductStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const productId = String(formData.get("product_id") ?? "").trim();
@@ -287,7 +287,7 @@ export async function updateBusinessProductStatus(formData: FormData): Promise<v
 }
 
 export async function updateBusinessProductPublication(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const productId = String(formData.get("product_id") ?? "").trim();
@@ -351,7 +351,7 @@ export async function updateBusinessProductPublication(formData: FormData): Prom
 }
 
 export async function createBusinessWarehouse(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const code = normalize(String(formData.get("warehouse_code") ?? "")).toUpperCase();
@@ -414,7 +414,7 @@ export async function createBusinessWarehouse(formData: FormData): Promise<void>
 }
 
 export async function updateBusinessWarehouseStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const warehouseId = String(formData.get("warehouse_id") ?? "").trim();
@@ -470,7 +470,7 @@ export async function updateBusinessWarehouseStatus(formData: FormData): Promise
 }
 
 export async function recordBusinessInventoryMovement(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:activity:write");
   requireBusinessWrite(identity);
 
   const productId = String(formData.get("product_id") ?? "").trim();
