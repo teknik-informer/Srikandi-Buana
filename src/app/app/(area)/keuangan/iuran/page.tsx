@@ -203,7 +203,7 @@ export default async function IuranPage() {
               value={activeMembers}
               note="Keanggotaan berlaku pada hari ini"
               tone="info"
-              href="/app/sekretariat/anggota"
+              href="/app/pengurus/anggota"
               icon={<Users size={17} />}
             />
           </div>
