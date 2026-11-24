@@ -1,67 +1,155 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Save, Lock, ShieldCheck, UserRound } from "lucide-react";
-import { MEMBERS } from "@/data/organization";
-import { Badge, Card, CardHeader, Avatar } from "@/components/ui";
-import { Btn, DemoStateChip, Field, TextInput } from "@/components/act";
-import { useStore } from "@/lib/store";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Save, Lock, ShieldCheck, UserRound, Database } from "lucide-react";
+import { MEMBER_INTEREST_OPTIONS } from "@/config/member-profile";
+import { Badge, Card, CardHeader, Avatar, Notice } from "@/components/ui";
+import { Btn, Field, TextInput } from "@/components/act";
 import { formatDateID } from "@/lib/format";
+import { updateMemberProfile } from "@/app/actions/member-profile";
 
-const SUGGESTED = ["Kopi", "Budidaya kopi", "Pascapanen", "Pemasaran", "Kemasan", "Pelatihan", "Akuntansi", "Kebun sayur", "Madu", "Administrasi"];
+export interface MemberProfileData {
+  personId: string;
+  legalName: string;
+  preferredName: string;
+  phone: string;
+  village: string;
+  memberNumber: string | null;
+  membershipStatus: string | null;
+  joinedOn: string | null;
+  role: string;
+  scope: string;
+  interests: string[];
+}
 
-export function ProfilClient() {
-  const { state, exec, actor } = useStore();
-  const me = MEMBERS.find((m) => m.id === actor.key) ?? MEMBERS.find((m) => m.name === actor.name) ?? MEMBERS[0];
+type EditableProfile = {
+  preferredName: string;
+  phone: string;
+  village: string;
+  interests: string[];
+};
 
-  type Saved = { name: string; village: string; phone: string; interests: string[] };
-  const [saved, setSaved] = useState<Saved | null>(null);
-  const [name, setName] = useState(me.name);
-  const [village, setVillage] = useState(me.village);
-  const [phone, setPhone] = useState(me.phone);
-  const [interests, setInterests] = useState<string[]>(me.interests);
-  const [dirty, setDirty] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+const MEMBERSHIP_STATUS: Record<string, string> = {
+  active: "Aktif",
+  pending: "Menunggu verifikasi",
+  inactive: "Nonaktif",
+  left: "Tidak lagi menjadi anggota",
+  archived: "Arsip",
+};
 
-  /**
-   * Stored overrides are applied after mount. Reading localStorage during render
-   * would produce different markup on the server and trip hydration.
-   */
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("sb_profile_v1");
-      if (!raw) return;
-      const p = JSON.parse(raw) as Saved;
-      setSaved(p);
-      setName(p.name);
-      setVillage(p.village);
-      setPhone(p.phone);
-      setInterests(p.interests);
-    } catch {
-      /* ignore corrupt payload */
-    }
-  }, [me.name]);
+function sameInterests(a: string[], b: string[]): boolean {
+  return a.length === b.length && [...a].sort().every((value, index) => value === [...b].sort()[index]);
+}
 
-  function toggle(i: string) {
-    setDirty(true);
-    setInterests((cur) => (cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]));
+export function ProfilClient({
+  profile,
+  loadError,
+}: {
+  profile: MemberProfileData | null;
+  loadError: boolean;
+}) {
+  const router = useRouter();
+  const initial: EditableProfile = {
+    preferredName: profile?.preferredName || profile?.legalName || "",
+    phone: profile?.phone ?? "",
+    village: profile?.village ?? "",
+    interests: profile?.interests ?? [],
+  };
+  const [saved, setSaved] = useState<EditableProfile>(initial);
+  const [preferredName, setPreferredName] = useState(initial.preferredName);
+  const [phone, setPhone] = useState(initial.phone);
+  const [village, setVillage] = useState(initial.village);
+  const [interests, setInterests] = useState<string[]>(initial.interests);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  const dirty = useMemo(
+    () =>
+      preferredName !== saved.preferredName ||
+      phone !== saved.phone ||
+      village !== saved.village ||
+      !sameInterests(interests, saved.interests),
+    [preferredName, phone, village, interests, saved],
+  );
+
+  function toggleInterest(key: string) {
+    setMessage(null);
+    setError(null);
+    setInterests((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key],
+    );
   }
 
-  function save() {
-    setErr(null);
-    const r = exec({ type: "profile.update", name, village, phone, interests, actor });
-    if (!r.ok) return setErr(r.message);
-    const next: Saved = { name, village, phone, interests };
+  async function save() {
+    if (!profile || pending || !dirty) return;
+    setError(null);
+    setMessage(null);
+    setPending(true);
     try {
-      localStorage.setItem("sb_profile_v1", JSON.stringify(next));
+      const result = await updateMemberProfile({ preferredName, phone, village, interests });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      const next = { preferredName, phone, village, interests: [...interests] };
+      setSaved(next);
+      setMessage(result.message);
+      router.refresh();
     } catch {
-      /* ignore */
+      setError("Profil belum dapat disimpan. Periksa koneksi lalu coba kembali.");
+    } finally {
+      setPending(false);
     }
-    setSaved(next);
-    setDirty(false);
   }
 
-  const myTasks = state.tasks.filter((t) => t.assignee.split(" ")[0] === me.name.split(" ")[0]);
+  function cancelChanges() {
+    setPreferredName(saved.preferredName);
+    setPhone(saved.phone);
+    setVillage(saved.village);
+    setInterests([...saved.interests]);
+    setError(null);
+    setMessage(null);
+  }
+
+  if (loadError) {
+    return (
+      <div className="pb-10">
+        <header className="mb-5 border-b border-line pb-4">
+          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
+        </header>
+        <Notice tone="danger" title="Profil belum dapat dimuat">
+          Layanan data anggota sedang tidak tersedia. Data tidak akan diganti dengan profil contoh.
+          Muat ulang halaman setelah koneksi pulih.
+        </Notice>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="pb-10">
+        <header className="mb-5 border-b border-line pb-4">
+          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
+        </header>
+        <Notice tone="warning" title="Data anggota belum terhubung">
+          Akun Anda belum memiliki data orang yang terhubung di buku induk organisasi.
+          Hubungi Sekretariat untuk pemeriksaan identitas akun.
+        </Notice>
+      </div>
+    );
+  }
+
+  const membershipStatus = profile.membershipStatus
+    ? MEMBERSHIP_STATUS[profile.membershipStatus] ?? profile.membershipStatus
+    : "Belum tercatat";
+  const membershipTone =
+    profile.membershipStatus === "active" ? "success"
+    : profile.membershipStatus === "pending" ? "warning"
+    : "neutral";
 
   return (
     <div className="pb-10">
@@ -70,71 +158,79 @@ export function ProfilClient() {
           <div className="sb-label mb-1.5">Portal Anggota</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
           <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
-            Tiga lapisan profil: data pribadi yang Anda kelola, data keanggotaan resmi yang tidak dapat diubah
-            sendiri, dan preferensi.
+            Data tampilan dan kontak dapat Anda perbarui. Identitas legal serta status keanggotaan resmi tetap dikelola Sekretariat.
           </p>
         </div>
-        <DemoStateChip compact />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-2.5 py-1 text-[10.5px] font-medium text-muted">
+          <Database size={12} /> Data organisasi
+        </span>
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
         <Card>
           <CardHeader
             title="Data yang dapat Anda ubah"
-            subtitle="Perubahan tersimpan dan tercatat di jejak audit"
+            subtitle="Disimpan pada basis data organisasi"
             action={dirty ? <Badge tone="warning">Belum disimpan</Badge> : <Badge tone="success">Tersimpan</Badge>}
           />
           <div className="space-y-3 p-4">
             <div className="flex items-center gap-3 rounded-sb-sm bg-paper p-3">
-              <Avatar name={name} size={44} />
+              <Avatar name={preferredName || profile.legalName} size={44} />
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold text-ink">{name}</div>
-                <div className="text-[11px] text-muted">{actor.role} · {me.id}</div>
+                <div className="text-[13px] font-semibold text-ink">{preferredName || profile.legalName}</div>
+                <div className="text-[11px] text-muted">{profile.role} · {profile.memberNumber ?? "Nomor anggota belum diterbitkan"}</div>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Nama tampilan" required error={err ?? undefined}>
-                {(id) => <TextInput id={id} value={name} onChange={(e) => { setName(e.target.value); setDirty(true); }} />}
+              <Field label="Nama tampilan" required>
+                {(id) => <TextInput id={id} value={preferredName} onChange={(e) => { setPreferredName(e.target.value); setMessage(null); setError(null); }} maxLength={80} />}
               </Field>
               <Field label="Desa">
-                {(id) => <TextInput id={id} value={village} onChange={(e) => { setVillage(e.target.value); setDirty(true); }} />}
+                {(id) => <TextInput id={id} value={village} onChange={(e) => { setVillage(e.target.value); setMessage(null); setError(null); }} maxLength={120} />}
               </Field>
               <Field label="Nomor WhatsApp">
-                {(id) => <TextInput id={id} value={phone} onChange={(e) => { setPhone(e.target.value); setDirty(true); }} />}
+                {(id) => <TextInput id={id} value={phone} onChange={(e) => { setPhone(e.target.value); setMessage(null); setError(null); }} maxLength={20} />}
               </Field>
-              <Field label="Status keanggotaan" hint="Hanya dapat diubah Sekretariat">
-                {(id) => <TextInput id={id} value={me.status} readOnly disabled aria-describedby={`${id}-hint`} />}
+              <Field label="Status keanggotaan" hint="Dikelola Sekretariat">
+                {(id) => <TextInput id={id} value={membershipStatus} readOnly disabled />}
               </Field>
             </div>
 
             <div>
               <div className="mb-1 text-[12px] font-semibold text-ink2">Minat &amp; keterampilan</div>
               <div className="flex flex-wrap gap-1.5">
-                {SUGGESTED.map((i) => {
-                  const on = interests.includes(i);
+                {MEMBER_INTEREST_OPTIONS.map((option) => {
+                  const selected = interests.includes(option.key);
                   return (
                     <button
-                      key={i}
+                      key={option.key}
                       type="button"
-                      aria-pressed={on}
-                      onClick={() => toggle(i)}
+                      aria-pressed={selected}
+                      onClick={() => toggleInterest(option.key)}
                       className={`min-h-[34px] rounded-full border px-3 text-[11.5px] font-semibold transition ${
-                        on ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-white text-ink2 hover:border-primary-300"
+                        selected ? "border-primary-600 bg-primary-600 text-white" : "border-line bg-white text-ink2 hover:border-primary-300"
                       }`}
                     >
-                      {i}
+                      {option.label}
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-1.5 text-[11px] text-muted2">{interests.length} minat dipilih — dipakai untuk mencocokkan pelatihan dan penugasan.</p>
+              <p className="mt-1.5 text-[11px] text-muted2">
+                {interests.length} minat dipilih — dapat digunakan untuk pencocokan kegiatan dan pelatihan.
+              </p>
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
-              <Btn variant="primary" icon={<Save size={14} />} onClick={save} disabled={!dirty}>Simpan profil</Btn>
+            {error ? <p className="rounded-sb-sm border border-[var(--sb-danger)] bg-[var(--sb-danger-bg)] px-3 py-2 text-[12px] text-[var(--sb-danger)]" role="alert">{error}</p> : null}
+            {message ? <p className="rounded-sb-sm border border-[var(--sb-success)] bg-[var(--sb-success-bg)] px-3 py-2 text-[12px] text-[var(--sb-success)]" role="status">{message}</p> : null}
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Btn variant="primary" icon={<Save size={14} />} onClick={() => void save()} disabled={!dirty || pending} loading={pending}>
+                Simpan profil
+              </Btn>
               {dirty ? (
-                <Btn variant="ghost" onClick={() => { setName(saved?.name ?? me.name); setVillage(saved?.village ?? me.village); setPhone(saved?.phone ?? me.phone); setInterests(saved?.interests ?? me.interests); setDirty(false); }}>
+                <Btn variant="ghost" onClick={cancelChanges} disabled={pending}>
                   Batalkan perubahan
                 </Btn>
               ) : null}
@@ -147,49 +243,37 @@ export function ProfilClient() {
             <CardHeader title="Data keanggotaan resmi" subtitle="Dikelola Sekretariat — baca saja" action={<Lock size={14} className="text-muted2" />} />
             <dl className="divide-y divide-line text-[12.5px]">
               {[
-                ["Nomor anggota", me.id],
-                ["Peran", me.role],
-                ["Lingkup", me.scope],
-                ["Desa", me.village],
-                ["Bergabung", formatDateID(me.joined)],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <dt className="text-muted">{k}</dt>
-                  <dd className="text-right font-medium text-ink">{v}</dd>
+                ["Nama legal", profile.legalName],
+                ["Nomor anggota", profile.memberNumber ?? "Belum diterbitkan"],
+                ["Peran akun", profile.role],
+                ["Lingkup akses", profile.scope],
+                ["Status", membershipStatus],
+                ["Tanggal bergabung", profile.joinedOn ? formatDateID(profile.joinedOn) : "Belum tercatat"],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <dt className="text-muted">{label}</dt>
+                  <dd className="text-right font-medium text-ink">{value}</dd>
                 </div>
               ))}
             </dl>
             <div className="border-t border-line px-4 py-2.5 text-[10.5px] text-muted2">
-              Perubahan data resmi diajukan ke Sekretariat dan melewati verifikasi — bukan diedit langsung.
+              Perubahan identitas legal, nomor anggota, jabatan, dan status memerlukan verifikasi serta keputusan organisasi.
             </div>
           </Card>
 
-          <Card>
-            <CardHeader title="Penugasan saya" subtitle={`${myTasks.filter((t) => t.status !== "selesai").length} belum selesai`} />
-            <ul className="divide-y divide-line">
-              {myTasks.slice(0, 4).map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
-                  <div className="min-w-0">
-                    <div className="truncate text-[12px] font-medium text-ink">{t.title}</div>
-                    <div className="text-[10.5px] text-muted2">{formatDateID(t.due, "short")} · {t.bidang}</div>
-                  </div>
-                  <Badge tone={t.status === "selesai" ? "success" : t.status === "terlambat" ? "danger" : "info"}>{t.status}</Badge>
-                </li>
-              ))}
-              {myTasks.length === 0 ? (
-                <li className="px-4 py-5 text-center text-[12px] text-muted">Belum ada penugasan atas nama Anda.</li>
-              ) : null}
-            </ul>
-          </Card>
+          {!profile.membershipStatus ? (
+            <Notice tone="warning" title="Keanggotaan belum tercatat">
+              Profil akun sudah terhubung, tetapi data keanggotaan formal belum ditemukan. Hubungi Sekretariat untuk pencocokan buku induk.
+            </Notice>
+          ) : null}
 
           <div className="rounded-sb-sm border border-[var(--sb-info)]/25 bg-[var(--sb-info-bg)] px-3.5 py-3 text-[12px] text-[var(--sb-info)]">
             <div className="mb-0.5 flex items-center gap-1.5 font-semibold"><ShieldCheck size={14} /> Pemisahan data</div>
-            Data pribadi boleh Anda ubah sendiri. Data keanggotaan resmi, keuangan, dan keputusan hanya berubah
-            melalui peran yang berwenang — setiap perubahan tercatat.
+            Anda dapat mengubah nama tampilan, kontak, desa, dan preferensi minat. Data legal dan keputusan keanggotaan hanya berubah melalui peran yang berwenang.
           </div>
 
           <div className="flex items-center gap-2 rounded-sb-sm border border-line bg-paper px-3.5 py-2.5 text-[11.5px] text-muted">
-            <UserRound size={14} /> Masuk sebagai {actor.name} · {actor.scope}
+            <UserRound size={14} /> Masuk sebagai {profile.role} · {profile.scope}
           </div>
         </div>
       </div>
