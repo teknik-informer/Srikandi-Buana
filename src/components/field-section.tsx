@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileText, Settings2 } from "lucide-react";
+import { ArrowRight, FileText, Settings2, Users } from "lucide-react";
 import {
   Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, StatusBadge,
 } from "@/components/ui";
@@ -51,6 +51,15 @@ interface BudgetRequestRow {
   budget_request: string;
   period_start: string | null;
   period_end: string | null;
+}
+interface MemberRegisterRow {
+  id: string;
+  member_number: string | null;
+  display_name: string;
+  village: string | null;
+  position_title: string | null;
+  valid_from: string | null;
+  status: "pending" | "active";
 }
 const PROGRAM_STATUS_LABEL: Record<ProgramReportRow["status"], string> = {
   draft: "Draf", planned: "Direncanakan", active: "Berjalan",
@@ -209,8 +218,41 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
     }
   }
 
+  let memberRows: MemberRegisterRow[] = [];
+  let memberRegisterUnavailable = false;
+  if (section === "data" && field.slug === "organisasi" && !applicationUnavailable) {
+    try {
+      const result = await sql `
+        SELECT
+          membership.id::text AS id,
+          membership.member_number,
+          COALESCE(NULLIF(person.preferred_name, ''), person.full_name) AS display_name,
+          person.village,
+          membership.position_title,
+          membership.valid_from::text AS valid_from,
+          membership.status
+        FROM v9.memberships AS membership
+        INNER JOIN v9.people AS person
+          ON person.id = membership.person_id
+          AND person.status = 'active'
+        WHERE membership.organization_id = ${identity.organizationId}
+          AND membership.status IN ('pending','active')
+        ORDER BY
+          CASE membership.status WHEN 'pending' THEN 1 ELSE 2 END,
+          person.full_name,
+          membership.created_at DESC
+        LIMIT 500
+      `;
+      memberRows = rowsFromResult<MemberRegisterRow>(result);
+    } catch (reason) {
+      memberRegisterUnavailable = true;
+      console.warn("[field-section] Member register unavailable", safeErrorType(reason));
+    }
+  }
+
   const titles: Record<string, string> = {
     "profil-mandat": "Profil & Mandat",
+    data: "Buku Induk Anggota",
     formulir: "Formulir & Pendataan",
     dokumen: "Dokumen & Bukti",
     anggaran: "Anggaran & Realisasi",
@@ -239,7 +281,9 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
         description={
           section === "profil-mandat"
             ? "Identitas aplikasi dan mandat yang tersimpan pada registri organisasi."
-            : section === "formulir"
+            : section === "data"
+              ? "Daftar keanggotaan aktif dan pengajuan yang menunggu verifikasi dari basis data organisasi."
+              : section === "formulir"
               ? "Akses pendataan melalui modul operasional yang sudah terhubung ke penyimpanan organisasi."
               : section === "dokumen"
                 ? "Dokumen organisasi dikelola pada arsip Sekretariat; relasi dokumen ke masing-masing bidang belum tersedia."
@@ -294,6 +338,54 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
             </Card>
           </div>
         </div>
+      ) : null}
+
+      {section === "data" && field.slug === "organisasi" ? (
+        <>
+          {memberRegisterUnavailable ? (
+            <Notice tone="danger" title="Buku induk anggota belum dapat dimuat">
+              Data keanggotaan tidak tersedia dari database. Daftar tidak diganti dengan data contoh.
+            </Notice>
+          ) : (
+            <>
+              <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                <StatCard label="Anggota aktif" value={memberRows.filter((row) => row.status === "active").length} note="Status aktif pada catatan keanggotaan" tone="success" icon={<Users size={16} />} />
+                <StatCard label="Menunggu verifikasi" value={memberRows.filter((row) => row.status === "pending").length} note="Belum dihitung sebagai anggota aktif" tone="warning" icon={<Users size={16} />} />
+              </div>
+              <Card>
+                <CardHeader title="Buku induk anggota" subtitle={memberRows.length + " catatan aktif/menunggu · maksimal 500"} />
+                {memberRows.length ? (
+                  <div className="sb-scroll">
+                    <table className="sb-table min-w-[760px]">
+                      <thead><tr><th>Nomor anggota</th><th>Nama</th><th>Desa</th><th>Jabatan / peran</th><th>Berlaku sejak</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {memberRows.map((member) => (
+                          <tr key={member.id}>
+                            <td className="font-mono text-[10.5px] text-muted2">{member.member_number ?? "Belum ditetapkan"}</td>
+                            <td className="font-medium text-ink">{member.display_name}</td>
+                            <td className="text-muted">{member.village ?? "Belum dicatat"}</td>
+                            <td className="text-muted">{member.position_title ?? "Belum dicatat"}</td>
+                            <td className="whitespace-nowrap text-muted">{member.valid_from ? formatDateID(member.valid_from, "short") : "Belum ditetapkan"}</td>
+                            <td><Badge tone={member.status === "active" ? "success" : "warning"}>{member.status === "active" ? "Aktif" : "Menunggu verifikasi"}</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <EmptyState title="Belum ada catatan keanggotaan aktif" body="Anggota akan tampil setelah pengurus memproses pendaftaran dan mencatat status keanggotaannya di sistem." />
+                  </div>
+                )}
+              </Card>
+              <div className="mt-4">
+                <Notice tone="info" title="Perlindungan data anggota">
+                  Daftar ini hanya menampilkan identitas minimum untuk administrasi keanggotaan. Nomor telepon, alamat lengkap, dan data pribadi lain tidak ditampilkan di halaman ini.
+                </Notice>
+              </div>
+            </>
+          )}
+        </>
       ) : null}
 
       {section === "formulir" ? (
