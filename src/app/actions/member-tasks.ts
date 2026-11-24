@@ -40,6 +40,21 @@ export async function updateOwnTaskStatus(
         WHERE id = ${id}
           AND organization_id = ${identity.organizationId}
           AND assigned_to_user_id = ${identity.userId}
+          AND EXISTS (
+            SELECT 1
+            FROM v9.user_accounts AS account
+            INNER JOIN v9.people AS person
+              ON person.id = account.person_id
+            INNER JOIN v9.memberships AS membership
+              ON membership.person_id = person.id
+            WHERE account.id = ${identity.userId}
+              AND account.status = 'active'
+              AND person.status = 'active'
+              AND membership.organization_id = ${identity.organizationId}
+              AND membership.status = 'active'
+              AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+              AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+          )
           AND (
             (status = 'belum' AND ${nextStatus} = 'proses')
             OR (status = 'proses' AND ${nextStatus} = 'selesai')
