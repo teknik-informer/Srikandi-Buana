@@ -7,13 +7,12 @@ import {
   CardHeader,
   EmptyState,
   Notice,
-  PageHeader,
 } from "@/components/ui";
 import { AppBanner } from "@/components/dash-kit";
 import { APP_IDENTITY } from "@/config/app-identity";
 import { BusinessOrderComposer, type OrderCustomerOption, type OrderProductOption, type OrderWarehouseOption } from "@/components/business-order-composer";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireIdentity } from "@/lib/session";
+import { can, requireIdentity } from "@/lib/session";
 import { formatIDR } from "@/lib/format";
 
 export const metadata: Metadata = { title: "POS · Pesanan Kasir" };
@@ -100,6 +99,7 @@ export default async function PosPage({
   searchParams?: Promise<{ result?: string; order_id?: string }>;
 }) {
   const identity = await requireIdentity("pos:sell");
+  const canViewBusinessWorkspace = can(identity, "field:usaha:read");
   const search = await searchParams;
   let customers: OrderCustomerOption[] = [];
   let products: OrderProductOption[] = [];
@@ -188,10 +188,10 @@ export default async function PosPage({
           warehouses.length + " gudang aktif",
           recentOrders.length + " pesanan kasir terbaru",
         ]}
-        actions={[
+        actions={canViewBusinessWorkspace ? [
           { href: "/app/bidang/usaha/data", label: "Katalog Usaha" },
           { href: "/app/bidang/usaha/persediaan", label: "Persediaan" },
-        ]}
+        ] : []}
       />
 
       <div className="mt-4">
@@ -207,11 +207,7 @@ export default async function PosPage({
         <div className="mt-3">
           <Notice tone={resultNotice.tone} title={resultNotice.title}>
             {resultNotice.body}
-            {search?.order_id ? (
-              <span className="mt-1 block font-mono text-[10px] text-muted2">
-                Referensi ID pesanan: {search.order_id}
-              </span>
-            ) : null}
+
           </Notice>
         </div>
       ) : null}
@@ -279,9 +275,15 @@ export default async function PosPage({
               </li>
             </ol>
             <div className="border-t border-line px-4 py-3">
-              <Link href="/app/bidang/usaha/pesanan" className="flex items-center justify-between gap-2 text-[11px] font-semibold text-primary-700">
-                Register pesanan Bidang Usaha <ArrowRight size={13} />
-              </Link>
+              {canViewBusinessWorkspace ? (
+                <Link href="/app/bidang/usaha/pesanan" className="flex items-center justify-between gap-2 text-[11px] font-semibold text-primary-700">
+                  Register pesanan Bidang Usaha <ArrowRight size={13} />
+                </Link>
+              ) : (
+                <p className="text-[10.5px] leading-relaxed text-muted2">
+                  Akses register lengkap tersedia bagi petugas Bidang Usaha yang berwenang.
+                </p>
+              )}
             </div>
           </Card>
 
