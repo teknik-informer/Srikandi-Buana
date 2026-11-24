@@ -46,7 +46,7 @@ function refreshTraining(): void {
 }
 
 export async function createTrainingSession(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:manage");
   ensureTrainingWrite(identity);
 
   const title = normalize(String(formData.get("title") ?? ""));
@@ -149,7 +149,7 @@ export async function createTrainingSession(formData: FormData): Promise<void> {
 }
 
 export async function updateTrainingSessionStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:manage");
   ensureTrainingWrite(identity);
 
   const sessionId = String(formData.get("session_id") ?? "").trim();
@@ -222,7 +222,7 @@ export async function updateTrainingSessionStatus(formData: FormData): Promise<v
 }
 
 export async function enrollTrainingParticipant(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:activity:write");
   ensureTrainingWrite(identity);
 
   const sessionId = String(formData.get("session_id") ?? "").trim();
@@ -360,7 +360,7 @@ export async function enrollTrainingParticipant(formData: FormData): Promise<voi
   redirect(path("participant-enrolled", sessionId));
 }
 export async function updateTrainingAttendance(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:activity:write");
   ensureTrainingWrite(identity);
 
   const sessionId = String(formData.get("session_id") ?? "").trim();
@@ -432,7 +432,7 @@ export async function updateTrainingAttendance(formData: FormData): Promise<void
 }
 
 export async function recordTrainingAssessment(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:activity:write");
   ensureTrainingWrite(identity);
 
   const sessionId = String(formData.get("session_id") ?? "").trim();
@@ -538,7 +538,7 @@ export async function recordTrainingAssessment(formData: FormData): Promise<void
 }
 
 export async function issueTrainingCertificate(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:activity:write");
   if (!can(identity, "field:pelatihan:certificate:issue")) redirect("/app");
 
   const sessionId = String(formData.get("session_id") ?? "").trim();
@@ -623,7 +623,7 @@ export async function issueTrainingCertificate(formData: FormData): Promise<void
 }
 
 export async function revokeTrainingCertificate(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:activity:write");
   if (!can(identity, "organization:team:approve")) redirect("/app");
 
   const sessionId = String(formData.get("session_id") ?? "").trim();
@@ -687,7 +687,7 @@ export async function revokeTrainingCertificate(formData: FormData): Promise<voi
 }
 
 export async function cancelTrainingEnrollment(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pelatihan:read");
+  const identity = await requireIdentity("field:pelatihan:activity:write");
   ensureTrainingWrite(identity);
 
   const enrollmentId = String(formData.get("enrollment_id") ?? "").trim();
