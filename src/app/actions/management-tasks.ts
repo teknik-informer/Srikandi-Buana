@@ -94,8 +94,8 @@ export async function createManagementTask(input: CreateTaskInput): Promise<Muta
           WHERE membership.person_id = person.id
             AND membership.organization_id = ${identity.organizationId}
             AND membership.status = 'active'
-            AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
-            AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+            AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+            AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
           ORDER BY membership.created_at DESC
           LIMIT 1
         ) AS active_membership ON true
@@ -291,8 +291,8 @@ export async function reassignManagementTask(
           WHERE membership.person_id = person.id
             AND membership.organization_id = ${identity.organizationId}
             AND membership.status = 'active'
-            AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
-            AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+            AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+            AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
           ORDER BY membership.created_at DESC
           LIMIT 1
         ) AS active_membership ON true
