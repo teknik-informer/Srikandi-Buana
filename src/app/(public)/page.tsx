@@ -220,14 +220,14 @@ export default async function HomePage() {
       <section className="border-y border-line bg-white">
         <div className="sb-shell">
           <ul className="grid grid-cols-2 divide-line sm:grid-cols-3 md:grid-cols-6 md:divide-x">
-            {[
+            {([
               [LayoutGrid, "Organisasi", "Terstruktur"],
               [Users, "Keanggotaan", "Terverifikasi"],
               [CalendarDays, "Kegiatan", "Tercatat"],
               [Wallet, "Keuangan", "Terkendali"],
               [FileCheck2, "Dokumen", "Terarsip"],
               [ShieldCheck, "Akses", "Berjenjang"],
-            ].map(([Icon, label, subtitle]) => (
+            ] as const).map(([Icon, label, subtitle]) => (
               <li key={String(label)} className="flex flex-col items-center gap-2 px-3 py-6 text-center">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--sb-primary-50)] text-primary-700">
                   <Icon size={20} strokeWidth={1.9} aria-hidden />
