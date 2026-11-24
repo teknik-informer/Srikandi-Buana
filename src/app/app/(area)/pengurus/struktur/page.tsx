@@ -149,7 +149,7 @@ export default async function StrukturPage() {
   }
 
   const corePeople = people.filter((person) => positionGroup(person.position_title) === "inti" && person.position_title);
-  const fieldPeople = people.filter((person) => person.unit_type === "field");
+  const fieldPeople = people.filter((person) => person.unit_type === "field" && !corePeople.includes(person));
   const otherPeople = people.filter((person) => !corePeople.includes(person) && !fieldPeople.includes(person));
   const fieldUnits = units.filter((unit) => unit.unit_type === "field");
 
