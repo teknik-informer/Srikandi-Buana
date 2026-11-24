@@ -115,6 +115,8 @@ function Inner({
         return;
       }
       router.refresh();
+    } catch {
+      setErr("Layanan belum dapat memproses perubahan. Silakan muat ulang dan coba kembali.");
     } finally {
       setPending(false);
     }
@@ -133,6 +135,8 @@ function Inner({
       setCreateOpen(false);
       setForm({ ...form, title: "", assigneeLabel: "", dueDate: "" });
       router.refresh();
+    } catch {
+      setErr("Layanan belum dapat menyimpan tugas. Periksa koneksi lalu coba kembali.");
     } finally {
       setPending(false);
     }
@@ -150,6 +154,8 @@ function Inner({
       }
       setAssignOpen(null);
       router.refresh();
+    } catch {
+      setErr("Layanan belum dapat menyimpan delegasi. Periksa koneksi lalu coba kembali.");
     } finally {
       setPending(false);
     }
@@ -164,6 +170,26 @@ function Inner({
     dibatalkan: "Dibatalkan",
     terlambat: "Terlambat",
   };
+
+  if (loadError) {
+    return (
+      <div className="pb-10">
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <div className="sb-label mb-1.5">Pengurus Harian</div>
+            <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Tugas pengurus</h1>
+            <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
+              Penugasan lintas bidang yang tersimpan di basis data organisasi dan tercatat pada jejak audit.
+            </p>
+          </div>
+        </header>
+        <Notice tone="danger" title="Data tugas belum dapat dimuat">
+          Layanan data organisasi sedang tidak tersedia. Saya tidak akan menampilkan keadaan kosong atau angka nol
+          seolah-olah data tugas memang tidak ada. Muat ulang halaman setelah koneksi pulih.
+        </Notice>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-10">
@@ -187,12 +213,6 @@ function Inner({
         </div>
       </header>
 
-      {loadError ? (
-        <Notice tone="danger" title="Data tugas belum dapat dimuat">
-          Layanan data organisasi sedang tidak tersedia. Daftar di bawah tidak ditampilkan sebagai data kosong palsu.
-          Muat ulang halaman setelah koneksi pulih.
-        </Notice>
-      ) : null}
       {!canManage ? (
         <div className="mb-4">
           <Notice tone="info" title="Akses baca">
@@ -288,7 +308,7 @@ function Inner({
             </tbody>
           </table>
         </div>
-        {!loadError && list.length === 0 ? (
+        {list.length === 0 ? (
           q ? <NoRows q={q} /> : (
             <div className="px-4 py-8 text-center text-[12.5px] text-muted">
               Belum ada tugas tersimpan pada organisasi. Gunakan "Tugas baru" untuk membuat penugasan pertama.
