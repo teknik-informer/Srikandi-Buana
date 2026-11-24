@@ -1,16 +1,18 @@
+import Link from "next/link";
 import type { Metadata } from "next";
-import { Card, CardHeader, Notice, PageHeader, Badge, StatCard } from "@/components/ui";
+import { ArrowRight, Database, FileText } from "lucide-react";
+import { Card, CardHeader, EmptyState, Notice, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Data & Form Builder" };
 
-const FORM_FIELDS = [
-  { name: "nama_peserta", type: "Teks", required: true, rules: "min 3 · wajib" },
-  { name: "tanggal_kegiatan", type: "Tanggal", required: true, rules: "tidak di masa lalu" },
-  { name: "bidang_terkait", type: "Pilihan", required: true, rules: "dari registry bidang" },
-  { name: "jumlah_peserta", type: "Angka", required: true, rules: "1–200" },
-  { name: "anggaran", type: "Uang", required: false, rules: "≤ sisa anggaran program" },
-  { name: "lampiran_proposal", type: "Berkas", required: true, rules: "PDF · maks 4 MB" },
-  { name: "catatan", type: "Teks panjang", required: false, rules: "maks 1.000 karakter" },
+const operationalModules = [
+  { label: "Buku Induk Anggota", description: "Data keanggotaan aktif dan status verifikasi", href: "/app/bidang/organisasi/data" },
+  { label: "Data Pertanian & Produksi", description: "Lahan, komoditas, kegiatan lapangan dan produksi", href: "/app/bidang/pertanian/data" },
+  { label: "Pelatihan & Peserta", description: "Sesi, pendaftaran dan pelaksanaan pelatihan", href: "/app/bidang/pelatihan/data" },
+  { label: "Katalog & Persediaan", description: "Produk, gudang dan mutasi stok", href: "/app/bidang/usaha/katalog" },
+  { label: "Pelanggan & Pesanan", description: "Register pelanggan dan pesanan usaha", href: "/app/bidang/usaha/pesanan" },
+  { label: "Surat & Arsip", description: "Register surat dan dokumen Sekretariat", href: "/app/sekretariat/surat" },
+  { label: "Jurnal Keuangan", description: "Pencatatan akuntansi melalui jurnal berpasangan", href: "/app/keuangan/jurnal" },
 ];
 
 export default function DataStudio() {
@@ -19,60 +21,52 @@ export default function DataStudio() {
       <PageHeader
         eyebrow="Data & Form Builder"
         title="Struktur data & formulir"
-        description="Field, validasi, dan view dikonfigurasi dari antarmuka. Validasi server tetap otoritatif; perubahan skema inti memerlukan migrasi developer."
+        description="Akses ke modul domain yang sudah menyimpan data ke organisasi. Builder formulir generik tidak ditampilkan sebagai aktif sebelum definisi, versi, validasi, dan penyimpanan jawabannya tersedia."
       />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Formulir aktif" value={12} note="5 internal · 7 eksternal" tone="success" />
-        <StatCard label="View terdaftar" value={9} note="Tabel, kartu, kalender, kanban" tone="info" />
-        <StatCard label="Perubahan skema menunggu" value={1} note="Perlu migrasi developer" tone="warning" />
-      </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
         <Card>
-          <CardHeader title="Contoh formulir: Pengajuan Kegiatan Bidang" subtitle="Field, tipe, dan aturan validasi" action={<Badge tone="success">Aktif</Badge>} />
-          <div className="sb-scroll">
-            <table className="sb-table min-w-[560px]">
-              <thead><tr><th>Field</th><th>Tipe</th><th>Wajib</th><th>Aturan</th></tr></thead>
-              <tbody>
-                {FORM_FIELDS.map((f) => (
-                  <tr key={f.name}>
-                    <td className="font-mono text-[11.5px] font-medium text-ink">{f.name}</td>
-                    <td><Badge tone="neutral">{f.type}</Badge></td>
-                    <td>{f.required ? <Badge tone="danger">Wajib</Badge> : <span className="text-muted2">opsional</span>}</td>
-                    <td className="text-muted">{f.rules}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="border-t border-line bg-paper px-4 py-2.5 text-[10.5px] text-muted2">
-            Form binding menyimpan ke entity domain yang benar (program_activity), bukan tabel generik.
+          <CardHeader
+            title="Modul pendataan operasional"
+            subtitle="Sumber pencatatan sesuai domain pemilik data"
+            action={<Database size={16} className="text-muted2" />}
+          />
+          <div className="divide-y divide-line">
+            {operationalModules.map((module) => (
+              <Link key={module.href} href={module.href} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-paper">
+                <span className="min-w-0">
+                  <span className="block text-[12px] font-semibold text-ink">{module.label}</span>
+                  <span className="mt-0.5 block text-[10.5px] text-muted">{module.description}</span>
+                </span>
+                <ArrowRight size={13} className="shrink-0 text-muted2" />
+              </Link>
+            ))}
           </div>
         </Card>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader title="Batas perubahan schema" />
-            <ul className="space-y-2 px-4 py-3 text-[12px] text-ink2">
-              {[
-                ["Field baru pada form konfiguratif", "Boleh dari Studio"],
-                ["Ubah label & urutan field", "Boleh dari Studio"],
-                ["Tambah tipe/relasi inti baru", "Migrasi developer + backup"],
-                ["Ubah aturan ledger / stock posting", "Dilarang dari form builder"],
-                ["Ubah field yang dilindungi", "Ditolak; perlu review"],
-              ].map(([k, v]) => (
-                <li key={k} className="flex items-start justify-between gap-3">
-                  <span>{k}</span>
-                  <span className={`shrink-0 text-right text-[11px] ${v.includes("Boleh") ? "text-[var(--sb-success)]" : "text-[var(--sb-warning)]"}`}>{v}</span>
-                </li>
-              ))}
+          <Notice tone="warning" title="Form Builder generik belum diaktifkan">
+            Belum ada registry form, versi form, skema jawaban, aturan validasi konfiguratif, atau ekspor dinamis yang tersimpan per organisasi. Data operasional yang tersedia tetap menggunakan form domain dengan validasi server.
+          </Notice>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 text-[12.5px] font-semibold text-ink">
+              <FileText size={15} className="text-muted2" />
+              Batas perubahan skema
+            </div>
+            <ul className="mt-3 space-y-2 text-[11.5px] text-muted">
+              <li>Perubahan label dan tampilan form domain mengikuti rilis kode yang direview.</li>
+              <li>Penambahan tabel, relasi, dan tipe data inti memerlukan migrasi database.</li>
+              <li>Aturan keuangan, persediaan, identitas, dan persetujuan tidak dapat ditulis dari browser.</li>
             </ul>
           </Card>
-          <Notice tone="info" title="View Builder">
-            View hanya dapat mengambil data dalam scope pengguna. Filter lintas scope tanpa izin akan
-            menghasilkan empty state, bukan kebocoran data.
-          </Notice>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <EmptyState
+          title="Belum ada definisi formulir dinamis"
+          body="Tidak ada jumlah formulir, contoh field, atau view yang ditampilkan sebagai aktif karena definisi tersebut belum terdaftar pada penyimpanan organisasi."
+        />
       </div>
     </div>
   );
