@@ -31,10 +31,7 @@ export function FieldShellChrome({
     ? [
         ...fieldNav(field).map((g) => ({
           label: g.label,
-          items: g.items.map((i) => ({
-            ...i,
-            badge: i.href.endsWith("/tugas") ? 3 : i.href.endsWith("/anggaran") ? 1 : undefined,
-          })),
+          items: g.items.map((i) => ({ ...i, badge: undefined })),
         })),
         {
           label: "Lintas aplikasi",
