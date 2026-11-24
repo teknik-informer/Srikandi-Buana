@@ -95,7 +95,6 @@ export default async function StrukturPage() {
           unit.unit_key,
           unit.name,
           unit.unit_type,
-          unit.mandate,
           unit.sort_order AS display_order,
           application.is_enabled,
           application.route,
