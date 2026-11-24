@@ -46,8 +46,8 @@ export async function enrollOwnTrainingSession(sessionId: string): Promise<Enrol
           AND account.status = 'active'
           AND person.status = 'active'
           AND membership.status = 'active'
-          AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
-          AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+          AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+          AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
         ORDER BY membership.created_at DESC
         LIMIT 1
       ),
@@ -70,7 +70,7 @@ export async function enrollOwnTrainingSession(sessionId: string): Promise<Enrol
           AND session.organization_id = ${identity.organizationId}
           AND session.field_key = 'pelatihan'
           AND session.status = 'registration_open'
-          AND session.session_date >= current_date
+          AND session.session_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
         FOR UPDATE OF session
       ),
       capacity_update AS (
