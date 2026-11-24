@@ -8,7 +8,6 @@ import { BUDGETS } from "@/data/finance";
 import { Badge, Card, CardHeader, EmptyState, Notice, PageHeader, Progress, StatusBadge } from "@/components/ui";
 import { formatDateID, formatIDR, relativeID, percent } from "@/lib/format";
 import { DocumentCrud, LandCrud } from "@/components/master-crud";
-import { useStoreOptional } from "@/lib/store";
 
 const TITLES: Record<string, { title: string; desc: string }> = {
   "profil-mandat": { title: "Profil & Mandat", desc: "Nama resmi, dasar pengesahan, fungsi, ruang lingkup, dan masa berlaku." },
