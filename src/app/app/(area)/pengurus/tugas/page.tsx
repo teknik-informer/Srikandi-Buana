@@ -114,7 +114,11 @@ export default async function TugasPengurusPage() {
           AND person.status = 'active'
         ORDER BY name ASC
       `);
-      assignees = rows;
+      assignees = rows.map((row) => ({
+        userId: row.user_id,
+        name: row.name,
+        memberNumber: row.member_number,
+      }));
     } catch (reason) {
       const errorType =
         reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name)
