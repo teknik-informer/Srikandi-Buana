@@ -8,7 +8,7 @@ import {
 import { FIELDS } from "@/config/fields";
 import { APP_IDENTITY } from "@/config/app-identity";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireIdentity } from "@/lib/session";
+import { can, requireIdentity } from "@/lib/session";
 import { formatIDR } from "@/lib/format";
 import {
   ActivityChart, AppBanner, DonutCard, KpiStrip, QuickAccess,
@@ -118,6 +118,10 @@ function actionLabel(value: string): string {
 
 export default async function PengurusDashboard() {
   const identity = await requireIdentity("organization:read");
+  const canReadFinance = can(identity, "finance:read");
+  const canReadFinanceApprovals = can(identity, "approval:read") || can(identity, "finance:journal:approve");
+  const canReadMembershipApprovals = can(identity, "field:organisasi:review");
+  const canReadWorkplanApprovals = can(identity, "approval:read") || can(identity, "organization:team:approve");
   let summary: DashboardSummary | null = null;
   let finance: FinanceSummary | null = null;
   let programs: ProgramSummary[] = [];
@@ -178,7 +182,7 @@ export default async function PengurusDashboard() {
               WHERE journal.organization_id = ${identity.organizationId} AND journal.status = 'posted'
             ) AS posted_journals
         `,
-        sql`
+        canReadFinance ? sql`
           SELECT
             COALESCE(sum(line.debit - line.credit) FILTER (WHERE account.account_code = '1-1000'), 0)::text AS cash_balance,
             COALESCE(sum(line.debit - line.credit) FILTER (WHERE account.account_code = '1-1100'), 0)::text AS bank_balance,
@@ -193,7 +197,7 @@ export default async function PengurusDashboard() {
           INNER JOIN v9.finance_accounts AS account
             ON account.id = line.account_id AND account.organization_id = line.organization_id
           WHERE journal.organization_id = ${identity.organizationId} AND journal.status = 'posted'
-        `,
+        ` : Promise.resolve(null),
         sql`
           SELECT
             field_key,
@@ -280,7 +284,7 @@ export default async function PengurusDashboard() {
       ]);
 
     summary = rowsFromResult<DashboardSummary>(summaryResult)[0] ?? null;
-    finance = rowsFromResult<FinanceSummary>(financeResult)[0] ?? null;
+    finance = financeResult ? (rowsFromResult<FinanceSummary>(financeResult)[0] ?? null) : null;
     programs = rowsFromResult<ProgramSummary>(programResult);
     agenda = rowsFromResult<AgendaItem>(agendaResult);
     chartDays = rowsFromResult<ChartDay>(chartResult);
@@ -308,12 +312,18 @@ export default async function PengurusDashboard() {
     { key: "jurnal", label: "Jurnal dibuat", color: "#e8a012", points: chartDays14.map((row) => row.journal_count) },
   ];
 
-  const kpis: Kpi[] = summary && finance
+  const visiblePendingCount = summary
+    ? (canReadMembershipApprovals ? summary.pending_membership_interests : 0)
+      + (canReadFinanceApprovals ? summary.pending_finance : 0)
+      + (canReadWorkplanApprovals ? summary.pending_workplans : 0)
+    : 0;
+
+  const kpis: Kpi[] = summary
     ? [
         {
           label: "Anggota Aktif",
           value: String(summary.active_members),
-          delta: summary.pending_membership_interests ? String(summary.pending_membership_interests) + " pendaftar menunggu" : undefined,
+          delta: canReadMembershipApprovals && summary.pending_membership_interests ? String(summary.pending_membership_interests) + " pendaftar menunggu" : undefined,
           note: "Keanggotaan yang berlaku hari ini",
           href: "/app/pengurus/anggota",
           tone: "green",
@@ -329,15 +339,15 @@ export default async function PengurusDashboard() {
           icon: <Sprout size={15} />,
           watermark: <Sprout size={62} strokeWidth={1.6} />,
         },
-        {
+        ...(finance ? [{
           label: "Saldo Kas & Bank",
           value: formatIDR(Number(finance.cash_balance) + Number(finance.bank_balance)),
           note: "Jurnal terposting saja",
           href: "/app/keuangan/kas-bank",
-          tone: "amber",
+          tone: "amber" as const,
           icon: <Wallet size={15} />,
           watermark: <Wallet size={62} strokeWidth={1.6} />,
-        },
+        }] : []),
         {
           label: "Kegiatan Bulan Ini",
           value: String(summary.activities_this_month),
@@ -386,7 +396,7 @@ export default async function PengurusDashboard() {
           summary
             ? [
                 summary.active_members + " anggota aktif",
-                (summary.pending_membership_interests + summary.pending_finance + summary.pending_workplans) + " item menunggu pemeriksaan",
+                visiblePendingCount + " item menunggu pemeriksaan",
                 summary.open_tasks + " tugas terbuka",
                 summary.overdue_tasks + " tugas melewati tenggat",
               ]
@@ -407,7 +417,7 @@ export default async function PengurusDashboard() {
         </div>
       ) : null}
 
-      {summary && finance ? (
+      {summary ? (
         <>
           <div className="mt-3"><KpiStrip items={kpis} /></div>
 
@@ -524,6 +534,7 @@ export default async function PengurusDashboard() {
           </div>
 
           <div className="mt-3 grid gap-3 lg:grid-cols-3">
+            {finance ? (
             <Card>
               <CardHeader title="Ringkasan keuangan" subtitle="Semua nilai dari jurnal terposting" action={<Link href="/app/keuangan" className="text-[11px] font-semibold text-primary-700">Buka <ArrowRight size={11} className="inline" /></Link>} />
               <dl className="divide-y divide-line text-[11.5px]">
@@ -534,16 +545,17 @@ export default async function PengurusDashboard() {
                 <div className="flex items-center justify-between gap-2 px-4 py-2.5"><dt className="text-muted">Bank</dt><dd className="font-medium tabular-nums text-ink">{formatIDR(Number(finance.bank_balance))}</dd></div>
               </dl>
               <p className="border-t border-line px-4 py-2.5 text-[10px] text-muted2">
-                {finance.posted_count} jurnal terposting · {summary.draft_journals} draf · {summary.posted_journals} total jurnal terposting
+                {finance.posted_count} jurnal terposting · {finance.draft_count} draf
               </p>
             </Card>
+            ) : null}
 
             <Card>
               <CardHeader title="Pemeriksaan & tindak lanjut" action={<Landmark size={16} className="text-muted2" />} />
               <div className="space-y-2 p-4">
-                <div className="flex items-center justify-between gap-2"><span className="text-[11.5px] text-muted">Pendaftaran anggota</span><strong className="text-[13px] tabular-nums text-ink">{summary.pending_membership_interests}</strong></div>
-                <div className="flex items-center justify-between gap-2"><span className="text-[11.5px] text-muted">Jurnal menunggu pemeriksaan</span><strong className="text-[13px] tabular-nums text-ink">{summary.pending_finance}</strong></div>
-                <div className="flex items-center justify-between gap-2"><span className="text-[11.5px] text-muted">Rencana kerja bidang</span><strong className="text-[13px] tabular-nums text-ink">{summary.pending_workplans}</strong></div>
+                {canReadMembershipApprovals ? <div className="flex items-center justify-between gap-2"><span className="text-[11.5px] text-muted">Pendaftaran anggota</span><strong className="text-[13px] tabular-nums text-ink">{summary.pending_membership_interests}</strong></div> : null}
+                {canReadFinanceApprovals ? <div className="flex items-center justify-between gap-2"><span className="text-[11.5px] text-muted">Jurnal menunggu pemeriksaan</span><strong className="text-[13px] tabular-nums text-ink">{summary.pending_finance}</strong></div> : null}
+                {canReadWorkplanApprovals ? <div className="flex items-center justify-between gap-2"><span className="text-[11.5px] text-muted">Rencana kerja bidang</span><strong className="text-[13px] tabular-nums text-ink">{summary.pending_workplans}</strong></div> : null}
                 <div className="flex items-center justify-between gap-2"><span className="text-[11.5px] text-muted">Tugas melewati tenggat</span><strong className={"text-[13px] tabular-nums " + (summary.overdue_tasks ? "font-bold text-[var(--sb-danger)]" : "font-semibold text-ink")}>{summary.overdue_tasks}</strong></div>
                 <div className="border-t border-line pt-2">
                   <Link href="/app/pengurus/persetujuan" className="sb-btn sb-btn-outline !h-8 w-full !px-3 text-[10.5px]">Buka Kotak Persetujuan <ArrowRight size={12} /></Link>
