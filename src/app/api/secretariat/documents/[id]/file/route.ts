@@ -87,7 +87,7 @@ export async function GET(
         "Content-Length": String(bytes.byteLength),
         "Content-Disposition": contentDisposition,
         "X-Content-Type-Options": "nosniff",
-        "Cache-Control": isPublic ? "public, max-age=3600, s-maxage=3600" : "private, no-store",
+        "Cache-Control": "private, no-store",
       },
     });
   } catch (error) {
