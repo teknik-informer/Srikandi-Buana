@@ -111,7 +111,7 @@ export default function ProfilPage() {
                 <div className="min-w-0">
                   <div className="text-[14px] font-semibold text-ink">{f.name}</div>
                   <div className="mt-1 text-[11.5px] text-muted">
-                    {f.teamSize} anggota tim · {f.modules.length} modul operasional
+                    {f.modules.length} modul operasional · susunan tim belum tercatat
                   </div>
                 </div>
               </div>
