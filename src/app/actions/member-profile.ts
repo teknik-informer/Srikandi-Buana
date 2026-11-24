@@ -28,9 +28,11 @@ export async function updateMemberProfile(input: MemberProfileInput): Promise<Pr
   const phone = String(input?.phone ?? "").trim();
   const village = String(input?.village ?? "").trim().replace(/\s+/g, " ");
   const requestedInterests = Array.isArray(input?.interests) ? input.interests : [];
-  const allowed = new Map<string, string>(MEMBER_INTEREST_OPTIONS.map((option) => [option.key, option.label]));
   const interestKeys = [...new Set(requestedInterests.map((key) => String(key)))];
-  const selected = interestKeys.map((key) => ({ key, label: allowed.get(key) }));
+  const selected = interestKeys.map((key) => {
+    const option = MEMBER_INTEREST_OPTIONS.find((item) => item.key === key);
+    return { key, label: option?.label ?? null };
+  });
 
   if (
     preferredName.length > 80 ||
