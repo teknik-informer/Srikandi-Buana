@@ -18,19 +18,19 @@ export async function updateMembershipStatus(formData: FormData): Promise<void> 
   const note = String(formData.get("note") ?? "").trim();
 
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
-    redirect("/app/pengurus/anggota?result=invalid");
+    redirect("/app/sekretariat/anggota?result=invalid");
   }
   if (!["active", "inactive", "left"].includes(decision)) {
-    redirect("/app/pengurus/anggota?result=invalid");
+    redirect("/app/sekretariat/anggota?result=invalid");
   }
   if (
     rawMemberNumber &&
     !/^[A-Za-z0-9][A-Za-z0-9./-]{1,39}$/.test(rawMemberNumber)
   ) {
-    redirect("/app/pengurus/anggota?result=invalid");
+    redirect("/app/sekretariat/anggota?result=invalid");
   }
   if (note.length > 1000) {
-    redirect("/app/pengurus/anggota?result=invalid");
+    redirect("/app/sekretariat/anggota?result=invalid");
   }
 
   const memberNumber = rawMemberNumber ? rawMemberNumber.toUpperCase() : null;
@@ -104,17 +104,18 @@ export async function updateMembershipStatus(formData: FormData): Promise<void> 
     const message = error instanceof Error ? error.message : "Unknown membership update error";
     console.error("[membership-status] Update failed:", message);
     if (message.toLowerCase().includes("unique")) {
-      redirect("/app/pengurus/anggota?result=duplicate");
+      redirect("/app/sekretariat/anggota?result=duplicate");
     }
-    redirect("/app/pengurus/anggota?result=error");
+    redirect("/app/sekretariat/anggota?result=error");
   }
 
   const rows = rowsFromResult<MembershipStatusResult>(result);
   if (rows.length !== 1) {
-    redirect("/app/pengurus/anggota?result=stale");
+    redirect("/app/sekretariat/anggota?result=stale");
   }
 
+  revalidatePath("/app/sekretariat/anggota");
   revalidatePath("/app/pengurus/anggota");
   revalidatePath("/app/anggota");
-  redirect(`/app/pengurus/anggota?result=${decision}`);
+  redirect(`/app/sekretariat/anggota?result=${decision}`);
 }
