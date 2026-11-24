@@ -2,6 +2,8 @@
 -- Member profile/consent records are deliberately not copied by this migration.
 -- The source public schema remains intact and is never modified or dropped.
 DO $migration$
+DECLARE
+  email_verified_expression text;
 BEGIN
   IF to_regclass('public.users') IS NULL THEN
     RETURN;
@@ -44,16 +46,27 @@ BEGIN
       WHERE legacy_source_user_id IS NOT NULL DO NOTHING
   $import_people$;
 
-  EXECUTE $import_accounts$
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'users'
+      AND column_name = 'email_verified_at'
+  ) THEN
+    email_verified_expression := $verify$
+      CASE
+        WHEN NULLIF(btrim(legacy.email_verified_at), '') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}([ T].*)?$'
+          THEN NULLIF(btrim(legacy.email_verified_at), '')::timestamptz
+        ELSE NULL
+      END
+    $verify$;
+  ELSE
+    email_verified_expression := 'NULL::timestamptz';
+  END IF;
+
+  EXECUTE format($import_accounts$
     INSERT INTO v9.user_accounts (
-      person_id,
-      email,
-      password_hash,
-      status,
-      email_verified_at,
-      must_change_password,
-      legacy_auth_eligible,
-      legacy_source_user_id
+      person_id, email, password_hash, status, email_verified_at,
+      must_change_password, legacy_auth_eligible, legacy_source_user_id
     )
     SELECT
       person.id,
@@ -67,11 +80,7 @@ BEGIN
         WHEN legacy.enabled THEN 'suspended'
         ELSE 'disabled'
       END,
-      CASE
-        WHEN NULLIF(btrim(legacy.email_verified_at), '') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}([ T].*)?$'
-          THEN NULLIF(btrim(legacy.email_verified_at), '')::timestamptz
-        ELSE NULL
-      END,
+      %s,
       false,
       (
         legacy.enabled
@@ -84,10 +93,10 @@ BEGIN
       ON person.legacy_source_user_id = legacy.id
     WHERE legacy.id IS NOT NULL
       AND legacy.email IS NOT NULL
-      AND lower(btrim(legacy.email)) ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+      AND lower(btrim(legacy.email)) ~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'
     ON CONFLICT (legacy_source_user_id)
       WHERE legacy_source_user_id IS NOT NULL DO NOTHING
-  $import_accounts$;
+  $import_accounts$, email_verified_expression);
 
   EXECUTE $import_roles$
     INSERT INTO v9.role_assignments (
