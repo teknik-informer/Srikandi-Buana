@@ -46,7 +46,7 @@ export default async function KegiatanPage({
     async () => {
       const sql = getV9Sql();
       const [upcomingResult, pastResult] = await Promise.all([
-        sql\`
+        sql`
           SELECT
             activity.id::text AS id,
             activity.reference_no,
@@ -72,8 +72,8 @@ export default async function KegiatanPage({
             AND (${selectedField} = '' OR activity.field_key = ${selectedField})
           ORDER BY activity.activity_date, activity.start_time NULLS FIRST
           LIMIT 100
-        \`,
-        sql\`
+        `,
+        sql`
           SELECT
             activity.id::text AS id,
             activity.reference_no,
@@ -99,7 +99,7 @@ export default async function KegiatanPage({
             AND (${selectedField} = '' OR activity.field_key = ${selectedField})
           ORDER BY activity.activity_date DESC
           LIMIT 50
-        \`,
+        `,
       ]);
       return {
         upcoming: rowsFromResult<PublicActivity>(upcomingResult),
@@ -140,8 +140,8 @@ export default async function KegiatanPage({
         {filterOptions.map(([key, label]) => (
           <Link
             key={key || "all"}
-            href={key ? \`/kegiatan?bidang=${key}\` : "/kegiatan"}
-            className={\`sb-chip ${selectedField === key ? "!border-primary-600 !bg-primary-50 !text-primary-800" : ""}\`}
+            href={key ? `/kegiatan?bidang=${key}` : "/kegiatan"}
+            className={`sb-chip ${selectedField === key ? "!border-primary-600 !bg-primary-50 !text-primary-800" : ""}`}
           >
             {label}
           </Link>
