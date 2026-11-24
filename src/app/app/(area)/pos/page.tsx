@@ -17,6 +17,8 @@ import { formatIDR } from "@/lib/format";
 
 export const metadata: Metadata = { title: "POS · Pesanan Kasir" };
 
+interface FieldApplicationRow { is_enabled: boolean; }
+
 interface PosOrderRow {
   id: string;
   reference_no: string;
@@ -105,11 +107,19 @@ export default async function PosPage({
   let products: OrderProductOption[] = [];
   let warehouses: OrderWarehouseOption[] = [];
   let recentOrders: PosOrderRow[] = [];
+  let fieldEnabled = false;
   let unavailable = false;
 
   try {
     const sql = getV9Sql();
-    const [customerResult, productResult, warehouseResult, orderResult] = await Promise.all([
+    const [applicationResult, customerResult, productResult, warehouseResult, orderResult] = await Promise.all([
+      sql`
+        SELECT is_enabled
+        FROM v9.field_applications
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = 'usaha'
+        LIMIT 1
+      `,
       sql`
         SELECT id::text AS id, reference_no, customer_name, phone
         FROM v9.business_customers
@@ -164,6 +174,7 @@ export default async function PosPage({
       `,
     ]);
 
+    fieldEnabled = rowsFromResult<FieldApplicationRow>(applicationResult)[0]?.is_enabled ?? false;
     customers = rowsFromResult<OrderCustomerOption>(customerResult);
     products = rowsFromResult<OrderProductOption>(productResult);
     warehouses = rowsFromResult<OrderWarehouseOption>(warehouseResult);
@@ -174,7 +185,7 @@ export default async function PosPage({
   }
 
   const resultNotice = search?.result ? resultMessages[search.result] : undefined;
-  const canCreate = customers.length > 0 && products.length > 0 &&
+  const canCreate = fieldEnabled && customers.length > 0 && products.length > 0 &&
     (products.every((product) => !product.track_stock) || warehouses.length > 0);
 
   return (
@@ -231,6 +242,10 @@ export default async function PosPage({
           {unavailable ? (
             <div className="px-5 py-9">
               <EmptyState title="Form belum tersedia" body="Muat ulang setelah sumber data POS pulih." />
+            </div>
+          ) : !fieldEnabled ? (
+            <div className="px-5 py-9">
+              <EmptyState title="Bidang Usaha belum diaktifkan" body="Pengurus organisasi perlu mengaktifkan aplikasi Bidang Usaha sebelum POS dapat mencatat pesanan." />
             </div>
           ) : !customers.length || !products.length ? (
             <div className="px-5 py-9">
