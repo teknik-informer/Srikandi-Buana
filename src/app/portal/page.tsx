@@ -5,10 +5,12 @@ import { PROGRAMS } from "@/data/operations";
 import { DOCUMENTS } from "@/data/organization";
 import { Badge, Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
 import { formatDateID } from "@/lib/format";
+import { requireRoles } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Portal Eksternal", robots: { index: false } };
 
-export default function PortalEksternal() {
+export default async function PortalEksternal() {
+  await requireRoles(["platform_admin", "organization_admin", "chair", "government_viewer", "ngo_viewer", "partner_viewer"]);
   const shared = DOCUMENTS.filter((d) => d.category === "Laporan" || d.visibility === "publik");
 
   return (
