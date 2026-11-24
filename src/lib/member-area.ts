@@ -205,7 +205,16 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
 
   const tasksJob = (async () => {
     try {
-      const rows = rowsFromResult<MemberTaskItem>(await sql`
+      const rows = rowsFromResult<{
+        id: string;
+        reference_no: string;
+        title: string;
+        field_key: string;
+        due_date: string | null;
+        priority: "tinggi" | "sedang" | "rendah";
+        status: "belum" | "proses" | "selesai" | "dibatalkan";
+        is_overdue: boolean;
+      }>(await sql`
         SELECT
           task.id::text AS id,
           task.reference_no,
@@ -228,13 +237,15 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
         LIMIT 10
       `);
       data.tasks = rows.map((row) => ({
-        ...row,
-        dueDate: (row as unknown as { due_date: string | null }).due_date,
+        id: row.id,
+        referenceNo: row.reference_no,
+        title: row.title,
+        fieldKey: row.field_key,
+        dueDate: row.due_date,
+        priority: row.priority,
+        status: row.status,
+        isOverdue: row.is_overdue,
       }));
-      data.tasks = data.tasks.map((row) => {
-        const { due_date: _legacy, ...rest } = row as MemberTaskItem & { due_date?: string | null };
-        return rest;
-      });
     } catch (reason) {
       warn("member-area-tasks", reason);
       data.errors.push("tasks");
