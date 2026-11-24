@@ -38,6 +38,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Organization reporting regression checks
+        run: npm run test:organization-reporting
+
       - name: TypeScript validation
         run: npm run typecheck
 
