@@ -180,7 +180,15 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
 
   const eventsJob = (async () => {
     try {
-      const rows = rowsFromResult<MemberEventItem>(await sql`
+      const rows = rowsFromResult<{
+        id: string;
+        title: string;
+        date: string;
+        time_label: string | null;
+        location: string | null;
+        kind: "kegiatan" | "rapat";
+        reference_no: string;
+      }>(await sql`
         SELECT
           activity.id::text AS id,
           activity.title,
@@ -218,7 +226,15 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
         ORDER BY date ASC, time_label ASC NULLS LAST
         LIMIT 12
       `);
-      data.events = rows;
+      data.events = rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        date: row.date,
+        timeLabel: row.time_label,
+        location: row.location,
+        kind: row.kind,
+        referenceNo: row.reference_no,
+      }));
     } catch (reason) {
       warn("member-area-events", reason);
       data.errors.push("events");
@@ -302,7 +318,21 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
   const trainingJob = (async () => {
     try {
       const memberId = data.profile?.membershipId ?? null;
-      const rows = rowsFromResult<MemberTrainingItem>(await sql`
+      const rows = rowsFromResult<{
+        id: string;
+        reference_no: string;
+        title: string;
+        topic: string | null;
+        date: string;
+        start_time: string | null;
+        location: string | null;
+        trainer: string | null;
+        max_participants: number | null;
+        registered_count: number;
+        status: "planned" | "registration_open";
+        registration_status: "registered" | "confirmed" | "waitlisted" | "cancelled" | null;
+        attendance_status: "not_marked" | "hadir" | "izin" | "sakit" | "alpa" | null;
+      }>(await sql`
         SELECT
           session.id::text AS id,
           session.reference_no,
@@ -333,7 +363,21 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
         ORDER BY session.session_date ASC, session.start_time ASC NULLS LAST
         LIMIT 10
       `);
-      data.trainings = rows;
+      data.trainings = rows.map((row) => ({
+        id: row.id,
+        referenceNo: row.reference_no,
+        title: row.title,
+        topic: row.topic,
+        date: row.date,
+        startTime: row.start_time,
+        location: row.location,
+        trainer: row.trainer,
+        maxParticipants: row.max_participants,
+        registeredCount: row.registered_count,
+        status: row.status,
+        registrationStatus: row.registration_status,
+        attendanceStatus: row.attendance_status,
+      }));
     } catch (reason) {
       warn("member-area-trainings", reason);
       data.errors.push("trainings");
