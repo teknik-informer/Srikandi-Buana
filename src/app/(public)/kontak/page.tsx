@@ -34,13 +34,13 @@ export default async function KontakPage({
     "public-contact",
     async () => {
       const sql = getV9Sql();
-      const result = await sql\`
+      const result = await sql`
         SELECT legal_name, short_name, address
         FROM v9.organizations
         WHERE slug = 'srikandi-buana'
           AND status = 'active'
         LIMIT 1
-      \`;
+      `;
       return rowsFromResult<PublicContact>(result)[0] ?? null;
     },
     null as PublicContact | null,
