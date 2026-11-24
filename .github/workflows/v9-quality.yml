@@ -5,9 +5,11 @@ on:
     branches:
       - v9-rebuild
       - feat/v9-operational-core
+      - feat/v9.2-production-integration
   pull_request:
     branches:
       - v9-rebuild
+      - feat/v9.2-production-integration
 
 permissions:
   contents: read
