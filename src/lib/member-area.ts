@@ -117,16 +117,16 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
           membership.member_number,
           CASE
             WHEN membership.status = 'active'
-              AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
-              AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+              AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+              AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
               THEN 'active'
             WHEN membership.status = 'active' THEN 'inactive'
             ELSE membership.status
           END AS membership_status,
           (
             membership.status = 'active'
-            AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
-            AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+            AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+            AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
           ) AS is_current_membership,
           to_char(membership.valid_from, 'YYYY-MM-DD') AS joined_on
         FROM v9.user_accounts AS account
@@ -144,8 +144,8 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
           ORDER BY
             CASE
               WHEN member.status = 'active'
-                AND (member.valid_from IS NULL OR member.valid_from <= current_date)
-                AND (member.valid_until IS NULL OR member.valid_until >= current_date)
+                AND (member.valid_from IS NULL OR member.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+                AND (member.valid_until IS NULL OR member.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
                 THEN 0
               WHEN member.status = 'pending' THEN 1
               WHEN member.status = 'inactive' THEN 2
@@ -204,7 +204,7 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
         WHERE activity.organization_id = ${identity.organizationId}
           AND activity.open_to_public = true
           AND activity.status IN ('scheduled', 'in_progress')
-          AND activity.activity_date >= current_date
+          AND activity.activity_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
 
         UNION ALL
 
@@ -221,7 +221,7 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
           AND meeting.meeting_type = 'anggota'
           AND meeting.open_to_public = true
           AND meeting.status = 'scheduled'
-          AND meeting.meeting_date >= current_date
+          AND meeting.meeting_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
 
         ORDER BY date ASC, time_label ASC NULLS LAST
         LIMIT 12
@@ -262,7 +262,7 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
           task.priority,
           task.status,
           (
-            task.due_date < current_date
+            task.due_date < (now() AT TIME ZONE 'Asia/Jakarta')::date
             AND task.status NOT IN ('selesai', 'dibatalkan')
           ) AS is_overdue
         FROM v9.field_tasks AS task
@@ -359,7 +359,7 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
         WHERE session.organization_id = ${identity.organizationId}
           AND session.field_key = 'pelatihan'
           AND session.status IN ('planned', 'registration_open')
-          AND session.session_date >= current_date
+          AND session.session_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
         ORDER BY session.session_date ASC, session.start_time ASC NULLS LAST
         LIMIT 10
       `);
