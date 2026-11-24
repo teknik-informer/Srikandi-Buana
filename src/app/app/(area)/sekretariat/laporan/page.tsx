@@ -167,11 +167,18 @@ export default async function LaporanSekretariatPage({
         `,
         sql`
           SELECT
-            count(*) FILTER (WHERE membership.status = 'active')::int AS active_count,
+            count(*) FILTER (
+              WHERE membership.status = 'active'
+                AND person.status = 'active'
+                AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+                AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+            )::int AS active_count,
             count(*) FILTER (WHERE membership.status = 'pending')::int AS pending_count,
             count(*) FILTER (WHERE membership.status = 'inactive')::int AS inactive_count,
             count(*) FILTER (WHERE membership.status = 'left')::int AS left_count
           FROM v9.memberships AS membership
+          LEFT JOIN v9.people AS person
+            ON person.id = membership.person_id
           WHERE membership.organization_id = ${identity.organizationId}
         `,
       ]);
