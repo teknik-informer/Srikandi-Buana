@@ -95,7 +95,7 @@ export default async function AppHome() {
                   <FieldMark icon={f.icon} accent={f.accent} />
                   <span className="min-w-0">
                     <span className="block text-[12.5px] font-semibold text-ink">{f.shortName}</span>
-                    <span className="mt-0.5 block text-[11px] text-muted">{f.modules.length} modul · {f.teamSize} anggota tim</span>
+                    <span className="mt-0.5 block text-[11px] text-muted">{f.modules.length} modul · data tim belum tercatat</span>
                     <span className="mt-1 inline-block"><StatusBadge status={f.appStatus} /></span>
                   </span>
                 </Link>
