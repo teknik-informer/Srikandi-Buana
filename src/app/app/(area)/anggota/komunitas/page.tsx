@@ -1,57 +1,43 @@
 import type { Metadata } from "next";
-import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
+import { MessagesSquare, ShieldCheck } from "lucide-react";
+import { Card, CardHeader, Notice, PageHeader } from "@/components/ui";
+import { requireIdentity } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Komunitas" };
+export const metadata: Metadata = { title: "Komunitas Anggota" };
 
-const THREADS = [
-  { id: "TH-01", title: "Tips penyimpanan kopi setelah panen", author: "Warsiti", group: "Kelompok Kopi", replies: 8, last: "2 hari lalu" },
-  { id: "TH-02", title: "Jadwal giliran rumah jemur Desember", author: "Parmi", group: "Kelompok Kopi", replies: 5, last: "4 hari lalu" },
-  { id: "TH-03", title: "Ide kemasan madu untuk kafe", author: "Suprapti", group: "Bidang Usaha", replies: 11, last: "6 hari lalu" },
-  { id: "TH-04", title: "Pengalaman ikut Sekolah Tani pertama", author: "Ngatinem", group: "Umum", replies: 14, last: "1 minggu lalu" },
-];
+export default async function KomunitasPage() {
+  await requireIdentity("member:self");
 
-export default function KomunitasPage() {
   return (
     <div className="pb-10">
       <PageHeader
-        eyebrow="Pusat Komunitas"
-        title="Forum & ruang diskusi"
-        description="Ruang komunikasi anggota yang melekat pada pekerjaan: kelompok minat, bidang, dan pekerjaan yang dibagikan."
+        eyebrow="Portal Anggota"
+        title="Komunitas & ruang diskusi"
+        description="Ruang berbagi antaranggota yang akan terhubung ke akun dan tata kelola organisasi."
       />
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card>
-          <CardHeader title="Diskusi terbaru" action={<Badge tone="neutral">4 topik</Badge>} />
-          <div className="divide-y divide-line">
-            {THREADS.map((t) => (
-              <div key={t.id} className="px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[13px] font-semibold text-ink">{t.title}</div>
-                  <span className="text-[10.5px] text-muted2">{t.last}</span>
-                </div>
-                <div className="mt-0.5 text-[10.5px] text-muted2">{t.author} · {t.group} · {t.replies} balasan</div>
-              </div>
-            ))}
+      <Card>
+        <CardHeader title="Forum anggota" action={<MessagesSquare size={16} className="text-muted2" />} />
+        <div className="px-4 py-9 text-center">
+          <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-paper text-muted2">
+            <MessagesSquare size={20} />
           </div>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Aturan komunitas" />
-            <ul className="space-y-2 px-4 py-3 text-[12px] text-ink2">
-              {[
-                "Hormati anggota lain; kritik ide, bukan orang.",
-                "Jangan bagikan data pribadi anggota lain.",
-                "Diskusi komersial melalui kanal resmi bidang usaha.",
-                "Moderasi oleh pengurus dengan catatan tindakan.",
-              ].map((r) => (
-                <li key={r} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-400" />{r}</li>
-              ))}
-            </ul>
-          </Card>
-          <Notice tone="info" title="Pesan pribadi">
-            Pesan pribadi antar-anggota tersedia pada produksi dengan kontrol privasi. Pada demo ini
-            kanal pesan dinonaktifkan untuk menghindari pengumpulan data nyata.
-          </Notice>
+          <h2 className="mt-3 text-[13px] font-semibold text-ink">Forum belum diaktifkan</h2>
+          <p className="mx-auto mt-1.5 max-w-lg text-[11.5px] leading-5 text-muted">
+            Sistem belum memiliki penyimpanan percakapan, identitas penulis, moderasi, dan kontrol pelaporan
+            yang terhubung ke akun anggota. Diskusi contoh telah disembunyikan agar tidak tampak sebagai
+            percakapan nyata.
+          </p>
         </div>
+      </Card>
+      <div className="mt-4">
+        <Notice tone="info" title="Privasi dan moderasi">
+          Forum hanya akan dibuka setelah akses per anggota, penghapusan/pelaporan konten, aturan moderasi,
+          dan catatan tindakan pengurus tersedia. Data pribadi anggota tidak boleh tampil tanpa persetujuan.
+        </Notice>
+      </div>
+      <div className="mt-4 flex items-start gap-2 rounded-sb-sm border border-line bg-paper px-3.5 py-3 text-[11px] leading-5 text-muted">
+        <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+        Untuk saat ini gunakan komunikasi resmi organisasi yang sudah ditetapkan pengurus.
       </div>
     </div>
   );
