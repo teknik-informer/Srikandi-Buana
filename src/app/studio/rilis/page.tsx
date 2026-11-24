@@ -1,13 +1,23 @@
+import Link from "next/link";
 import type { Metadata } from "next";
-import { STUDIO_PAGES } from "@/data/content";
-import { Badge, Card, CardHeader, Notice, PageHeader, StatusBadge } from "@/components/ui";
+import { ArrowUpRight, GitBranch, ShieldCheck } from "lucide-react";
+import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
 
-const RELEASES = [
-  { id: "REL-2026-11-20", scope: "Website — Beranda", type: "konten", by: "Sekretariat", status: "terbit", note: "Tambah blok kutipan & perbarui angka panen" },
-  { id: "REL-2026-11-19", scope: "Katalog produk", type: "konfigurasi", by: "Bidang Usaha", status: "terbit", note: "Publikasikan 2 produk, sembunyikan 1 produk stok habis" },
-  { id: "REL-2026-11-18", scope: "Dashboard Pengurus", type: "konfigurasi", by: "Pengurus", status: "terbit", note: "Tambah widget approval 2 kolom" },
-  { id: "REL-2026-11-22", scope: "Halaman Kemitraan", type: "konten", by: "Sekretariat", status: "review", note: "Draf pembaruan daftar mitra menunggu persetujuan ketua" },
-  { id: "REL-2026-11-22", scope: "Workflow pengajuan anggaran", type: "konfigurasi", by: "Bendahara", status: "draft", note: "Usulan ambang persetujuan — menunggu keputusan resmi" },
+export const metadata: Metadata = { title: "Rilis & Riwayat" };
+
+const releaseSystems = [
+  {
+    name: "GitHub Actions",
+    purpose: "Pemeriksaan TypeScript, validasi build, dan workflow CI",
+    href: "https://github.com/teknik-informer/Srikandi-Buana/actions",
+    status: "Sumber CI",
+  },
+  {
+    name: "Vercel Project",
+    purpose: "Preview deployment, Production deployment, dan domain",
+    href: "https://vercel.com/teknik-informer/srikandi-buana-v9",
+    status: "Sumber deployment",
+  },
 ];
 
 export default function RilisStudio() {
@@ -16,54 +26,53 @@ export default function RilisStudio() {
       <PageHeader
         eyebrow="Release Manager"
         title="Rilis, pratinjau & riwayat"
-        description="Perubahan konfigurasi memiliki draf, pratinjau, persetujuan, publikasi, riwayat, dan rollback. Rollback konfigurasi dibedakan dari migrasi data."
+        description="Status build dan deployment diperiksa pada pipeline rilis. Halaman ini tidak menampilkan riwayat rilis contoh atau mengklaim publikasi yang belum dikonfirmasi."
+        actions={<Badge tone="neutral">Integrasi CI/CD</Badge>}
       />
-      <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <Card>
-          <CardHeader title="Riwayat rilis" subtitle="Konfigurasi & konten" action={<Badge tone="neutral">5 entri</Badge>} />
-          <div className="divide-y divide-line">
-            {RELEASES.map((r, i) => (
-              <div key={i} className="flex flex-wrap items-start justify-between gap-2 px-4 py-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[10.5px] text-muted">{r.id}</span>
-                    <Badge tone={r.type === "konten" ? "info" : "accent"}>{r.type}</Badge>
-                  </div>
-                  <div className="mt-0.5 text-[12.5px] font-semibold text-ink">{r.scope}</div>
-                  <div className="text-[11px] text-muted">{r.note}</div>
-                  <div className="text-[10.5px] text-muted2">oleh {r.by}</div>
-                </div>
-                <StatusBadge status={r.status === "terbit" ? "Terbit" : r.status === "review" ? "Review" : "Draf"} />
-              </div>
-            ))}
-          </div>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Status halaman" />
-            <div className="divide-y divide-line">
-              {STUDIO_PAGES.map((p) => (
-                <div key={p.path} className="flex items-center justify-between gap-2 px-4 py-2">
-                  <span className="font-mono text-[11px] text-ink2">{p.path}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10.5px] text-muted2">{p.revisions} revisi</span>
-                    <StatusBadge status={p.status === "published" ? "Terbit" : p.status} />
-                  </div>
-                </div>
-              ))}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {releaseSystems.map((system) => (
+          <Card key={system.name}>
+            <CardHeader title={system.name} action={<Badge tone="info">{system.status}</Badge>} />
+            <div className="px-4 pb-4">
+              <p className="text-[11.5px] leading-relaxed text-muted">{system.purpose}</p>
+              <Link href={system.href} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-primary-700">
+                Buka sumber rilis <ArrowUpRight size={13} />
+              </Link>
             </div>
           </Card>
-          <Notice tone="warning" title="Rollback vs migrasi">
-            Rollback mengembalikan konfigurasi ke versi sebelumnya. Migrasi data bersifat satu arah dan
-            memerlukan backup, validasi row count/checksum, serta rencana pemulihan.
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Gerbang rilis" action={<ShieldCheck size={16} className="text-muted2" />} />
+          <ol className="space-y-3 px-4 py-4 text-[11.5px]">
+            {[
+              ["1", "Pemeriksaan kode", "TypeScript dan lint/build harus lulus pada commit yang akan dirilis."],
+              ["2", "Preview", "Deployment Preview harus READY pada commit branch yang sama."],
+              ["3", "Uji fungsional", "Login, RBAC, transaksi baca/tulis, dan alur kritis diuji pada Preview."],
+              ["4", "Uji perangkat", "Layout diperiksa pada desktop, tablet, dan ponsel tanpa overflow."],
+              ["5", "Persetujuan Production", "Backup, preflight database, dan persetujuan eksplisit sebelum deployment atau perpindahan domain."],
+            ].map(([step, title, detail]) => (
+              <li key={step} className="flex gap-3">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-paper text-[10px] font-bold text-ink2">{step}</span>
+                <span className="min-w-0">
+                  <strong className="block text-ink">{title}</strong>
+                  <span className="mt-0.5 block text-muted">{detail}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </Card>
+
+        <div className="space-y-4">
+          <Notice tone="warning" title="Riwayat konfigurasi belum disimpan di Studio">
+            Belum ada tabel release registry, approval konfigurasi, atau rollback metadata yang dikelola oleh Studio. Riwayat commit dan deployment berada pada GitHub dan Vercel. Tidak ada status rilis yang dibuat dari daftar contoh.
           </Notice>
-          <Card className="p-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Pratinjau</div>
-            <p className="mt-1 text-[12px] leading-relaxed text-ink2">
-              Perubahan berstatus draf/review tidak memengaruhi website live. Pratinjau memakai data
-              yang sama dengan produksi tetapi tanpa mengubah konten publik.
-            </p>
-          </Card>
+          <Notice tone="info" title="Rollback berbeda dari migrasi data">
+            Rollback deployment mengembalikan versi aplikasi. Migrasi database dan data memerlukan backup, evaluasi kompatibilitas, dan prosedur pemulihan terpisah.
+          </Notice>
         </div>
       </div>
     </div>
