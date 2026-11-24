@@ -160,7 +160,7 @@ function Inner({
   }
 
   async function saveAssign() {
-    if (!canManage || !assignOpen || pending) return;
+    if (!canManage || !assignOpen || pending || assigneeLoadError) return;
     setErr(null);
     setPending(true);
     try {
@@ -429,7 +429,7 @@ function Inner({
         onClose={() => setAssignOpen(null)}
         title="Delegasikan tugas"
         description={target?.title}
-        footer={<><Btn variant="ghost" onClick={() => setAssignOpen(null)} disabled={pending}>Batal</Btn><Btn variant="primary" onClick={() => void saveAssign()} loading={pending}>Simpan delegasi</Btn></>}
+        footer={<><Btn variant="ghost" onClick={() => setAssignOpen(null)} disabled={pending}>Batal</Btn><Btn variant="primary" onClick={() => void saveAssign()} loading={pending} disabled={assigneeLoadError}>Simpan delegasi</Btn></>}
       >
         <div className="space-y-3">
           <Field label="Tautkan ke anggota aktif">
