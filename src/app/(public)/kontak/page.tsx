@@ -1,64 +1,112 @@
+import Link from "next/link";
 import type { Metadata } from "next";
-import { ORG } from "@/config/org";
-import { Card, CardHeader, Notice } from "@/components/ui";
-import { Mail, MapPin, Clock, MessageCircle } from "lucide-react";
+import { MapPin, FileText, UserPlus } from "lucide-react";
+import { Card, CardHeader, EmptyState, Notice, PageHeader } from "@/components/ui";
+import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { loadPublicData } from "@/lib/public-data";
+import { PublicDataUnavailable } from "@/components/public-data-unavailable";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Kontak",
-  description: "Alamat, jam layanan, dan kanal komunikasi resmi KWT Srikandi Buana.",
+  description: "Alamat organisasi Srikandi Buana yang tercatat pada registry.",
 };
 
-export default async function KontakPage({ searchParams }: { searchParams: Promise<{ tujuan?: string }> }) {
+interface PublicContact {
+  legal_name: string;
+  short_name: string;
+  address: string | null;
+}
+
+export default async function KontakPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tujuan?: string }>;
+}) {
   const { tujuan } = await searchParams;
+  const inquiryLabel =
+    tujuan === "kemitraan" ? "pembicaraan kemitraan" :
+    tujuan === "pelatihan" ? "informasi pelatihan" :
+    tujuan === "informasi" ? "permintaan informasi" :
+    "pertanyaan umum";
+
+  const loaded = await loadPublicData(
+    "public-contact",
+    async () => {
+      const sql = getV9Sql();
+      const result = await sql\`
+        SELECT legal_name, short_name, address
+        FROM v9.organizations
+        WHERE slug = 'srikandi-buana'
+          AND status = 'active'
+        LIMIT 1
+      \`;
+      return rowsFromResult<PublicContact>(result)[0] ?? null;
+    },
+    null as PublicContact | null,
+  );
+
+  if (loaded.unavailable) {
+    return (
+      <div className="sb-shell py-12">
+        <PageHeader eyebrow="Kontak" title="Informasi sekretariat" description="Alamat yang tercatat pada registry organisasi." />
+        <PublicDataUnavailable resource="Informasi kontak" retryHref="/kontak" />
+      </div>
+    );
+  }
+
+  const organization = loaded.data;
 
   return (
     <div className="sb-shell py-12">
-      <div className="sb-label mb-2">Kontak</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Bicara langsung dengan sekretariat.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Untuk pertanyaan umum, kemitraan, atau permintaan informasi institusional.
-      </p>
+      <PageHeader
+        eyebrow="Kontak"
+        title="Informasi sekretariat"
+        description="Informasi yang ditampilkan dibatasi pada data alamat organisasi yang benar-benar tercatat. Kanal komunikasi resmi belum dipublikasikan melalui registry."
+      />
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader title="Kantor & balai pertemuan" />
-          <div className="space-y-4 px-5 py-4 text-[13px]">
-            <div className="flex gap-3"><MapPin size={17} className="mt-0.5 shrink-0 text-primary-600" /><div><div className="font-semibold text-ink">Alamat</div><p className="text-muted">{ORG.address}</p></div></div>
-            <div className="flex gap-3"><Clock size={17} className="mt-0.5 shrink-0 text-primary-600" /><div><div className="font-semibold text-ink">Jam layanan</div><p className="text-muted">{ORG.hours}</p></div></div>
-            <div className="flex gap-3"><Mail size={17} className="mt-0.5 shrink-0 text-primary-600" /><div><div className="font-semibold text-ink">Surel</div><p className="text-muted">{ORG.email}</p></div></div>
-            <div className="flex gap-3"><MessageCircle size={17} className="mt-0.5 shrink-0 text-primary-600" /><div><div className="font-semibold text-ink">WhatsApp resmi</div><p className="text-muted">{ORG.whatsapp} · balasan 1×24 jam kerja</p></div></div>
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader title="Permintaan informasi" subtitle={tujuan === "informasi" ? "Untuk institusi, peneliti, atau media" : "Pilih keperluan Anda"} />
-          <div className="px-5 py-4">
-            <ul className="space-y-2.5 text-[13px] text-ink2">
-              <li><span className="font-semibold text-ink">Institusi / pemerintah:</span> permintaan data dan laporan program melalui portal eksternal setelah persetujuan.</li>
-              <li><span className="font-semibold text-ink">NGO / funder:</span> dokumen kerja sama dan laporan milestone dikelola Bidang Usaha &amp; Kemitraan.</li>
-              <li><span className="font-semibold text-ink">Media:</span> kutipan resmi hanya dari Ketua atau Sekretaris.</li>
-              <li><span className="font-semibold text-ink">Calon anggota:</span> gunakan <a className="font-semibold text-primary-700 underline" href="/gabung">formulir minat bergabung</a>.</li>
-            </ul>
-            <div className="mt-4">
-              <Notice tone="info">
-                Lingkungan demo: formulir kontak tidak mengirim pesan keluar. Kanal resmi di atas
-                adalah placeholder untuk tujuan demonstrasi.
-              </Notice>
+      {organization ? (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader title="Alamat organisasi" action={<MapPin size={16} className="text-muted2" />} />
+            <div className="px-5 py-4">
+              <div className="text-[13px] font-semibold text-ink">{organization.legal_name}</div>
+              {organization.address ? (
+                <p className="mt-2 text-[12.5px] leading-relaxed text-ink2">{organization.address}</p>
+              ) : (
+                <EmptyState title="Alamat belum dicatat" body="Alamat sekretariat belum tersedia pada registry organisasi." />
+              )}
             </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="mt-4">
-        <CardHeader title="Lokasi" subtitle="Desa Ngadimulyo, Kecamatan Kedu, Kabupaten Temanggung" />
-        <div className="relative overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={"/images/peta-desa.svg"} alt="Ilustrasi peta lokasi Desa Ngadimulyo, Kedu, Temanggung" className="aspect-[21/9] w-full bg-[var(--sb-primary-50)] object-contain" width={1400} height={600} loading="lazy" />
-          <div className="absolute bottom-3 left-3 rounded-md border border-line bg-white/95 px-3 py-1.5 text-[11.5px] font-medium text-ink2 shadow-sm">
-            Balai Pertemuan KWT Srikandi Buana · 7.2°S, 110.1°E (ilustrasi)
-          </div>
+          </Card>
+          <Card>
+            <CardHeader title="Keperluan informasi" />
+            <div className="space-y-3 px-5 py-4 text-[12px] text-ink2">
+              <div>
+                <div className="font-semibold text-ink">Permintaan informasi</div>
+                <p className="mt-1 text-muted">Tujuan saat ini: {inquiryLabel}. Permintaan resmi perlu dicatat dan ditinjau oleh Sekretariat.</p>
+              </div>
+              <div className="border-t border-line pt-3">
+                <div className="font-semibold text-ink">Minat bergabung</div>
+                <p className="mt-1 text-muted">Gunakan formulir minat bergabung. Pengajuan bukan keanggotaan resmi sampai diverifikasi pengurus.</p>
+                <Link href="/gabung" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">Formulir minat <UserPlus size={12} /></Link>
+              </div>
+              <div className="border-t border-line pt-3">
+                <div className="font-semibold text-ink">Dokumen</div>
+                <p className="mt-1 text-muted">Dokumen yang sudah final dan diklasifikasikan publik tersedia pada arsip publik.</p>
+                <Link href="/dokumen" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">Dokumen publik <FileText size={12} /></Link>
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
+      ) : (
+        <div className="mt-6"><EmptyState title="Informasi organisasi belum tersedia" body="Tidak ditemukan organisasi aktif pada registry publik." /></div>
+      )}
+
+      <div className="mt-5">
+        <Notice tone="warning" title="Kanal resmi belum tercatat">
+          Email, nomor telepon/WhatsApp, jam layanan, dan titik koordinat belum tersedia pada registry terstruktur. Informasi placeholder tidak ditampilkan sebagai kanal resmi.
+        </Notice>
+      </div>
     </div>
   );
 }
