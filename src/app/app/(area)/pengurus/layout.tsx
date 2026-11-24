@@ -50,7 +50,7 @@ export default async function PengurusLayout({ children }: { children: React.Rea
     }
 
     const results = await Promise.all(jobs);
-    pending = results.reduce((total, result) => {
+    pending = results.reduce<number>((total, result) => {
       const count = rowsFromResult<CountRow>(result)[0]?.count ?? 0;
       return total + Number(count);
     }, 0);
