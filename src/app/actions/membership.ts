@@ -15,15 +15,20 @@ export async function decideMembershipInterest(formData: FormData): Promise<void
   const id = String(formData.get("id") ?? "").trim();
   const decision = String(formData.get("decision") ?? "").trim();
   const reviewNote = String(formData.get("review_note") ?? "").trim();
+  const returnToPengurus = formData.get("return_to") === "pengurus";
+  const returnPath = (result: string) =>
+    returnToPengurus
+      ? `/app/pengurus/persetujuan?result=${encodeURIComponent(result)}`
+      : `/app/bidang/organisasi/pengajuan?result=${encodeURIComponent(result)}`;
 
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
-    redirect("/app/bidang/organisasi/pengajuan?result=invalid");
+    redirect(returnPath("invalid"));
   }
   if (!["under_review", "approved", "rejected"].includes(decision)) {
-    redirect("/app/bidang/organisasi/pengajuan?result=invalid");
+    redirect(returnPath("invalid"));
   }
   if (reviewNote.length > 1000) {
-    redirect("/app/bidang/organisasi/pengajuan?result=invalid");
+    redirect(returnPath("invalid"));
   }
 
   const sql = getV9Sql();
@@ -151,10 +156,11 @@ export async function decideMembershipInterest(formData: FormData): Promise<void
 
   const rows = rowsFromResult<DecisionResult>(result);
   if (rows.length !== 1) {
-    redirect("/app/bidang/organisasi/pengajuan?result=stale");
+    redirect(returnPath("stale"));
   }
 
   revalidatePath("/app/bidang/organisasi/pengajuan");
   revalidatePath("/app/pengurus/anggota");
-  redirect(`/app/bidang/organisasi/pengajuan?result=${decision}`);
+  revalidatePath("/app/pengurus/persetujuan");
+  redirect(returnPath(decision));
 }
