@@ -41,7 +41,7 @@ BEGIN
     FROM public.users AS legacy
     WHERE legacy.id IS NOT NULL
       AND legacy.email IS NOT NULL
-      AND lower(btrim(legacy.email)) ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+      AND lower(btrim(legacy.email)) ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
     ON CONFLICT (legacy_source_user_id)
       WHERE legacy_source_user_id IS NOT NULL DO NOTHING
   $import_people$;
@@ -93,7 +93,7 @@ BEGIN
       ON person.legacy_source_user_id = legacy.id
     WHERE legacy.id IS NOT NULL
       AND legacy.email IS NOT NULL
-      AND lower(btrim(legacy.email)) ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+
+      AND lower(btrim(legacy.email)) ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
     ON CONFLICT (legacy_source_user_id)
       WHERE legacy_source_user_id IS NOT NULL DO NOTHING
   $import_accounts$, email_verified_expression);
