@@ -420,7 +420,6 @@ function Inner({
               )}
             </Field>
           </div>
-          {assigneeLoadError ? <p className="text-[10.5px] text-[var(--sb-warning)]">Daftar akun anggota aktif belum dapat dimuat. Penanggung jawab manual tidak akan ditautkan ke akun.</p> : null}
           {err ? <p className="text-[11.5px] font-medium text-[var(--sb-danger)]" role="alert">{err}</p> : null}
         </div>
       </Modal>
