@@ -65,7 +65,7 @@ export interface MemberAreaData {
   events: MemberEventItem[];
   trainings: MemberTrainingItem[];
   tasks: MemberTaskItem[];
-  errors: ("profile" | "events" | "trainings" | "tasks")[];
+  errors: ("profile" | "events" | "trainings" | "tasks" | "attendance")[];
 }
 
 function warn(area: string, reason: unknown): void {
@@ -106,6 +106,7 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
         membership_id: string | null;
         membership_status: string | null;
         joined_on: string | null;
+        is_current_membership: boolean;
       }>(await sql`
         SELECT
           person.id::text AS person_id,
@@ -114,7 +115,19 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
           person.village,
           membership.id::text AS membership_id,
           membership.member_number,
-          membership.status AS membership_status,
+          CASE
+            WHEN membership.status = 'active'
+              AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
+              AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+              THEN 'active'
+            WHEN membership.status = 'active' THEN 'inactive'
+            ELSE membership.status
+          END AS membership_status,
+          (
+            membership.status = 'active'
+            AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
+            AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+          ) AS is_current_membership,
           to_char(membership.valid_from, 'YYYY-MM-DD') AS joined_on
         FROM v9.user_accounts AS account
         INNER JOIN v9.people AS person
@@ -154,8 +167,7 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
           preferredName: row.preferred_name,
           memberNumber: row.member_number,
           village: row.village,
-          membershipId:
-            row.membership_status === "active" ? row.membership_id : null,
+          membershipId: row.is_current_membership ? row.membership_id : null,
           membershipStatus: row.membership_status,
           joinedOn: row.joined_on,
         };
