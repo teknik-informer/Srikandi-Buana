@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Package, Store } from "lucide-react";
 import { Badge, Card, EmptyState, Notice } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { loadPublicData } from "@/lib/public-data";
+import { PublicDataUnavailable } from "@/components/public-data-unavailable";
 
 export const dynamic = "force-dynamic";
 
@@ -20,32 +22,38 @@ interface PublicProduct {
   producer_label: string | null;
 }
 
-async function findPublishedProduct(slug: string): Promise<PublicProduct | null> {
-  const sql = getV9Sql();
-  const result = await sql`
-    SELECT
-      product.id::text AS id,
-      product.slug,
-      product.reference_no,
-      product.product_name,
-      product.category_label,
-      product.product_kind,
-      product.unit_label,
-      product.selling_price::text AS selling_price,
-      product.description,
-      product.producer_label
-    FROM v9.business_products AS product
-    INNER JOIN v9.organizations AS organization
-      ON organization.id = product.organization_id
-    WHERE organization.slug = 'srikandi-buana'
-      AND organization.status = 'active'
-      AND product.field_key = 'usaha'
-      AND product.slug = ${slug}
-      AND product.status = 'active'
-      AND product.publication_status = 'published'
-    LIMIT 1
-  `;
-  return rowsFromResult<PublicProduct>(result)[0] ?? null;
+async function findPublishedProduct(slug: string) {
+  return loadPublicData(
+    "product-detail",
+    async () => {
+      const sql = getV9Sql();
+      const result = await sql`
+        SELECT
+          product.id::text AS id,
+          product.slug,
+          product.reference_no,
+          product.product_name,
+          product.category_label,
+          product.product_kind,
+          product.unit_label,
+          product.selling_price::text AS selling_price,
+          product.description,
+          product.producer_label
+        FROM v9.business_products AS product
+        INNER JOIN v9.organizations AS organization
+          ON organization.id = product.organization_id
+        WHERE organization.slug = 'srikandi-buana'
+          AND organization.status = 'active'
+          AND product.field_key = 'usaha'
+          AND product.slug = ${slug}
+          AND product.status = 'active'
+          AND product.publication_status = 'published'
+        LIMIT 1
+      `;
+      return rowsFromResult<PublicProduct>(result)[0] ?? null;
+    },
+    null as PublicProduct | null,
+  );
 }
 
 function priceLabel(value: string): string {
@@ -61,7 +69,14 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await findPublishedProduct(slug);
+  const lookup = await findPublishedProduct(slug);
+  if (lookup.unavailable) {
+    return {
+      title: "Informasi produk sementara tidak tersedia",
+      description: "Katalog produk Srikandi Buana sedang mengalami gangguan layanan data.",
+    };
+  }
+  const product = lookup.data;
   if (!product) return { title: "Produk tidak ditemukan" };
   return {
     title: product.product_name,
@@ -75,12 +90,26 @@ export default async function ProductDetail({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await findPublishedProduct(slug);
+  const lookup = await findPublishedProduct(slug);
+  if (lookup.unavailable) {
+    return (
+      <div className="sb-shell py-10">
+        <PublicDataUnavailable
+          resource="Informasi produk"
+          retryHref={`/produk/${encodeURIComponent(slug)}`}
+        />
+      </div>
+    );
+  }
+  const product = lookup.data;
   if (!product) notFound();
 
-  const sql = getV9Sql();
-  const relatedResult = product.category_label
-    ? await sql`
+  const relatedResult = await loadPublicData(
+    "related-products",
+    async () => {
+      if (!product.category_label) return [];
+      const sql = getV9Sql();
+      const result = await sql`
         SELECT id::text AS id, slug, product_name, category_label, unit_label, selling_price::text AS selling_price
         FROM v9.business_products
         WHERE organization_id = (
@@ -95,9 +124,12 @@ export default async function ProductDetail({
           AND id <> ${product.id}::uuid
         ORDER BY product_name
         LIMIT 3
-      `
-    : [];
-  const related = rowsFromResult<Pick<PublicProduct, "id" | "slug" | "product_name" | "category_label" | "unit_label" | "selling_price">>(relatedResult);
+      `;
+      return rowsFromResult<Pick<PublicProduct, "id" | "slug" | "product_name" | "category_label" | "unit_label" | "selling_price">>(result);
+    },
+    [] as Pick<PublicProduct, "id" | "slug" | "product_name" | "category_label" | "unit_label" | "selling_price">[],
+  );
+  const related = relatedResult.data;
 
   return (
     <div className="sb-shell py-10">

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { ArrowRight, Package, Store } from "lucide-react";
 import { Badge, Card, EmptyState, Notice } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { loadPublicData } from "@/lib/public-data";
+import { PublicDataUnavailable } from "@/components/public-data-unavailable";
 
 export const dynamic = "force-dynamic";
 
@@ -35,29 +37,54 @@ export default async function ProdukPage({
   searchParams: Promise<{ lihat?: string; oleh?: string; kategori?: string }>;
 }) {
   const { lihat, oleh, kategori } = await searchParams;
-  const sql = getV9Sql();
-  const result = await sql`
-    SELECT
-      product.id::text AS id,
-      product.slug,
-      product.product_name,
-      product.category_label,
-      product.unit_label,
-      product.selling_price::text AS selling_price,
-      product.producer_label,
-      product.description
-    FROM v9.business_products AS product
-    INNER JOIN v9.organizations AS organization
-      ON organization.id = product.organization_id
-    WHERE organization.slug = 'srikandi-buana'
-      AND organization.status = 'active'
-      AND product.field_key = 'usaha'
-      AND product.status = 'active'
-      AND product.publication_status = 'published'
-    ORDER BY product.category_label NULLS LAST, product.product_name
-    LIMIT 200
-  `;
-  const products = rowsFromResult<PublicProduct>(result);
+  const loaded = await loadPublicData(
+    "products",
+    async () => {
+      const sql = getV9Sql();
+      const result = await sql`
+        SELECT
+          product.id::text AS id,
+          product.slug,
+          product.product_name,
+          product.category_label,
+          product.unit_label,
+          product.selling_price::text AS selling_price,
+          product.producer_label,
+          product.description
+        FROM v9.business_products AS product
+        INNER JOIN v9.organizations AS organization
+          ON organization.id = product.organization_id
+        WHERE organization.slug = 'srikandi-buana'
+          AND organization.status = 'active'
+          AND product.field_key = 'usaha'
+          AND product.status = 'active'
+          AND product.publication_status = 'published'
+        ORDER BY product.category_label NULLS LAST, product.product_name
+        LIMIT 200
+      `;
+      return rowsFromResult<PublicProduct>(result);
+    },
+    [] as PublicProduct[],
+  );
+
+  if (loaded.unavailable) {
+    return (
+      <div className="sb-shell py-12">
+        <div className="max-w-3xl">
+          <div className="sb-label mb-2">Katalog publik</div>
+          <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">
+            Produk anggota dan kelompok usaha.
+          </h1>
+          <p className="mt-3 text-[14px] leading-relaxed text-ink2">
+            Produk yang ditampilkan telah diaktifkan dan disetujui oleh pengurus.
+          </p>
+        </div>
+        <PublicDataUnavailable resource="Katalog produk" retryHref="/produk" />
+      </div>
+    );
+  }
+
+  const products = loaded.data;
   const categories = [...new Set(products.map((product) => product.category_label).filter((value): value is string => Boolean(value)))];
   const visible = products.filter((product) =>
     (!kategori || product.category_label === kategori) &&
