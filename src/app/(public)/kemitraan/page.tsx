@@ -1,93 +1,75 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PARTNERS } from "@/data/operations";
-import { formatDateID } from "@/lib/format";
-import { Badge, Card, CardHeader, Notice } from "@/components/ui";
+import { ArrowRight, Handshake, ShieldCheck } from "lucide-react";
+import { Card, CardHeader, EmptyState, Notice, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Kemitraan",
-  description: "Program kemitraan Srikandi Buana: mitra pemerintah, NGO, koperasi, usaha, dan akademik.",
+  description: "Informasi kerja sama dan tata cara pengajuan kemitraan dengan Srikandi Buana.",
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  pemerintah: "Pemerintah & desa",
-  ngo: "NGO / filantropi",
-  usaha: "Usaha / UMKM",
-  koperasi: "Koperasi",
-  akademik: "Akademik",
-};
+const discussionAreas = [
+  ["Pendampingan teknis", "Budidaya, pascapanen, mutu, dan penguatan kelembagaan."],
+  ["Pelatihan dan pemberdayaan", "Peningkatan keterampilan, kepemimpinan, dan kapasitas usaha."],
+  ["Pemasaran hasil", "Penjajakan pembelian hasil dengan mutu, volume, dan kesepakatan tertulis."],
+  ["Program dan hibah", "Dukungan program dengan sasaran, milestone, dan pelaporan yang jelas."],
+  ["Riset dan pembelajaran", "Kegiatan kolaborasi dengan perlindungan data anggota dan persetujuan publikasi."],
+];
 
 export default function KemitraanPage() {
   return (
     <div className="sb-shell py-12">
-      <div className="sb-label mb-2">Kemitraan</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Tumbuh bersama, dengan perjanjian yang jelas.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Setiap kerja sama dicatat pada database mitra dengan milestone, dokumen, dan batas data
-        sharing yang disepakati.
-      </p>
+      <PageHeader
+        eyebrow="Kemitraan"
+        title="Kerja sama yang jelas dan saling menghormati."
+        description="Srikandi Buana terbuka untuk menerima usulan kolaborasi. Setiap kerja sama harus ditinjau pengurus dan dituangkan dalam kesepakatan sebelum dinyatakan sebagai kemitraan resmi."
+      />
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader title="Bentuk kerja sama yang kami buka" />
-          <ul className="space-y-2.5 px-5 py-4 text-[13px] text-ink2">
-            <li><span className="font-semibold text-ink">Pendampingan teknis</span> — budidaya, pascapanen, mutu produk.</li>
-            <li><span className="font-semibold text-ink">Pelatihan &amp; peningkatan kapasitas</span> — narasumber atau fasilitator.</li>
-            <li><span className="font-semibold text-ink">Pembelian hasil panen</span> — kontrak pembelian dengan mutu dan harga tertulis.</li>
-            <li><span className="font-semibold text-ink">Hibah / program pemberdayaan</span> — dengan pelaporan milestone.</li>
-            <li><span className="font-semibold text-ink">Riset &amp; pembelajaran</span> — dengan perlindungan data anggota.</li>
-          </ul>
-        </Card>
-        <Card>
-          <CardHeader title="Cara mengajukan" />
-          <ol className="space-y-3 px-5 py-4 text-[13px] text-ink2">
-            {[
-              "Kirim surat/proposal ke surel resmi dengan ringkasan tujuan.",
-              "Bidang Usaha & Kemitraan meninjau kelayakan dan batas data.",
-              "Pertemuan pembahasan dan penetapan milestone.",
-              "Pencatatan pada database mitra dan dokumen perjanjian.",
-            ].map((s, i) => (
-              <li key={i} className="flex gap-2.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-100 text-[10.5px] font-bold text-primary-800">{i + 1}</span>
-                <span>{s}</span>
-              </li>
+          <CardHeader title="Ruang diskusi" action={<Handshake size={16} className="text-muted2" />} />
+          <div className="divide-y divide-line">
+            {discussionAreas.map(([title, detail]) => (
+              <div key={title} className="px-4 py-3">
+                <div className="text-[12px] font-semibold text-ink">{title}</div>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted">{detail}</p>
+              </div>
             ))}
-          </ol>
-          <div className="px-5 pb-4"><Link href="/kontak" className="sb-btn sb-btn-primary">Ajukan kemitraan</Link></div>
+          </div>
         </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader title="Tahapan pengajuan" action={<ShieldCheck size={16} className="text-muted2" />} />
+            <ol className="space-y-3 px-4 py-4 text-[11.5px] text-ink2">
+              {[
+                "Sampaikan profil lembaga dan tujuan usulan kerja sama.",
+                "Pengurus meninjau kesesuaian, risiko, manfaat, dan batas data yang dibagikan.",
+                "Ruang lingkup, sumber daya, tanggung jawab, serta milestone dibahas bersama.",
+                "Kerja sama hanya diumumkan setelah dokumen disahkan dan persetujuan publikasi dicatat.",
+              ].map((item, index) => (
+                <li key={item} className="flex gap-2.5">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-paper text-[10px] font-bold text-ink2">{index + 1}</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ol>
+          </Card>
+          <Notice tone="warning" title="Daftar mitra belum dibuka untuk publik">
+            Registry mitra internal belum memiliki atribut persetujuan publikasi atau data-sharing consent. Nama mitra, kontak, milestone, dan rincian hubungan tidak ditampilkan pada halaman ini sampai mekanisme publikasinya tersedia.
+          </Notice>
+        </div>
       </div>
 
-      <Card className="mt-6">
-        <CardHeader
-          title="Mitra tercatat"
-          subtitle="Hanya mitra yang menyetujui publikasi yang ditampilkan"
-          action={<Badge tone="neutral">{PARTNERS.length} mitra</Badge>}
+      <Card className="mt-5 p-5">
+        <EmptyState
+          title="Belum ada kemitraan yang disetujui untuk publikasi"
+          body="Catatan mitra internal tidak otomatis menjadi portofolio publik. Informasi akan ditampilkan setelah pengurus menyetujui isi dan cakupan publikasinya."
         />
-        <div className="sb-scroll">
-          <table className="sb-table min-w-[680px]">
-            <thead>
-              <tr><th>Mitra</th><th>Jenis</th><th>Mulai</th><th>Milestone berjalan</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {PARTNERS.map((p) => (
-                <tr key={p.id}>
-                  <td className="font-medium text-ink">{p.name}</td>
-                  <td className="text-muted">{TYPE_LABEL[p.type]}</td>
-                  <td className="whitespace-nowrap text-muted">{formatDateID(p.since)}</td>
-                  <td className="text-muted">{p.milestone}</td>
-                  <td><Badge tone={p.status === "aktif" ? "success" : "warning"}>{p.status}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </Card>
 
-      <div className="mt-5">
-        <Notice tone="warning" title="Batas data sharing">
-          Akses mitra terhadap data anggota hanya melalui persetujuan tertulis dan data-sharing grant
-          yang dapat dicabut. Portofolio mitra tidak membuka data transaksi internal.
-        </Notice>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Link href="/kontak?tujuan=kemitraan" className="sb-btn sb-btn-primary">Ajukan pembicaraan kemitraan <ArrowRight size={13} /></Link>
+        <Link href="/dokumen" className="sb-btn sb-btn-outline">Lihat dokumen publik</Link>
       </div>
     </div>
   );
