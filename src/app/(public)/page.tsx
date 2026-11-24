@@ -362,7 +362,7 @@ export default async function HomePage() {
         ) : products.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {products.map((product) => (
-              <Link key={product.id} href={`/produk/${product.slug}`} className="group rounded-[16px] border border-line bg-white p-4 transition hover:shadow-[var(--sb-shadow)]">
+              <Link key={product.id} href={"/produk/" + product.slug} className="group rounded-[16px] border border-line bg-white p-4 transition hover:shadow-[var(--sb-shadow)]">
                 <div className="flex aspect-[5/4] items-center justify-center rounded-[12px] bg-paper text-primary-700">
                   <Package size={34} strokeWidth={1.4} />
                 </div>
