@@ -52,7 +52,7 @@ function refreshBusiness(): void {
 }
 
 export async function createBusinessPartner(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const name = normalize(String(formData.get("partner_name") ?? ""));
@@ -147,7 +147,7 @@ export async function createBusinessPartner(formData: FormData): Promise<void> {
 }
 
 export async function updateBusinessPartnerStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const partnerId = String(formData.get("partner_id") ?? "").trim();
@@ -195,7 +195,7 @@ export async function updateBusinessPartnerStatus(formData: FormData): Promise<v
 }
 
 export async function createBusinessOpportunity(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const partnerId = String(formData.get("partner_id") ?? "").trim();
@@ -289,7 +289,7 @@ export async function createBusinessOpportunity(formData: FormData): Promise<voi
 }
 
 export async function updateBusinessOpportunityStage(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const opportunityId = String(formData.get("opportunity_id") ?? "").trim();
@@ -361,7 +361,7 @@ export async function updateBusinessOpportunityStage(formData: FormData): Promis
 }
 
 export async function createBusinessAgreement(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const partnerId = String(formData.get("partner_id") ?? "").trim();
@@ -460,7 +460,7 @@ export async function createBusinessAgreement(formData: FormData): Promise<void>
 }
 
 export async function updateBusinessAgreementStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   const agreementId = String(formData.get("agreement_id") ?? "").trim();
   const nextStatus = String(formData.get("status") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
@@ -530,7 +530,7 @@ export async function updateBusinessAgreementStatus(formData: FormData): Promise
 }
 
 export async function createBusinessMilestone(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const partnerId = String(formData.get("partner_id") ?? "").trim();
@@ -620,7 +620,7 @@ export async function createBusinessMilestone(formData: FormData): Promise<void>
 }
 
 export async function updateBusinessMilestoneStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:manage");
   requireBusinessWrite(identity);
 
   const milestoneId = String(formData.get("milestone_id") ?? "").trim();
