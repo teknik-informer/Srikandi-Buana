@@ -137,7 +137,8 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
             member.id,
             member.member_number,
             member.status,
-            member.valid_from
+            member.valid_from,
+            member.valid_until
           FROM v9.memberships AS member
           WHERE member.person_id = person.id
             AND member.organization_id = ${identity.organizationId}
