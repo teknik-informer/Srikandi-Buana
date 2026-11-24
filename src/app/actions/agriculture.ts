@@ -44,7 +44,7 @@ function refreshAgriculture(): void {
 }
 
 export async function createAgriculturePlot(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pertanian:read");
+  const identity = await requireIdentity("field:pertanian:manage");
   ensureAgricultureWrite(identity);
 
   const plotCode = normalize(String(formData.get("plot_code") ?? ""));
@@ -148,7 +148,7 @@ export async function createAgriculturePlot(formData: FormData): Promise<void> {
 }
 
 export async function updateAgriculturePlotStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pertanian:read");
+  const identity = await requireIdentity("field:pertanian:manage");
   ensureAgricultureWrite(identity);
 
   const plotId = String(formData.get("plot_id") ?? "").trim();
@@ -208,7 +208,7 @@ export async function updateAgriculturePlotStatus(formData: FormData): Promise<v
 }
 
 export async function createAgricultureCycle(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pertanian:read");
+  const identity = await requireIdentity("field:pertanian:manage");
   ensureAgricultureWrite(identity);
 
   const plotId = String(formData.get("plot_id") ?? "").trim();
@@ -290,7 +290,7 @@ export async function createAgricultureCycle(formData: FormData): Promise<void> 
 }
 
 export async function updateAgricultureCycleStatus(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pertanian:read");
+  const identity = await requireIdentity("field:pertanian:manage");
   ensureAgricultureWrite(identity);
 
   const cycleId = String(formData.get("cycle_id") ?? "").trim();
@@ -370,7 +370,7 @@ export async function updateAgricultureCycleStatus(formData: FormData): Promise<
 }
 
 export async function recordAgricultureVisit(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pertanian:read");
+  const identity = await requireIdentity("field:pertanian:activity:write");
   ensureAgricultureWrite(identity);
 
   const plotId = String(formData.get("plot_id") ?? "").trim();
@@ -455,7 +455,7 @@ export async function recordAgricultureVisit(formData: FormData): Promise<void> 
 }
 
 export async function recordAgricultureHarvest(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:pertanian:read");
+  const identity = await requireIdentity("field:pertanian:activity:write");
   ensureAgricultureWrite(identity);
 
   const cycleId = String(formData.get("cycle_id") ?? "").trim();
