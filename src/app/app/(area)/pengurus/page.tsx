@@ -29,8 +29,6 @@ interface DashboardSummary {
   activities_this_month: number;
   pending_finance: number;
   pending_workplans: number;
-  draft_journals: number;
-  posted_journals: number;
 }
 
 interface FinanceSummary {
@@ -138,6 +136,7 @@ export default async function PengurusDashboard() {
         sql`
           SELECT
             (SELECT count(*)::int FROM v9.memberships AS membership
+              INNER JOIN v9.people AS person ON person.id = membership.person_id AND person.status = 'active'
               WHERE membership.organization_id = ${identity.organizationId}
                 AND membership.status = 'active'
                 AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
@@ -169,6 +168,7 @@ export default async function PengurusDashboard() {
               WHERE activity.organization_id = ${identity.organizationId}
                 AND activity.activity_date >= date_trunc('month', now() AT TIME ZONE 'Asia/Jakarta')::date
                 AND activity.activity_date < (date_trunc('month', now() AT TIME ZONE 'Asia/Jakarta') + interval '1 month')::date
+                AND activity.status <> 'cancelled'
             ) AS activities_this_month,
             (SELECT count(*)::int FROM v9.finance_journals AS journal
               WHERE journal.organization_id = ${identity.organizationId} AND journal.status = 'submitted'
@@ -176,12 +176,7 @@ export default async function PengurusDashboard() {
             (SELECT count(*)::int FROM v9.field_workplans AS workplan
               WHERE workplan.organization_id = ${identity.organizationId} AND workplan.status = 'submitted'
             ) AS pending_workplans,
-            (SELECT count(*)::int FROM v9.finance_journals AS journal
-              WHERE journal.organization_id = ${identity.organizationId} AND journal.status = 'draft'
-            ) AS draft_journals,
-            (SELECT count(*)::int FROM v9.finance_journals AS journal
-              WHERE journal.organization_id = ${identity.organizationId} AND journal.status = 'posted'
-            ) AS posted_journals
+
         `,
         canReadFinance ? sql`
           SELECT
