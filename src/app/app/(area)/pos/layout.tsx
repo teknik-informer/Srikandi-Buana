@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireIdentity, can } from "@/lib/session";
 import { CoreShell } from "@/components/core-shell";
 
