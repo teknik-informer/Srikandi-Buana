@@ -219,10 +219,11 @@ export async function revokeCurrentSession(): Promise<void> {
       `;
     }
   } catch (error) {
-    console.error(
-      "[auth] Session revocation failed:",
-      error instanceof Error ? error.message : "Unknown session error",
-    );
+    const errorType =
+      error instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name)
+        ? error.name
+        : "UnknownError";
+    console.error("[auth] Session revocation failed", errorType);
   } finally {
     jar.delete(SESSION_COOKIE);
   }
