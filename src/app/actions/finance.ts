@@ -38,10 +38,11 @@ function accountPath(result: string): string {
 }
 
 function fail(area: string, reason: unknown): void {
-  console.error(
-    `[${area}] Operation failed:`,
-    reason instanceof Error ? reason.message : "Unknown error",
-  );
+  const errorType =
+    reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name)
+      ? reason.name
+      : "UnknownError";
+  console.warn(`[${area}] Operation failed`, errorType);
 }
 
 function refreshFinance(): void {
@@ -51,6 +52,7 @@ function refreshFinance(): void {
   revalidatePath("/app/keuangan/buku-besar");
   revalidatePath("/app/keuangan/neraca-saldo");
   revalidatePath("/app/keuangan/laporan");
+  revalidatePath("/app/pengurus/persetujuan");
 }
 
 export async function loadFinanceAccountTemplate(): Promise<void> {
@@ -532,13 +534,19 @@ export async function reviewFinanceJournal(formData: FormData): Promise<void> {
   const journalId = String(formData.get("journal_id") ?? "").trim();
   const decision = String(formData.get("decision") ?? "").trim();
   const reviewNote = String(formData.get("review_note") ?? "").trim();
+  const returnToPengurus = formData.get("return_to") === "pengurus";
+  const returnPath = (result: string) =>
+    returnToPengurus
+      ? `/app/pengurus/persetujuan?result=${encodeURIComponent(result)}`
+      : financePath(result, journalId);
+
   if (
     !validUuid(journalId) ||
-    !["approved","rejected"].includes(decision) ||
+    !["approved", "rejected"].includes(decision) ||
     (decision === "rejected" && reviewNote.length < 3) ||
     reviewNote.length > 2000
   ) {
-    redirect(financePath("invalid", journalId));
+    redirect(returnPath("invalid"));
   }
 
   let changed = false;
@@ -580,12 +588,12 @@ export async function reviewFinanceJournal(formData: FormData): Promise<void> {
     changed = rowsFromResult<MutationRow>(result).length === 1;
   } catch (reason) {
     fail("finance-journal-review", reason);
-    redirect(financePath("review-failed", journalId));
+    redirect(returnPath("review-failed"));
   }
 
-  if (!changed) redirect(financePath("review-not-eligible", journalId));
+  if (!changed) redirect(returnPath("review-not-eligible"));
   refreshFinance();
-  redirect(financePath(decision === "approved" ? "journal-approved" : "journal-rejected", journalId));
+  redirect(returnPath(decision === "approved" ? "journal-approved" : "journal-rejected"));
 }
 
 export async function postFinanceJournal(formData: FormData): Promise<void> {
