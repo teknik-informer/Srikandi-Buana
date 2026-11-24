@@ -91,9 +91,10 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error(
-      "[secretariat-document-download] Failed:",
-      error instanceof Error ? error.message : "Unknown error",
+    // Keep database/storage details out of runtime logs and visitor responses.
+    console.warn(
+      "[secretariat-document-download] Source unavailable",
+      error instanceof Error ? error.name : "UnknownError",
     );
     return new NextResponse("Document is currently unavailable", {
       status: 503,
