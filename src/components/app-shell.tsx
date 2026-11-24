@@ -12,8 +12,6 @@ import {
 import { APPS, type AppKey } from "@/config/apps";
 import { AppIcon } from "@/components/brand";
 import { SearchProvider, SearchButton } from "@/components/search-dialog";
-import { MEMBERS } from "@/data/organization";
-import { demoNow } from "@/lib/store";
 import type { DemoIdentity } from "@/lib/identity";
 import { useStoreOptional } from "@/lib/store";
 
@@ -31,29 +29,6 @@ function navIcon(href: string) {
     profil: Users, agenda: CalendarDays, komunitas: Users, kontribusi: Target,
   };
   return MAP[tail] ?? Home;
-}
-
-/** "22 Nov 2026, 09:15 WIB" — deterministic demo clock, never `new Date()`. */
-function demoStamp() {
-  const d = demoNow();
-  const p = (n: number) => String(n).padStart(2, "0");
-  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-  // demoNow is +07:00; shift to WIB wall clock for display
-  const wib = new Date(d.getTime() + 7 * 3600_000);
-  return `${wib.getUTCDate()} ${MONTHS[wib.getUTCMonth()]} ${wib.getUTCFullYear()}, ${p(wib.getUTCHours())}:${p(wib.getUTCMinutes())} WIB`;
-}
-
-/** Honest profile completeness: share of member fields that are actually filled. */
-function profileCompleteness(memberId: string) {
-  const m = MEMBERS.find((x) => x.id === memberId);
-  if (!m) return { pct: 0, label: "Belum terhubung" };
-  const checks = [
-    !!m.name, !!m.role && m.role !== "—", !!m.scope && m.scope !== "—",
-    !!m.village, !!m.joined, !!m.phone, (m.interests?.length ?? 0) > 0, !!m.status,
-  ];
-  const pct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  const label = pct >= 90 ? "Sangat baik" : pct >= 70 ? "Baik" : "Perlu dilengkapi";
-  return { pct, label };
 }
 
 export function AppShell({
@@ -83,7 +58,6 @@ export function AppShell({
   const [user, setUser] = useState(false);
   const unread = notices.filter((n) => n.unread).length;
   const app = APPS.find((a) => a.key === activeApp)!;
-  const profile = profileCompleteness(identity.memberId);
 
   /**
    * Only one nav item may look active. A parent route like `/app/pengurus`
@@ -415,30 +389,15 @@ export function AppShell({
             </div>
           </div>
 
-          {/* workspace completeness — ring from real member fields */}
           <div className="mx-2.5 mb-2.5 rounded-[12px] border border-line bg-white p-3">
-            <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted2">Workspace Anda</div>
-            <div className="mt-2 flex items-center gap-3">
-              <div
-                className="relative grid h-[62px] w-[62px] shrink-0 place-items-center rounded-full"
-                style={{
-                  background: `conic-gradient(#127e2f 0 ${profile.pct}%, #e9b91c ${profile.pct}% ${Math.min(profile.pct + 4, 100)}%, #e8eee6 ${Math.min(profile.pct + 4, 100)}% 100%)`,
-                }}
-                role="img"
-                aria-label={`Kelengkapan profil ${profile.pct} persen`}
-              >
-                <span className="grid h-[48px] w-[48px] place-items-center rounded-full bg-white font-display text-[14px] font-extrabold text-[#14351f]">
-                  {profile.pct}%
-                </span>
-              </div>
-              <div className="min-w-0">
-                <div className="text-[12px] font-semibold text-ink">Profil Lengkap</div>
-                <div className="text-[11px] text-muted">{profile.label}</div>
-                <Link href="/app/anggota/profil" className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300 hover:text-primary-800">
-                  Lihat Profil <ArrowRight size={11} />
-                </Link>
-              </div>
-            </div>
+            <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted2">Profil & keanggotaan</div>
+            <div className="mt-1.5 text-[12px] font-semibold text-ink">Kelola informasi pribadi</div>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-muted">
+              Periksa dan perbarui informasi profil melalui ruang anggota. Data kelengkapan akan ditampilkan setelah terhubung ke sumber data profil.
+            </p>
+            <Link href="/app/anggota/profil" className="mt-2 inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300 hover:text-primary-800">
+              Lihat Profil <ArrowRight size={11} />
+            </Link>
           </div>
 
           {/* help card */}
@@ -477,9 +436,9 @@ export function AppShell({
             <div className="flex flex-col gap-2 rounded-[12px] border border-line bg-white px-4 py-2.5 text-[11px] text-muted sm:flex-row sm:items-center sm:justify-between">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#22a34a] shadow-[0_0_0_3px_rgba(34,163,74,0.16)]" />
-                <strong className="font-semibold text-ink">Sistem Online</strong>
+                <strong className="font-semibold text-ink">Sesi terverifikasi</strong>
                 <span className="text-muted2">|</span>
-                <span>Terakhir diperbarui: {demoStamp()}</span>
+                <span>Akun dan hak akses diperiksa melalui server</span>
               </span>
               <span className="flex items-center gap-3">
                 <span className="hidden sm:inline">Srikandi Buana © 2026 | Desa Ngadimulyo, Kec. Kedu, Kab. Temanggung</span>
