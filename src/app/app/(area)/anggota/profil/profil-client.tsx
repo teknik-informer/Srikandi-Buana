@@ -39,7 +39,9 @@ const MEMBERSHIP_STATUS: Record<string, string> = {
 };
 
 function sameInterests(a: string[], b: string[]): boolean {
-  return a.length === b.length && [...a].sort().every((value, index) => value === [...b].sort()[index]);
+  const left = [...a].sort();
+  const right = [...b].sort();
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 export function ProfilClient({
@@ -146,11 +148,6 @@ export function ProfilClient({
   const membershipStatus = profile.membershipStatus
     ? MEMBERSHIP_STATUS[profile.membershipStatus] ?? profile.membershipStatus
     : "Belum tercatat";
-  const membershipTone =
-    profile.membershipStatus === "active" ? "success"
-    : profile.membershipStatus === "pending" ? "warning"
-    : "neutral";
-
   return (
     <div className="pb-10">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
