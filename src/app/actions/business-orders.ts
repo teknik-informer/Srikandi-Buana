@@ -43,7 +43,7 @@ function refreshOrders(): void {
 }
 
 export async function createBusinessCustomer(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:activity:write");
   requireOrderWrite(identity);
 
   const name = normalize(String(formData.get("customer_name") ?? ""));
@@ -120,7 +120,7 @@ export async function createBusinessCustomer(formData: FormData): Promise<void> 
 }
 
 export async function createBusinessOrder(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:activity:write");
   requireOrderWrite(identity);
 
   const customerId = String(formData.get("customer_id") ?? "").trim();
@@ -329,7 +329,7 @@ export async function createBusinessOrder(formData: FormData): Promise<void> {
 }
 
 export async function confirmBusinessOrder(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:activity:write");
   requireOrderWrite(identity);
 
   const orderId = String(formData.get("order_id") ?? "").trim();
@@ -502,7 +502,7 @@ export async function confirmBusinessOrder(formData: FormData): Promise<void> {
 }
 
 export async function advanceBusinessOrder(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:activity:write");
   requireOrderWrite(identity);
 
   const orderId = String(formData.get("order_id") ?? "").trim();
@@ -554,7 +554,7 @@ export async function advanceBusinessOrder(formData: FormData): Promise<void> {
 }
 
 export async function fulfillBusinessOrder(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:activity:write");
   requireOrderWrite(identity);
 
   const orderId = String(formData.get("order_id") ?? "").trim();
@@ -749,7 +749,7 @@ export async function fulfillBusinessOrder(formData: FormData): Promise<void> {
 }
 
 export async function cancelBusinessOrder(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:read");
+  const identity = await requireIdentity("field:usaha:activity:write");
   requireOrderWrite(identity);
 
   const orderId = String(formData.get("order_id") ?? "").trim();
