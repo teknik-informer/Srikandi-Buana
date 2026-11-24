@@ -36,6 +36,7 @@ interface WorkplanApprovalRow {
   id: string;
   reference_no: string;
   field_key: string;
+  field_name: string;
   title: string;
   objective: string | null;
   period_start: string;
@@ -62,6 +63,7 @@ export default async function PersetujuanPage() {
   const canReadWorkplans = can(identity, "approval:read") || canApproveWorkplans;
 
   const empty: ApprovalQueueData = {
+    currentUserId: identity.userId,
     finance: [],
     memberships: [],
     workplans: [],
