@@ -41,6 +41,12 @@ for (const title of exactCoreTitles) {
 }
 assert.ok(structure.includes("const [organizationResult, unitResult, rosterSummaryResult, peopleResult] = await Promise.all(["), "Structure aggregate result must map to the roster summary, not the member rows.");
 assert.ok(structure.includes("people = rowsFromResult<PersonRow>(peopleResult)") && structure.includes("rowsFromResult<RosterSummaryRow>(rosterSummaryResult)"), "Structure list and summary results must be mapped to their matching query outputs.");
+assert.ok(
+  structure.includes("person.status = 'active'") &&
+    structure.includes("membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date") &&
+    structure.includes("membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date"),
+  "Structure roster and its aggregate must exclude inactive people and expired/future memberships.",
+);
 assert.ok(structure.includes("CORE_POSITION_TITLES.has(normalized)"), "Core positions must use exact title matching.");
 assert.ok(!structure.includes("return /^(ketua|wakil ketua|sekretaris"), "Prefix-based title matching must not classify Ketua Bidang as Ketua.");
 
