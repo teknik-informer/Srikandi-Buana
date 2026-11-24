@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import {
   ArrowRight, CalendarDays, FileCheck2, GraduationCap, LayoutGrid,
   Package, ShieldCheck, Sprout, Store, Users, Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { Badge, Card, EmptyState, Notice } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
@@ -48,6 +49,15 @@ interface PublicActivity {
   start_time: string | null;
   location: string | null;
 }
+
+const CAPABILITY_ITEMS: { icon: LucideIcon; label: string; subtitle: string }[] = [
+  { icon: LayoutGrid, label: "Organisasi", subtitle: "Terstruktur" },
+  { icon: Users, label: "Keanggotaan", subtitle: "Terverifikasi" },
+  { icon: CalendarDays, label: "Kegiatan", subtitle: "Tercatat" },
+  { icon: Wallet, label: "Keuangan", subtitle: "Terkendali" },
+  { icon: FileCheck2, label: "Dokumen", subtitle: "Terarsip" },
+  { icon: ShieldCheck, label: "Akses", subtitle: "Berjenjang" },
+];
 
 const MODULES = [
   { icon: Users, title: "Keanggotaan", desc: "Pendaftaran, verifikasi, dan data anggota." },
@@ -220,14 +230,7 @@ export default async function HomePage() {
       <section className="border-y border-line bg-white">
         <div className="sb-shell">
           <ul className="grid grid-cols-2 divide-line sm:grid-cols-3 md:grid-cols-6 md:divide-x">
-            {([
-              [LayoutGrid, "Organisasi", "Terstruktur"],
-              [Users, "Keanggotaan", "Terverifikasi"],
-              [CalendarDays, "Kegiatan", "Tercatat"],
-              [Wallet, "Keuangan", "Terkendali"],
-              [FileCheck2, "Dokumen", "Terarsip"],
-              [ShieldCheck, "Akses", "Berjenjang"],
-            ] as const).map(([Icon, label, subtitle]) => (
+            {CAPABILITY_ITEMS.map(({ icon: Icon, label, subtitle }) => (
               <li key={String(label)} className="flex flex-col items-center gap-2 px-3 py-6 text-center">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--sb-primary-50)] text-primary-700">
                   <Icon size={20} strokeWidth={1.9} aria-hidden />
