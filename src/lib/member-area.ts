@@ -51,8 +51,17 @@ export interface MemberTaskItem {
   isOverdue: boolean;
 }
 
+export interface MemberAttendanceSummary {
+  marked: number;
+  attended: number;
+  excused: number;
+  sick: number;
+  absent: number;
+}
+
 export interface MemberAreaData {
   profile: MemberProfileSummary | null;
+  attendance: MemberAttendanceSummary | null;
   events: MemberEventItem[];
   trainings: MemberTrainingItem[];
   tasks: MemberTaskItem[];
@@ -70,6 +79,7 @@ function warn(area: string, reason: unknown): void {
 export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberAreaData> {
   const data: MemberAreaData = {
     profile: null,
+    attendance: null,
     events: [],
     trainings: [],
     tasks: [],
@@ -81,7 +91,7 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
     sql = getV9Sql();
   } catch (reason) {
     warn("member-area-connection", reason);
-    data.errors = ["profile", "events", "trainings", "tasks"];
+    data.errors = ["profile", "events", "trainings", "tasks", "attendance"];
     return data;
   }
 
@@ -254,6 +264,29 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
 
   await Promise.all([profileJob, eventsJob, tasksJob]);
 
+  const attendanceJob = (async () => {
+    const memberId = data.profile?.membershipId ?? null;
+    if (!memberId) return;
+    try {
+      const rows = rowsFromResult<MemberAttendanceSummary>(await sql`
+        SELECT
+          count(*) FILTER (WHERE enrollment.attendance_status <> 'not_marked')::int AS marked,
+          count(*) FILTER (WHERE enrollment.attendance_status = 'hadir')::int AS attended,
+          count(*) FILTER (WHERE enrollment.attendance_status = 'izin')::int AS excused,
+          count(*) FILTER (WHERE enrollment.attendance_status = 'sakit')::int AS sick,
+          count(*) FILTER (WHERE enrollment.attendance_status = 'alpa')::int AS absent
+        FROM v9.training_enrollments AS enrollment
+        WHERE enrollment.organization_id = ${identity.organizationId}
+          AND enrollment.membership_id = ${memberId}::uuid
+          AND enrollment.field_key = 'pelatihan'
+      `);
+      data.attendance = rows[0] ?? { marked: 0, attended: 0, excused: 0, sick: 0, absent: 0 };
+    } catch (reason) {
+      warn("member-area-attendance", reason);
+      data.errors.push("attendance");
+    }
+  })();
+
   const trainingJob = (async () => {
     try {
       const memberId = data.profile?.membershipId ?? null;
@@ -295,6 +328,6 @@ export async function loadMemberAreaData(identity: AppIdentity): Promise<MemberA
     }
   })();
 
-  await trainingJob;
+  await Promise.all([trainingJob, attendanceJob]);
   return data;
 }
