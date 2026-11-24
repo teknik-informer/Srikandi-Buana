@@ -1,23 +1,74 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { STUDIO_PAGES, MENU_DRAFT, DESIGN_PRESETS } from "@/data/content";
-import { FIELDS } from "@/config/fields";
-import { BLOCK_REGISTRY } from "@/config/blocks";
-import { APPS } from "@/config/apps";
-import { Badge, Card, CardHeader, Notice, PageHeader, StatCard, StatusBadge } from "@/components/ui";
+import { ArrowRight, Blocks, Building2, Database, GitBranch, Palette, Workflow } from "lucide-react";
+import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Studio Pengelola" };
 
 const BUILDERS = [
-  { name: "Website Studio", href: "/studio/website", desc: "Halaman, section, block, menu, media, publikasi.", icon: "◫" },
-  { name: "Application Studio", href: "/studio/aplikasi", desc: "Instance aplikasi bidang, menu, modul aktif.", icon: "▦" },
-  { name: "Data & Form Builder", href: "/studio/data", desc: "Field, formulir, view, validasi, impor/ekspor.", icon: "▤" },
-  { name: "Dashboard Builder", href: "/studio/dashboard", desc: "Widget, grid, filter, audience.", icon: "▥" },
-  { name: "Workflow Builder", href: "/studio/workflow", desc: "Status, langkah, approver, notifikasi, SLA.", icon: "⇄" },
-  { name: "Organization Studio", href: "/studio/organisasi", desc: "Registry bidang, tim, peran, cakupan.", icon: "◇" },
-  { name: "Design & Theme", href: "/studio/tema", desc: "Token warna, tipografi, density, header/footer.", icon: "◐" },
-  { name: "Modul & Ekstensi", href: "/studio/modul", desc: "Aktif/nonaktif modul, konfigurasi aman.", icon: "◈" },
-  { name: "Rilis & Riwayat", href: "/studio/rilis", desc: "Draf, review, publish, rollback konfigurasi.", icon: "⟲" },
+  {
+    name: "Website Studio",
+    href: "/studio/website",
+    description: "Inventaris source halaman, block, dan mega menu. Pengeditan/publikasi dinamis belum tersimpan bersama.",
+    status: "Baca-saja",
+    icon: <Blocks size={16} />,
+  },
+  {
+    name: "Application Studio",
+    href: "/studio/aplikasi",
+    description: "Registry empat aplikasi bidang dan status aktif yang tersimpan pada organisasi.",
+    status: "Registry live",
+    icon: <Building2 size={16} />,
+  },
+  {
+    name: "Data & Form Builder",
+    href: "/studio/data",
+    description: "Akses modul operasional domain. Form Builder generik belum memiliki registry dan penyimpanan jawaban.",
+    status: "Katalog modul",
+    icon: <Database size={16} />,
+  },
+  {
+    name: "Dashboard Studio",
+    href: "/studio/dashboard",
+    description: "Tautan dashboard operasional yang berjalan. Susunan widget dinamis belum tersimpan.",
+    status: "Katalog dashboard",
+    icon: <Blocks size={16} />,
+  },
+  {
+    name: "Workflow Studio",
+    href: "/studio/workflow",
+    description: "Pemantauan antrean jurnal, pendaftaran, rencana kerja, dan pesanan sesuai permission.",
+    status: "Antrean live",
+    icon: <Workflow size={16} />,
+  },
+  {
+    name: "Organization Studio",
+    href: "/studio/organisasi",
+    description: "Registry organisasi, unit, keanggotaan aktif, dan penugasan tim dari Neon.",
+    status: "Registry live",
+    icon: <Building2 size={16} />,
+  },
+  {
+    name: "Design & Theme",
+    href: "/studio/tema",
+    description: "Referensi token visual source-controlled. Editor preset dan penyimpanan tema belum aktif.",
+    status: "Referensi",
+    icon: <Palette size={16} />,
+  },
+  {
+    name: "Module Manager",
+    href: "/studio/modul",
+    description: "Status aplikasi dan unit bidang. Toggle submodul belum tersedia karena tidak ada registry-nya.",
+    status: "Registry live",
+    icon: <Blocks size={16} />,
+  },
+  {
+    name: "Release Manager",
+    href: "/studio/rilis",
+    description: "Gerbang rilis dan tautan ke sistem CI/CD resmi GitHub Actions dan Vercel.",
+    status: "CI/CD",
+    icon: <GitBranch size={16} />,
+  },
 ];
 
 export default function StudioHome() {
@@ -26,82 +77,36 @@ export default function StudioHome() {
       <PageHeader
         eyebrow="Studio Pengelola"
         title="Beranda Studio"
-        description="Pusat kustomisasi: pengelola mengubah konten, halaman, menu, tema, modul, formulir, dashboard, dan alur yang didukung — tanpa menulis kode. Logika inti & keamanan tetap milik developer."
-        actions={<Link href="/" className="sb-btn sb-btn-outline">Pratinjau website</Link>}
+        description="Pusat kendali yang menunjukkan kemampuan nyata setiap builder. Status baca-saja, registry aktif, dan fitur yang belum memiliki penyimpanan dibedakan secara terbuka."
+        actions={<Link href="/" className="sb-btn sb-btn-outline">Lihat website publik</Link>}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Halaman website" value={STUDIO_PAGES.length} note={`${STUDIO_PAGES.filter((p) => p.status === "published").length} terbit`} tone="success" href="/studio/website" />
-        <StatCard label="Block terdaftar" value={BLOCK_REGISTRY.length} note="Allowlist, bukan HTML bebas" tone="info" href="/studio/website" />
-        <StatCard label="Aplikasi" value={APPS.length} note="1 codebase modular" tone="accent" href="/studio/aplikasi" />
-        <StatCard label="Bidang resmi" value={FIELDS.length} note="Registry terpisah dari aplikasi" href="/studio/organisasi" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {BUILDERS.map((builder) => (
+          <Link key={builder.href} href={builder.href} className="group rounded-[14px] border border-line bg-white p-4 transition hover:border-primary-300 hover:shadow-[var(--sb-shadow)]">
+            <div className="flex items-start justify-between gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-paper text-ink2">{builder.icon}</span>
+              <Badge tone={builder.status === "Registry live" || builder.status === "Antrean live" ? "success" : "neutral"}>{builder.status}</Badge>
+            </div>
+            <h2 className="mt-3 text-[12.5px] font-semibold text-ink group-hover:text-primary-800">{builder.name}</h2>
+            <p className="mt-1 min-h-[48px] text-[10.5px] leading-relaxed text-muted">{builder.description}</p>
+            <span className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700">Buka builder <ArrowRight size={12} /></span>
+          </Link>
+        ))}
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Builder & pengelola" subtitle="Setiap builder terikat pada batas keamanan masing-masing" />
-            <div className="grid gap-2 p-3 sm:grid-cols-2">
-              {BUILDERS.map((b) => (
-                <Link key={b.href} href={b.href} className="group flex items-start gap-3 rounded-sb-sm border border-line bg-white p-3 transition hover:border-primary-300 hover:bg-primary-50/40">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-primary-100 text-[15px] text-primary-800">{b.icon}</span>
-                  <span className="min-w-0">
-                    <span className="block text-[12.5px] font-semibold text-ink group-hover:text-primary-800">{b.name}</span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-muted">{b.desc}</span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader title="Halaman terbaru" subtitle="Status draf → review → terbit" action={<Link href="/studio/website" className="text-[11.5px] font-semibold text-primary-700">Website Studio →</Link>} />
-            <div className="divide-y divide-line">
-              {STUDIO_PAGES.map((p) => (
-                <div key={p.path} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                  <div>
-                    <div className="text-[12.5px] font-semibold text-ink">{p.title} <span className="ml-1 font-mono text-[10.5px] font-normal text-muted2">{p.path}</span></div>
-                    <div className="text-[10.5px] text-muted2">{p.blocks} block · {p.revisions} revisi · diubah {p.updatedAt} oleh {p.updatedBy}</div>
-                  </div>
-                  <StatusBadge status={p.status === "published" ? "Terbit" : p.status === "review" ? "Review" : "Draf"} />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Konfigurasi aktif" subtitle="Ringkasan environment demo" />
-            <dl className="divide-y divide-line text-[12px]">
-              {[
-                ["Blueprint", "V9.1"],
-                ["Design preset", DESIGN_PRESETS[0].name],
-                ["Mega menu", `${MENU_DRAFT.items} grup · ${MENU_DRAFT.subItems} tautan · terbit`],
-                ["Mode data", "Demo berlabel"],
-                ["Akuntansi eksternal", "Tidak ada (native)"],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between px-4 py-2.5"><dt className="text-muted">{k}</dt><dd className="font-medium text-ink2">{v}</dd></div>
-              ))}
-            </dl>
-          </Card>
-          <Notice tone="info" title="Batasan yang dijaga Studio">
-            Studio tidak menjalankan JavaScript/SQL arbitrer dari browser, tidak mengganti skema inti
-            tanpa migrasi, dan tidak boleh melemahkan aturan ledger, persetujuan, atau keamanan.
-          </Notice>
-          <Card className="p-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Alur rilis</div>
-            <div className="mt-2 flex items-center gap-1.5 text-[11px]">
-              {["Draf", "Pratinjau", "Review", "Terbit", "Riwayat"].map((s, i) => (
-                <span key={s} className="flex items-center gap-1.5">
-                  <span className="rounded-full bg-primary-100 px-2 py-0.5 font-semibold text-primary-800">{s}</span>
-                  {i < 4 && <span className="text-muted2">→</span>}
-                </span>
-              ))}
-            </div>
-            <Link href="/studio/rilis" className="mt-2.5 inline-block text-[11.5px] font-semibold text-primary-700">Buka Release Manager →</Link>
-          </Card>
-        </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Prinsip pengelolaan" subtitle="Studio mengatur konfigurasi yang didukung, bukan menggantikan proses organisasi" />
+          <div className="space-y-2 px-4 py-3 text-[11.5px] leading-relaxed text-muted">
+            <p>Perubahan identitas, struktur, mandat, dan penugasan mengikuti keputusan organisasi dan alur persetujuan yang sah.</p>
+            <p>Perubahan kode, skema database, dan perilaku inti melalui review developer, CI, backup, dan rilis terkontrol.</p>
+            <p>Builder tidak boleh mengubah ledger, stok, permission, atau data anggota hanya melalui state browser.</p>
+          </div>
+        </Card>
+        <Notice tone="warning" title="Batas editor konfigurasi">
+          Form Builder, Widget Layout Editor, Workflow Definition Registry, Theme Preset Storage, CMS page revisions, dan Release History belum seluruhnya memiliki model penyimpanan bersama. Menu Studio hanya menampilkan fitur yang memang terhubung, atau menjelaskan batas yang masih tersisa.
+        </Notice>
       </div>
     </div>
   );
