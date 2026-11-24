@@ -262,10 +262,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     redirectTo = homeFor(role);
   } catch (error) {
     // Next.js redirect is performed after this block; only operational errors are logged.
-    console.error(
-      "[auth] Login service failed:",
-      error instanceof Error ? error.message : "Unknown authentication error",
-    );
+    const errorType =
+      error instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name)
+        ? error.name
+        : "UnknownError";
+    console.error("[auth] Login service failed", errorType);
     return { error: "Layanan masuk sedang tidak tersedia. Silakan coba kembali." };
   }
 
