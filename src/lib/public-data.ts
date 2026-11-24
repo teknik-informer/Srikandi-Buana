@@ -20,7 +20,7 @@ export async function loadPublicData<T>(
     const errorName = reason instanceof Error && reason.name ? reason.name : "UnknownError";
     // Deliberately omit the exception message and stack: database drivers may
     // include connection details or query context in those values.
-    console.error(`[public-data:${area}] Source unavailable (${errorName}).`);
+    console.warn(`[public-data:${area}] Source unavailable (${errorName}).`);
     return { data: fallback, unavailable: true };
   }
 }
