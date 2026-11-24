@@ -1,8 +1,339 @@
 import type { Metadata } from "next";
-import { PosTerminal } from "@/components/pos-terminal";
+import Link from "next/link";
+import { ArrowRight, ClipboardList, LockKeyhole, ShoppingBag } from "lucide-react";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  Notice,
+  PageHeader,
+} from "@/components/ui";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
+import { BusinessOrderComposer, type OrderCustomerOption, type OrderProductOption, type OrderWarehouseOption } from "@/components/business-order-composer";
+import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { requireIdentity } from "@/lib/session";
+import { formatIDR } from "@/lib/format";
 
-export const metadata: Metadata = { title: "POS Penjualan" };
+export const metadata: Metadata = { title: "POS · Pesanan Kasir" };
 
-export default function PosPage() {
-  return <PosTerminal />;
+interface PosOrderRow {
+  id: string;
+  reference_no: string;
+  customer_name_snapshot: string;
+  order_date: string;
+  status: "draft" | "confirmed" | "processing" | "ready" | "fulfilled" | "cancelled";
+  total_amount: string;
+  created_at: string;
+}
+
+const statusLabel: Record<PosOrderRow["status"], string> = {
+  draft: "Draf",
+  confirmed: "Dikonfirmasi",
+  processing: "Diproses",
+  ready: "Siap diserahkan",
+  fulfilled: "Terpenuhi",
+  cancelled: "Dibatalkan",
+};
+
+const statusTone: Record<PosOrderRow["status"], "neutral" | "info" | "warning" | "success" | "danger"> = {
+  draft: "neutral",
+  confirmed: "info",
+  processing: "warning",
+  ready: "info",
+  fulfilled: "success",
+  cancelled: "danger",
+};
+
+const resultMessages: Record<string, { tone: "success" | "warning" | "danger"; title: string; body: string }> = {
+  "order-created": {
+    tone: "success",
+    title: "Draf pesanan berhasil disimpan",
+    body: "Pesanan tersimpan di register Usaha dengan kanal POS. Ini belum merupakan pembayaran: saldo kas belum berubah, stok belum dicadangkan atau dikurangi, dan jurnal keuangan belum dibuat.",
+  },
+  "invalid-items": {
+    tone: "warning",
+    title: "Rincian pesanan perlu diperiksa",
+    body: "Pilih pelanggan, produk, dan jumlah yang valid. Setiap produk hanya boleh dicantumkan satu kali dalam satu pesanan.",
+  },
+  "customer-product-or-warehouse-unavailable": {
+    tone: "warning",
+    title: "Data pesanan tidak tersedia",
+    body: "Pelanggan, produk, gudang, atau aplikasi Usaha belum aktif. Tidak ada draf pesanan yang dibuat.",
+  },
+  error: {
+    tone: "danger",
+    title: "Pesanan belum tersimpan",
+    body: "Sistem tidak dapat menyimpan pesanan. Periksa koneksi atau hubungi administrator. Jangan mengulang transaksi sebelum memastikan apakah draf sudah tercatat.",
+  },
+  invalid: {
+    tone: "warning",
+    title: "Data pesanan tidak valid",
+    body: "Periksa kembali pilihan pelanggan, produk, dan gudang.",
+  },
+};
+
+function safeErrorType(reason: unknown): string {
+  return reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name)
+    ? reason.name
+    : "UnknownError";
+}
+
+function dateTimeLabel(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Jakarta",
+      }).format(date);
+}
+
+export default async function PosPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ result?: string; order_id?: string }>;
+}) {
+  const identity = await requireIdentity("pos:sell");
+  const search = await searchParams;
+  let customers: OrderCustomerOption[] = [];
+  let products: OrderProductOption[] = [];
+  let warehouses: OrderWarehouseOption[] = [];
+  let recentOrders: PosOrderRow[] = [];
+  let unavailable = false;
+
+  try {
+    const sql = getV9Sql();
+    const [customerResult, productResult, warehouseResult, orderResult] = await Promise.all([
+      sql`
+        SELECT id::text AS id, reference_no, customer_name, phone
+        FROM v9.business_customers
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = 'usaha'
+          AND status = 'active'
+        ORDER BY customer_name
+        LIMIT 300
+      `,
+      sql`
+        SELECT
+          id::text AS id,
+          sku,
+          product_name,
+          unit_label,
+          selling_price::text AS selling_price,
+          track_stock,
+          product_kind,
+          publication_status
+        FROM v9.business_products
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = 'usaha'
+          AND status = 'active'
+        ORDER BY product_name
+        LIMIT 500
+      `,
+      sql`
+        SELECT id::text AS id, warehouse_code, warehouse_name
+        FROM v9.business_warehouses
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = 'usaha'
+          AND status = 'active'
+        ORDER BY warehouse_name
+        LIMIT 100
+      `,
+      sql`
+        SELECT
+          id::text AS id,
+          reference_no,
+          customer_name_snapshot,
+          order_date::text AS order_date,
+          status,
+          total_amount::text AS total_amount,
+          created_at::text AS created_at
+        FROM v9.business_orders
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = 'usaha'
+          AND order_channel = 'pos'
+          AND created_by = ${identity.userId}
+        ORDER BY created_at DESC
+        LIMIT 12
+      `,
+    ]);
+
+    customers = rowsFromResult<OrderCustomerOption>(customerResult);
+    products = rowsFromResult<OrderProductOption>(productResult);
+    warehouses = rowsFromResult<OrderWarehouseOption>(warehouseResult);
+    recentOrders = rowsFromResult<PosOrderRow>(orderResult);
+  } catch (reason) {
+    unavailable = true;
+    console.warn("[pos] Source unavailable", safeErrorType(reason));
+  }
+
+  const resultNotice = search?.result ? resultMessages[search.result] : undefined;
+  const canCreate = customers.length > 0 && products.length > 0 &&
+    (products.every((product) => !product.track_stock) || warehouses.length > 0);
+
+  return (
+    <div className="pb-10">
+      <AppBanner
+        {...APP_IDENTITY.pos}
+        badge={<Badge tone="info">Pesanan POS</Badge>}
+        facts={[
+          customers.length + " pelanggan aktif",
+          products.length + " produk aktif",
+          warehouses.length + " gudang aktif",
+          recentOrders.length + " pesanan kasir terbaru",
+        ]}
+        actions={[
+          { href: "/app/bidang/usaha/data", label: "Katalog Usaha" },
+          { href: "/app/bidang/usaha/persediaan", label: "Persediaan" },
+        ]}
+      />
+
+      <div className="mt-4">
+        <Notice tone="warning" title="Pencatatan pesanan — bukan penerimaan pembayaran">
+          Halaman ini membuat draf pesanan dari katalog yang tersimpan. Belum ada penanganan uang tunai,
+          pembayaran digital, pengembalian uang, rekonsiliasi kasir, atau posting jurnal penjualan.
+          Stok baru dicadangkan setelah pesanan dikonfirmasi oleh petugas yang berwenang; stok fisik
+          berkurang saat pemenuhan dicatat.
+        </Notice>
+      </div>
+
+      {resultNotice ? (
+        <div className="mt-3">
+          <Notice tone={resultNotice.tone} title={resultNotice.title}>
+            {resultNotice.body}
+            {search?.order_id ? (
+              <span className="mt-1 block font-mono text-[10px] text-muted2">
+                Referensi ID pesanan: {search.order_id}
+              </span>
+            ) : null}
+          </Notice>
+        </div>
+      ) : null}
+
+      {unavailable ? (
+        <div className="mt-3">
+          <Notice tone="danger" title="Data POS belum dapat dimuat">
+            Koneksi ke katalog dan register pesanan sedang tidak tersedia. Form transaksi dinonaktifkan
+            agar data kosong akibat gangguan tidak dianggap sebagai katalog yang benar-benar kosong.
+          </Notice>
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
+        <Card>
+          <CardHeader
+            title="Buat draf pesanan"
+            subtitle="Pilih pelanggan, barang, jumlah, dan gudang pemenuhan bila produk mengelola stok."
+            action={<ShoppingBag size={16} className="text-muted2" />}
+          />
+          {unavailable ? (
+            <div className="px-5 py-9">
+              <EmptyState title="Form belum tersedia" body="Muat ulang setelah sumber data POS pulih." />
+            </div>
+          ) : !customers.length || !products.length ? (
+            <div className="px-5 py-9">
+              <EmptyState
+                title={!customers.length ? "Belum ada pelanggan aktif" : "Belum ada produk aktif"}
+                body="Pengurus Bidang Usaha perlu menyiapkan register pelanggan dan katalog produk sebelum kasir dapat membuat pesanan."
+              />
+            </div>
+          ) : !canCreate ? (
+            <div className="px-5 py-9">
+              <EmptyState title="Gudang aktif belum tersedia" body="Pilih atau aktifkan gudang pada aplikasi Usaha sebelum membuat pesanan barang yang mengelola stok." />
+            </div>
+          ) : (
+            <BusinessOrderComposer
+              customers={customers}
+              products={products}
+              warehouses={warehouses}
+              defaultChannel="pos"
+            />
+          )}
+        </Card>
+
+        <div className="space-y-4">
+          <Card>
+            <CardHeader title="Alur setelah pesanan dibuat" action={<LockKeyhole size={15} className="text-muted2" />} />
+            <ol className="space-y-3 px-4 py-4 text-[11.5px]">
+              <li className="flex gap-2.5">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-paper font-bold text-ink2">1</span>
+                <span><strong className="text-ink">Kasir mencatat draf.</strong><span className="mt-0.5 block text-muted">Harga dan nama produk disalin sebagai snapshot pesanan.</span></span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-paper font-bold text-ink2">2</span>
+                <span><strong className="text-ink">Bidang Usaha mengonfirmasi.</strong><span className="mt-0.5 block text-muted">Sistem memeriksa saldo stok dan mencadangkan barang secara transaksional.</span></span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-paper font-bold text-ink2">3</span>
+                <span><strong className="text-ink">Petugas mencatat pemenuhan.</strong><span className="mt-0.5 block text-muted">Mutasi persediaan penjualan dicatat tanpa pengurangan parsial.</span></span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-paper font-bold text-ink2">4</span>
+                <span><strong className="text-ink">Bendahara mencatat penerimaan.</strong><span className="mt-0.5 block text-muted">Penerimaan kas dan jurnal penjualan tetap menunggu alur pembayaran yang disahkan.</span></span>
+              </li>
+            </ol>
+            <div className="border-t border-line px-4 py-3">
+              <Link href="/app/bidang/usaha/pesanan" className="flex items-center justify-between gap-2 text-[11px] font-semibold text-primary-700">
+                Register pesanan Bidang Usaha <ArrowRight size={13} />
+              </Link>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Batas kewenangan POS" />
+            <div className="space-y-2 px-4 py-3">
+              <p className="text-[11px] leading-relaxed text-muted">
+                Akun kasir hanya dapat membuat draf kanal POS dan melihat draf yang dibuat oleh akunnya
+                sendiri. Konfirmasi stok, pemenuhan, dan pencatatan keuangan berada pada petugas dengan
+                kewenangan masing-masing.
+              </p>
+              <Badge tone="success">Dibatasi per akun & organisasi</Badge>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      <Card className="mt-5">
+        <CardHeader
+          title="Pesanan yang dibuat akun ini"
+          subtitle="Hanya pesanan dengan kanal POS yang dibuat oleh akun kasir yang sedang masuk"
+          action={<Badge tone="neutral">{recentOrders.length} terbaru</Badge>}
+        />
+        {recentOrders.length ? (
+          <div className="divide-y divide-line">
+            {recentOrders.map((order) => (
+              <article key={order.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[10px] text-muted2">{order.reference_no}</span>
+                    <Badge tone={statusTone[order.status]}>{statusLabel[order.status]}</Badge>
+                  </div>
+                  <div className="mt-1 text-[12px] font-semibold text-ink">{order.customer_name_snapshot}</div>
+                  <div className="mt-0.5 text-[10px] text-muted2">{dateTimeLabel(order.created_at)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[12px] font-semibold tabular-nums text-ink">{formatIDR(Number(order.total_amount))}</div>
+                  <div className="text-[9.5px] text-muted2">Nilai pesanan · bukan kas diterima</div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="px-5 py-9">
+            <EmptyState
+              title="Belum ada pesanan POS"
+              body="Draf yang dibuat melalui halaman ini akan muncul di sini setelah berhasil disimpan."
+              icon={<ClipboardList size={23} />}
+            />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
 }
