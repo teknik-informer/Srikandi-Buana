@@ -30,7 +30,7 @@ export default async function ProfilAnggotaPage() {
         person.village,
         membership.member_number,
         membership.status AS membership_status,
-        to_char(membership.created_at::date, 'YYYY-MM-DD') AS joined_on
+        to_char(membership.valid_from, 'YYYY-MM-DD') AS joined_on
       FROM v9.user_accounts AS account
       INNER JOIN v9.people AS person
         ON person.id = account.person_id
@@ -38,7 +38,7 @@ export default async function ProfilAnggotaPage() {
         SELECT
           member.member_number,
           member.status,
-          member.created_at
+          member.valid_from
         FROM v9.memberships AS member
         WHERE member.person_id = person.id
           AND member.organization_id = ${identity.organizationId}
