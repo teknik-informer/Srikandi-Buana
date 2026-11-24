@@ -222,7 +222,7 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
   let memberRegisterUnavailable = false;
   if (section === "data" && field.slug === "organisasi" && !applicationUnavailable) {
     try {
-      const result = await sql `
+      const result = await sql`
         SELECT
           membership.id::text AS id,
           membership.member_number,
