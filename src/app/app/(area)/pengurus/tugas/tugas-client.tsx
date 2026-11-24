@@ -403,6 +403,7 @@ function Inner({
                 </Select>
               )}
             </Field>
+            {assigneeLoadError ? <p className="text-[10.5px] text-[var(--sb-warning)]">Daftar akun anggota aktif belum dapat dimuat. Penanggung jawab manual tidak akan ditautkan ke akun.</p> : null}
             <Field label="Penanggung jawab manual" hint="Opsional bila tidak memilih akun anggota">
               {(id) => <TextInput id={id} value={form.assigneeLabel} onChange={(e) => setForm({ ...form, assigneeLabel: e.target.value })} placeholder="Nama atau pihak eksternal" />}
             </Field>
@@ -444,6 +445,7 @@ function Inner({
               </Select>
             )}
           </Field>
+          {assigneeLoadError ? <p className="text-[10.5px] text-[var(--sb-warning)]">Daftar akun anggota aktif belum dapat dimuat. Penanggung jawab manual tidak akan ditautkan ke akun.</p> : null}
           <Field label="Penanggung jawab manual" hint="Opsional bila tidak memilih akun anggota">
             {(id) => <TextInput id={id} value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="Nama atau pihak eksternal" />}
           </Field>
