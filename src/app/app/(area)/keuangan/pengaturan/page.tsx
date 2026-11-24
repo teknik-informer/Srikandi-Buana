@@ -1,86 +1,140 @@
 import type { Metadata } from "next";
-import { POSTING_RULES, PERIODS } from "@/data/finance";
-import { Badge, Card, CardHeader, Notice, PageHeader, StatusBadge } from "@/components/ui";
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck } from "lucide-react";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  Notice,
+  PageHeader,
+} from "@/components/ui";
+import { requireIdentity } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Posting Rule & Kontrol" };
+export const metadata: Metadata = { title: "Kontrol Akuntansi" };
 
-export default function KeuanganPengaturanPage() {
+const implementedControls = [
+  {
+    title: "Validasi jurnal berpasangan",
+    detail: "Saat pengajuan dan posting, database memeriksa minimal dua baris, akun aktif dan dapat diposting, total debit-kredit seimbang dan positif, serta total header cocok dengan rincian jurnal.",
+  },
+  {
+    title: "Pemisahan pembuat dan pemeriksa",
+    detail: "Jurnal tidak dapat disetujui oleh pembuatnya sendiri. Tindakan persetujuan memerlukan identitas pemeriksa yang berbeda.",
+  },
+  {
+    title: "Alur status terkendali",
+    detail: "Transisi dibatasi: draf → diajukan → disetujui atau ditolak; draf yang ditolak dapat dibuka kembali; hanya jurnal disetujui yang dapat diposting.",
+  },
+  {
+    title: "Jurnal terposting tidak dapat diubah",
+    detail: "Jurnal posted dan barisnya dilindungi. Koreksi dilakukan melalui jurnal pembalik, bukan mengedit atau menghapus histori.",
+  },
+  {
+    title: "Idempotensi dan presisi nominal",
+    detail: "Idempotency key unik per organisasi disimpan di database. Kolom nominal memakai numeric(18,2), bukan floating-point.",
+  },
+  {
+    title: "Perlindungan bagan akun",
+    detail: "Kode dan sifat akun dikunci setelah dipakai dalam jurnal. Akun yang memiliki histori posted tidak dapat diarsipkan atau dihapus.",
+  },
+  {
+    title: "Jejak audit",
+    detail: "Server action jurnal menulis peristiwa audit bersama perubahan status, termasuk aktor, referensi, nilai, dan keputusan yang relevan.",
+  },
+];
+
+const pendingControls = [
+  "Periode fiskal, penguncian tanggal transaksi, dan proses tutup buku.",
+  "Anggaran yang disahkan, komitmen belanja, serta dimensi program/sumber dana pada jurnal.",
+  "Sub-ledger invoice, piutang/utang per pihak, termin, dan umur tagihan.",
+  "Import mutasi bank, pencocokan rekening koran, dan status rekonsiliasi.",
+  "Alur lampiran bukti transaksi dan persetujuan laporan keuangan formal.",
+];
+
+export default async function KeuanganPengaturanPage() {
+  await requireIdentity("finance:read");
+
   return (
     <div className="pb-10">
       <PageHeader
         eyebrow="Keuangan Native"
-        title="Posting rule & kontrol akuntansi"
-        description="Aturan posting versi terbaru. Transaksi menyimpan versi aturan yang dipakai saat posting untuk menjaga reproduksibilitas."
-        actions={<Badge tone="info">Domain service — dilindungi</Badge>}
+        title="Kontrol akuntansi"
+        description="Ringkasan mekanisme yang benar-benar ditegakkan pada server dan database, beserta bagian yang belum diaktifkan."
+        actions={<Badge tone="success">Aturan server & database</Badge>}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+      <div className="mb-4">
+        <Notice tone="info" title="Tidak ada status periode contoh">
+          Daftar periode terbuka/terkunci dan versi aturan dari halaman lama merupakan data statis contoh.
+          Halaman tersebut telah dihapus. Status periode fiskal tidak akan ditampilkan sebelum tersedia
+          tabel, kebijakan penutupan, dan kontrol tanggal transaksi di server.
+        </Notice>
+      </div>
+
+      <div className="grid items-start gap-4 xl:grid-cols-[1.35fr_0.9fr]">
         <Card>
-          <CardHeader title="Matriks aturan posting" subtitle="Perubahan aturan inti memerlukan reviu developer & pengesahan" />
+          <CardHeader
+            title="Kontrol yang sudah diterapkan"
+            subtitle="Ditegakkan melalui server action, constraint, dan trigger database"
+            action={<ShieldCheck size={16} className="text-[var(--sb-success)]" />}
+          />
           <div className="divide-y divide-line">
-            {POSTING_RULES.map((r) => (
-              <div key={r.code} className="px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded bg-surface2 px-1.5 py-0.5 font-mono text-[10.5px] text-ink2">{r.code}</span>
-                    <span className="text-[12.5px] font-semibold text-ink">{r.source}</span>
+            {implementedControls.map((item, index) => (
+              <article key={item.title} className="flex gap-3 px-4 py-3.5">
+                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--sb-success-bg)] text-[var(--sb-success)]">
+                  <CheckCircle2 size={15} />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-[12.5px] font-semibold text-ink">{item.title}</h2>
+                    <Badge tone="success">Diterapkan</Badge>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Badge tone="neutral">{r.version}</Badge>
-                    <Badge tone={r.protected ? "warning" : "neutral"}>{r.protected ? "dilindungi" : "konfiguratif"}</Badge>
-                  </div>
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-muted">{item.detail}</p>
                 </div>
-                <div className="mt-1 text-[12px] text-muted">{r.rule}</div>
-              </div>
+              </article>
             ))}
           </div>
         </Card>
 
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Periode fiskal" />
+            <CardHeader
+              title="Belum tersedia"
+              subtitle="Tidak ditampilkan sebagai kontrol aktif"
+              action={<LockKeyhole size={15} className="text-muted2" />}
+            />
             <div className="divide-y divide-line">
-              {PERIODS.map((p) => (
-                <div key={p.key} className="flex items-center justify-between gap-2 px-4 py-2.5">
-                  <div>
-                    <div className="text-[12px] font-medium text-ink">{p.label}</div>
-                    <div className="text-[10.5px] text-muted2">{p.note}</div>
-                  </div>
-                  <StatusBadge status={p.status === "terbuka" ? "Terbuka" : "Terkunci"} />
+              {pendingControls.map((item) => (
+                <div key={item} className="px-4 py-3 text-[11.5px] leading-relaxed text-muted">
+                  <div className="mb-1"><Badge tone="warning">Belum diaktifkan</Badge></div>
+                  {item}
                 </div>
               ))}
             </div>
           </Card>
 
           <Card>
-            <CardHeader title="Kontrol teknis aktif" />
-            <ul className="space-y-2 px-4 py-3 text-[12px] text-ink2">
-              {[
-                ["Transaksi atomik", "Header, baris, dan referensi posting commit bersamaan"],
-                ["Idempotency unik", "Constraint di database, bukan hanya di UI"],
-                ["Presisi desimal", "Uang tidak disimpan sebagai float"],
-                ["Snapshot laporan", "Query konsisten saat posting berjalan"],
-                ["Rekonsiliasi subledger", "Membandingkan subledger ke akun kontrol"],
-                ["Audit jejak", "Aktor, waktu, versi aturan, dan lampiran"],
-              ].map(([k, v]) => (
-                <li key={k} className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" />
-                  <span><span className="font-semibold text-ink">{k}:</span> <span className="text-muted">{v}</span></span>
-                </li>
-              ))}
-            </ul>
+            <CardHeader title="Akses modul" />
+            <div className="divide-y divide-line">
+              <Link href="/app/keuangan/jurnal" className="flex items-center justify-between gap-3 px-4 py-3 text-[11.5px] font-semibold text-ink2 hover:bg-paper">
+                Jurnal & persetujuan <ArrowRight size={13} />
+              </Link>
+              <Link href="/app/keuangan/bagan-akun" className="flex items-center justify-between gap-3 px-4 py-3 text-[11.5px] font-semibold text-ink2 hover:bg-paper">
+                Bagan akun <ArrowRight size={13} />
+              </Link>
+              <Link href="/app/keuangan/neraca-saldo" className="flex items-center justify-between gap-3 px-4 py-3 text-[11.5px] font-semibold text-ink2 hover:bg-paper">
+                Neraca saldo <ArrowRight size={13} />
+              </Link>
+            </div>
           </Card>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-        <Notice tone="warning" title="Larangan tegas">
-          Tidak ada dependensi runtime, API, iframe, token, lisensi, atau server Manager.io / produk
-          akuntansi eksternal. Mesin akuntansi berjalan penuh di dalam platform ini.
-        </Notice>
-        <Notice tone="info" title="Yang boleh dikonfigurasi pengelola">
-          Label akun tampilan, pengelompokan laporan yang telah disetujui, format nomor dokumen,
-          dan template bukti. Bukan aturan debit-kredit inti.
+      <div className="mt-4">
+        <Notice tone="warning" title="Status implementasi bukan pengesahan kebijakan organisasi">
+          Kontrol teknis ini menjaga integritas jurnal. Kontrol tersebut tidak menggantikan keputusan organisasi
+          tentang bagan akun final, pengakuan pendapatan/beban, periode fiskal, dana terbatas, perpajakan,
+          atau pengesahan laporan.
         </Notice>
       </div>
     </div>
