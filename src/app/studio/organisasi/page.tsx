@@ -69,6 +69,27 @@ function safeErrorType(reason: unknown): string {
     : "UnknownError";
 }
 
+function jakartaToday(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return values.year + "-" + values.month + "-" + values.day;
+}
+
+function appointmentStatus(item: AssignmentRow, today: string): {
+  label: string;
+  tone: "success" | "warning" | "neutral";
+} {
+  if (item.status === "proposed") return { label: "Usulan menunggu pengesahan", tone: "warning" };
+  if (item.valid_from > today) return { label: "Belum berlaku", tone: "neutral" };
+  if (item.valid_until && item.valid_until < today) return { label: "Masa tugas berakhir", tone: "neutral" };
+  return { label: "Disahkan · berlaku", tone: "success" };
+}
+
 export default async function OrganisasiStudio() {
   const identity = await requireIdentity("organization:read");
   let organization: OrganizationRow | null = null;
@@ -153,6 +174,8 @@ export default async function OrganisasiStudio() {
           ON membership.id = assignment.membership_id
           AND membership.organization_id = assignment.organization_id
           AND membership.status = 'active'
+          AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+          AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
         INNER JOIN v9.people AS person
           ON person.id = membership.person_id
           AND person.status = 'active'
@@ -182,13 +205,12 @@ export default async function OrganisasiStudio() {
   const activeUnits = units.filter((unit) => unit.is_active);
   const fieldUnits = units.filter((unit) => unit.unit_type === "field");
   const enabledFieldApps = fieldUnits.filter((unit) => unit.is_enabled === true);
-  const activeAppointments = assignments.filter((item) => {
-    if (item.status !== "active") return false;
-    const today = new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date()) + "T00:00:00Z");
-    const start = new Date(item.valid_from + "T00:00:00Z");
-    const end = item.valid_until ? new Date(item.valid_until + "T00:00:00Z") : null;
-    return start <= today && (!end || end >= today);
-  });
+  const today = jakartaToday();
+  const activeAppointments = assignments.filter((item) =>
+    item.status === "active" &&
+    item.valid_from <= today &&
+    (!item.valid_until || item.valid_until >= today)
+  );
   const proposedAppointments = assignments.filter((item) => item.status === "proposed");
 
   return (
@@ -288,7 +310,7 @@ export default async function OrganisasiStudio() {
                             <div className="text-[12px] font-semibold text-ink">{item.person_name}</div>
                             <div className="mt-0.5 text-[10.5px] text-muted">{item.field_name} · {item.role_label}</div>
                           </div>
-                          <Badge tone={item.status === "active" ? "success" : "warning"}>{item.status === "active" ? "Disahkan" : "Usulan"}</Badge>
+                          <Badge tone={appointmentStatus(item, today).tone}>{appointmentStatus(item, today).label}</Badge>
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted2">
                           <span>{item.appointment_reference ?? "Nomor keputusan belum dicatat"}</span>
