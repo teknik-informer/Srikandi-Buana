@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, ClipboardList, GraduationCap, MapPin, UserRound, Wallet, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { CalendarDays, ClipboardList, GraduationCap, MapPin, UserRound } from "lucide-react";
 import { Badge, Card, CardHeader, Notice, StatCard } from "@/components/ui";
 import { formatDateID, relativeID } from "@/lib/format";
 import { FIELDS_BY_SLUG } from "@/config/fields";
@@ -57,7 +57,7 @@ export function AnggotaHomeClient({
       {data.errors.length > 0 ? (
         <div className="mb-4 space-y-2">
           {data.errors.map((key) => (
-            <Notice key={key} tone="danger" title={`Data ${key === "profile" ? "profil" : key === "events" ? "agenda" : key === "tasks" ? "penugasan" : "pelatihan"} belum dapat dimuat`}>
+            <Notice key={key} tone="danger" title={`Data ${key === "profile" ? "profil" : key === "events" ? "agenda" : key === "tasks" ? "penugasan" : key === "attendance" ? "presensi" : "pelatihan"} belum dapat dimuat`}>
               Layanan data organisasi belum dapat membaca bagian ini. Nilai di bawah tidak akan diganti dengan data contoh.
               Silakan muat ulang halaman setelah koneksi pulih.
             </Notice>
@@ -106,7 +106,7 @@ export function AnggotaHomeClient({
           label="Penugasan saya"
           value={data.errors.includes("tasks") ? "—" : openTasks.length}
           note={data.errors.includes("tasks") ? "Sumber tugas belum tersedia" : `${overdueTasks.length} melewati tenggat`}
-          tone={overdueTasks.length ? "warning" : "success"}
+          tone={data.errors.includes("tasks") ? "neutral" : overdueTasks.length ? "warning" : "success"}
           icon={<ClipboardList size={16} />}
           href="/app/anggota/tugas"
         />
