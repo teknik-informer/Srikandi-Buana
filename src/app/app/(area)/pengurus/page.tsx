@@ -175,8 +175,7 @@ export default async function PengurusDashboard() {
             ) AS pending_finance,
             (SELECT count(*)::int FROM v9.field_workplans AS workplan
               WHERE workplan.organization_id = ${identity.organizationId} AND workplan.status = 'submitted'
-            ) AS pending_workplans,
-
+            ) AS pending_workplans
         `,
         canReadFinance ? sql`
           SELECT
