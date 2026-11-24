@@ -76,7 +76,7 @@ function QueueHeading({
 }: {
   icon: React.ReactNode;
   title: string;
-  count: number;
+  count: number | null;
   detail: string;
 }) {
   return (
@@ -88,7 +88,7 @@ function QueueHeading({
           <p className="text-[10.5px] text-muted2">{detail}</p>
         </div>
       </div>
-      <Badge tone={count ? "warning" : "neutral"}>{count} menunggu</Badge>
+      <Badge tone={count === null ? "neutral" : count ? "warning" : "neutral"}>{count === null ? "Akses terbatas" : `${count} menunggu`}</Badge>
     </div>
   );
 }
@@ -167,7 +167,7 @@ function Inner({ data }: { data: ApprovalQueueData }) {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Jurnal menunggu" value={data.errors.includes("finance") ? "—" : data.finance.length} note="Menunggu pemeriksaan Bendahara/pejabat berwenang" tone="info" icon={<Wallet size={16} />} />
-        <StatCard label="Minat anggota" value={data.errors.includes("membership") ? "—" : data.memberships.length} note="Menunggu peninjauan Bidang Organisasi" tone="warning" icon={<UsersRound size={16} />} />
+        <StatCard label="Minat anggota" value={!data.canReviewMembership || data.errors.includes("membership") ? "—" : data.memberships.length} note={data.canReviewMembership ? "Menunggu peninjauan Bidang Organisasi" : "Antrean terbatas untuk Bidang Organisasi"} tone="warning" icon={<UsersRound size={16} />} />
         <StatCard label="Rencana kerja" value={data.errors.includes("workplan") ? "—" : data.workplans.length} note="Menunggu keputusan Pengurus Harian" tone="accent" icon={<FileText size={16} />} />
       </div>
 
@@ -179,7 +179,11 @@ function Inner({ data }: { data: ApprovalQueueData }) {
           options={FILTER_OPTIONS.map((option) => ({
             key: option.key,
             label: option.label,
-            count: counts[option.key as QueueFilter],
+            count:
+              (option.key === "keanggotaan" && !data.canReviewMembership) ||
+              data.errors.includes(option.key === "keuangan" ? "finance" : option.key === "keanggotaan" ? "membership" : option.key === "rencana" ? "workplan" : "finance")
+                ? undefined
+                : counts[option.key],
           }))}
         />
         <SearchBox placeholder="Cari referensi, nama, uraian…" className="w-full sm:w-[320px]" />
@@ -187,7 +191,7 @@ function Inner({ data }: { data: ApprovalQueueData }) {
 
       {visibleFinance ? (
         <Card className="mt-4">
-          <QueueHeading icon={<Wallet size={16} />} title="Jurnal keuangan" count={data.finance.length} detail="Jurnal yang telah diajukan dan belum diputuskan" />
+          <QueueHeading icon={<Wallet size={16} />} title="Jurnal keuangan" count={data.errors.includes("finance") ? null : data.finance.length} detail="Jurnal yang telah diajukan dan belum diputuskan" />
           {financeRows.length ? (
             <div className="divide-y divide-line">
               {financeRows.map((row) => {
@@ -252,7 +256,7 @@ function Inner({ data }: { data: ApprovalQueueData }) {
 
       {visibleMembership && data.canReviewMembership ? (
         <Card className="mt-4">
-          <QueueHeading icon={<UsersRound size={16} />} title="Pengajuan keanggotaan" count={data.memberships.length} detail="Minat bergabung yang memiliki persetujuan pemrosesan data" />
+          <QueueHeading icon={<UsersRound size={16} />} title="Pengajuan keanggotaan" count={data.errors.includes("membership") ? null : data.memberships.length} detail="Minat bergabung yang memiliki persetujuan pemrosesan data" />
           {membershipRows.length ? (
             <div className="divide-y divide-line">
               {membershipRows.map((row) => (
@@ -301,14 +305,14 @@ function Inner({ data }: { data: ApprovalQueueData }) {
 
       {visibleMembership && !data.canReviewMembership ? (
         <Card className="mt-4">
-          <QueueHeading icon={<UsersRound size={16} />} title="Pengajuan keanggotaan" count={0} detail="Antrean dengan akses terbatas" />
+          <QueueHeading icon={<UsersRound size={16} />} title="Pengajuan keanggotaan" count={null} detail="Antrean dengan akses terbatas" />
           <p className="px-4 py-5 text-[11.5px] text-muted">Antrean ini hanya dapat dibuka oleh pengguna dengan kewenangan peninjauan Bidang Organisasi & Keanggotaan.</p>
         </Card>
       ) : null}
 
       {visibleWorkplans ? (
         <Card className="mt-4">
-          <QueueHeading icon={<FileText size={16} />} title="Rencana kerja bidang" count={data.workplans.length} detail="Rencana kerja yang telah diajukan oleh koordinator bidang" />
+          <QueueHeading icon={<FileText size={16} />} title="Rencana kerja bidang" count={data.errors.includes("workplan") ? null : data.workplans.length} detail="Rencana kerja yang telah diajukan oleh koordinator bidang" />
           {workplanRows.length ? (
             <div className="divide-y divide-line">
               {workplanRows.map((row) => (
