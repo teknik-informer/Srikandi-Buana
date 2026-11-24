@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, X, Clock3, ClipboardCheck, FileText, UsersRound, Wallet, Search } from "lucide-react";
+import { Check, X, Clock3, ClipboardCheck, FileText, UsersRound, Wallet } from "lucide-react";
 import { Badge, Card, CardHeader, Notice, StatCard } from "@/components/ui";
 import { Btn, SearchBox, SearchProvider, Segmented, useSearch, match } from "@/components/act";
 import { formatDateID, formatIDR } from "@/lib/format";
@@ -49,6 +49,7 @@ export interface WorkplanApprovalItem {
 }
 
 export interface ApprovalQueueData {
+  currentUserId: string;
   finance: FinanceApprovalItem[];
   memberships: MembershipApprovalItem[];
   workplans: WorkplanApprovalItem[];
@@ -60,7 +61,7 @@ export interface ApprovalQueueData {
 
 type QueueFilter = "semua" | "keuangan" | "keanggotaan" | "rencana";
 
-const FILTER_OPTIONS = [
+const FILTER_OPTIONS: { key: QueueFilter; label: string }[] = [
   { key: "semua", label: "Semua antrean" },
   { key: "keuangan", label: "Keuangan" },
   { key: "keanggotaan", label: "Keanggotaan" },
@@ -165,9 +166,9 @@ function Inner({ data }: { data: ApprovalQueueData }) {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Jurnal menunggu" value={data.finance.length} note="Menunggu pemeriksaan Bendahara/pejabat berwenang" tone="info" icon={<Wallet size={16} />} />
-        <StatCard label="Minat anggota" value={data.memberships.length} note="Menunggu peninjauan Bidang Organisasi" tone="warning" icon={<UsersRound size={16} />} />
-        <StatCard label="Rencana kerja" value={data.workplans.length} note="Menunggu keputusan Pengurus Harian" tone="accent" icon={<FileText size={16} />} />
+        <StatCard label="Jurnal menunggu" value={data.errors.includes("finance") ? "—" : data.finance.length} note="Menunggu pemeriksaan Bendahara/pejabat berwenang" tone="info" icon={<Wallet size={16} />} />
+        <StatCard label="Minat anggota" value={data.errors.includes("membership") ? "—" : data.memberships.length} note="Menunggu peninjauan Bidang Organisasi" tone="warning" icon={<UsersRound size={16} />} />
+        <StatCard label="Rencana kerja" value={data.errors.includes("workplan") ? "—" : data.workplans.length} note="Menunggu keputusan Pengurus Harian" tone="accent" icon={<FileText size={16} />} />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -190,7 +191,7 @@ function Inner({ data }: { data: ApprovalQueueData }) {
           {financeRows.length ? (
             <div className="divide-y divide-line">
               {financeRows.map((row) => {
-                const isAuthor = row.created_by === "__never_match__";
+                const isAuthor = row.created_by === data.currentUserId;
                 return (
                   <article key={row.id} className="px-4 py-3">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -280,7 +281,7 @@ function Inner({ data }: { data: ApprovalQueueData }) {
                       aria-label={`Catatan pengajuan ${row.reference_no}`}
                       className="sb-input !min-h-[34px] !w-[240px] !text-[11.5px]"
                     />
-                    <Btn type="submit" size="sm" variant="outline" name="decision" value="under_review" icon={<Clock3 size={13} />}>Mulai tinjau</Btn>
+                    {row.status === "submitted" ? <Btn type="submit" size="sm" variant="outline" name="decision" value="under_review" icon={<Clock3 size={13} />}>Mulai tinjau</Btn> : null}
                     <Btn type="submit" size="sm" variant="primary" name="decision" value="approved" icon={<Check size={13} />}>Terima minat</Btn>
                     <Btn type="submit" size="sm" variant="danger" name="decision" value="rejected" icon={<X size={13} />}>Tolak</Btn>
                   </form>
