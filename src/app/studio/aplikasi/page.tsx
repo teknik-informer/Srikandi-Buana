@@ -1,56 +1,127 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { APPS } from "@/config/apps";
-import { FIELDS } from "@/config/fields";
-import { FieldTemplates } from "@/components/studio/field-templates";
-import { Badge, Card, CardHeader, Notice, PageHeader, StatCard, StatusBadge } from "@/components/ui";
-import { AppIcon } from "@/components/brand";
+import { ArrowRight, Network } from "lucide-react";
+import {
+  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
+} from "@/components/ui";
+import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { requireIdentity } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Application Studio" };
 
-export default function AplikasiStudio() {
+interface FieldApplicationRow {
+  field_key: string;
+  name: string;
+  short_name: string;
+  route: string;
+  mandate: string | null;
+  is_enabled: boolean;
+  unit_name: string | null;
+}
+
+function safeErrorType(reason: unknown): string {
+  return reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name)
+    ? reason.name
+    : "UnknownError";
+}
+
+export default async function AplikasiStudio() {
+  const identity = await requireIdentity("organization:read");
+  let fields: FieldApplicationRow[] = [];
+  let unavailable = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      SELECT
+        application.field_key,
+        application.name,
+        application.short_name,
+        application.route,
+        application.mandate,
+        application.is_enabled,
+        unit.name AS unit_name
+      FROM v9.field_applications AS application
+      LEFT JOIN v9.organization_units AS unit
+        ON unit.id = application.unit_id
+        AND unit.organization_id = application.organization_id
+      WHERE application.organization_id = ${identity.organizationId}
+      ORDER BY application.display_order, application.name
+    `;
+    fields = rowsFromResult<FieldApplicationRow>(result);
+  } catch (reason) {
+    unavailable = true;
+    console.warn("[application-studio] Registry unavailable", safeErrorType(reason));
+  }
+
+  const enabled = fields.filter((field) => field.is_enabled).length;
+
   return (
     <div className="pb-10">
       <PageHeader
         eyebrow="Application Studio"
-        title="Aplikasi & template"
-        description="Membuat instance aplikasi bidang dari template, mengatur menu dan modul yang diaktifkan. Aplikasi hanya muncul untuk pengguna berizin; menonaktifkan modul tidak menghapus data."
+        title="Registry aplikasi bidang"
+        description="Status aplikasi bidang berasal dari registry organisasi. Katalog route inti dikelola pada source code; membuat instance, menggandakan template, dan mengubah menu belum tersedia sebagai operasi tersimpan."
+        actions={<Link href="/studio/organisasi" className="sb-btn sb-btn-outline">Organization Studio <ArrowRight size={13} /></Link>}
       />
+
+      {unavailable ? (
+        <Notice tone="danger" title="Registry aplikasi belum dapat dimuat">
+          Data aplikasi tidak diganti dengan template atau daftar demo.
+        </Notice>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Aplikasi aktif" value={APPS.filter((a) => a.key !== "studio" && a.key !== "launcher").length} note="Termasuk 4 bidang" tone="success" />
-        <StatCard label="Template tersedia" value={4} note="Bidang, sekretariat, portal, POS" tone="info" />
-        <StatCard label="Bidang di registry" value={FIELDS.length} note="Status konfigurasi terpisah" tone="accent" href="/studio/organisasi" />
+        <StatCard label="Aplikasi bidang terdaftar" value={fields.length} note="Sumber field_applications" tone="info" icon={<Network size={17} />} />
+        <StatCard label="Diaktifkan" value={enabled} note="Status aplikasi pada registry" tone="success" />
+        <StatCard label="Nonaktif" value={fields.length - enabled} note="Tidak dihitung aktif secara teknis" tone="warning" />
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <Card>
-          <CardHeader title="Instance aplikasi" subtitle="Satu codebase modular; instance adalah konfigurasi" />
+      <Card className="mt-5">
+        <CardHeader title="Instance aplikasi bidang" subtitle="Data per organisasi · hanya ditampilkan setelah dibaca dari registry" />
+        {fields.length ? (
           <div className="divide-y divide-line">
-            {APPS.filter((a) => a.key !== "launcher").map((a) => (
-              <div key={a.key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-surface2 text-ink2"><AppIcon name={a.icon} size={14} /></span>
-                  <div>
-                    <div className="text-[12.5px] font-semibold text-ink">{a.name}</div>
-                    <div className="text-[10.5px] text-muted2">{a.audience}</div>
+            {fields.map((field) => (
+              <article key={field.field_key} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-[12.5px] font-semibold text-ink">{field.name}</h2>
+                    <Badge tone={field.is_enabled ? "success" : "warning"}>{field.is_enabled ? "Aktif" : "Nonaktif"}</Badge>
+                    <Badge tone="neutral">{field.field_key}</Badge>
                   </div>
+                  <p className="mt-1 text-[10.5px] text-muted">{field.unit_name ?? field.short_name} · {field.route}</p>
+                  {field.mandate ? <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-muted2">{field.mandate}</p> : null}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {a.badge && <Badge tone={a.badge === "Bidang" ? "accent" : "info"}>{a.badge}</Badge>}
-                  <Link href={a.href} className="rounded border border-line px-2 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300">Buka</Link>
-                </div>
-              </div>
+                <Link href={field.route} className="shrink-0 text-[10.5px] font-semibold text-primary-700">Buka aplikasi <ArrowRight size={11} className="inline" /></Link>
+              </article>
+            ))}
+          </div>
+        ) : !unavailable ? (
+          <div className="p-4"><EmptyState title="Belum ada aplikasi bidang" body="Instance bidang akan muncul setelah dicatat pada registry organisasi." /></div>
+        ) : null}
+      </Card>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card className="p-4">
+          <h2 className="text-[12.5px] font-semibold text-ink">Aplikasi inti</h2>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted">
+            Pengurus, Sekretariat, Keuangan, Portal Anggota, POS, dan Portal Eksternal merupakan route aplikasi yang dikelola bersama codebase. Daftar ini tidak mewakili instance yang dapat dibuat atau dihapus dari layar ini.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {[
+              ["Pengurus", "/app/pengurus"],
+              ["Sekretariat", "/app/sekretariat"],
+              ["Keuangan", "/app/keuangan"],
+              ["Anggota", "/app/anggota"],
+              ["POS", "/app/pos"],
+              ["Portal", "/portal"],
+            ].map(([name, href]) => (
+              <Link key={href} href={href} className="rounded-full border border-line bg-white px-2.5 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300">{name}</Link>
             ))}
           </div>
         </Card>
-
-        <div className="space-y-4">
-          <FieldTemplates />
-          <Notice tone="info" title="Yang tidak boleh dilakukan Studio">
-            Mengganti skema/relasi database inti tanpa migrasi developer, melemahkan aturan ledger, atau
-            mengganti komponen keamanan dengan HTML kustom.
-          </Notice>
-        </div>
+        <Notice tone="warning" title="Template dan pengaturan instance belum dapat diubah">
+          Registry template, cloning aplikasi, susunan menu per instance, serta status modul turunan belum memiliki penyimpanan konfigurasi dan riwayat perubahan pada platform. Studio tidak menampilkan tombol seolah-olah perubahan tersebut sudah tersimpan.
+        </Notice>
       </div>
     </div>
   );
