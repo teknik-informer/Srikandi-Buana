@@ -134,7 +134,7 @@ export default function BidangIndex() {
                   {[
                     [`${f.modules.length}`, "modul"],
                     [`${prog.length}`, `program${running ? ` · ${running} jalan` : ""}`],
-                    [`${f.teamSize}`, "tim"],
+                    ["Belum", "data tim"],
                   ].map(([n, label]) => (
                     <div key={label} className="rounded-[9px] bg-[#08220f]/55 px-2.5 py-1.5 ring-1 ring-inset ring-white/10">
                       <dt className="font-display text-[16px] font-extrabold leading-none text-white">{n}</dt>
