@@ -4,7 +4,7 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { verifyPasswordOrDummy } from "@/lib/password";
+import { hashPassword, isLegacyPasswordHash, verifyPasswordOrDummy } from "@/lib/password";
 import { SESSION_COOKIE } from "@/lib/identity";
 import { revokeCurrentSession } from "@/lib/session";
 
@@ -17,6 +17,7 @@ interface AccountRow {
   password_hash: string;
   status: "invited" | "active" | "suspended" | "disabled";
   email_verified_at: string | null;
+  legacy_auth_eligible: boolean;
 }
 
 interface RoleRow {
@@ -136,7 +137,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
     const accountRows = rowsFromResult<AccountRow>(
       await sql`
-        SELECT id, password_hash, status, email_verified_at
+        SELECT id, password_hash, status, email_verified_at, legacy_auth_eligible
         FROM v9.user_accounts
         WHERE lower(email) = ${email}
         LIMIT 1
@@ -149,7 +150,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
       !account ||
       !passwordValid ||
       account.status !== "active" ||
-      !account.email_verified_at
+      (!account.email_verified_at && !account.legacy_auth_eligible)
     ) {
       await recordFailedAttempt(sql, subjectHash, ipHash);
       return { error: "Surel atau kata sandi tidak cocok, atau akun belum aktif." };
@@ -193,6 +194,19 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     if (!role) {
       await recordFailedAttempt(sql, subjectHash, ipHash);
       return { error: "Akun belum memiliki penugasan akses yang aktif. Hubungi pengurus." };
+    }
+
+    // Upgrade the old credential format after a successful legacy sign-in.
+    // Keep legacy_auth_eligible until a real email-verification flow exists.
+    if (isLegacyPasswordHash(account.password_hash)) {
+      const upgradedHash = await hashPassword(password);
+      await sql`
+        UPDATE v9.user_accounts
+        SET password_hash = ${upgradedHash}, password_changed_at = now(), updated_at = now()
+        WHERE id = ${account.id}
+          AND password_hash = ${account.password_hash}
+          AND legacy_auth_eligible = true
+      `;
     }
 
     const token = randomBytes(32).toString("base64url");
