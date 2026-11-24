@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ORG } from "@/config/org";
+import Link from "next/link";
 import { JoinForm } from "@/components/join-form";
 import { Card, CardHeader, Notice } from "@/components/ui";
 
@@ -17,7 +17,7 @@ export default function GabungPage() {
           <h1 className="font-display text-[32px] leading-tight font-semibold text-ink sm:text-[38px]">Satu formulir, satu tindak lanjut yang jelas.</h1>
           <p className="mt-3 max-w-xl text-[13.5px] leading-relaxed text-ink2">
             Formulir ini mencatat minat, bukan keanggotaan resmi. Bidang Organisasi &amp; Keanggotaan
-            akan menghubungi Anda dalam 5 hari kerja untuk verifikasi.
+            akan meninjau pengajuan dan menghubungi Anda melalui nomor yang dicantumkan. Waktu tindak lanjut mengikuti antrean dan kelengkapan verifikasi.
           </p>
 
           <div className="mt-6">
@@ -43,8 +43,7 @@ export default function GabungPage() {
             </ol>
           </Card>
           <Notice tone="warning" title="Perlindungan data">
-            Data yang Anda kirim hanya digunakan untuk proses keanggotaan. Lihat alamat layanan:
-            {" "}{ORG.address}.
+            Data yang Anda kirim dipakai untuk meninjau minat, menghubungi pemohon, dan mencatat keputusan keanggotaan. Baca rincian data, tujuan, dan keterbatasan masa simpan pada <Link href="/privasi" className="font-semibold underline">Kebijakan Privasi</Link>.
           </Notice>
         </div>
       </div>
