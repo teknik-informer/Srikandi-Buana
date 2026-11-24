@@ -40,6 +40,7 @@ interface FinanceSummary {
   expense_total: string;
   surplus: string;
   posted_count: number;
+  draft_count: number;
 }
 
 interface ProgramSummary {
@@ -190,7 +191,9 @@ export default async function PengurusDashboard() {
             COALESCE(sum(line.debit - line.credit) FILTER (WHERE account.account_type = 'beban'), 0)::text AS expense_total,
             (COALESCE(sum(line.credit - line.debit) FILTER (WHERE account.account_type = 'pendapatan'), 0)
               - COALESCE(sum(line.debit - line.credit) FILTER (WHERE account.account_type = 'beban'), 0))::text AS surplus,
-            count(DISTINCT journal.id)::int AS posted_count
+            count(DISTINCT journal.id)::int AS posted_count,
+            (SELECT count(*)::int FROM v9.finance_journals AS draft
+              WHERE draft.organization_id = ${identity.organizationId} AND draft.status = 'draft') AS draft_count
           FROM v9.finance_journals AS journal
           INNER JOIN v9.finance_journal_lines AS line
             ON line.journal_id = journal.id AND line.organization_id = journal.organization_id
