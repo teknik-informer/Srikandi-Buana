@@ -79,7 +79,7 @@ export default async function KeuanganPengaturanPage() {
             action={<ShieldCheck size={16} className="text-[var(--sb-success)]" />}
           />
           <div className="divide-y divide-line">
-            {implementedControls.map((item, index) => (
+            {implementedControls.map((item) => (
               <article key={item.title} className="flex gap-3 px-4 py-3.5">
                 <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--sb-success-bg)] text-[var(--sb-success)]">
                   <CheckCircle2 size={15} />
