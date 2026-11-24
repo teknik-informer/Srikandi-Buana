@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "bootstrap:v9-admin": "node scripts/bootstrap-v9-admin.mjs"
+    "bootstrap:v9-admin": "node scripts/bootstrap-v9-admin.mjs",
+    "test:organization-reporting": "node scripts/verify-organization-reporting.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.545.0",
