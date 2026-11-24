@@ -37,10 +37,12 @@ export function BusinessOrderComposer({
   customers,
   products,
   warehouses,
+  defaultChannel = "internal",
 }: {
   customers: OrderCustomerOption[];
   products: OrderProductOption[];
   warehouses: OrderWarehouseOption[];
+  defaultChannel?: "internal" | "whatsapp" | "mitra" | "website" | "pos";
 }) {
   const [lines, setLines] = useState<DraftLine[]>([{ product_id: "", quantity: "1" }]);
   const selectedProducts = useMemo(
@@ -92,12 +94,19 @@ export function BusinessOrderComposer({
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
           <label htmlFor="order-channel" className="mb-1 block text-[11px] font-semibold text-ink2">Kanal pesanan</label>
-          <select id="order-channel" name="order_channel" className="sb-input">
-            <option value="internal">Internal / langsung</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="mitra">Mitra</option>
-            <option value="website">Website</option>
-          </select>
+          {defaultChannel === "pos" ? (
+            <>
+              <input type="hidden" name="order_channel" value="pos" />
+              <div className="flex h-10 items-center rounded-[8px] border border-line bg-paper px-3 text-[11.5px] font-semibold text-ink2">POS · Kasir</div>
+            </>
+          ) : (
+            <select id="order-channel" name="order_channel" defaultValue={defaultChannel} className="sb-input">
+              <option value="internal">Internal / langsung</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="mitra">Mitra</option>
+              <option value="website">Website</option>
+            </select>
+          )}
         </div>
         <div>
           <label htmlFor="order-warehouse" className="mb-1 block text-[11px] font-semibold text-ink2">Gudang pemenuhan</label>
