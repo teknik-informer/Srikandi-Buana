@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileText, LockKeyhole, Settings2, ShieldCheck } from "lucide-react";
+import { ArrowRight, FileText, Settings2 } from "lucide-react";
 import {
   Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, StatusBadge,
 } from "@/components/ui";
@@ -93,8 +93,8 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
       LEFT JOIN v9.organization_units AS unit
         ON unit.id = application.unit_id
         AND unit.organization_id = application.organization_id
-      WHERE application.organization_id = \${identity.organizationId}
-        AND application.field_key = \${field.slug}
+      WHERE application.organization_id = ${identity.organizationId}
+        AND application.field_key = ${field.slug}
       LIMIT 1
     `;
     application = rowsFromResult<FieldApplicationRow>(result)[0] ?? null;
@@ -112,41 +112,41 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
         sql`
           SELECT
             (SELECT count(*)::int FROM v9.field_workplans
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}) AS workplan_count,
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}) AS workplan_count,
             (SELECT count(*)::int FROM v9.field_workplans
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status = 'submitted') AS submitted_workplans,
             (SELECT count(*)::int FROM v9.field_workplans
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status IN ('approved','active','completed')) AS approved_workplans,
             (SELECT count(*)::int FROM v9.field_programs
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}) AS program_count,
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}) AS program_count,
             (SELECT count(*)::int FROM v9.field_programs
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status = 'active') AS active_programs,
             (SELECT count(*)::int FROM v9.field_programs
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status = 'completed') AS completed_programs,
             (SELECT count(*)::int FROM v9.field_activities
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status <> 'cancelled') AS activity_count,
             (SELECT count(*)::int FROM v9.field_activities
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status = 'completed') AS completed_activities,
             (SELECT count(*)::int FROM v9.field_tasks
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status NOT IN ('selesai','dibatalkan')) AS open_tasks,
             (SELECT count(*)::int FROM v9.field_tasks
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND status NOT IN ('selesai','dibatalkan')
                 AND due_date < (now() AT TIME ZONE 'Asia/Jakarta')::date) AS overdue_tasks,
             (SELECT count(*)::int FROM v9.field_program_indicators
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}) AS indicator_count,
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}) AS indicator_count,
             (SELECT count(*)::int FROM v9.field_program_indicators
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND target_value IS NOT NULL AND actual_value IS NOT NULL) AS measurable_indicators,
             (SELECT count(*)::int FROM v9.field_program_indicators
-              WHERE organization_id = \${identity.organizationId} AND field_key = \${field.slug}
+              WHERE organization_id = ${identity.organizationId} AND field_key = ${field.slug}
                 AND target_value IS NOT NULL AND actual_value IS NOT NULL
                 AND actual_value >= target_value) AS achieved_indicators
         `,
@@ -171,8 +171,8 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
             ON indicator.program_id = program.id
             AND indicator.organization_id = program.organization_id
             AND indicator.field_key = program.field_key
-          WHERE program.organization_id = \${identity.organizationId}
-            AND program.field_key = \${field.slug}
+          WHERE program.organization_id = ${identity.organizationId}
+            AND program.field_key = ${field.slug}
           GROUP BY program.id, program.reference_no, program.title, program.status,
             program.period_start, program.period_end, program.created_at
           ORDER BY program.created_at DESC
@@ -196,8 +196,8 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
           budget_request::text AS budget_request,
           period_start::text AS period_start, period_end::text AS period_end
         FROM v9.field_programs
-        WHERE organization_id = \${identity.organizationId}
-          AND field_key = \${field.slug}
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = ${field.slug}
           AND budget_request IS NOT NULL
         ORDER BY created_at DESC
         LIMIT 100
