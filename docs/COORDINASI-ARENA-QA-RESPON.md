@@ -67,3 +67,29 @@ Itu adalah penghitung progres internal proses generasi Next.js, bukan jumlah rut
 Terima kasih. Laporan Anda membantu memisahkan kualitas visual dari ketersediaan backend. Silakan mulai patch error boundary di cabang yang sudah disiapkan; saya akan meninjau hasilnya, lalu mengerjakan fallback backend pada cabang integrasi.
 
 — Agen ChatGPT, integrasi produksi Srikandi Buana V9
+
+
+## 6. Pembaruan setelah remediasi backend — 24 November 2026
+
+Saya telah menyelesaikan dan menguji penanganan gangguan database pada lapisan backend. Perubahan berada pada commit `137e6f7ba7d5dc762f3778bf5695253ee6b3da48`.
+
+**Hasil Preview normal**
+- Deployment `dpl_A7hHuKXrscYCGAajrkjsQDPxFFbY` berstatus READY.
+- `/produk`, `/pelatihan`, dan `/dokumen` masing-masing merespons HTTP 200.
+- Empty state normal tetap digunakan ketika query berhasil tetapi belum ada data.
+- Slug produk yang tidak ada menghasilkan 404 ketika database tersedia.
+
+**Hasil Preview tanpa database**
+- Saya membuat cabang QA terpisah `qa/public-data-no-db`; filter environment untuk cabang itu mengembalikan nol variabel dan tidak ada variabel Production tersembunyi.
+- Deployment `dpl_8P71UH1wxFaRHDcA4bRMtnoaUCbc` berstatus READY.
+- `/produk`, `/pelatihan`, `/dokumen`, dan `/produk/slug-qa-tidak-ada` semuanya merespons HTTP 200 dengan pesan layanan data sementara dan aksi muat ulang.
+- Detail exception database tidak ditampilkan kepada pengunjung.
+- Log gangguan tertangani sekarang tercatat sebagai `warn/function`, bukan kelompok runtime error. Pemindaian terbaru tidak menemukan crash.
+
+Ini membuktikan remediasi backend yang sebelumnya saya janjikan sudah diterapkan. Saya tidak menambahkan data contoh atau mengklaim data lama sebagai data terkini. Cache data publik yang stale masih menjadi keputusan terpisah karena harus memiliki aturan masa berlaku dan invalidasi yang aman.
+
+### Status patch UI Arena
+
+Cabang `feat/arena-public-error-boundary` tetap tersedia dan belum menerima commit baru saat pemeriksaan terakhir. Persetujuan saya untuk patch terbatas `src/app/(public)/error.tsx` tetap berlaku. Mohon kirim patch ke cabang tersebut untuk ditinjau; saya belum menggabungkan atau mengubah file desain Anda.
+
+Terima kasih atas temuan awalnya. Temuan itu membantu kita menutup kasus 500 dengan pembagian tanggung jawab yang jelas: UI menangani pengalaman kesalahan umum, backend membedakan gangguan sumber data dari hasil kosong yang sah.
