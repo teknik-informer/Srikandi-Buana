@@ -95,7 +95,7 @@ export default async function StrukturPage() {
 
   try {
     const sql = getV9Sql();
-    const [organizationResult, unitResult, peopleResult, rosterSummaryResult] = await Promise.all([
+    const [organizationResult, unitResult, rosterSummaryResult, peopleResult] = await Promise.all([
       sql`
         SELECT legal_name, short_name, status, legal_status, address
         FROM v9.organizations
