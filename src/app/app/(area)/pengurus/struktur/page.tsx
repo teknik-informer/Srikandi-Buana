@@ -37,6 +37,11 @@ interface UnitRow {
   display_order: number;
 }
 
+interface RosterSummaryRow {
+  active_count: number;
+  core_count: number;
+}
+
 interface PersonRow {
   membership_id: string;
   person_id: string;
@@ -66,11 +71,18 @@ const unitTypeLabel: Record<UnitRow["unit_type"], string> = {
   support: "Pendukung",
 };
 
+const CORE_POSITION_TITLES = new Set([
+  "ketua",
+  "wakil ketua",
+  "sekretaris",
+  "wakil sekretaris",
+  "bendahara",
+  "wakil bendahara",
+]);
+
 function positionGroup(title: string | null): "inti" | "lain" {
-  const normalized = (title ?? "").trim().toLocaleLowerCase("id-ID");
-  return /^(ketua|wakil ketua|sekretaris|wakil sekretaris|bendahara|wakil bendahara)(\s|$)/.test(normalized)
-    ? "inti"
-    : "lain";
+  const normalized = (title ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+  return CORE_POSITION_TITLES.has(normalized) ? "inti" : "lain";
 }
 
 export default async function StrukturPage() {
@@ -78,11 +90,12 @@ export default async function StrukturPage() {
   let organization: OrganizationRow | null = null;
   let units: UnitRow[] = [];
   let people: PersonRow[] = [];
+  let rosterSummary: RosterSummaryRow = { active_count: 0, core_count: 0 };
   let unavailable = false;
 
   try {
     const sql = getV9Sql();
-    const [organizationResult, unitResult, peopleResult] = await Promise.all([
+    const [organizationResult, unitResult, peopleResult, rosterSummaryResult] = await Promise.all([
       sql`
         SELECT legal_name, short_name, status, legal_status, address
         FROM v9.organizations
@@ -106,6 +119,22 @@ export default async function StrukturPage() {
         WHERE unit.organization_id = ${identity.organizationId}
           AND unit.is_active = true
         ORDER BY unit.sort_order, unit.name
+      `,
+      sql`
+        SELECT
+          count(*)::int AS active_count,
+          count(*) FILTER (
+            WHERE lower(regexp_replace(btrim(COALESCE(membership.position_title, '')), '\\s+', ' ', 'g'))
+              = ANY (ARRAY['ketua', 'wakil ketua', 'sekretaris', 'wakil sekretaris', 'bendahara', 'wakil bendahara']::text[])
+          )::int AS core_count
+        FROM v9.memberships AS membership
+        INNER JOIN v9.people AS person
+          ON person.id = membership.person_id
+          AND person.status = 'active'
+        WHERE membership.organization_id = ${identity.organizationId}
+          AND membership.status = 'active'
+          AND (membership.valid_from IS NULL OR membership.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+          AND (membership.valid_until IS NULL OR membership.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
       `,
       sql`
         SELECT
@@ -143,6 +172,7 @@ export default async function StrukturPage() {
     organization = rowsFromResult<OrganizationRow>(organizationResult)[0] ?? null;
     units = rowsFromResult<UnitRow>(unitResult);
     people = rowsFromResult<PersonRow>(peopleResult);
+    rosterSummary = rowsFromResult<RosterSummaryRow>(rosterSummaryResult)[0] ?? { active_count: 0, core_count: 0 };
   } catch (reason) {
     unavailable = true;
     console.warn("[pengurus-structure] Source unavailable", safeErrorType(reason));
@@ -189,8 +219,8 @@ export default async function StrukturPage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Unit organisasi aktif" value={units.length} note="Unit dalam registry organisasi" tone="info" icon={<Building2 size={17} />} />
         <StatCard label="Bidang resmi" value={fieldUnits.length} note="Unit bertipe bidang" tone="info" icon={<Network size={17} />} />
-        <StatCard label="Personel inti tercatat" value={corePeople.length} note="Jabatan inti tertulis pada Buku Induk" tone="success" icon={<ShieldCheck size={17} />} />
-        <StatCard label="Anggota aktif" value={people.length} note="Keanggotaan yang berlaku hari ini" tone="neutral" icon={<Users size={17} />} />
+        <StatCard label="Personel inti tercatat" value={rosterSummary.core_count} note="Jabatan inti yang tercatat tepat" tone="success" icon={<ShieldCheck size={17} />} />
+        <StatCard label="Anggota aktif" value={rosterSummary.active_count} note="Keanggotaan valid per hari ini" tone="neutral" icon={<Users size={17} />} />
       </div>
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[1fr_1.15fr]">
