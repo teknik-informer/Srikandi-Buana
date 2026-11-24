@@ -182,9 +182,9 @@ export default async function RapatPengurusPage() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="font-mono text-[10px] text-muted2">{meeting.reference_no}</span>
                         <Badge tone={meeting.meeting_status === "completed" ? "success" : "info"}>
-                          {statusLabels[meeting.meeting_status]}
+                          {statusLabels[meeting.meeting_status] ?? meeting.meeting_status}
                         </Badge>
-                        <Badge tone="neutral">{meetingLabels[meeting.meeting_type]}</Badge>
+                        <Badge tone="neutral">{meetingLabels[meeting.meeting_type] ?? meeting.meeting_type}</Badge>
                       </div>
                       <h2 className="mt-1.5 text-[13px] font-semibold text-ink">{meeting.title}</h2>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted2">
