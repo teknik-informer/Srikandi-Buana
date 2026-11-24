@@ -9,7 +9,9 @@ on:
   pull_request:
     branches:
       - v9-rebuild
+      - feat/v9-operational-core
       - feat/v9.2-production-integration
+  workflow_dispatch:
 
 permissions:
   contents: read
