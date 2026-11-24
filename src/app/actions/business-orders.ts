@@ -18,10 +18,11 @@ function normalize(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
-function orderPath(result: string, orderId?: string): string {
+function orderPath(result: string, orderId?: string, channel?: string): string {
   const query = new URLSearchParams({ result });
   if (orderId && validUuid(orderId)) query.set("order_id", orderId);
-  return `/app/bidang/usaha/pesanan?${query.toString()}`;
+  const path = channel === "pos" ? "/app/pos" : "/app/bidang/usaha/pesanan";
+  return `${path}?${query.toString()}`;
 }
 
 function requireOrderWrite(identity: Awaited<ReturnType<typeof requireIdentity>>): void {
@@ -40,6 +41,7 @@ function refreshOrders(): void {
   revalidatePath("/app/bidang/usaha/data");
   revalidatePath("/app/bidang/usaha/pesanan");
   revalidatePath("/app/bidang/usaha/persediaan");
+  revalidatePath("/app/pos");
 }
 
 export async function createBusinessCustomer(formData: FormData): Promise<void> {
@@ -120,12 +122,17 @@ export async function createBusinessCustomer(formData: FormData): Promise<void> 
 }
 
 export async function createBusinessOrder(formData: FormData): Promise<void> {
-  const identity = await requireIdentity("field:usaha:activity:write");
-  requireOrderWrite(identity);
+  const identity = await requireIdentity();
+  const channel = String(formData.get("order_channel") ?? "internal").trim();
+  if (channel === "pos") {
+    if (!can(identity, "pos:sell")) redirect("/app");
+  } else {
+    if (!can(identity, "field:usaha:activity:write")) redirect("/app");
+    requireOrderWrite(identity);
+  }
 
   const customerId = String(formData.get("customer_id") ?? "").trim();
   const warehouseId = String(formData.get("warehouse_id") ?? "").trim();
-  const channel = String(formData.get("order_channel") ?? "internal").trim();
   const deliveryFeeText = String(formData.get("delivery_fee") ?? "").trim();
   const deliveryFee = deliveryFeeText === "" ? 0 : Number(deliveryFeeText);
   const deliveryNote = String(formData.get("delivery_note") ?? "").trim();
@@ -139,7 +146,7 @@ export async function createBusinessOrder(formData: FormData): Promise<void> {
     if (!Array.isArray(parsed)) throw new Error("Order items must be an array");
     items = parsed as { product_id: string; quantity: number }[];
   } catch {
-    redirect(orderPath("invalid-items"));
+    redirect(orderPath("invalid-items", undefined, channel));
   }
 
   if (
@@ -156,7 +163,7 @@ export async function createBusinessOrder(formData: FormData): Promise<void> {
     ) ||
     new Set(items.map((item) => item.product_id)).size !== items.length
   ) {
-    redirect(orderPath("invalid-items"));
+    redirect(orderPath("invalid-items", undefined, channel));
   }
 
   let created: MutationRow | undefined;
@@ -320,12 +327,12 @@ export async function createBusinessOrder(formData: FormData): Promise<void> {
     created = rowsFromResult<MutationRow>(result)[0];
   } catch (reason) {
     fail("business-order-create", reason);
-    redirect(orderPath("error"));
+    redirect(orderPath("error", undefined, channel));
   }
 
-  if (!created) redirect(orderPath("customer-product-or-warehouse-unavailable"));
+  if (!created) redirect(orderPath("customer-product-or-warehouse-unavailable", undefined, channel));
   refreshOrders();
-  redirect(orderPath("order-created", created.id));
+  redirect(orderPath("order-created", created.id, channel));
 }
 
 export async function confirmBusinessOrder(formData: FormData): Promise<void> {
