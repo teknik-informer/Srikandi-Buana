@@ -50,7 +50,7 @@ export default async function TugasPengurusPage() {
         task.status,
         program.reference_no AS program_code,
         (
-          task.due_date < current_date
+          task.due_date < (now() AT TIME ZONE 'Asia/Jakarta')::date
           AND task.status NOT IN ('selesai', 'dibatalkan')
         ) AS is_overdue
       FROM v9.field_tasks AS task
@@ -105,8 +105,8 @@ export default async function TugasPengurusPage() {
           WHERE member.person_id = person.id
             AND member.organization_id = ${identity.organizationId}
             AND member.status = 'active'
-            AND (member.valid_from IS NULL OR member.valid_from <= current_date)
-            AND (member.valid_until IS NULL OR member.valid_until >= current_date)
+            AND (member.valid_from IS NULL OR member.valid_from <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+            AND (member.valid_until IS NULL OR member.valid_until >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
           ORDER BY member.created_at DESC
           LIMIT 1
         ) AS membership ON true
