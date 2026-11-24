@@ -43,17 +43,19 @@ export function FieldShellChrome({
     : [{ label: "Bidang", items: [{ label: "Peta bidang", href: "/app/bidang" }] }];
 
   return (
-    <SearchProvider>
-    <AppShell
-      identity={identity}
-      accounts={[]}
-      activeApp={field ? FIELD_APP_KEY[fieldSlug] ?? "organisasi" : "organisasi"}
-      nav={nav}
-      notices={[]}
-    >
-      {children}
-    </AppShell>
-    </SearchProvider>
-    <Toaster />
+    <>
+      <SearchProvider>
+        <AppShell
+          identity={identity}
+          accounts={[]}
+          activeApp={field ? FIELD_APP_KEY[fieldSlug] ?? "organisasi" : "organisasi"}
+          nav={nav}
+          notices={[]}
+        >
+          {children}
+        </AppShell>
+      </SearchProvider>
+      <Toaster />
+    </>
   );
 }
