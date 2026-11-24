@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { submitJoinInterest, type JoinState } from "@/app/actions/forms";
 import { CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 
 const initial: JoinState = { ok: false, message: "" };
 
@@ -68,7 +69,7 @@ export function JoinForm() {
       </div>
       <label className="flex items-start gap-2.5 text-[12px] text-muted">
         <input type="checkbox" name="setuju" required className="mt-0.5 h-4 w-4 accent-[var(--sb-primary)]" />
-        <span>Saya menyetujui data ini diproses untuk keperluan keanggotaan sesuai kebijakan privasi organisasi.</span>
+        <span>Saya menyetujui data ini diproses untuk peninjauan minat dan verifikasi keanggotaan. Saya telah membaca <Link href="/privasi" className="font-semibold text-primary-700 underline">Kebijakan Privasi</Link>.</span>
       </label>
       <button type="submit" className="sb-btn sb-btn-primary" disabled={pending} title={pending ? "Formulir sedang dikirim — tunggu sebentar." : undefined} aria-busy={pending}>
         {pending ? "Mengirim…" : "Kirim minat bergabung"}
