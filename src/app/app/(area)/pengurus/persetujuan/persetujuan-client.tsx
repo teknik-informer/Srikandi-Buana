@@ -181,6 +181,7 @@ function Inner({ data }: { data: ApprovalQueueData }) {
             key: option.key,
             label: option.label,
             count:
+              (option.key === "semua" && (data.errors.length > 0 || !data.canReviewMembership)) ||
               (option.key === "keanggotaan" && !data.canReviewMembership) ||
               data.errors.includes(option.key === "keuangan" ? "finance" : option.key === "keanggotaan" ? "membership" : option.key === "rencana" ? "workplan" : "finance")
                 ? undefined
