@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Check, X, Clock3, ClipboardCheck, FileText, UsersRound, Wallet } from "lucide-react";
 import { Badge, Card, CardHeader, Notice, StatCard } from "@/components/ui";
 import { Btn, SearchBox, SearchProvider, Segmented, useSearch, match } from "@/components/act";
@@ -208,9 +209,12 @@ function Inner({ data }: { data: ApprovalQueueData }) {
                         <h3 className="mt-1 text-[13px] font-semibold text-ink">{row.description}</h3>
                         <p className="mt-0.5 text-[10.5px] text-muted2">Pembuat: {row.creator_name} · {formatDateID(row.journal_date)}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="flex flex-col items-end gap-1.5 text-right">
                         <div className="font-display text-[17px] font-semibold text-ink tabular-nums">{formatIDR(Number(row.total_debit))}</div>
                         <div className="text-[10px] text-muted2">Debit = Kredit</div>
+                        <Link href="/app/keuangan/jurnal" className="text-[10.5px] font-semibold text-primary-700 hover:underline">
+                          Lihat rincian jurnal
+                        </Link>
                       </div>
                     </div>
                     {data.canReviewFinance && !isAuthor ? (
@@ -337,6 +341,9 @@ function Inner({ data }: { data: ApprovalQueueData }) {
                     ) : null}
                   </div>
                   {row.objective ? <p className="mt-2 text-[11.5px] leading-5 text-muted">{row.objective}</p> : null}
+                  <Link href={`/app/bidang/${row.field_key}/rencana`} className="mt-2 inline-block text-[10.5px] font-semibold text-primary-700 hover:underline">
+                    Lihat rencana bidang
+                  </Link>
                   {!data.canApproveWorkplans ? <p className="mt-2 text-[10.5px] text-muted2">Akun Anda dapat melihat antrean, tetapi keputusan rencana kerja dilakukan Ketua/Admin Organisasi.</p> : null}
                 </article>
               ))}
