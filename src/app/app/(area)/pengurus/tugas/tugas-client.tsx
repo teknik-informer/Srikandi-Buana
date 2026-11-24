@@ -17,6 +17,12 @@ import {
 type TaskStatus = "belum" | "proses" | "selesai" | "dibatalkan";
 type TaskPriority = "tinggi" | "sedang" | "rendah";
 
+export interface ManagementAssignee {
+  userId: string;
+  name: string;
+  memberNumber: string | null;
+}
+
 export interface ManagementTask {
   id: string;
   referenceNo: string;
@@ -24,6 +30,7 @@ export interface ManagementTask {
   fieldKey: string;
   fieldName: string;
   assigneeLabel: string;
+  assignedToUserId: string | null;
   dueDate: string | null;
   priority: TaskPriority;
   status: TaskStatus;
@@ -44,26 +51,34 @@ type Filter = "terbuka" | "terlambat" | "selesai" | "semua";
 
 export function TugasClient({
   tasks,
+  assignees,
+  assigneeLoadError,
   canManage,
   loadError,
 }: {
   tasks: ManagementTask[];
+  assignees: ManagementAssignee[];
+  assigneeLoadError: boolean;
   canManage: boolean;
   loadError: boolean;
 }) {
   return (
     <SearchProvider>
-      <Inner tasks={tasks} canManage={canManage} loadError={loadError} />
+      <Inner tasks={tasks} assignees={assignees} assigneeLoadError={assigneeLoadError} canManage={canManage} loadError={loadError} />
     </SearchProvider>
   );
 }
 
 function Inner({
   tasks,
+  assignees,
+  assigneeLoadError,
   canManage,
   loadError,
 }: {
   tasks: ManagementTask[];
+  assignees: ManagementAssignee[];
+  assigneeLoadError: boolean;
   canManage: boolean;
   loadError: boolean;
 }) {
@@ -76,10 +91,12 @@ function Inner({
     title: "",
     fieldKey: "pertanian",
     assigneeLabel: "",
+    assigneeUserId: "",
     dueDate: "",
     priority: "sedang" as TaskPriority,
   });
   const [assignee, setAssignee] = useState("");
+  const [assigneeUserId, setAssigneeUserId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -133,7 +150,7 @@ function Inner({
         return;
       }
       setCreateOpen(false);
-      setForm({ ...form, title: "", assigneeLabel: "", dueDate: "" });
+      setForm({ ...form, title: "", assigneeLabel: "", assigneeUserId: "", dueDate: "" });
       router.refresh();
     } catch {
       setErr("Layanan belum dapat menyimpan tugas. Periksa koneksi lalu coba kembali.");
@@ -147,7 +164,7 @@ function Inner({
     setErr(null);
     setPending(true);
     try {
-      const result = await reassignManagementTask(assignOpen, assignee, dueDate);
+      const result = await reassignManagementTask(assignOpen, assigneeUserId, assignee, dueDate);
       if (!result.ok) {
         setErr(result.message);
         return;
@@ -293,7 +310,7 @@ function Inner({
                       {canManage && task.status !== "selesai" && task.status !== "dibatalkan" ? (
                         <button
                           type="button"
-                          onClick={() => { setAssignOpen(task.id); setAssignee(task.assigneeLabel); setDueDate(task.dueDate ?? ""); setErr(null); }}
+                          onClick={() => { setAssignOpen(task.id); setAssignee(task.assigneeLabel); setAssigneeUserId(task.assignedToUserId ?? ""); setDueDate(task.dueDate ?? ""); setErr(null); }}
                           disabled={pending}
                           className="inline-flex min-h-[32px] items-center gap-1 rounded-full px-2 text-[11.5px] font-semibold text-primary-700 hover:bg-primary-50 disabled:opacity-50"
                           title="Delegasikan ulang"
@@ -374,8 +391,20 @@ function Inner({
                 </Select>
               )}
             </Field>
-            <Field label="Penanggung jawab">
-              {(id) => <TextInput id={id} value={form.assigneeLabel} onChange={(e) => setForm({ ...form, assigneeLabel: e.target.value })} placeholder="Nama penanggung jawab (opsional)" />}
+            <Field label="Tautkan ke anggota aktif">
+              {(id) => (
+                <Select id={id} value={form.assigneeUserId} onChange={(e) => setForm({ ...form, assigneeUserId: e.target.value })}>
+                  <option value="">Tidak ditautkan ke akun</option>
+                  {assignees.map((person) => (
+                    <option key={person.userId} value={person.userId}>
+                      {person.name}{person.memberNumber ? ` · ${person.memberNumber}` : ""}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label="Penanggung jawab manual" hint="Opsional bila tidak memilih akun anggota">
+              {(id) => <TextInput id={id} value={form.assigneeLabel} onChange={(e) => setForm({ ...form, assigneeLabel: e.target.value })} placeholder="Nama atau pihak eksternal" />}
             </Field>
             <Field label="Tenggat" required>
               {(id) => <TextInput id={id} type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />}
@@ -390,6 +419,7 @@ function Inner({
               )}
             </Field>
           </div>
+          {assigneeLoadError ? <p className="text-[10.5px] text-[var(--sb-warning)]">Daftar akun anggota aktif belum dapat dimuat. Penanggung jawab manual tidak akan ditautkan ke akun.</p> : null}
           {err ? <p className="text-[11.5px] font-medium text-[var(--sb-danger)]" role="alert">{err}</p> : null}
         </div>
       </Modal>
@@ -402,8 +432,20 @@ function Inner({
         footer={<><Btn variant="ghost" onClick={() => setAssignOpen(null)} disabled={pending}>Batal</Btn><Btn variant="primary" onClick={() => void saveAssign()} loading={pending}>Simpan delegasi</Btn></>}
       >
         <div className="space-y-3">
-          <Field label="Penanggung jawab baru">
-            {(id) => <TextInput id={id} value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="Nama penanggung jawab" />}
+          <Field label="Tautkan ke anggota aktif">
+            {(id) => (
+              <Select id={id} value={assigneeUserId} onChange={(e) => setAssigneeUserId(e.target.value)}>
+                <option value="">Tidak ditautkan ke akun</option>
+                {assignees.map((person) => (
+                  <option key={person.userId} value={person.userId}>
+                    {person.name}{person.memberNumber ? ` · ${person.memberNumber}` : ""}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label="Penanggung jawab manual" hint="Opsional bila tidak memilih akun anggota">
+            {(id) => <TextInput id={id} value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="Nama atau pihak eksternal" />}
           </Field>
           <Field label="Tenggat baru" required>
             {(id) => <TextInput id={id} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />}
