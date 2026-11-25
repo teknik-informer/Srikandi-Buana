@@ -47,6 +47,62 @@ function cashBankPath(result: string): string {
   return `/app/keuangan/kas-bank?result=${encodeURIComponent(result)}`;
 }
 
+
+type FinanceBudgetLineInput = {
+  line_number: number;
+  account_id: string;
+  description: string;
+  planned_amount: number;
+  note: string | null;
+};
+
+function parseFinanceBudgetLines(value: string): FinanceBudgetLineInput[] | null {
+  if (value.length > 40000) return null;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(value);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > 100) return null;
+
+  const seenNumbers = new Set<number>();
+  const seenAccounts = new Set<string>();
+  const lines: FinanceBudgetLineInput[] = [];
+
+  for (const candidate of raw) {
+    if (!candidate || typeof candidate !== "object") return null;
+    const item = candidate as Record<string, unknown>;
+    const lineNumber = Number(item.line_number);
+    const accountId = String(item.account_id ?? "").trim();
+    const description = normalize(String(item.description ?? ""));
+    const amount = Number(item.planned_amount);
+    const note = String(item.note ?? "").trim();
+
+    if (
+      !Number.isInteger(lineNumber) || lineNumber < 1 || lineNumber > 100 ||
+      seenNumbers.has(lineNumber) ||
+      !validUuid(accountId) || seenAccounts.has(accountId) ||
+      description.length < 2 || description.length > 180 ||
+      !Number.isFinite(amount) || amount <= 0 ||
+      Math.round(amount * 100) !== amount * 100 || amount > 9999999999999999 ||
+      note.length > 500
+    ) return null;
+
+    seenNumbers.add(lineNumber);
+    seenAccounts.add(accountId);
+    lines.push({
+      line_number: lineNumber,
+      account_id: accountId,
+      description,
+      planned_amount: amount,
+      note: note || null,
+    });
+  }
+
+  return lines.sort((a, b) => a.line_number - b.line_number);
+}
+
 function fail(area: string, reason: unknown): void {
   const errorType =
     reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name)
@@ -416,7 +472,7 @@ export async function createFinanceCashAccount(formData: FormData): Promise<void
               SELECT 1
               FROM v9.finance_budget_lines AS budget_line
               WHERE budget_line.organization_id = account.organization_id
-                AND budget_line.budget_id = ${budgetId}::uuid
+                AND budget_line.budget_id = NULLIF(${budgetId}, '')::uuid
                 AND budget_line.account_id = account.id
             )
           )
@@ -1052,7 +1108,7 @@ export async function updateDraftFinanceJournal(formData: FormData): Promise<voi
               SELECT 1
               FROM v9.finance_budget_lines AS budget_line
               WHERE budget_line.organization_id = account.organization_id
-                AND budget_line.budget_id = ${budgetId}::uuid
+                AND budget_line.budget_id = NULLIF(${budgetId}, '')::uuid
                 AND budget_line.account_id = account.id
             )
           )
@@ -1299,4 +1355,457 @@ export async function createFinanceReversalJournal(formData: FormData): Promise<
   if (!created) redirect(financePath("reversal-not-eligible", originalJournalId));
   refreshFinance();
   redirect(financePath("reversal-draft-created", created.id));
+}
+
+
+export async function createFinanceBudget(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:budget:write")) redirect("/app");
+
+  const code = normalize(String(formData.get("budget_code") ?? ""));
+  const title = normalize(String(formData.get("title") ?? ""));
+  const fiscalYear = Number(formData.get("fiscal_year"));
+  const periodStart = String(formData.get("period_start") ?? "").trim();
+  const periodEnd = String(formData.get("period_end") ?? "").trim();
+  const fundingSource = normalize(String(formData.get("funding_source") ?? ""));
+  const responsible = normalize(String(formData.get("responsible_label") ?? ""));
+  const notes = String(formData.get("notes") ?? "").trim();
+  const linesText = String(formData.get("lines_json") ?? "[]");
+  const lines = parseFinanceBudgetLines(linesText);
+
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._/-]{2,39}$/.test(code) ||
+    title.length < 3 || title.length > 180 ||
+    !Number.isInteger(fiscalYear) || fiscalYear < 2000 || fiscalYear > 2100 ||
+    !validDate(periodStart) || !validDate(periodEnd) || periodStart > periodEnd ||
+    fundingSource.length > 160 || responsible.length > 160 || notes.length > 2000 ||
+    !lines
+  ) {
+    redirect(budgetPath("invalid"));
+  }
+
+  let created: MutationRow | undefined;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH inserted AS (
+        INSERT INTO v9.finance_budgets (
+          organization_id, budget_code, title, fiscal_year,
+          period_start, period_end, funding_source, responsible_label,
+          notes, status, created_by
+        )
+        VALUES (
+          ${identity.organizationId}, ${code}, ${title}, ${fiscalYear},
+          ${periodStart}::date, ${periodEnd}::date,
+          NULLIF(${fundingSource}, ''), NULLIF(${responsible}, ''),
+          NULLIF(${notes}, ''), 'draft', ${identity.userId}
+        )
+        RETURNING id, organization_id, budget_code, title, fiscal_year,
+          period_start, period_end, funding_source, responsible_label, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_budget.created',
+          'finance_budget', id::text,
+          jsonb_build_object(
+            'budget_code', budget_code, 'title', title, 'fiscal_year', fiscal_year,
+            'period_start', period_start, 'period_end', period_end,
+            'funding_source', funding_source, 'responsible_label', responsible_label,
+            'status', status
+          )
+        FROM inserted
+        RETURNING id
+      )
+      SELECT inserted.id::text AS id, inserted.budget_code AS reference_no
+      FROM inserted INNER JOIN audit ON true
+    `;
+    created = rowsFromResult<MutationRow>(result)[0];
+    if (!created) redirect(budgetPath("invalid"));
+    await sql`
+      WITH input AS MATERIALIZED (
+        SELECT item.line_number, item.account_id, item.description,
+          item.planned_amount, item.note
+        FROM jsonb_to_recordset(${JSON.stringify(lines)}::jsonb) AS item(
+          line_number smallint, account_id uuid, description text,
+          planned_amount numeric, note text
+        )
+      ),
+      eligible AS MATERIALIZED (
+        SELECT input.*
+        FROM input
+        INNER JOIN v9.finance_accounts AS account
+          ON account.id = input.account_id
+          AND account.organization_id = ${identity.organizationId}
+          AND account.account_type = 'beban'
+          AND account.normal_balance = 'debit'
+          AND account.status = 'active'
+          AND account.is_postable = true
+      ),
+      inserted AS (
+        INSERT INTO v9.finance_budget_lines (
+          organization_id, budget_id, line_number, account_id,
+          description, planned_amount, note
+        )
+        SELECT
+          ${identity.organizationId}, ${created.id}::uuid,
+          eligible.line_number, eligible.account_id, eligible.description,
+          eligible.planned_amount, NULLIF(eligible.note, '')
+        FROM eligible
+        WHERE (SELECT count(*) FROM eligible) = (SELECT count(*) FROM input)
+        RETURNING id
+      )
+      SELECT count(*)::int AS inserted_count FROM inserted
+    `;
+  } catch (reason) {
+    fail("finance-budget-create", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("finance_budgets_organization_id_budget_code_key")) {
+      redirect(budgetPath("duplicate-code"));
+    }
+    redirect(budgetPath(created ? "lines-invalid" : "error", created?.id));
+  }
+
+  refreshFinance();
+  redirect(budgetPath("budget-created", created.id));
+}
+
+export async function updateDraftFinanceBudget(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:budget:write")) redirect("/app");
+
+  const budgetId = String(formData.get("budget_id") ?? "").trim();
+  const code = normalize(String(formData.get("budget_code") ?? ""));
+  const title = normalize(String(formData.get("title") ?? ""));
+  const fiscalYear = Number(formData.get("fiscal_year"));
+  const periodStart = String(formData.get("period_start") ?? "").trim();
+  const periodEnd = String(formData.get("period_end") ?? "").trim();
+  const fundingSource = normalize(String(formData.get("funding_source") ?? ""));
+  const responsible = normalize(String(formData.get("responsible_label") ?? ""));
+  const notes = String(formData.get("notes") ?? "").trim();
+  const linesText = String(formData.get("lines_json") ?? "[]");
+  const lines = parseFinanceBudgetLines(linesText);
+
+  if (
+    !validUuid(budgetId) ||
+    !/^[A-Za-z0-9][A-Za-z0-9._/-]{2,39}$/.test(code) ||
+    title.length < 3 || title.length > 180 ||
+    !Number.isInteger(fiscalYear) || fiscalYear < 2000 || fiscalYear > 2100 ||
+    !validDate(periodStart) || !validDate(periodEnd) || periodStart > periodEnd ||
+    fundingSource.length > 160 || responsible.length > 160 || notes.length > 2000 ||
+    !lines
+  ) {
+    redirect(budgetPath("invalid", budgetId));
+  }
+
+  let updated = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH locked_budget AS MATERIALIZED (
+        SELECT budget.id, budget.organization_id
+        FROM v9.finance_budgets AS budget
+        WHERE budget.id = ${budgetId}
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.created_by = ${identity.userId}
+          AND budget.status = 'draft'
+        FOR UPDATE
+      ),
+      input AS MATERIALIZED (
+        SELECT item.line_number, item.account_id, item.description,
+          item.planned_amount, item.note
+        FROM jsonb_to_recordset(${JSON.stringify(lines)}::jsonb) AS item(
+          line_number smallint, account_id uuid, description text,
+          planned_amount numeric, note text
+        )
+      ),
+      eligible AS MATERIALIZED (
+        SELECT input.*
+        FROM input
+        INNER JOIN v9.finance_accounts AS account
+          ON account.id = input.account_id
+          AND account.organization_id = ${identity.organizationId}
+          AND account.account_type = 'beban'
+          AND account.normal_balance = 'debit'
+          AND account.status = 'active'
+          AND account.is_postable = true
+      ),
+      deleted AS (
+        DELETE FROM v9.finance_budget_lines AS line
+        USING locked_budget
+        WHERE line.budget_id = locked_budget.id
+          AND line.organization_id = locked_budget.organization_id
+          AND (SELECT count(*) FROM eligible) = (SELECT count(*) FROM input)
+        RETURNING line.id
+      ),
+      inserted AS (
+        INSERT INTO v9.finance_budget_lines (
+          organization_id, budget_id, line_number, account_id,
+          description, planned_amount, note
+        )
+        SELECT
+          locked_budget.organization_id, locked_budget.id,
+          eligible.line_number, eligible.account_id, eligible.description,
+          eligible.planned_amount, NULLIF(eligible.note, '')
+        FROM locked_budget
+        CROSS JOIN eligible
+        WHERE (SELECT count(*) FROM eligible) = (SELECT count(*) FROM input)
+          AND (SELECT count(*) FROM deleted) >= 0
+        RETURNING id
+      ),
+      changed AS (
+        UPDATE v9.finance_budgets AS budget
+        SET budget_code = ${code},
+          title = ${title},
+          fiscal_year = ${fiscalYear},
+          period_start = ${periodStart}::date,
+          period_end = ${periodEnd}::date,
+          funding_source = NULLIF(${fundingSource}, ''),
+          responsible_label = NULLIF(${responsible}, ''),
+          notes = NULLIF(${notes}, ''),
+          updated_at = now()
+        FROM locked_budget
+        WHERE budget.id = locked_budget.id
+          AND budget.organization_id = locked_budget.organization_id
+          AND (SELECT count(*) FROM inserted) = (SELECT count(*) FROM input)
+        RETURNING budget.id, budget.organization_id, budget.budget_code, budget.title,
+          budget.fiscal_year, budget.period_start, budget.period_end,
+          budget.funding_source, budget.responsible_label, budget.status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_budget.draft_updated',
+          'finance_budget', id::text,
+          jsonb_build_object('budget_code', budget_code, 'title', title,
+            'fiscal_year', fiscal_year, 'period_start', period_start,
+            'period_end', period_end, 'funding_source', funding_source,
+            'responsible_label', responsible_label, 'status', status)
+        FROM changed
+        RETURNING id
+      )
+      SELECT changed.id::text AS id FROM changed INNER JOIN audit ON true
+    `;
+    updated = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-budget-update", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("finance_budgets_organization_id_budget_code_key")) {
+      redirect(budgetPath("duplicate-code", budgetId));
+    }
+    redirect(budgetPath("update-error", budgetId));
+  }
+
+  if (!updated) redirect(budgetPath("not-draft-or-account-unavailable", budgetId));
+  refreshFinance();
+  redirect(budgetPath("budget-updated", budgetId));
+}
+
+export async function submitFinanceBudget(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:budget:write")) redirect("/app");
+  const budgetId = String(formData.get("budget_id") ?? "").trim();
+  if (!validUuid(budgetId)) redirect(budgetPath("invalid", budgetId));
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_budgets AS budget
+        SET status = 'submitted',
+          submitted_by = ${identity.userId},
+          submitted_at = now(),
+          updated_at = now()
+        WHERE budget.id = ${budgetId}
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.status = 'draft'
+          AND budget.created_by = ${identity.userId}
+          AND EXISTS (
+            SELECT 1 FROM v9.finance_budget_lines AS line
+            WHERE line.budget_id = budget.id
+              AND line.organization_id = budget.organization_id
+          )
+        RETURNING budget.id, budget.organization_id, budget.budget_code,
+          budget.title, budget.status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_budget.submitted',
+          'finance_budget', id::text,
+          jsonb_build_object('budget_code', budget_code, 'title', title, 'status', status)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-budget-submit", reason);
+    redirect(budgetPath("submit-error", budgetId));
+  }
+  if (!changed) redirect(budgetPath("submit-blocked", budgetId));
+  refreshFinance();
+  redirect(budgetPath("budget-submitted", budgetId));
+}
+
+export async function reviewFinanceBudget(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:budget:approve")) redirect("/app");
+  const budgetId = String(formData.get("budget_id") ?? "").trim();
+  const decision = String(formData.get("decision") ?? "").trim();
+  const reviewNote = String(formData.get("review_note") ?? "").trim();
+
+  if (
+    !validUuid(budgetId) ||
+    !["approved", "rejected"].includes(decision) ||
+    (decision === "rejected" && reviewNote.length < 3) ||
+    reviewNote.length > 2000
+  ) redirect(budgetPath("invalid-review", budgetId));
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_budgets AS budget
+        SET status = ${decision},
+          approved_by = CASE WHEN ${decision} = 'approved' THEN ${identity.userId}::uuid ELSE NULL END,
+          approved_at = CASE WHEN ${decision} = 'approved' THEN now() ELSE NULL END,
+          rejected_by = CASE WHEN ${decision} = 'rejected' THEN ${identity.userId}::uuid ELSE NULL END,
+          rejected_at = CASE WHEN ${decision} = 'rejected' THEN now() ELSE NULL END,
+          review_note = CASE WHEN ${decision} = 'rejected' THEN ${reviewNote} ELSE NULL END,
+          updated_at = now()
+        WHERE budget.id = ${budgetId}
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.status = 'submitted'
+          AND budget.created_by <> ${identity.userId}
+        RETURNING budget.id, budget.organization_id, budget.budget_code,
+          budget.title, budget.status, budget.created_by,
+          budget.approved_by, budget.rejected_by, budget.review_note
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_budget.' || status,
+          'finance_budget', id::text,
+          jsonb_build_object('budget_code', budget_code, 'title', title,
+            'status', status, 'created_by', created_by,
+            'approved_by', approved_by, 'rejected_by', rejected_by,
+            'review_note', review_note)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-budget-review", reason);
+    redirect(budgetPath("review-error", budgetId));
+  }
+  if (!changed) redirect(budgetPath("review-not-eligible", budgetId));
+  refreshFinance();
+  redirect(budgetPath(decision === "approved" ? "budget-approved" : "budget-rejected", budgetId));
+}
+
+export async function reopenRejectedFinanceBudget(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:budget:write")) redirect("/app");
+  const budgetId = String(formData.get("budget_id") ?? "").trim();
+  if (!validUuid(budgetId)) redirect(budgetPath("invalid", budgetId));
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_budgets AS budget
+        SET status = 'draft',
+          submitted_by = NULL,
+          submitted_at = NULL,
+          rejected_by = NULL,
+          rejected_at = NULL,
+          review_note = NULL,
+          updated_at = now()
+        WHERE budget.id = ${budgetId}
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.status = 'rejected'
+          AND budget.created_by = ${identity.userId}
+        RETURNING budget.id, budget.organization_id, budget.budget_code, budget.status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_budget.reopened',
+          'finance_budget', id::text,
+          jsonb_build_object('budget_code', budget_code, 'status', status)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-budget-reopen", reason);
+    redirect(budgetPath("reopen-error", budgetId));
+  }
+  if (!changed) redirect(budgetPath("reopen-not-eligible", budgetId));
+  refreshFinance();
+  redirect(budgetPath("budget-reopened", budgetId));
+}
+
+export async function closeFinanceBudget(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:budget:approve")) redirect("/app");
+  const budgetId = String(formData.get("budget_id") ?? "").trim();
+  if (!validUuid(budgetId)) redirect(budgetPath("invalid", budgetId));
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_budgets AS budget
+        SET status = 'closed',
+          closed_by = ${identity.userId},
+          closed_at = now(),
+          updated_at = now()
+        WHERE budget.id = ${budgetId}
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.status = 'approved'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM v9.finance_journals AS journal
+            WHERE journal.organization_id = budget.organization_id
+              AND journal.budget_id = budget.id
+              AND journal.status <> 'posted'
+          )
+        RETURNING budget.id, budget.organization_id, budget.budget_code, budget.title, budget.status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId}, 'finance_budget.closed',
+          'finance_budget', id::text,
+          jsonb_build_object('budget_code', budget_code, 'title', title, 'status', status)
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-budget-close", reason);
+    redirect(budgetPath("close-error", budgetId));
+  }
+  if (!changed) redirect(budgetPath("close-blocked", budgetId));
+  refreshFinance();
+  redirect(budgetPath("budget-closed", budgetId));
 }
