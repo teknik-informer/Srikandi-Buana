@@ -78,6 +78,7 @@ BEGIN
 
   IF NEW.status IN ('submitted','approved','posted')
     AND NEW.status IS DISTINCT FROM OLD.status
+    AND NEW.source_type <> 'reversal'
     AND EXISTS (
       SELECT 1
       FROM v9.finance_journal_lines AS line
