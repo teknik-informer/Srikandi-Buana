@@ -465,26 +465,6 @@ export async function createFinanceCashAccount(formData: FormData): Promise<void
               AND cash_account.ledger_account_id = account.id
               AND cash_account.status <> 'active'
           )
-          AND (
-            account.account_type <> 'beban'
-            OR ${budgetId} = ''
-            OR EXISTS (
-              SELECT 1
-              FROM v9.finance_budget_lines AS budget_line
-              WHERE budget_line.organization_id = account.organization_id
-                AND budget_line.budget_id = NULLIF(${budgetId}, '')::uuid
-                AND budget_line.account_id = account.id
-            )
-          )
-      ),
-      valid_budget AS MATERIALIZED (
-        SELECT budget.id
-        FROM v9.finance_budgets AS budget
-        WHERE ${budgetId} <> ''
-          AND budget.id = NULLIF(${budgetId}, '')::uuid
-          AND budget.organization_id = ${identity.organizationId}
-          AND budget.status = 'approved'
-          AND ${journalDate}::date BETWEEN budget.period_start AND budget.period_end
       ),
       inserted AS (
         INSERT INTO v9.finance_cash_accounts (
@@ -679,6 +659,26 @@ export async function createFinanceJournalDraft(formData: FormData): Promise<voi
               AND cash_account.ledger_account_id = account.id
               AND cash_account.status <> 'active'
           )
+          AND (
+            account.account_type <> 'beban'
+            OR ${budgetId} = ''
+            OR EXISTS (
+              SELECT 1
+              FROM v9.finance_budget_lines AS budget_line
+              WHERE budget_line.organization_id = account.organization_id
+                AND budget_line.budget_id = NULLIF(${budgetId}, '')::uuid
+                AND budget_line.account_id = account.id
+            )
+          )
+      ),
+      valid_budget AS MATERIALIZED (
+        SELECT budget.id
+        FROM v9.finance_budgets AS budget
+        WHERE ${budgetId} <> ''
+          AND budget.id = NULLIF(${budgetId}, '')::uuid
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.status = 'approved'
+          AND ${journalDate}::date BETWEEN budget.period_start AND budget.period_end
       ),
       inserted AS (
         INSERT INTO v9.finance_journals (
