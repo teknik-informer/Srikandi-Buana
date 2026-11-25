@@ -20,6 +20,7 @@ interface BalanceRow {
   account_code: string;
   account_name: string;
   account_type: string;
+  group_label: string;
   normal_balance: "debit" | "credit";
   debit_total: string;
   credit_total: string;
@@ -45,6 +46,7 @@ export default async function PiutangUtangPage() {
         account.account_code,
         account.account_name,
         account.account_type,
+        account.group_label,
         account.normal_balance,
         COALESCE(ledger.debit_total, 0)::text AS debit_total,
         COALESCE(ledger.credit_total, 0)::text AS credit_total,
@@ -73,15 +75,30 @@ export default async function PiutangUtangPage() {
         ON ledger.account_id = account.id
         AND ledger.organization_id = account.organization_id
       WHERE account.organization_id = ${identity.organizationId}
-        AND account.account_code IN ('1-1200', '2-1000', '2-1100')
         AND account.status = 'active'
+        AND account.is_postable = true
+        AND (
+          account.account_type = 'kewajiban'
+          OR (
+            account.account_type = 'aset'
+            AND (
+              account.group_label ILIKE '%piutang%'
+              OR account.account_name ILIKE '%piutang%'
+              OR account.group_label ILIKE '%tagihan%'
+            )
+          )
+        )
+        AND NOT (
+          account.account_type = 'kewajiban'
+          AND (
+            account.group_label ILIKE '%pajak%'
+            OR account.account_name ILIKE '%pajak%'
+          )
+        )
       ORDER BY
-        CASE account.account_code
-          WHEN '1-1200' THEN 1
-          WHEN '2-1000' THEN 2
-          WHEN '2-1100' THEN 3
-          ELSE 4
-        END
+        CASE WHEN account.account_type = 'aset' THEN 0 ELSE 1 END,
+        account.group_label,
+        account.account_code
     `;
     accounts = rowsFromResult<BalanceRow>(result);
   } catch (reason) {
@@ -89,8 +106,14 @@ export default async function PiutangUtangPage() {
     console.warn("[finance-receivables-payables] Source unavailable", safeErrorType(reason));
   }
 
-  const receivableAccounts = accounts.filter((account) => account.account_code === "1-1200");
-  const payableAccounts = accounts.filter((account) => account.account_type === "kewajiban");
+  const receivableAccounts = accounts.filter((account) =>
+    account.account_type === "aset" &&
+    /piutang|tagihan/i.test(`${account.group_label} ${account.account_name}`),
+  );
+  const payableAccounts = accounts.filter((account) =>
+    account.account_type === "kewajiban" &&
+    !/pajak/i.test(`${account.group_label} ${account.account_name}`),
+  );
   const receivableTotal = receivableAccounts.reduce((sum, account) => sum + Math.max(0, Number(account.balance)), 0);
   const payableTotal = payableAccounts.reduce((sum, account) => sum + Math.max(0, Number(account.balance)), 0);
   const receivableJournals = receivableAccounts.reduce((sum, account) => sum + account.journal_count, 0);
@@ -127,7 +150,7 @@ export default async function PiutangUtangPage() {
         <StatCard
           label="Saldo piutang"
           value={unavailable || !receivableAccounts.length ? "—" : formatIDR(receivableTotal)}
-          note={receivableAccounts.length ? receivableJournals + " jurnal terposting" : "Akun 1-1200 belum tersedia"}
+          note={receivableAccounts.length ? receivableJournals + " jurnal terposting" : "Kategori akun Piutang belum tersedia"}
           tone="info"
           icon={<ArrowDownLeft size={17} />}
         />
@@ -173,7 +196,7 @@ export default async function PiutangUtangPage() {
             </div>
           ) : (
             <div className="p-4">
-              <EmptyState title="Akun piutang belum tersedia" body="Akun 1-1200 perlu disahkan dan diaktifkan sebelum saldo piutang dapat dilaporkan." />
+              <EmptyState title="Akun piutang belum tersedia" body="Aktifkan akun aset dengan kelompok atau nama bertanda Piutang/Tagihan pada Bagan Akun." />
             </div>
           )}
         </Card>
