@@ -14,6 +14,8 @@ const minutes = read("src/app/app/(area)/sekretariat/notulen/page.tsx");
 const attendance = read("src/app/app/(area)/sekretariat/presensi/page.tsx");
 const letters = read("src/app/app/(area)/sekretariat/surat/page.tsx");
 const lettersClient = read("src/app/app/(area)/sekretariat/surat/surat-client.tsx");
+const documentRegister = read("src/app/app/(area)/sekretariat/dokumen/page.tsx");
+const printPage = read("src/app/app/(area)/sekretariat/dokumen/[id]/cetak/page.tsx");
 const templateTypes = read("src/lib/secretariat-templates.ts");
 
 assert.ok(
