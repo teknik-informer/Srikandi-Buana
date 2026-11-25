@@ -124,51 +124,70 @@ export async function createFieldWorkplan(formData: FormData): Promise<void> {
 export async function submitFieldWorkplan(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
-  const id = String(formData.get("workplan_id") ?? "").trim();
+  const id = String(formData.get('workplan_id') ?? '').trim();
   ensurePermission(identity, fieldKey, `field:${fieldKey}:workplan:write`);
-  if (!validUuid(id)) redirect(fieldPath(fieldKey, "rencana", "invalid"));
+  if (!validUuid(id)) redirect(fieldPath(fieldKey, 'rencana', 'invalid'));
 
   let changed = false;
   try {
     const sql = getV9Sql();
     const result = await sql`
-      WITH updated AS (
-        UPDATE v9.field_workplans
-        SET status = 'submitted',
-            submitted_at = now(),
-            updated_by = ${identity.userId},
-            updated_at = now()
+      WITH current_workplan AS (
+        SELECT id, organization_id, field_key, reference_no, title, status, submitted_at,
+          reviewed_at, reviewed_by, review_note
+        FROM v9.field_workplans
         WHERE id = ${id}
           AND organization_id = ${identity.organizationId}
           AND field_key = ${fieldKey}
-          AND status = 'draft'
-        RETURNING id, reference_no, organization_id, field_key, title, status
+          AND status IN ('draft','rejected')
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.field_workplans AS workplan
+        SET status = 'submitted',
+            submitted_at = now(),
+            reviewed_at = NULL,
+            reviewed_by = NULL,
+            review_note = NULL,
+            updated_by = ${identity.userId},
+            updated_at = now()
+        FROM current_workplan
+        WHERE workplan.id = current_workplan.id
+        RETURNING workplan.id, workplan.organization_id, workplan.field_key,
+          workplan.reference_no, workplan.title, workplan.status, workplan.submitted_at
       ),
       audit AS (
         INSERT INTO v9.audit_events (
-          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+          organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state
         )
-        SELECT organization_id, ${identity.userId}, 'field_workplan.submitted',
-          'field_workplan', id::text,
-          jsonb_build_object('reference_no', reference_no, 'field_key', field_key, 'title', title, 'status', status)
+        SELECT updated.organization_id, ${identity.userId},
+          CASE WHEN current_workplan.status = 'rejected' THEN 'field_workplan.resubmitted'
+            ELSE 'field_workplan.submitted' END,
+          'field_workplan', updated.id::text,
+          jsonb_build_object('reference_no', current_workplan.reference_no,
+            'field_key', current_workplan.field_key, 'title', current_workplan.title,
+            'previous_status', current_workplan.status, 'previous_reviewed_at', current_workplan.reviewed_at,
+            'previous_reviewed_by', current_workplan.reviewed_by, 'previous_review_note', current_workplan.review_note),
+          jsonb_build_object('reference_no', updated.reference_no, 'field_key', updated.field_key,
+            'title', updated.title, 'status', updated.status, 'submitted_at', updated.submitted_at)
         FROM updated
+        INNER JOIN current_workplan ON current_workplan.id = updated.id
         RETURNING id
       )
-      SELECT updated.id::text AS id
-      FROM updated
-      INNER JOIN audit ON true
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
     `;
     changed = rowsFromResult<FieldStatusResult>(result).length === 1;
   } catch (reason) {
-    error("field-workplan-submit", reason);
-    redirect(fieldPath(fieldKey, "rencana", "error"));
+    error('field-workplan-submit', reason);
+    redirect(fieldPath(fieldKey, 'rencana', 'error'));
   }
 
-  if (!changed) redirect(fieldPath(fieldKey, "rencana", "stale"));
-  revalidatePath(sectionPath(fieldKey, "rencana"));
-  redirect(fieldPath(fieldKey, "rencana", "workplan-submitted"));
+  if (!changed) redirect(fieldPath(fieldKey, 'rencana', 'stale'));
+  revalidatePath(`/app/bidang/${fieldKey}`);
+  revalidatePath(sectionPath(fieldKey, 'rencana'));
+  revalidatePath('/app/pengurus/program');
+  redirect(fieldPath(fieldKey, 'rencana', 'workplan-submitted'));
 }
-
 export async function updateFieldWorkplan(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
@@ -196,7 +215,7 @@ export async function updateFieldWorkplan(formData: FormData): Promise<void> {
         WHERE id = ${workplanId}
           AND organization_id = ${identity.organizationId}
           AND field_key = ${fieldKey}
-          AND status = 'draft'
+          AND status IN ('draft','rejected')
         FOR UPDATE
       ),
       updated AS (
@@ -239,6 +258,68 @@ export async function updateFieldWorkplan(formData: FormData): Promise<void> {
   redirect(fieldPath(fieldKey, 'rencana', 'workplan-updated'));
 }
 
+export async function rejectFieldWorkplan(formData: FormData): Promise<void> {
+  const identity = await requireRoles(['platform_admin', 'organization_admin', 'chair']);
+  const fieldKey = getFieldKey(formData);
+  const workplanId = String(formData.get('workplan_id') ?? '').trim();
+  const reviewNote = String(formData.get('review_note') ?? '').trim();
+  if (!FIELDS_BY_SLUG[fieldKey]) redirect('/app/bidang');
+  if (!validUuid(workplanId) || reviewNote.length < 3 || reviewNote.length > 1000) {
+    redirect('/app/pengurus/program?result=invalid');
+  }
+
+  let rejected = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH current_workplan AS (
+        SELECT id, organization_id, field_key, reference_no, title, status, created_by
+        FROM v9.field_workplans
+        WHERE id = ${workplanId}
+          AND organization_id = ${identity.organizationId}
+          AND field_key = ${fieldKey}
+          AND status = 'submitted'
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.field_workplans AS workplan
+        SET status = 'rejected', reviewed_at = now(), reviewed_by = ${identity.userId},
+            review_note = ${reviewNote}, updated_by = ${identity.userId}, updated_at = now()
+        FROM current_workplan
+        WHERE workplan.id = current_workplan.id
+          AND current_workplan.created_by IS DISTINCT FROM ${identity.userId}
+        RETURNING workplan.id, workplan.organization_id, workplan.field_key,
+          workplan.reference_no, workplan.title, workplan.status,
+          workplan.reviewed_at, workplan.reviewed_by, workplan.review_note
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state
+        )
+        SELECT updated.organization_id, ${identity.userId}, 'field_workplan.rejected',
+          'field_workplan', updated.id::text,
+          jsonb_build_object('reference_no', current_workplan.reference_no,
+            'field_key', current_workplan.field_key, 'title', current_workplan.title, 'status', current_workplan.status),
+          jsonb_build_object('reference_no', updated.reference_no, 'field_key', updated.field_key,
+            'title', updated.title, 'status', updated.status, 'reviewed_at', updated.reviewed_at,
+            'reviewed_by', updated.reviewed_by, 'review_note', updated.review_note)
+        FROM updated
+        INNER JOIN current_workplan ON current_workplan.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    rejected = rowsFromResult<FieldStatusResult>(result).length === 1;
+  } catch (reason) {
+    error('field-workplan-reject', reason);
+    redirect('/app/pengurus/program?result=error');
+  }
+
+  if (!rejected) redirect('/app/pengurus/program?result=stale');
+  revalidatePath('/app/pengurus/program');
+  revalidatePath(sectionPath(fieldKey, 'rencana'));
+  redirect('/app/pengurus/program?result=workplan-rejected');
+}
 export async function approveFieldWorkplan(formData: FormData): Promise<void> {
   const identity = await requireRoles(['platform_admin', 'organization_admin', 'chair']);
   const fieldKey = getFieldKey(formData);
