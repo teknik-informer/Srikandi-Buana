@@ -55,9 +55,10 @@ export interface GeneratedDocumentContent {
     address: string | null;
   };
   source?: {
-    kind: "meeting" | "minutes" | "letter";
+    kind: "meeting" | "minutes" | "letter" | "field_activity" | "field_program";
     id: string;
     reference: string | null;
+    fieldKey?: string | null;
   };
   groups: Array<{
     title: string;
@@ -170,11 +171,13 @@ export const SECRETARIAT_TEMPLATES: SecretariatTemplateDefinition[] = [
     fields: [
       { key: "nama_kegiatan", label: "Nama kegiatan", type: "text", required: true, maxLength: 240, placeholder: "Nama kegiatan" },
       { key: "program", label: "Program / bidang terkait", type: "text", required: false, maxLength: 240, placeholder: "Program atau bidang, bila ada" },
-      { key: "tanggal_kegiatan", label: "Tanggal kegiatan", type: "date", required: true, maxLength: 10, placeholder: "" },
-      { key: "tempat_kegiatan", label: "Tempat", type: "text", required: true, maxLength: 240, placeholder: "Lokasi kegiatan" },
+      { key: "periode_kegiatan", label: "Tanggal / periode kegiatan", type: "text", required: true, maxLength: 120, placeholder: "Tanggal kegiatan atau rentang periode laporan" },
+      { key: "tempat_kegiatan", label: "Tempat", type: "text", required: false, maxLength: 240, placeholder: "Lokasi kegiatan bila tersedia" },
       { key: "jumlah_peserta", label: "Jumlah peserta", type: "text", required: false, maxLength: 80, placeholder: "Isi sesuai daftar hadir yang tervalidasi" },
       { key: "tujuan", label: "Tujuan", type: "textarea", required: true, maxLength: 2500, rows: 3, placeholder: "Tujuan pelaksanaan kegiatan." },
-      { key: "pelaksanaan", label: "Uraian pelaksanaan", type: "textarea", required: true, maxLength: 5000, rows: 6, placeholder: "Uraikan pelaksanaan sesuai fakta." },
+      { key: "kegiatan_tercatat", label: "Daftar kegiatan yang tercatat", type: "textarea", required: false, maxLength: 5000, rows: 5, placeholder: "Daftar aktivitas dari register beserta tanggal dan statusnya. Ini bukan pengganti verifikasi pelaksanaan." },
+      { key: "catatan_agenda", label: "Catatan awal pada agenda", type: "textarea", required: false, maxLength: 3000, rows: 3, placeholder: "Keterangan yang tersimpan ketika kegiatan dijadwalkan, bila ada." },
+      { key: "pelaksanaan", label: "Uraian pelaksanaan aktual", type: "textarea", required: true, maxLength: 5000, rows: 6, placeholder: "Tuliskan pelaksanaan yang benar-benar terjadi setelah diverifikasi." },
       { key: "hasil", label: "Hasil / capaian", type: "textarea", required: true, maxLength: 4000, rows: 5, placeholder: "Catat hasil yang dapat dibuktikan." },
       { key: "kendala", label: "Kendala", type: "textarea", required: false, maxLength: 2500, rows: 3, placeholder: "Kendala yang ditemukan, jika ada." },
       { key: "tindak_lanjut", label: "Tindak lanjut", type: "textarea", required: false, maxLength: 2500, rows: 3, placeholder: "Rencana tindak lanjut." },
@@ -182,8 +185,9 @@ export const SECRETARIAT_TEMPLATES: SecretariatTemplateDefinition[] = [
       { key: "jabatan_penyusun", label: "Jabatan", type: "text", required: true, maxLength: 120, placeholder: "Jabatan penyusun" },
     ],
     sections: [
-      { title: "Identitas kegiatan", fields: ["nama_kegiatan", "program", "tanggal_kegiatan", "tempat_kegiatan", "jumlah_peserta"] },
-      { title: "Tujuan dan pelaksanaan", fields: ["tujuan", "pelaksanaan"] },
+      { title: "Identitas kegiatan", fields: ["nama_kegiatan", "program", "periode_kegiatan", "tempat_kegiatan", "jumlah_peserta"] },
+      { title: "Catatan sumber operasional", fields: ["kegiatan_tercatat", "catatan_agenda"] },
+      { title: "Tujuan dan pelaksanaan aktual", fields: ["tujuan", "pelaksanaan"] },
       { title: "Hasil, kendala, dan tindak lanjut", fields: ["hasil", "kendala", "tindak_lanjut"] },
       { title: "Penyusun", fields: ["penyusun", "jabatan_penyusun"] },
     ],

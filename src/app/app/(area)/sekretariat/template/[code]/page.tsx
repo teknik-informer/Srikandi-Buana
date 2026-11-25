@@ -30,6 +30,9 @@ interface ExistingDocumentRow {
   source_meeting_id: string | null;
   source_minutes_id: string | null;
   source_letter_id: string | null;
+  source_field_activity_id: string | null;
+  source_field_program_id: string | null;
+  source_field_key: string | null;
 }
 
 function dateToday(timezone: string): string {
@@ -55,6 +58,8 @@ export default async function SecretariatTemplateBuilderPage({
     source_meeting_id?: string;
     source_minutes_id?: string;
     source_letter_id?: string;
+    source_field_activity_id?: string;
+    source_field_program_id?: string;
     result?: string;
   }>;
 }) {
@@ -92,6 +97,9 @@ export default async function SecretariatTemplateBuilderPage({
         document.source_meeting_id::text AS source_meeting_id,
         document.source_minutes_id::text AS source_minutes_id,
         document.source_letter_id::text AS source_letter_id,
+        document.source_field_activity_id::text AS source_field_activity_id,
+        document.source_field_program_id::text AS source_field_program_id,
+        document.source_field_key,
         generation.content_json,
         generation.revision_no
       FROM v9.secretariat_documents AS document
@@ -121,6 +129,8 @@ export default async function SecretariatTemplateBuilderPage({
     search?.source_meeting_id ?? "",
     search?.source_minutes_id ?? "",
     search?.source_letter_id ?? "",
+    search?.source_field_activity_id ?? "",
+    search?.source_field_program_id ?? "",
   ].filter(Boolean);
   const validSourceUuid = (value: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -129,15 +139,21 @@ export default async function SecretariatTemplateBuilderPage({
   const sourceMeetingId = existing?.source_meeting_id ?? search?.source_meeting_id ?? "";
   const sourceMinutesId = existing?.source_minutes_id ?? search?.source_minutes_id ?? "";
   const sourceLetterId = existing?.source_letter_id ?? search?.source_letter_id ?? "";
-  const sourceCount = [sourceMeetingId, sourceMinutesId, sourceLetterId].filter(Boolean).length;
+  const sourceFieldActivityId = existing?.source_field_activity_id ?? search?.source_field_activity_id ?? "";
+  const sourceFieldProgramId = existing?.source_field_program_id ?? search?.source_field_program_id ?? "";
+  let sourceFieldKey = existing?.source_field_key ?? "";
+  const sourceCount = [sourceMeetingId, sourceMinutesId, sourceLetterId, sourceFieldActivityId, sourceFieldProgramId].filter(Boolean).length;
   if (sourceCount > 1 ||
       (sourceMeetingId && template.code !== "TPL-UND") ||
       (sourceMinutesId && template.code !== "TPL-NOT") ||
-      (sourceLetterId && template.code !== "TPL-KEL")) notFound();
+      (sourceLetterId && template.code !== "TPL-KEL") ||
+      ((sourceFieldActivityId || sourceFieldProgramId) && template.code !== "TPL-LAP")) notFound();
   if (existing && (
     (search?.source_meeting_id && search.source_meeting_id !== existing.source_meeting_id) ||
     (search?.source_minutes_id && search.source_minutes_id !== existing.source_minutes_id) ||
-    (search?.source_letter_id && search.source_letter_id !== existing.source_letter_id)
+    (search?.source_letter_id && search.source_letter_id !== existing.source_letter_id) ||
+    (search?.source_field_activity_id && search.source_field_activity_id !== existing.source_field_activity_id) ||
+    (search?.source_field_program_id && search.source_field_program_id !== existing.source_field_program_id)
   )) notFound();
 
   const sourceValues = new Map<string, string>();
@@ -359,18 +375,216 @@ export default async function SecretariatTemplateBuilderPage({
     sourceValues.set("perihal", source.subject);
   }
 
+
+  const taskStatusLabels = {
+    belum: "Belum mulai",
+    proses: "Dikerjakan",
+    selesai: "Selesai",
+    dibatalkan: "Dibatalkan",
+  } as const;
+  const activityStatusLabels = {
+    scheduled: "Terjadwal",
+    in_progress: "Berjalan",
+    completed: "Selesai",
+    cancelled: "Dibatalkan",
+  } as const;
+
+  if (sourceFieldActivityId) {
+    const sourceResult = await sql`
+      SELECT activity.id::text AS id, activity.reference_no, activity.field_key,
+        activity.title, activity.activity_date::text AS activity_date,
+        activity.location, activity.description, activity.status,
+        activity.responsible_label, program.title AS program_title,
+        program.objective AS program_objective, field.short_name AS field_short_name,
+        linked.id::text AS document_id
+      FROM v9.field_activities AS activity
+      INNER JOIN v9.field_applications AS field
+        ON field.field_key = activity.field_key AND field.organization_id = activity.organization_id
+      LEFT JOIN v9.field_programs AS program
+        ON program.id = activity.program_id AND program.organization_id = activity.organization_id
+        AND program.field_key = activity.field_key
+      LEFT JOIN LATERAL (
+        SELECT document.id FROM v9.secretariat_documents AS document
+        WHERE document.organization_id = activity.organization_id
+          AND document.source_field_activity_id = activity.id AND document.status <> 'arsip'
+        ORDER BY document.created_at DESC LIMIT 1
+      ) AS linked ON true
+      WHERE activity.id = ${sourceFieldActivityId}
+        AND activity.organization_id = ${identity.organizationId}
+        AND activity.status IN ('in_progress', 'completed')
+      LIMIT 1
+    `;
+    const source = rowsFromResult<{
+      id: string; reference_no: string; field_key: string; title: string; activity_date: string;
+      location: string | null; description: string | null; status: keyof typeof activityStatusLabels;
+      responsible_label: string | null; program_title: string | null; program_objective: string | null;
+      field_short_name: string; document_id: string | null;
+    }>(sourceResult)[0];
+    if (!source) notFound();
+    sourceFieldKey = source.field_key;
+    linkedDocumentId = source.document_id;
+    sourceLabel = "Catatan kegiatan bidang terhubung";
+    sourceReference = source.reference_no;
+    sourceTitle = ("Laporan Kegiatan — " + source.title).slice(0, 300);
+    sourceValues.set("nama_kegiatan", source.title);
+    sourceValues.set("program", source.program_title
+      ? source.field_short_name + " · " + source.program_title
+      : source.field_short_name);
+    sourceValues.set("periode_kegiatan", source.activity_date);
+    sourceValues.set("tempat_kegiatan", source.location ?? "");
+    sourceValues.set("tujuan", source.program_objective ?? "");
+    sourceValues.set("catatan_agenda", source.description ?? "");
+    sourceValues.set("kegiatan_tercatat",
+      source.reference_no + " · " + source.title + " · " + source.activity_date +
+      " · " + activityStatusLabels[source.status]);
+
+    const taskResult = await sql`
+      SELECT task.reference_no, task.title, task.assignee_label,
+        task.due_date::text AS due_date, task.status
+      FROM v9.field_tasks AS task
+      WHERE task.organization_id = ${identity.organizationId}
+        AND task.field_key = ${source.field_key}
+        AND task.activity_id = ${source.id}
+      ORDER BY task.due_date NULLS LAST, task.created_at
+      LIMIT 100
+    `;
+    const tasks = rowsFromResult<{
+      reference_no: string; title: string; assignee_label: string | null;
+      due_date: string | null; status: keyof typeof taskStatusLabels;
+    }>(taskResult);
+    const taskSummary = tasks.map((task) => [
+      task.reference_no, task.title, taskStatusLabels[task.status],
+      task.assignee_label ? "PIC " + task.assignee_label : "",
+      task.due_date ? "Tenggat " + task.due_date : "",
+    ].filter(Boolean).join(" · " )).join("\n").slice(0, 2500);
+    sourceValues.set("tindak_lanjut", taskSummary);
+  }
+
+  if (sourceFieldProgramId) {
+    const sourceResult = await sql`
+      SELECT program.id::text AS id, program.reference_no, program.field_key,
+        program.title, program.objective, program.period_start::text AS period_start,
+        program.period_end::text AS period_end, program.status,
+        field.short_name AS field_short_name, workplan.reference_no AS workplan_reference,
+        workplan.title AS workplan_title, linked.id::text AS document_id
+      FROM v9.field_programs AS program
+      INNER JOIN v9.field_applications AS field
+        ON field.field_key = program.field_key AND field.organization_id = program.organization_id
+      LEFT JOIN v9.field_workplans AS workplan
+        ON workplan.id = program.workplan_id AND workplan.organization_id = program.organization_id
+        AND workplan.field_key = program.field_key
+      LEFT JOIN LATERAL (
+        SELECT document.id FROM v9.secretariat_documents AS document
+        WHERE document.organization_id = program.organization_id
+          AND document.source_field_program_id = program.id AND document.status <> 'arsip'
+        ORDER BY document.created_at DESC LIMIT 1
+      ) AS linked ON true
+      WHERE program.id = ${sourceFieldProgramId}
+        AND program.organization_id = ${identity.organizationId}
+        AND program.status IN ('active', 'completed')
+      LIMIT 1
+    `;
+    const source = rowsFromResult<{
+      id: string; reference_no: string; field_key: string; title: string; objective: string | null;
+      period_start: string | null; period_end: string | null; status: string; field_short_name: string;
+      workplan_reference: string | null; workplan_title: string | null; document_id: string | null;
+    }>(sourceResult)[0];
+    if (!source) notFound();
+    sourceFieldKey = source.field_key;
+    linkedDocumentId = source.document_id;
+    sourceLabel = "Program bidang dan catatan pelaksanaan terhubung";
+    sourceReference = source.reference_no;
+    sourceTitle = ("Laporan Program — " + source.title).slice(0, 300);
+    sourceValues.set("nama_kegiatan", ("Rekap Program: " + source.title).slice(0, 240));
+    sourceValues.set("program", source.field_short_name);
+    sourceValues.set("periode_kegiatan",
+      source.period_start && source.period_end
+        ? source.period_start + " s.d. " + source.period_end
+        : source.period_start ?? source.period_end ?? "");
+    sourceValues.set("tujuan", source.objective ?? "");
+
+    const [activityResult, indicatorResult, taskResult] = await Promise.all([
+      sql`
+        SELECT reference_no, title, activity_date::text AS activity_date, status
+        FROM v9.field_activities
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = ${source.field_key} AND program_id = ${source.id}
+        ORDER BY activity_date, created_at
+        LIMIT 100
+      `,
+      sql`
+        SELECT indicator_label, target_value::text AS target_value,
+          actual_value::text AS actual_value, unit_label, note
+        FROM v9.field_program_indicators
+        WHERE organization_id = ${identity.organizationId}
+          AND field_key = ${source.field_key} AND program_id = ${source.id}
+        ORDER BY sort_order, created_at
+        LIMIT 100
+      `,
+      sql`
+        SELECT task.reference_no, task.title, task.assignee_label,
+          task.due_date::text AS due_date, task.status
+        FROM v9.field_tasks AS task
+        WHERE task.organization_id = ${identity.organizationId}
+          AND task.field_key = ${source.field_key} AND task.program_id = ${source.id}
+        ORDER BY task.due_date NULLS LAST, task.created_at
+        LIMIT 100
+      `,
+    ]);
+    const activities = rowsFromResult<{
+      reference_no: string; title: string; activity_date: string;
+      status: keyof typeof activityStatusLabels;
+    }>(activityResult);
+    const indicators = rowsFromResult<{
+      indicator_label: string; target_value: string | null; actual_value: string | null;
+      unit_label: string | null; note: string | null;
+    }>(indicatorResult);
+    const tasks = rowsFromResult<{
+      reference_no: string; title: string; assignee_label: string | null;
+      due_date: string | null; status: keyof typeof taskStatusLabels;
+    }>(taskResult);
+
+    const activitySummary = activities.map((activity) =>
+      activity.reference_no + " · " + activity.title + " · " +
+      activity.activity_date + " · " + activityStatusLabels[activity.status]
+    ).join("\n").slice(0, 5000);
+    const indicatorSummary = indicators.map((indicator) => {
+      const target = indicator.target_value === null ? "target belum ditetapkan" :
+        "target " + indicator.target_value + (indicator.unit_label ? " " + indicator.unit_label : "");
+      const actual = indicator.actual_value === null ? "realisasi belum dicatat" :
+        "realisasi " + indicator.actual_value + (indicator.unit_label ? " " + indicator.unit_label : "");
+      return indicator.indicator_label + " — " + target + "; " + actual +
+        (indicator.note ? "; catatan: " + indicator.note : "");
+    }).join("\n").slice(0, 4000);
+    const taskSummary = tasks.map((task) => [
+      task.reference_no, task.title, taskStatusLabels[task.status],
+      task.assignee_label ? "PIC " + task.assignee_label : "",
+      task.due_date ? "Tenggat " + task.due_date : "",
+    ].filter(Boolean).join(" · " )).join("\n").slice(0, 2500);
+
+    sourceValues.set("kegiatan_tercatat", activitySummary);
+    sourceValues.set("hasil", indicatorSummary);
+    sourceValues.set("tindak_lanjut", taskSummary);
+    sourceValues.set("tempat_kegiatan", "");
+  }
+
   if (existing && linkedDocumentId && existing.id !== linkedDocumentId) notFound();
   if (!existing && linkedDocumentId) {
+    const sourceQuery = sourceMeetingId ? "source_meeting_id=" + sourceMeetingId :
+      sourceMinutesId ? "source_minutes_id=" + sourceMinutesId :
+        sourceLetterId ? "source_letter_id=" + sourceLetterId :
+          sourceFieldActivityId ? "source_field_activity_id=" + sourceFieldActivityId :
+            "source_field_program_id=" + sourceFieldProgramId;
     redirect("/app/sekretariat/template/" + template.code + "?document_id=" +
-      linkedDocumentId + "&" +
-      (sourceMeetingId ? "source_meeting_id=" + sourceMeetingId :
-        sourceMinutesId ? "source_minutes_id=" + sourceMinutesId :
-          "source_letter_id=" + sourceLetterId));
+      linkedDocumentId + "&" + sourceQuery);
   }
   if (existing && (
     existing.source_meeting_id !== (sourceMeetingId || null) ||
     existing.source_minutes_id !== (sourceMinutesId || null) ||
-    existing.source_letter_id !== (sourceLetterId || null)
+    existing.source_letter_id !== (sourceLetterId || null) ||
+    existing.source_field_activity_id !== (sourceFieldActivityId || null) ||
+    existing.source_field_program_id !== (sourceFieldProgramId || null) ||
+    existing.source_field_key !== (sourceFieldKey || null)
   )) notFound();
 
   const contentJson = existing?.content_json;
@@ -426,8 +640,9 @@ export default async function SecretariatTemplateBuilderPage({
       {sourceLabel ? (
         <div className="mb-4">
           <Notice tone="info" title={sourceLabel}>
-            Data yang tersedia dimuat dari catatan operasional organisasi. Kolom yang belum memiliki
-            data tetap harus dilengkapi berdasarkan fakta yang telah diverifikasi.
+            Data dimuat dari catatan operasional organisasi. Periksa uraian kegiatan dan realisasi indikator
+            sebelum laporan disahkan. Jumlah peserta dan bukti kegiatan tidak diisi otomatis bila belum ada
+            catatan terverifikasi.
           </Notice>
         </div>
       ) : null}
@@ -443,6 +658,8 @@ export default async function SecretariatTemplateBuilderPage({
           {sourceMeetingId ? <input type="hidden" name="source_meeting_id" value={sourceMeetingId} /> : null}
           {sourceMinutesId ? <input type="hidden" name="source_minutes_id" value={sourceMinutesId} /> : null}
           {sourceLetterId ? <input type="hidden" name="source_letter_id" value={sourceLetterId} /> : null}
+          {sourceFieldActivityId ? <input type="hidden" name="source_field_activity_id" value={sourceFieldActivityId} /> : null}
+          {sourceFieldProgramId ? <input type="hidden" name="source_field_program_id" value={sourceFieldProgramId} /> : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label htmlFor="generated-document-title" className="mb-1 block text-[11.5px] font-semibold text-ink2">Judul dokumen <span className="text-danger">*</span></label>

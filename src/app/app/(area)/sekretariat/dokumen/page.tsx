@@ -126,6 +126,8 @@ export default async function DokumenPage({
           WHEN source_meeting.id IS NOT NULL THEN 'Agenda rapat · ' || source_meeting.reference_no
           WHEN source_minutes.id IS NOT NULL THEN 'Notulen · ' || minutes_meeting.reference_no || ' · revisi ' || source_minutes.revision_no::text
           WHEN source_letter.id IS NOT NULL THEN 'Surat keluar · ' || source_letter.reference_no
+          WHEN source_field_activity.id IS NOT NULL THEN 'Kegiatan bidang · ' || source_field_activity.reference_no
+          WHEN source_field_program.id IS NOT NULL THEN 'Program bidang · ' || source_field_program.reference_no
           ELSE NULL
         END AS source_reference
       FROM v9.secretariat_documents AS document
@@ -154,6 +156,14 @@ export default async function DokumenPage({
       LEFT JOIN v9.secretariat_letters AS source_letter
         ON source_letter.id = document.source_letter_id
         AND source_letter.organization_id = document.organization_id
+      LEFT JOIN v9.field_activities AS source_field_activity
+        ON source_field_activity.id = document.source_field_activity_id
+        AND source_field_activity.organization_id = document.organization_id
+        AND source_field_activity.field_key = document.source_field_key
+      LEFT JOIN v9.field_programs AS source_field_program
+        ON source_field_program.id = document.source_field_program_id
+        AND source_field_program.organization_id = document.organization_id
+        AND source_field_program.field_key = document.source_field_key
       WHERE document.organization_id = ${identity.organizationId}
         AND (
           (${showArchived} = true AND document.status = 'arsip')
@@ -391,6 +401,9 @@ export default async function DokumenPage({
                         <div className="font-mono text-[9.5px] text-muted2">{document.reference_no}</div>
                         <h3 className="mt-1 text-[12.5px] font-semibold text-ink">{document.title}</h3>
                         <p className="mt-1 text-[10.5px] text-muted">{document.number ?? "Nomor resmi belum dicatat"} · {document.owner_label}</p>
+                        {document.source_reference ? (
+                          <p className="mt-1 text-[10px] text-primary-700">Sumber: {document.source_reference}</p>
+                        ) : null}
                       </div>
                       <Badge tone={document.status === "final" ? "success" : document.status === "draft" ? "warning" : "neutral"}>{statusLabel[document.status]}</Badge>
                     </div>

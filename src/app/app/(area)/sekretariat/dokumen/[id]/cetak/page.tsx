@@ -158,7 +158,9 @@ export default async function SecretariatGeneratedDocumentPage({
               <p className="mt-1 text-[9px] text-neutral-500">
                 Sumber operasional: {
                   generated.source.kind === "meeting" ? "Agenda rapat" :
-                  generated.source.kind === "minutes" ? "Revisi notulen" : "Register surat keluar"
+                  generated.source.kind === "minutes" ? "Revisi notulen" :
+                  generated.source.kind === "letter" ? "Register surat keluar" :
+                  generated.source.kind === "field_activity" ? "Kegiatan bidang" : "Program bidang"
                 } · {generated.source.reference ?? "Referensi internal"}
               </p>
             ) : null}

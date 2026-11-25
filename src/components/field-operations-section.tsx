@@ -200,6 +200,7 @@ export async function FieldOperationsSection({
   const canWritePrograms = can(identity, `field:${field.slug}:program:write`);
   const canWriteActivities = can(identity, `field:${field.slug}:activity:write`);
   const canWriteTasks = can(identity, `field:${field.slug}:task:write`);
+  const canGenerateActivityReports = can(identity, "secretariat:documents:write");
   const sql = getV9Sql();
 
   if (section === "rencana") {
@@ -451,6 +452,13 @@ export async function FieldOperationsSection({
                         <Badge tone={program.status === "active" ? "success" : program.status === "cancelled" ? "neutral" : "warning"}>{programStatus[program.status]}</Badge>
                       </div>
                       {program.objective ? <p className="mt-2 text-[11.5px] leading-relaxed text-muted">{program.objective}</p> : null}
+                      {canGenerateActivityReports && (program.status === "active" || program.status === "completed") ? (
+                        <div className="mt-2">
+                          <Link href={"/app/sekretariat/template/TPL-LAP?source_field_program_id=" + program.id} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700 hover:underline">
+                            <FilePlus2 size={12} /> Susun / buka laporan program
+                          </Link>
+                        </div>
+                      ) : null}
                       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-muted2">
                         {program.period_start || program.period_end ? <span>{dateLabel(program.period_start)} – {dateLabel(program.period_end)}</span> : null}
                         <span>{items.length} indikator</span>
@@ -697,6 +705,11 @@ export async function FieldOperationsSection({
                     {activity.description ? <p className="mt-2 text-[11px] text-muted">{activity.description}</p> : null}
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                       {activity.open_to_public ? <Badge tone="info">Publik</Badge> : null}
+                      {canGenerateActivityReports && (activity.status === "in_progress" || activity.status === "completed") ? (
+                        <Link href={"/app/sekretariat/template/TPL-LAP?source_field_activity_id=" + activity.id} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700 hover:underline">
+                          <FilePlus2 size={12} /> Susun / buka laporan
+                        </Link>
+                      ) : null}
                       {canWriteActivities && activity.status === "scheduled" ? (
                         <>
                           <form action={updateFieldActivityStatus}>

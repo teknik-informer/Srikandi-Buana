@@ -507,6 +507,8 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
   const submittedMeetingId = String(formData.get("source_meeting_id") ?? "").trim();
   const submittedMinutesId = String(formData.get("source_minutes_id") ?? "").trim();
   const submittedLetterId = String(formData.get("source_letter_id") ?? "").trim();
+  const submittedFieldActivityId = String(formData.get("source_field_activity_id") ?? "").trim();
+  const submittedFieldProgramId = String(formData.get("source_field_program_id") ?? "").trim();
   const title = String(formData.get("document_title") ?? "").trim().replace(/\s+/g, " ");
   const number = String(formData.get("number") ?? "").trim();
   const documentDate = String(formData.get("document_date") ?? "").trim();
@@ -518,19 +520,29 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
       owner.length < 2 || owner.length > 160 ||
       !["internal", "terbatas"].includes(visibility) ||
       (documentId && !validUuid(documentId)) ||
-      [submittedMeetingId, submittedMinutesId, submittedLetterId].some((id) => id && !validUuid(id)) ||
-      [submittedMeetingId, submittedMinutesId, submittedLetterId].filter(Boolean).length > 1) {
+      [submittedMeetingId, submittedMinutesId, submittedLetterId, submittedFieldActivityId, submittedFieldProgramId].some((id) => id && !validUuid(id)) ||
+      [submittedMeetingId, submittedMinutesId, submittedLetterId, submittedFieldActivityId, submittedFieldProgramId].filter(Boolean).length > 1) {
     redirect("/app/sekretariat/template?result=invalid");
   }
 
   const sql = getV9Sql();
-  let persistedSource: { source_meeting_id: string | null; source_minutes_id: string | null; source_letter_id: string | null } | undefined;
+  let persistedSource: {
+    source_meeting_id: string | null;
+    source_minutes_id: string | null;
+    source_letter_id: string | null;
+    source_field_activity_id: string | null;
+    source_field_program_id: string | null;
+    source_field_key: string | null;
+  } | undefined;
   if (documentId) {
     try {
       const existingSourceResult = await sql`
         SELECT source_meeting_id::text AS source_meeting_id,
           source_minutes_id::text AS source_minutes_id,
-          source_letter_id::text AS source_letter_id
+          source_letter_id::text AS source_letter_id,
+          source_field_activity_id::text AS source_field_activity_id,
+          source_field_program_id::text AS source_field_program_id,
+          source_field_key
         FROM v9.secretariat_documents
         WHERE id = ${documentId}
           AND organization_id = ${identity.organizationId}
@@ -538,7 +550,10 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
           AND visibility <> 'publik'
         LIMIT 1
       `;
-      persistedSource = rowsFromResult<{ source_meeting_id: string | null; source_minutes_id: string | null; source_letter_id: string | null }>(existingSourceResult)[0];
+      persistedSource = rowsFromResult<{
+        source_meeting_id: string | null; source_minutes_id: string | null; source_letter_id: string | null;
+        source_field_activity_id: string | null; source_field_program_id: string | null; source_field_key: string | null;
+      }>(existingSourceResult)[0];
     } catch (error) {
       logFailure("secretariat-document-source-check", error);
       redirect(`/app/sekretariat/template/${template.code}?result=error`);
@@ -546,7 +561,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
     if (!persistedSource) redirect(`/app/sekretariat/template/${template.code}?result=unavailable`);
     if ((submittedMeetingId && submittedMeetingId !== persistedSource.source_meeting_id) ||
         (submittedMinutesId && submittedMinutesId !== persistedSource.source_minutes_id) ||
-        (submittedLetterId && submittedLetterId !== persistedSource.source_letter_id)) {
+        (submittedLetterId && submittedLetterId !== persistedSource.source_letter_id) ||
+        (submittedFieldActivityId && submittedFieldActivityId !== persistedSource.source_field_activity_id) ||
+        (submittedFieldProgramId && submittedFieldProgramId !== persistedSource.source_field_program_id)) {
       redirect(`/app/sekretariat/template/${template.code}?result=source-invalid`);
     }
   }
@@ -554,15 +571,20 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
   const sourceMeetingId = persistedSource?.source_meeting_id ?? submittedMeetingId;
   const sourceMinutesId = persistedSource?.source_minutes_id ?? submittedMinutesId;
   const sourceLetterId = persistedSource?.source_letter_id ?? submittedLetterId;
-  const sourceCount = [sourceMeetingId, sourceMinutesId, sourceLetterId].filter(Boolean).length;
+  const sourceFieldActivityId = persistedSource?.source_field_activity_id ?? submittedFieldActivityId;
+  const sourceFieldProgramId = persistedSource?.source_field_program_id ?? submittedFieldProgramId;
+  const sourceFieldKey = persistedSource?.source_field_key ?? null;
+  const sourceCount = [sourceMeetingId, sourceMinutesId, sourceLetterId, sourceFieldActivityId, sourceFieldProgramId].filter(Boolean).length;
   if (sourceCount > 1 ||
       (sourceMeetingId && template.code !== "TPL-UND") ||
       (sourceMinutesId && template.code !== "TPL-NOT") ||
-      (sourceLetterId && template.code !== "TPL-KEL")) {
+      (sourceLetterId && template.code !== "TPL-KEL") ||
+      ((sourceFieldActivityId || sourceFieldProgramId) && template.code !== "TPL-LAP")) {
     redirect(`/app/sekretariat/template/${template.code}?result=source-invalid`);
   }
 
   let sourceReference: string | null = null;
+  let resolvedSourceFieldKey: string | null = sourceFieldKey;
   try {
     if (sourceMeetingId) {
       const result = await sql`
@@ -594,11 +616,36 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
       `;
       sourceReference = rowsFromResult<{ reference_no: string }>(result)[0]?.reference_no ?? null;
     }
+    else if (sourceFieldActivityId) {
+      const result = await sql`
+        SELECT reference_no, field_key
+        FROM v9.field_activities
+        WHERE id = ${sourceFieldActivityId}
+          AND organization_id = ${identity.organizationId}
+          AND status IN ('in_progress', 'completed')
+        LIMIT 1
+      `;
+      const source = rowsFromResult<{ reference_no: string; field_key: string }>(result)[0];
+      sourceReference = source?.reference_no ?? null;
+      if (source) resolvedSourceFieldKey = source.field_key;
+    } else if (sourceFieldProgramId) {
+      const result = await sql`
+        SELECT reference_no, field_key
+        FROM v9.field_programs
+        WHERE id = ${sourceFieldProgramId}
+          AND organization_id = ${identity.organizationId}
+          AND status IN ('active', 'completed')
+        LIMIT 1
+      `;
+      const source = rowsFromResult<{ reference_no: string; field_key: string }>(result)[0];
+      sourceReference = source?.reference_no ?? null;
+      if (source) resolvedSourceFieldKey = source.field_key;
+    }
   } catch (error) {
     logFailure("secretariat-document-source-validate", error);
     redirect(`/app/sekretariat/template/${template.code}?result=error`);
   }
-  if (sourceCount && !sourceReference) {
+  if (sourceCount && (!sourceReference || ((sourceFieldActivityId || sourceFieldProgramId) && !resolvedSourceFieldKey))) {
     redirect(`/app/sekretariat/template/${template.code}?result=source-invalid`);
   }
 
@@ -667,9 +714,13 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
     organization,
     groups,
     source: sourceCount ? {
-      kind: sourceMeetingId ? "meeting" as const : sourceMinutesId ? "minutes" as const : "letter" as const,
-      id: sourceMeetingId || sourceMinutesId || sourceLetterId,
+      kind: sourceMeetingId ? "meeting" as const :
+        sourceMinutesId ? "minutes" as const :
+          sourceLetterId ? "letter" as const :
+            sourceFieldActivityId ? "field_activity" as const : "field_program" as const,
+      id: sourceMeetingId || sourceMinutesId || sourceLetterId || sourceFieldActivityId || sourceFieldProgramId,
       reference: sourceReference,
+      fieldKey: resolvedSourceFieldKey,
     } : undefined,
   };
   const contentJson = JSON.stringify(content);
@@ -692,6 +743,7 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
           organization_id, number, title, category, document_date,
           owner_label, visibility, status, description,
           source_meeting_id, source_minutes_id, source_letter_id,
+          source_field_activity_id, source_field_program_id, source_field_key,
           created_by, updated_by
         )
         SELECT
@@ -707,6 +759,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
           NULLIF(${sourceMeetingId}, '')::uuid,
           NULLIF(${sourceMinutesId}, '')::uuid,
           NULLIF(${sourceLetterId}, '')::uuid,
+          NULLIF(${sourceFieldActivityId}, '')::uuid,
+          NULLIF(${sourceFieldProgramId}, '')::uuid,
+          ${resolvedSourceFieldKey},
           ${identity.userId},
           ${identity.userId}
         FROM organization
@@ -724,6 +779,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
           AND document.source_meeting_id IS NOT DISTINCT FROM NULLIF(${sourceMeetingId}, '')::uuid
           AND document.source_minutes_id IS NOT DISTINCT FROM NULLIF(${sourceMinutesId}, '')::uuid
           AND document.source_letter_id IS NOT DISTINCT FROM NULLIF(${sourceLetterId}, '')::uuid
+          AND document.source_field_activity_id IS NOT DISTINCT FROM NULLIF(${sourceFieldActivityId}, '')::uuid
+          AND document.source_field_program_id IS NOT DISTINCT FROM NULLIF(${sourceFieldProgramId}, '')::uuid
+          AND document.source_field_key IS NOT DISTINCT FROM ${resolvedSourceFieldKey}
           AND ${documentId} <> ''
           AND EXISTS (
             SELECT 1
@@ -806,7 +864,8 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
             'revision_no', generation.revision_no,
             'content_sha256', ${contentSha256},
             'status', next_revision.status,
-            'source_reference', ${sourceReference}
+            'source_reference', ${sourceReference},
+            'source_field_key', ${resolvedSourceFieldKey}
           )
         FROM next_revision
         INNER JOIN generation ON generation.document_id = next_revision.id
@@ -838,5 +897,10 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
   revalidatePath("/app/sekretariat/notulen");
   revalidatePath("/app/sekretariat/presensi");
   revalidatePath("/app/sekretariat/surat");
+  revalidatePath("/app/pengurus/program");
+  if (resolvedSourceFieldKey) {
+    revalidatePath(`/app/bidang/${resolvedSourceFieldKey}/rencana`);
+    revalidatePath(`/app/bidang/${resolvedSourceFieldKey}/kegiatan`);
+  }
   redirect(`/app/sekretariat/dokumen/${saved.id}/cetak?result=${saved.operation}`);
 }
