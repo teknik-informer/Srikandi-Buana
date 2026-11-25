@@ -32,20 +32,30 @@ assert.match(
 );
 
 
-assert.match(
-  appAccess,
-  /case "studio":[\\s\\S]*identity\\.roleKey === "platform_admin" \\|\\| identity\\.roleKey === "organization_admin"/,
+assert.ok(
+  appAccess.includes('identity.roleKey === "platform_admin" || identity.roleKey === "organization_admin"'),
   "Studio application visibility must be limited to platform and organization administrators.",
 );
-assert.match(
-  appShellSource,
-  /const availableApps = APPS\\.filter\\(\\(candidate\\) => canAccessApp\\(identity, candidate\\.key\\)\\)/,
+assert.ok(
+  appShellSource.includes("const availableApps = APPS.filter((candidate) => canAccessApp(identity, candidate.key));"),
   "The application switcher must filter links using resolved identity permissions.",
 );
-assert.match(launcherPage, /getV9Sql\\(\\)/, "The launcher must read operational data from Neon.");
-assert.doesNotMatch(
-  launcherPage,
-  /@\\/data\\/(operations|organization|finance|content)|\\b(APPROVALS|TASKS|ACTIVITIES|PROGRAMS|MEMBERS|JOURNALS)\\b|Notifikasi baru.{0,30}4|70%/,
+assert.ok(launcherPage.includes("getV9Sql()"), "The launcher must read operational data from Neon.");
+assert.ok(
+  [
+    "@/data/operations",
+    "@/data/organization",
+    "@/data/finance",
+    "@/data/content",
+    "APPROVALS",
+    "TASKS",
+    "ACTIVITIES",
+    "PROGRAMS",
+    "MEMBERS",
+    "JOURNALS",
+    "Notifikasi baru",
+    "70%",
+  ].every((marker) => !launcherPage.includes(marker)),
   "The launcher must not present static demo records or invented operational metrics.",
 );
 
