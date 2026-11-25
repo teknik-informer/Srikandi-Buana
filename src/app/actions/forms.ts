@@ -37,7 +37,7 @@ export async function submitJoinInterest(
   const catatan = String(formData.get("catatan") ?? "").trim();
   const setuju = formData.get("setuju") === "on" || formData.get("setuju") === "true";
   const website = String(formData.get("website") ?? "").trim();
-  const ratePhone = telepon.replace(/\\D/g, "").replace(/^0/, "62");
+  const ratePhone = telepon.replace(/\D/g, "");
 
   if (website.length > 0) {
     return { ok: false, message: "Formulir tidak dapat diproses. Muat ulang halaman lalu coba kembali." };
@@ -45,7 +45,7 @@ export async function submitJoinInterest(
   if (nama.length < 3 || nama.length > 160) {
     return { ok: false, message: "Nama lengkap harus terdiri dari 3–160 karakter." };
   }
-  if (!/^[0-9+\-\s()]{8,20}$/.test(telepon)) {
+  if (!/^[0-9+\-\s()]{8,20}$/.test(telepon) || ratePhone.length < 8) {
     return { ok: false, message: "Nomor WhatsApp tidak valid." };
   }
   if (alamat.length < 5 || alamat.length > 500) {
