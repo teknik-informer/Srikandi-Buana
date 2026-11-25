@@ -52,5 +52,21 @@ export function appKeyForHref(href: string): AppKey {
 
 /** Navigation visibility only; the destination layout performs final authorization. */
 export function canAccessAppHref(identity: AppIdentity, href: string): boolean {
-  return canAccessApp(identity, appKeyForHref(href));
+  const path = href.split(/[?#]/, 1)[0].replace(/\\/+$/, "") || "/";
+  const launcherDestinations = new Set([
+    "/app",
+    "/app/bidang",
+    "/app/cari",
+    "/app/cepat",
+    "/app/notifikasi",
+  ]);
+
+  if (launcherDestinations.has(path)) return true;
+
+  const app = appKeyForHref(path);
+  // Unknown internal workspace paths are hidden instead of inheriting the
+  // launcher's public visibility. The route's server guard remains authoritative.
+  if (path.startsWith("/app/") && app === "launcher") return false;
+
+  return canAccessApp(identity, app);
 }
