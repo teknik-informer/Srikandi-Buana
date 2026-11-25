@@ -241,4 +241,8 @@ assert.ok(
   "Notification shortcuts must be supplied by the server after permission checks.",
 );
 
+assert.ok(
+  !fieldShell.includes("Toaster") && !fieldShell.includes("@/components/act"),
+  "The active field shell must not mount the dormant browser-store toast component.",
+);
 process.stdout.write("Core workspace shell contract: PASS\n");
