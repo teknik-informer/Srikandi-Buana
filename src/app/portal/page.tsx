@@ -1,72 +1,102 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ORG } from "@/config/org";
-import { PROGRAMS } from "@/data/operations";
-import { DOCUMENTS } from "@/data/organization";
-import { Badge, Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
-import { formatDateID } from "@/lib/format";
+import { Building2, ShieldCheck } from "lucide-react";
+import { Card, CardHeader, EmptyState, Notice, PageHeader, Badge } from "@/components/ui";
+import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Portal Eksternal", robots: { index: false } };
 
+interface OrganizationLabel {
+  legal_name: string;
+  short_name: string;
+}
+
 export default async function PortalEksternal() {
-  await requireRoles(["platform_admin", "organization_admin", "chair", "government_viewer", "ngo_viewer", "partner_viewer"]);
-  const shared = DOCUMENTS.filter((d) => d.category === "Laporan" || d.visibility === "publik");
+  const identity = await requireRoles([
+    "platform_admin",
+    "organization_admin",
+    "chair",
+    "government_viewer",
+    "ngo_viewer",
+    "partner_viewer",
+  ]);
+
+  let organization: OrganizationLabel | null = null;
+  let organizationUnavailable = false;
+  try {
+    const sql = getV9Sql();
+    organization = rowsFromResult<OrganizationLabel>(await sql`
+      SELECT legal_name, short_name
+      FROM v9.organizations
+      WHERE id = ${identity.organizationId}
+        AND status = 'active'
+      LIMIT 1
+    `)[0] ?? null;
+  } catch (reason) {
+    organizationUnavailable = true;
+    console.warn("[external-portal-organization] Source unavailable", reason instanceof Error ? reason.name : "UnknownError");
+  }
 
   return (
     <div className="sb-shell py-10">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="sb-label">{ORG.shortName} · Portal Eksternal</span>
-        <Link href="/" className="text-[12px] font-medium text-muted hover:text-ink">← Website</Link>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="sb-label">
+          {organization?.short_name ?? "Srikandi Buana"} · Portal Eksternal
+        </span>
+        <Badge tone="neutral">Akses terbatas</Badge>
       </div>
       <PageHeader
-        eyebrow="Akses terbatas · demo"
-        title="Portal pemerintah, NGO & mitra"
-        description="Hanya data dan laporan yang secara eksplisit dibagikan dan disetujui. Data pribadi anggota tidak pernah tampil di sini."
+        eyebrow="Portal pemerintah, NGO & mitra"
+        title="Ruang berbagi data organisasi"
+        description="Portal ini hanya menampilkan dataset yang memiliki persetujuan berbagi, penerima, tujuan penggunaan, dan masa akses yang tercatat."
       />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Laporan dibagikan" value={shared.length} tone="info" />
-        <StatCard label="Program dipantau" value={PROGRAMS.filter((p) => p.published).length} tone="success" />
-        <StatCard label="Grant data-sharing" value={2} note="Dapat dicabut kapan saja" tone="warning" />
-      </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <Card>
-          <CardHeader title="Ringkasan program yang dibagikan" subtitle="Proyeksi publik, bukan data operasional penuh" />
-          <div className="divide-y divide-line">
-            {PROGRAMS.filter((p) => p.published).map((p) => (
-              <div key={p.code} className="px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[12.5px] font-semibold text-ink">{p.name}</div>
-                  <Badge tone="neutral">{p.code}</Badge>
+      {organizationUnavailable ? (
+        <Notice tone="danger" title="Registry organisasi belum dapat dimuat">
+          Identitas organisasi tidak dapat diverifikasi. Tidak ada dataset yang ditampilkan.
+        </Notice>
+      ) : (
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
+          <Card>
+            <CardHeader
+              title="Dataset yang dibagikan"
+              subtitle="Hanya data dengan grant aktif dan cakupan penerima yang sesuai"
+              action={<ShieldCheck size={17} className="text-muted2" />}
+            />
+            <div className="p-5">
+              <EmptyState
+                title="Belum ada dataset berbagi yang diaktifkan"
+                body="Registri grant berbagi data, persetujuan, tujuan penggunaan, dan masa berlaku belum tersedia pada skema operasional saat ini. Karena itu, daftar program, capaian, dan dokumen tidak ditampilkan di portal ini."
+              />
+            </div>
+          </Card>
+
+          <div className="space-y-4">
+            <Card>
+              <CardHeader
+                title="Identitas penerima"
+                subtitle="Akses mengikuti role yang telah ditetapkan untuk akun"
+                action={<Building2 size={17} className="text-muted2" />}
+              />
+              <div className="space-y-2 px-4 py-3">
+                <div>
+                  <div className="sb-label mb-1">Organisasi</div>
+                  <div className="text-[13px] font-semibold text-ink">
+                    {organization?.legal_name ?? "Belum tersedia"}
+                  </div>
                 </div>
-                <div className="mt-1 grid gap-1 text-[11px] text-muted sm:grid-cols-3">
-                  <span>Capaian {p.progress}%</span>
-                  <span>Periode {p.period}</span>
-                  <span>Indikator {p.indicators.length}</span>
+                <div>
+                  <div className="sb-label mb-1">Jenis akun</div>
+                  <div className="text-[12px] text-ink2">{identity.role}</div>
                 </div>
               </div>
-            ))}
+            </Card>
+            <Notice tone="warning" title="Batas akses dan privasi">
+              Role viewer bukan grant berbagi data. Portal tidak membuka kas, jurnal, data pribadi anggota, dokumen internal, data program, atau capaian sebelum ada izin dataset yang tercatat dan masih berlaku.
+            </Notice>
           </div>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Dokumen tersedia" />
-            <ul className="divide-y divide-line">
-              {shared.map((d) => (
-                <li key={d.id} className="px-4 py-2.5">
-                  <div className="text-[12px] font-medium text-ink">{d.title}</div>
-                  <div className="text-[10.5px] text-muted2">{d.number} · {formatDateID(d.date, "short")}</div>
-                </li>
-              ))}
-            </ul>
-          </Card>
-          <Notice tone="warning" title="Batas akses">
-            Akses eksternal tidak memberikan pandangan ke kas, jurnal, kuitansi, data pribadi anggota,
-            atau dokumen internal. Setiap grant tercatat dan dapat dicabut.
-          </Notice>
         </div>
-      </div>
+      )}
     </div>
   );
 }
