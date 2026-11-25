@@ -265,7 +265,6 @@ export default async function AnggaranPage({
     linesByBudget.set(line.budget_id, existing);
   }
 
-  const requestedBudget = budgets.find((budget) => budget.id === params.budget_id);
   const approvedBudgets = budgets.filter((budget) => budget.status === "approved");
   const aggregatePlanned = approvedBudgets.reduce((sum, budget) => sum + Number(budget.planned_total), 0);
   const aggregateActual = approvedBudgets.reduce((sum, budget) => sum + Number(budget.actual_total), 0);
