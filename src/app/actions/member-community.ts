@@ -471,3 +471,236 @@ export async function resolveMemberCommunityReport(formData: FormData): Promise<
   revalidatePath("/app/anggota/komunitas");
   redirect(communityPath("report-review-saved"));
 }
+
+
+export async function updateOwnCommunityTopic(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("member:self");
+  const topicId = String(formData.get("topic_id") ?? "").trim();
+  const title = normalize(String(formData.get("title") ?? ""));
+  const body = normalizeBody(String(formData.get("body") ?? ""));
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(topicId) ||
+    title.length < 5 || title.length > 180 ||
+    body.length < 10 || body.length > 5000
+  ) redirect(communityPath("topic-invalid"));
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT topic.id, topic.organization_id, topic.title, topic.body
+        FROM v9.member_community_topics AS topic
+        WHERE topic.id = ${topicId}
+          AND topic.organization_id = ${identity.organizationId}
+          AND topic.author_user_id = ${identity.userId}
+          AND topic.status = 'pending'
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.member_community_topics AS topic
+        SET title = ${title},
+          body = ${body},
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM before_row
+        WHERE topic.id = before_row.id
+        RETURNING topic.id, topic.organization_id, topic.title, topic.body
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id,
+          before_state, after_state
+        )
+        SELECT
+          updated.organization_id, ${identity.userId},
+          'member_community_topic.edited', 'member_community_topic', updated.id::text,
+          jsonb_build_object('title', before_row.title, 'body', before_row.body),
+          jsonb_build_object('title', updated.title, 'body', updated.body)
+        FROM updated
+        INNER JOIN before_row ON before_row.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    auditError("member-community-topic-update", reason);
+    redirect(communityPath("topic-update-blocked"));
+  }
+
+  if (!changed) redirect(communityPath("topic-update-stale"));
+  revalidatePath("/app/anggota/komunitas");
+  redirect(communityPath("topic-updated"));
+}
+
+export async function withdrawOwnCommunityTopic(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("member:self");
+  const topicId = String(formData.get("topic_id") ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(topicId)) {
+    redirect(communityPath("topic-withdraw-blocked"));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT topic.id, topic.organization_id, topic.status, topic.title
+        FROM v9.member_community_topics AS topic
+        WHERE topic.id = ${topicId}
+          AND topic.organization_id = ${identity.organizationId}
+          AND topic.author_user_id = ${identity.userId}
+          AND topic.status = 'pending'
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.member_community_topics AS topic
+        SET status = 'withdrawn',
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM before_row
+        WHERE topic.id = before_row.id
+        RETURNING topic.id, topic.organization_id, topic.status, topic.title
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id,
+          before_state, after_state
+        )
+        SELECT updated.organization_id, ${identity.userId},
+          'member_community_topic.withdrawn', 'member_community_topic', updated.id::text,
+          jsonb_build_object('status', before_row.status, 'title', before_row.title),
+          jsonb_build_object('status', updated.status, 'title', updated.title)
+        FROM updated
+        INNER JOIN before_row ON before_row.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    auditError("member-community-topic-withdraw", reason);
+    redirect(communityPath("topic-withdraw-blocked"));
+  }
+
+  if (!changed) redirect(communityPath("topic-withdraw-stale"));
+  revalidatePath("/app/anggota/komunitas");
+  redirect(communityPath("topic-withdrawn"));
+}
+
+export async function updateOwnCommunityReply(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("member:self");
+  const replyId = String(formData.get("reply_id") ?? "").trim();
+  const body = normalizeBody(String(formData.get("body") ?? ""));
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(replyId) ||
+    body.length < 2 || body.length > 2500
+  ) redirect(communityPath("reply-invalid"));
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT reply.id, reply.organization_id, reply.body
+        FROM v9.member_community_replies AS reply
+        WHERE reply.id = ${replyId}
+          AND reply.organization_id = ${identity.organizationId}
+          AND reply.author_user_id = ${identity.userId}
+          AND reply.status = 'pending'
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.member_community_replies AS reply
+        SET body = ${body},
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM before_row
+        WHERE reply.id = before_row.id
+        RETURNING reply.id, reply.organization_id, reply.body
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id,
+          before_state, after_state
+        )
+        SELECT updated.organization_id, ${identity.userId},
+          'member_community_reply.edited', 'member_community_reply', updated.id::text,
+          jsonb_build_object('body', before_row.body),
+          jsonb_build_object('body', updated.body)
+        FROM updated
+        INNER JOIN before_row ON before_row.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    auditError("member-community-reply-update", reason);
+    redirect(communityPath("reply-update-blocked"));
+  }
+
+  if (!changed) redirect(communityPath("reply-update-stale"));
+  revalidatePath("/app/anggota/komunitas");
+  redirect(communityPath("reply-updated"));
+}
+
+export async function withdrawOwnCommunityReply(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("member:self");
+  const replyId = String(formData.get("reply_id") ?? "").trim();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(replyId)) {
+    redirect(communityPath("reply-withdraw-blocked"));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT reply.id, reply.organization_id, reply.status, reply.topic_id
+        FROM v9.member_community_replies AS reply
+        WHERE reply.id = ${replyId}
+          AND reply.organization_id = ${identity.organizationId}
+          AND reply.author_user_id = ${identity.userId}
+          AND reply.status = 'pending'
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.member_community_replies AS reply
+        SET status = 'withdrawn',
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM before_row
+        WHERE reply.id = before_row.id
+        RETURNING reply.id, reply.organization_id, reply.status, reply.topic_id
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id,
+          before_state, after_state
+        )
+        SELECT updated.organization_id, ${identity.userId},
+          'member_community_reply.withdrawn', 'member_community_reply', updated.id::text,
+          jsonb_build_object('status', before_row.status, 'topic_id', before_row.topic_id),
+          jsonb_build_object('status', updated.status, 'topic_id', updated.topic_id)
+        FROM updated
+        INNER JOIN before_row ON before_row.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    auditError("member-community-reply-withdraw", reason);
+    redirect(communityPath("reply-withdraw-blocked"));
+  }
+
+  if (!changed) redirect(communityPath("reply-withdraw-stale"));
+  revalidatePath("/app/anggota/komunitas");
+  redirect(communityPath("reply-withdrawn"));
+}
