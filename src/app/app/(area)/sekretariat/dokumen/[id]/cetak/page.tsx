@@ -130,6 +130,11 @@ export default async function SecretariatGeneratedDocumentPage({
       ) : null}
 
       <article id="sb-generated-document-print" className="mx-auto w-full max-w-[210mm] border border-line bg-white px-7 py-9 shadow-sm sm:px-12 sm:py-12 print:max-w-none print:border-0 print:px-0 print:py-0 print:shadow-none">
+        {document.status === "draft" ? (
+          <div className="mb-5 border-2 border-rose-700 px-3 py-2 text-center text-[12px] font-extrabold uppercase tracking-[0.18em] text-rose-800">
+            DRAF — BELUM DISAHKAN
+          </div>
+        ) : null}
         <header className="border-b-2 border-black pb-4 text-center text-black">
           <h1 className="text-[18px] font-bold uppercase tracking-wide sm:text-[20px]">
             {generated.organization.shortName}
