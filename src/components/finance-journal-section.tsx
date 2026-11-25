@@ -156,6 +156,13 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
       WHERE organization_id = ${identity.organizationId}
         AND status = 'active'
         AND is_postable = true
+        AND NOT EXISTS (
+          SELECT 1
+          FROM v9.finance_cash_accounts AS cash_account
+          WHERE cash_account.organization_id = v9.finance_accounts.organization_id
+            AND cash_account.ledger_account_id = v9.finance_accounts.id
+            AND cash_account.status <> 'active'
+        )
       ORDER BY account_code
       LIMIT 500
     `,
