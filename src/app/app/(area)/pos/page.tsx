@@ -458,7 +458,8 @@ export default async function PosPage({
                           {recentPayments.filter((payment) => payment.order_id === order.id).map((payment) => (
                             <div key={payment.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[10px]">
                               <div className="min-w-0">
-                                <div className="font-mono text-muted2">{payment.reference_no} · {dateTimeLabel(payment.created_at)}</div>
+                                <Link href={`/app/pos/penerimaan/${payment.id}`} className="font-mono font-semibold text-primary-700 hover:underline">{payment.reference_no}</Link>
+                                <div className="text-[9px] text-muted2">{dateTimeLabel(payment.created_at)}</div>
                                 <div className="text-ink2">{payment.register_name} · {payment.account_kind === "cash" ? "Tunai" : payment.account_kind === "bank" ? "Bank" : "Dompet digital"}</div>
                                 {payment.payment_reference ? <div className="text-muted2">Ref. {payment.payment_reference}</div> : null}
                               </div>
