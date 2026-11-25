@@ -310,12 +310,29 @@ export async function updateFinanceAccountStatus(formData: FormData): Promise<vo
     const sql = getV9Sql();
     const result = await sql`
       WITH updated AS (
-        UPDATE v9.finance_accounts
+        UPDATE v9.finance_accounts AS account
         SET status = ${status}, updated_by = ${identity.userId}, updated_at = now()
-        WHERE id = ${accountId}
-          AND organization_id = ${identity.organizationId}
-          AND status <> 'archived'
-        RETURNING id, organization_id, account_code, account_name, status
+        WHERE account.id = ${accountId}
+          AND account.organization_id = ${identity.organizationId}
+          AND account.status <> 'archived'
+          AND (
+            ${status} <> 'archived'
+            OR (
+              NOT EXISTS (
+                SELECT 1
+                FROM v9.finance_journal_lines AS line
+                WHERE line.organization_id = account.organization_id
+                  AND line.account_id = account.id
+              )
+              AND NOT EXISTS (
+                SELECT 1
+                FROM v9.finance_cash_accounts AS cash_account
+                WHERE cash_account.organization_id = account.organization_id
+                  AND cash_account.ledger_account_id = account.id
+              )
+            )
+          )
+        RETURNING account.id, account.organization_id, account.account_code, account.account_name, account.status
       ),
       audit AS (
         INSERT INTO v9.audit_events (
