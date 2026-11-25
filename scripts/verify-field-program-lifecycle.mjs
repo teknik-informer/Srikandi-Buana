@@ -53,7 +53,7 @@ assert.ok(
 assert.ok(
   actions.includes("export async function updateFieldProgram") &&
   actions.includes("export async function changeFieldProgramStatus") &&
-  actions.includes('can(identity, `field:${fieldKey}:program:write`)') &&
+  actions.includes("ensurePermission(identity, fieldKey, `field:${fieldKey}:program:write`)") &&
   actions.includes("identity.organizationId") &&
   actions.includes("'field_program.updated'") &&
   actions.includes("'field_program.status.' || updated.status") &&
