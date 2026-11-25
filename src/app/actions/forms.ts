@@ -36,7 +36,12 @@ export async function submitJoinInterest(
   const pengalaman = String(formData.get("pengalaman") ?? "").trim();
   const catatan = String(formData.get("catatan") ?? "").trim();
   const setuju = formData.get("setuju") === "on" || formData.get("setuju") === "true";
+  const website = String(formData.get("website") ?? "").trim();
+  const ratePhone = telepon.replace(/\\D/g, "").replace(/^0/, "62");
 
+  if (website.length > 0) {
+    return { ok: false, message: "Formulir tidak dapat diproses. Muat ulang halaman lalu coba kembali." };
+  }
   if (nama.length < 3 || nama.length > 160) {
     return { ok: false, message: "Nama lengkap harus terdiri dari 3–160 karakter." };
   }
@@ -62,12 +67,30 @@ export async function submitJoinInterest(
   try {
     const sql = getV9Sql();
     const queryResult = await sql`
-      WITH organization AS (
+      WITH organization AS MATERIALIZED (
         SELECT id
         FROM v9.organizations
         WHERE slug = 'srikandi-buana'
           AND status = 'active'
         LIMIT 1
+      ),
+      lock_key AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(organization.id::text || ':membership-interest:' || ${ratePhone}, 0)
+        ) AS acquired
+        FROM organization
+      ),
+      recent_submission AS MATERIALIZED (
+        SELECT EXISTS (
+          SELECT 1
+          FROM v9.membership_interests AS existing
+          INNER JOIN organization
+            ON organization.id = existing.organization_id
+          WHERE regexp_replace(existing.phone, '[^0-9]', '', 'g') = ${ratePhone}
+            AND existing.created_at >= now() - interval '15 minutes'
+        ) AS rate_limited
+        FROM organization
+        CROSS JOIN lock_key
       ),
       submitted AS (
         INSERT INTO v9.membership_interests (
@@ -96,6 +119,8 @@ export async function submitJoinInterest(
           now(),
           'website'
         FROM organization
+        CROSS JOIN recent_submission
+        WHERE recent_submission.rate_limited = false
         RETURNING id, reference_no, organization_id
       ),
       queued AS (
@@ -116,15 +141,25 @@ export async function submitJoinInterest(
         FROM submitted
         RETURNING id
       )
-      SELECT submitted.reference_no
-      FROM submitted
-      INNER JOIN queued ON true
+      SELECT
+        submitted.reference_no,
+        recent_submission.rate_limited
+      FROM recent_submission
+      LEFT JOIN submitted ON true
+      LEFT JOIN queued ON true
     `;
 
     const resultRows = Array.isArray(queryResult)
-      ? (queryResult as Array<{ reference_no: string }>)
-      : (queryResult as unknown as { rows: Array<{ reference_no: string }> }).rows;
+      ? (queryResult as Array<{ reference_no: string | null; rate_limited: boolean }>)
+      : (queryResult as unknown as { rows: Array<{ reference_no: string | null; rate_limited: boolean }> }).rows;
     const submission = resultRows[0];
+
+    if (submission?.rate_limited) {
+      return {
+        ok: false,
+        message: "Pengajuan dengan nomor WhatsApp ini baru saja diterima. Silakan tunggu 15 menit sebelum mengirim kembali.",
+      };
+    }
 
     if (!submission?.reference_no) {
       throw new Error("Membership interest insert returned no reference.");
@@ -140,7 +175,7 @@ export async function submitJoinInterest(
   } catch (error) {
     console.error(
       "[membership-interest] Persistence failed:",
-      error instanceof Error ? error.message : "Unknown database error",
+      error instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "UnknownError",
     );
     return {
       ok: false,
