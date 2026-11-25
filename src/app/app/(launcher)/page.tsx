@@ -377,7 +377,7 @@ export default async function AppHome() {
             label="Aplikasi tersedia"
             value={String(accessibleApps.length + accessibleFields.length)}
             note="Akses mengikuti peran dan lingkup akun"
-            tone="green"
+            tone="success"
           />
         ) : null}
       </div>
