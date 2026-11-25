@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileCheck2, FileEdit, LockKeyhole } from "lucide-react";
-import { Badge, Notice } from "@/components/ui";
+import { Badge, Card, Notice } from "@/components/ui";
 import { DocumentPrintButton } from "@/components/secretariat-document-print-actions";
 import { finalizeSecretariatDocument } from "@/app/actions/secretariat-documents";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
