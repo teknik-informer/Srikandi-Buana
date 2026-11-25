@@ -40,6 +40,9 @@ interface JournalRow {
   description: string;
   source_type: string;
   source_reference: string | null;
+  budget_id: string | null;
+  budget_code: string | null;
+  budget_title: string | null;
   status: "draft" | "submitted" | "approved" | "posted" | "rejected";
   total_debit: string;
   total_credit: string;
@@ -137,7 +140,7 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
   const canPost = can(identity, "finance:journal:post");
   const sql = getV9Sql();
 
-  const [summaryResult, accountResult, journalResult] = await Promise.all([
+  const [summaryResult, accountResult, journalResult, budgetResult] = await Promise.all([
     sql`
       SELECT
         count(*) FILTER (WHERE status = 'draft')::int AS draft_count,
@@ -167,6 +170,27 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
       LIMIT 500
     `,
     sql`
+      SELECT budget.id::text AS id, budget.budget_code, budget.title,
+        budget.period_start::text AS period_start, budget.period_end::text AS period_end,
+        budget.status
+      FROM v9.finance_budgets AS budget
+      WHERE budget.organization_id = ${identity.organizationId}
+        AND (
+          budget.status = 'approved'
+          OR EXISTS (
+            SELECT 1
+            FROM v9.finance_journals AS draft
+            WHERE draft.organization_id = budget.organization_id
+              AND draft.budget_id = budget.id
+              AND draft.status = 'draft'
+              AND draft.created_by = ${identity.userId}
+          )
+        )
+      ORDER BY CASE budget.status WHEN 'approved' THEN 0 ELSE 1 END,
+        budget.period_start DESC, budget.budget_code
+      LIMIT 100
+    `,
+    sql`
       SELECT
         journal.id::text AS id,
         journal.reference_no,
@@ -174,6 +198,9 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
         journal.description,
         journal.source_type,
         journal.source_reference,
+        journal.budget_id::text AS budget_id,
+        budget.budget_code AS budget_code,
+        budget.title AS budget_title,
         journal.status,
         journal.total_debit::text AS total_debit,
         journal.total_credit::text AS total_credit,
@@ -213,6 +240,9 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
             AND line.organization_id = journal.organization_id
         ), '[]'::jsonb) AS lines
       FROM v9.finance_journals AS journal
+      LEFT JOIN v9.finance_budgets AS budget
+        ON budget.id = journal.budget_id
+        AND budget.organization_id = journal.organization_id
       LEFT JOIN v9.user_accounts created_account ON created_account.id = journal.created_by
       LEFT JOIN v9.people created_person ON created_person.id = created_account.person_id
       LEFT JOIN v9.user_accounts approved_account ON approved_account.id = journal.approved_by
@@ -230,6 +260,7 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
     rejected_count: 0, posted_debit: "0", posted_credit: "0",
   };
   const accounts = rowsFromResult<FinanceAccountOption>(accountResult);
+  const budgets = rowsFromResult<FinanceBudgetOption>(budgetResult);
   const journals = rowsFromResult<JournalRow>(journalResult);
   const notice = result ? resultMessages[result] : undefined;
 
@@ -252,7 +283,7 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
       {canWrite ? (
         <Card className="mt-5">
           <CardHeader title="Buat jurnal umum" subtitle="Draf baru tidak mengubah saldo buku besar sampai jurnal disetujui dan diposting." action={<BookOpenCheck size={16} className="text-muted" />} />
-          <FinanceJournalComposer accounts={accounts} />
+          <FinanceJournalComposer accounts={accounts} budgets={budgets} />
         </Card>
       ) : null}
 
@@ -273,6 +304,7 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
                           <span className="font-mono text-[10px] font-semibold text-muted2">{journal.reference_no}</span>
                           <Badge tone={statusTone[journal.status]}>{statusLabel[journal.status]}</Badge>
                           <Badge tone="neutral">{sourceLabel[journal.source_type] ?? journal.source_type}</Badge>
+                          {journal.budget_code ? <Badge tone="info">Anggaran {journal.budget_code}</Badge> : null}
                         </div>
                         <h3 className="mt-1 text-[13px] font-semibold text-ink">{journal.description}</h3>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-muted">
@@ -314,8 +346,10 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
                         <div className="border-t border-line bg-white">
                           <FinanceJournalComposer
                             accounts={accounts}
+                            budgets={budgets}
                             initialJournal={{
                               id: journal.id,
+                              budget_id: journal.budget_id,
                               journal_date: journal.journal_date,
                               description: journal.description,
                               source_type: journal.source_type,
