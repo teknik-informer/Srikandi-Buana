@@ -41,6 +41,9 @@ jobs:
       - name: Organization reporting regression checks
         run: npm run test:organization-reporting
 
+      - name: Core workspace shell contract checks
+        run: npm run test:core-shell-contract
+
       - name: TypeScript validation
         run: npm run typecheck
 
