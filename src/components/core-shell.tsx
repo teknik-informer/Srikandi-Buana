@@ -33,7 +33,7 @@ export function CoreShell({
 
   return (
     <StoreProvider actor={actor}>
-      <SearchProvider>
+      <SearchProvider identity={identity}>
         <AppShell
           identity={identity}
           accounts={[]}
