@@ -129,7 +129,7 @@ export default async function SecretariatGeneratedDocumentPage({
         </div>
       ) : null}
 
-      <article className="mx-auto w-full max-w-[210mm] border border-line bg-white px-7 py-9 shadow-sm sm:px-12 sm:py-12 print:max-w-none print:border-0 print:px-0 print:py-0 print:shadow-none">
+      <article id="sb-generated-document-print" className="mx-auto w-full max-w-[210mm] border border-line bg-white px-7 py-9 shadow-sm sm:px-12 sm:py-12 print:max-w-none print:border-0 print:px-0 print:py-0 print:shadow-none">
         <header className="border-b-2 border-black pb-4 text-center text-black">
           <h1 className="text-[18px] font-bold uppercase tracking-wide sm:text-[20px]">
             {generated.organization.shortName}
