@@ -586,3 +586,16 @@ assert.ok(
 );
 
 process.stdout.write("Moderated member community contract: PASS\\n");
+
+const memberCommunityReplySelfReportGuard = read("db/migrations/0031_member_community_reply_self_report_guard.sql");
+const replyReportGuardStart = memberCommunityReplySelfReportGuard.indexOf("ELSE\n      SELECT reply.membership_id");
+const replyReportGuardEnd = memberCommunityReplySelfReportGuard.indexOf("END IF;", replyReportGuardStart);
+assert.ok(
+  replyReportGuardStart >= 0 &&
+  replyReportGuardEnd > replyReportGuardStart &&
+  memberCommunityReplySelfReportGuard.slice(replyReportGuardStart, replyReportGuardEnd).includes("target_author IS NOT DISTINCT FROM NEW.reporter_user_id") &&
+  (memberCommunityReplySelfReportGuard.split("target_author IS NOT DISTINCT FROM NEW.reporter_user_id").length - 1) === 2,
+  "Both topic and reply reports must prevent self-reporting by user identity, even if the same person has multiple memberships.",
+);
+
+process.stdout.write("Community reply self-report protection: PASS\\n");
