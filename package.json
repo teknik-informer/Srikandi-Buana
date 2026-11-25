@@ -12,7 +12,8 @@
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "bootstrap:v9-admin": "node scripts/bootstrap-v9-admin.mjs",
-    "test:organization-reporting": "node scripts/verify-organization-reporting.mjs"
+    "test:organization-reporting": "node scripts/verify-organization-reporting.mjs",
+    "test:core-shell-contract": "node scripts/verify-core-shell-contract.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.545.0",
