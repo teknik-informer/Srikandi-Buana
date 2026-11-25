@@ -102,7 +102,7 @@ export default async function SecretariatGeneratedDocumentPage({
           <ArrowLeft size={14} /> Kembali ke register
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          {canWrite ? (
+          {canWrite && document.visibility !== "publik" ? (
             <Link
               href={`/app/sekretariat/template/${document.template_code}?document_id=${document.id}`}
               className="sb-btn sb-btn-outline"
