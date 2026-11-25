@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { getIdentity, can } from "@/lib/session";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { APPS } from "@/config/apps";
-import type { AppKey } from "@/config/apps";
 import { canAccessApp } from "@/lib/app-access";
 import { FIELDS_BY_SLUG } from "@/config/fields";
 import { AppIcon, FieldMark } from "@/components/brand";
@@ -107,9 +106,11 @@ export default async function AppHome() {
             task.priority,
             task.status,
             (
-              task.due_date < (now() AT TIME ZONE 'Asia/Jakarta')::date
-              AND task.status NOT IN ('selesai', 'dibatalkan')
-            ) AS is_overdue
+              COALESCE(
+                task.due_date < (now() AT TIME ZONE 'Asia/Jakarta')::date
+                AND task.status NOT IN ('selesai', 'dibatalkan'),
+                false
+              ) AS is_overdue
           FROM v9.field_tasks AS task
           WHERE task.organization_id = ${identity.organizationId}
             AND task.status NOT IN ('selesai', 'dibatalkan')
@@ -153,6 +154,7 @@ export default async function AppHome() {
           ON unit.id = application.unit_id
           AND unit.organization_id = application.organization_id
         WHERE application.organization_id = ${identity.organizationId}
+          AND (${canReadOrganization} = true OR application.field_key = ${fieldScope})
         ORDER BY application.display_order, application.name
       `);
     } catch (reason) {
@@ -161,7 +163,7 @@ export default async function AppHome() {
     }
   }
   const accessibleFields = fields.filter((row) =>
-    row.is_enabled && canAccessApp(identity, row.field_key as AppKey),
+    row.is_enabled && APPS.some((app) => app.key === row.field_key && canAccessApp(identity, app.key)),
   );
 
   let programs: ProgramCountRow | null = null;
