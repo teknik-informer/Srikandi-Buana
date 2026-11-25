@@ -72,7 +72,7 @@ assert.ok(
   registerPage.includes("latest_generation.revision_no AS generated_revision") &&
   registerPage.includes("/cetak") &&
   registerPage.includes("document.has_generated_content") &&
-  registerPage.includes("document.visibility === 'publik' && (!document.file_name || !canPublish)"),
+  registerPage.includes('document.visibility === "publik" && (!document.file_name || !canPublish)'),
   "The existing Register Dokumen must recognize generated revisions and retain the public-file finalization rule.",
 );
 
