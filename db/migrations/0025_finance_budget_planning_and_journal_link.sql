@@ -159,20 +159,8 @@ BEGIN
     END IF;
   END IF;
 
-  IF NEW.status = 'closed' AND NEW.status IS DISTINCT FROM OLD.status
-    AND EXISTS (
-      SELECT 1
-      FROM v9.finance_journals AS journal
-      WHERE journal.organization_id = NEW.organization_id
-        AND journal.budget_id = NEW.id
-        AND journal.status <> 'posted'
-    ) THEN
-    RAISE EXCEPTION 'A budget with unposted linked journals cannot be closed.';
-  END IF;
-
   RETURN NEW;
-END;
-$;
+END;$$;
 
 CREATE OR REPLACE FUNCTION v9.protect_finance_budget_line()
 RETURNS trigger
