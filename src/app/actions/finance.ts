@@ -37,6 +37,10 @@ function accountPath(result: string): string {
   return `/app/keuangan/bagan-akun?result=${encodeURIComponent(result)}`;
 }
 
+function cashBankPath(result: string): string {
+  return `/app/keuangan/kas-bank?result=${encodeURIComponent(result)}`;
+}
+
 function fail(area: string, reason: unknown): void {
   const errorType =
     reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name)
@@ -49,6 +53,9 @@ function refreshFinance(): void {
   revalidatePath("/app/keuangan");
   revalidatePath("/app/keuangan/jurnal");
   revalidatePath("/app/keuangan/bagan-akun");
+  revalidatePath("/app/keuangan/kas-bank");
+  revalidatePath("/app/keuangan/penerimaan");
+  revalidatePath("/app/keuangan/pembayaran");
   revalidatePath("/app/keuangan/buku-besar");
   revalidatePath("/app/keuangan/neraca-saldo");
   revalidatePath("/app/keuangan/laporan");
@@ -331,6 +338,163 @@ export async function updateFinanceAccountStatus(formData: FormData): Promise<vo
   if (!changed) redirect(accountPath("account-status-blocked"));
   refreshFinance();
   redirect(accountPath("account-status-updated"));
+}
+
+
+export async function createFinanceCashAccount(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:accounts:write")) redirect("/app");
+
+  const ledgerAccountId = String(formData.get("ledger_account_id") ?? "").trim();
+  const kind = String(formData.get("account_kind") ?? "").trim();
+  const displayName = normalize(String(formData.get("display_name") ?? ""));
+  const institutionName = normalize(String(formData.get("institution_name") ?? ""));
+  const holderLabel = normalize(String(formData.get("account_holder_label") ?? ""));
+  const last4 = String(formData.get("account_number_last4") ?? "").trim();
+  const currency = String(formData.get("currency_code") ?? "IDR").trim().toUpperCase();
+
+  if (
+    !validUuid(ledgerAccountId) ||
+    !["cash", "bank", "e_wallet"].includes(kind) ||
+    displayName.length < 2 || displayName.length > 160 ||
+    (kind !== "cash" && (institutionName.length < 2 || institutionName.length > 160)) ||
+    holderLabel.length > 160 ||
+    (last4 && !/^\d{4}$/.test(last4)) ||
+    !/^[A-Z]{3}$/.test(currency)
+  ) {
+    redirect(cashBankPath("mapping-invalid"));
+  }
+
+  let created: MutationRow | undefined;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH eligible AS MATERIALIZED (
+        SELECT account.id
+        FROM v9.finance_accounts AS account
+        WHERE account.id = ${ledgerAccountId}
+          AND account.organization_id = ${identity.organizationId}
+          AND account.account_type = 'aset'
+          AND account.normal_balance = 'debit'
+          AND account.status = 'active'
+          AND account.is_postable = true
+      ),
+      inserted AS (
+        INSERT INTO v9.finance_cash_accounts (
+          organization_id, ledger_account_id, account_kind, display_name,
+          institution_name, account_holder_label, account_number_last4,
+          currency_code, status, created_by, updated_by
+        )
+        SELECT
+          ${identity.organizationId},
+          eligible.id,
+          ${kind},
+          ${displayName},
+          CASE WHEN ${kind} = 'cash' THEN NULL ELSE ${institutionName} END,
+          NULLIF(${holderLabel}, ''),
+          CASE WHEN ${kind} = 'cash' THEN NULL ELSE NULLIF(${last4}, '') END,
+          ${currency},
+          'draft',
+          ${identity.userId},
+          ${identity.userId}
+        FROM eligible
+        RETURNING id, organization_id, ledger_account_id, account_kind,
+          display_name, institution_name, account_number_last4, currency_code, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          organization_id,
+          ${identity.userId},
+          'finance_cash_account.created',
+          'finance_cash_account',
+          id::text,
+          jsonb_build_object(
+            'ledger_account_id', ledger_account_id,
+            'account_kind', account_kind,
+            'display_name', display_name,
+            'institution_name', institution_name,
+            'account_number_last4', account_number_last4,
+            'currency_code', currency_code,
+            'status', status
+          )
+        FROM inserted
+        RETURNING id
+      )
+      SELECT inserted.id::text AS id, inserted.display_name AS reference_no
+      FROM inserted
+      INNER JOIN audit ON true
+    `;
+    created = rowsFromResult<MutationRow>(result)[0];
+  } catch (reason) {
+    fail("finance-cash-account-create", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("finance_cash_accounts_organization_id_ledger_account_id_key")) {
+      redirect(cashBankPath("mapping-already-exists"));
+    }
+    redirect(cashBankPath("mapping-error"));
+  }
+
+  if (!created) redirect(cashBankPath("ledger-account-unavailable"));
+  refreshFinance();
+  redirect(cashBankPath("mapping-created"));
+}
+
+export async function updateFinanceCashAccountStatus(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:accounts:approve")) redirect("/app");
+
+  const cashAccountId = String(formData.get("cash_account_id") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+  if (!validUuid(cashAccountId) || !["active", "inactive"].includes(status)) {
+    redirect(cashBankPath("mapping-invalid"));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH updated AS (
+        UPDATE v9.finance_cash_accounts
+        SET status = ${status}, updated_by = ${identity.userId}, updated_at = now()
+        WHERE id = ${cashAccountId}
+          AND organization_id = ${identity.organizationId}
+          AND status <> ${status}
+        RETURNING id, organization_id, ledger_account_id, account_kind,
+          display_name, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          organization_id,
+          ${identity.userId},
+          'finance_cash_account.status.' || status,
+          'finance_cash_account',
+          id::text,
+          jsonb_build_object(
+            'ledger_account_id', ledger_account_id,
+            'account_kind', account_kind,
+            'display_name', display_name,
+            'status', status
+          )
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-cash-account-status", reason);
+    redirect(cashBankPath("mapping-status-blocked"));
+  }
+
+  if (!changed) redirect(cashBankPath("mapping-status-blocked"));
+  refreshFinance();
+  redirect(cashBankPath("mapping-status-updated"));
 }
 
 export async function createFinanceJournalDraft(formData: FormData): Promise<void> {
