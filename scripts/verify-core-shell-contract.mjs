@@ -157,6 +157,10 @@ assert.ok(
   "Workspace notification chrome must not expose browser-local read-state actions.",
 );
 
+assert.ok(
+  !coreShell.includes("Toaster") && !coreShell.includes("StoreProvider"),
+  "The active CoreShell must not mount dormant browser-store or toast demo chrome.",
+);
 const activeClientSources = [
   "src/app/app/(area)/anggota/dashboard-client.tsx",
   "src/app/app/(area)/anggota/profil/profil-client.tsx",
