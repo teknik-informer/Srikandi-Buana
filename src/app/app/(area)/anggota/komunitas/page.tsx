@@ -90,7 +90,9 @@ const reasonLabel: Record<string, string> = {
 
 const notices: Record<string, { tone: "success" | "warning" | "danger"; text: string }> = {
   "topic-submitted": { tone: "success", text: "Topik dikirim ke antrean moderasi. Topik akan terlihat oleh anggota setelah disetujui." },
+  "topic-resubmitted": { tone: "success", text: "Perbaikan topik dikirim kembali ke antrean moderasi. Topik belum diterbitkan." },
   "reply-submitted": { tone: "success", text: "Balasan dikirim untuk ditinjau moderator sebelum tampil kepada anggota lain." },
+  "reply-resubmitted": { tone: "success", text: "Perbaikan balasan dikirim kembali ke antrean moderasi. Balasan belum diterbitkan." },
   "topic-updated": { tone: "success", text: "Draf topik berhasil diperbarui." },
   "topic-withdrawn": { tone: "success", text: "Topik yang menunggu moderasi berhasil ditarik." },
   "reply-updated": { tone: "success", text: "Draf balasan berhasil diperbarui." },
@@ -538,23 +540,23 @@ export default async function KomunitasPage({
                 {ownPending ? (
                   <div className="mt-2 space-y-2">
                     <p className="text-[10.5px] text-warning">Topik ini hanya terlihat oleh Anda dan moderator sampai diterbitkan.</p>
-                    {topic.status === "pending" ? (
+                    {["pending","rejected"].includes(topic.status) ? (
                       <div className="flex flex-wrap gap-2">
                         <details className="min-w-[240px] flex-1">
-                          <summary className="sb-btn sb-btn-outline !h-8 cursor-pointer !px-3 text-[10px]">Edit draf topik</summary>
+                          <summary className="sb-btn sb-btn-outline !h-8 cursor-pointer !px-3 text-[10px]">{topic.status === "rejected" ? "Perbaiki & ajukan ulang" : "Edit draf topik"}</summary>
                           <form action={updateOwnCommunityTopic} className="mt-2 space-y-2 rounded-lg border border-line bg-paper p-3">
                             <input type="hidden" name="topic_id" value={topic.id} />
                             <label className="block text-[10px] font-semibold text-muted">Judul</label>
                             <input name="title" required minLength={5} maxLength={180} defaultValue={topic.title} className="sb-input !h-9 text-[10.5px]" />
                             <label className="block text-[10px] font-semibold text-muted">Isi diskusi</label>
                             <textarea name="body" required minLength={10} maxLength={5000} rows={4} defaultValue={topic.body} className="sb-input !h-auto min-h-[90px] resize-y py-2 text-[10.5px]" />
-                            <button type="submit" className="sb-btn sb-btn-primary !h-8 text-[10px]">Simpan draf</button>
+                            <button type="submit" className="sb-btn sb-btn-primary !h-8 text-[10px]">{topic.status === "rejected" ? "Kirim ulang untuk moderasi" : "Simpan draf"}</button>
                           </form>
                         </details>
-                        <form action={withdrawOwnCommunityTopic}>
+                        {topic.status === "pending" ? <form action={withdrawOwnCommunityTopic}>
                           <input type="hidden" name="topic_id" value={topic.id} />
                           <button type="submit" className="sb-btn sb-btn-ghost !h-8 text-[10px]">Tarik topik</button>
-                        </form>
+                        </form> : null}
                       </div>
                     ) : null}
                   </div>
@@ -579,21 +581,21 @@ export default async function KomunitasPage({
                             {reply.author_user_id === identity.userId && ["rejected","hidden"].includes(reply.status) && reply.moderation_note ? (
                               <Notice tone="warning" title="Catatan moderator">{reply.moderation_note}</Notice>
                             ) : null}
-                            {reply.author_user_id === identity.userId && reply.status === "pending" ? (
+                            {reply.author_user_id === identity.userId && ["pending","rejected"].includes(reply.status) ? (
                               <div className="mt-2 flex flex-wrap items-start gap-2">
-                                <span className="pt-1 text-[10px] text-warning">Menunggu moderasi</span>
+                                <span className="pt-1 text-[10px] text-warning">{reply.status === "rejected" ? "Perlu diperbaiki" : "Menunggu moderasi"}</span>
                                 <details className="min-w-[220px] flex-1">
-                                  <summary className="sb-btn sb-btn-outline !h-7 cursor-pointer !px-2.5 text-[10px]">Edit draf balasan</summary>
+                                  <summary className="sb-btn sb-btn-outline !h-7 cursor-pointer !px-2.5 text-[10px]">{reply.status === "rejected" ? "Perbaiki & ajukan ulang" : "Edit draf balasan"}</summary>
                                   <form action={updateOwnCommunityReply} className="mt-2 space-y-2 rounded-lg border border-line bg-paper p-3">
                                     <input type="hidden" name="reply_id" value={reply.id} />
                                     <textarea name="body" required minLength={2} maxLength={2500} rows={3} defaultValue={reply.body} className="sb-input !h-auto min-h-[70px] resize-y py-2 text-[10.5px]" />
-                                    <button type="submit" className="sb-btn sb-btn-primary !h-8 text-[10px]">Simpan draf</button>
+                                    <button type="submit" className="sb-btn sb-btn-primary !h-8 text-[10px]">{reply.status === "rejected" ? "Kirim ulang untuk moderasi" : "Simpan draf"}</button>
                                   </form>
                                 </details>
-                                <form action={withdrawOwnCommunityReply}>
+                                {reply.status === "pending" ? <form action={withdrawOwnCommunityReply}>
                                   <input type="hidden" name="reply_id" value={reply.id} />
                                   <button type="submit" className="sb-btn sb-btn-ghost !h-7 text-[10px]">Tarik</button>
-                                </form>
+                                </form> : null}
                               </div>
                             ) : null}
                             {canPost && reply.status === "published" && reply.author_user_id !== identity.userId ? <ReportForm targetType="reply" targetId={reply.id} /> : null}
