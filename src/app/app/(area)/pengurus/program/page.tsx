@@ -46,6 +46,7 @@ interface WorkplanReviewRow {
   period_start: string;
   period_end: string;
   submitted_at: string;
+  created_by: string | null;
 }
 
 interface IndicatorRow {
@@ -191,7 +192,8 @@ export default async function ProgramPengurusPage({
           workplan.objective,
           workplan.period_start::text AS period_start,
           workplan.period_end::text AS period_end,
-          workplan.submitted_at::text AS submitted_at
+          workplan.submitted_at::text AS submitted_at,
+          workplan.created_by::text AS created_by
         FROM v9.field_workplans AS workplan
         WHERE workplan.organization_id = ${identity.organizationId}
           AND workplan.status = 'submitted'
@@ -298,14 +300,18 @@ export default async function ProgramPengurusPage({
                       </div>
                       {workplan.objective ? <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[11px] leading-relaxed text-muted">{workplan.objective}</p> : null}
                     </div>
-                    {canApproveWorkplans ? (
+                    {canApproveWorkplans && workplan.created_by !== identity.userId ? (
                       <form action={approveFieldWorkplan} className="shrink-0">
                         <input type="hidden" name="field_key" value={workplan.field_key} />
                         <input type="hidden" name="workplan_id" value={workplan.id} />
                         <button type="submit" className="sb-btn sb-btn-primary !h-9 !px-3 text-[11px]">Setujui rencana</button>
                       </form>
                     ) : (
-                      <span className="text-[10.5px] text-muted2">Menunggu Ketua / Administrator Organisasi</span>
+                      <span className="max-w-[230px] text-[10.5px] text-muted2">
+                        {canApproveWorkplans
+                          ? "Pembuat rencana tidak dapat menyetujui pengajuannya sendiri."
+                          : "Menunggu Ketua / Administrator Organisasi"}
+                      </span>
                     )}
                   </div>
                 </article>
