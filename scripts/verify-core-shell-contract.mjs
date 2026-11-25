@@ -245,4 +245,32 @@ assert.ok(
   !fieldShell.includes("Toaster") && !fieldShell.includes("@/components/act"),
   "The active field shell must not mount the dormant browser-store toast component.",
 );
+
+const publicDocuments = read("src/app/(public)/dokumen/page.tsx");
+const publicActivities = read("src/app/(public)/kegiatan/page.tsx");
+const publicProducts = read("src/app/(public)/produk/page.tsx");
+const publicPrograms = read("src/app/(public)/program/page.tsx");
+const publicNews = read("src/app/(public)/kabar/page.tsx");
+assert.ok(
+  publicDocuments.includes("document.status = 'final'") &&
+  publicDocuments.includes("document.visibility = 'publik'"),
+  "Public documents must be final and explicitly marked public.",
+);
+assert.ok(
+  publicActivities.includes("activity.open_to_public = true"),
+  "Public activity listings must require an explicit public-visibility flag.",
+);
+assert.ok(
+  publicProducts.includes("product.status = 'active'") &&
+  publicProducts.includes("product.publication_status = 'published'"),
+  "The public product catalogue must exclude inactive and unpublished products.",
+);
+assert.ok(
+  !publicPrograms.includes("@/data/operations") &&
+  !publicNews.includes("@/data/content") &&
+  publicPrograms.includes("Belum ada program yang ditandai untuk publikasi") &&
+  publicNews.includes("Belum ada kabar yang dipublikasikan"),
+  "Public programme and news pages must not display seeded sample content.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
