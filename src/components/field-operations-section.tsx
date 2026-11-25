@@ -13,6 +13,8 @@ import { can, requireIdentity } from "@/lib/session";
 import type { FieldDef } from "@/config/fields";
 import {
   addFieldProgramIndicator,
+  updateFieldWorkplan,
+  changeFieldWorkplanStatus,
   updateFieldProgramIndicatorActual,
   updateFieldProgram,
   changeFieldProgramStatus,
@@ -149,6 +151,8 @@ function resultNotice(result?: string): ResultNotice | null {
   const messages: Record<string, ResultNotice> = {
     "workplan-created": { tone: "success", text: "Rencana kerja berhasil disimpan sebagai draf." },
     "workplan-submitted": { tone: "success", text: "Rencana kerja diajukan untuk proses persetujuan organisasi." },
+    "workplan-updated": { tone: "success", text: "Rincian rencana kerja berhasil diperbarui." },
+    "workplan-status-updated": { tone: "success", text: "Tahap rencana kerja berhasil diperbarui." },
     "program-created": { tone: "success", text: "Program berhasil diregistrasikan." },
     "program-updated": { tone: "success", text: "Rincian program berhasil diperbarui dan dicatat pada audit." },
     "program-status-updated": { tone: "success", text: "Status program berhasil diperbarui." },
@@ -326,10 +330,51 @@ export async function FieldOperationsSection({
                     </div>
                     {plan.objective ? <p className="mt-2 whitespace-pre-wrap text-[11.5px] leading-relaxed text-muted">{plan.objective}</p> : null}
                     {canWriteWorkplans && plan.status === "draft" ? (
-                      <form action={submitFieldWorkplan} className="mt-3 border-t border-line pt-3">
+                      <>
+                        <form action={updateFieldWorkplan} className="mt-3 grid gap-2 border-t border-line pt-3 sm:grid-cols-2">
+                          <input type="hidden" name="field_key" value={field.slug} />
+                          <input type="hidden" name="workplan_id" value={plan.id} />
+                          <div className="sm:col-span-2">
+                            <label htmlFor={`workplan-title-${plan.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Nama rencana kerja</label>
+                            <input id={`workplan-title-${plan.id}`} name="title" required minLength={3} maxLength={300} defaultValue={plan.title} className="sb-input !h-9 text-[11px]" />
+                          </div>
+                          <div>
+                            <label htmlFor={`workplan-start-${plan.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Mulai periode</label>
+                            <input id={`workplan-start-${plan.id}`} name="period_start" type="date" required defaultValue={plan.period_start} className="sb-input !h-9 text-[11px]" />
+                          </div>
+                          <div>
+                            <label htmlFor={`workplan-end-${plan.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Akhir periode</label>
+                            <input id={`workplan-end-${plan.id}`} name="period_end" type="date" required defaultValue={plan.period_end} className="sb-input !h-9 text-[11px]" />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label htmlFor={`workplan-objective-${plan.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Tujuan dan ruang lingkup</label>
+                            <textarea id={`workplan-objective-${plan.id}`} name="objective" rows={2} maxLength={5000} defaultValue={plan.objective ?? ""} className="sb-input !h-auto resize-y py-2 text-[11px]" />
+                          </div>
+                          <div className="flex justify-end sm:col-span-2">
+                            <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]">Simpan perubahan</button>
+                          </div>
+                        </form>
+                        <form action={submitFieldWorkplan} className="mt-2 flex justify-end">
+                          <input type="hidden" name="field_key" value={field.slug} />
+                          <input type="hidden" name="workplan_id" value={plan.id} />
+                          <button type="submit" className="sb-btn sb-btn-primary !h-8 !px-3 text-[10.5px]">Ajukan untuk persetujuan</button>
+                        </form>
+                      </>
+                    ) : null}
+                    {canWriteWorkplans && plan.status === "approved" ? (
+                      <form action={changeFieldWorkplanStatus} className="mt-3 border-t border-line pt-3">
                         <input type="hidden" name="field_key" value={field.slug} />
                         <input type="hidden" name="workplan_id" value={plan.id} />
-                        <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]">Ajukan rencana kerja</button>
+                        <input type="hidden" name="next_status" value="active" />
+                        <button type="submit" className="sb-btn sb-btn-primary !h-8 !px-3 text-[10.5px]">Mulai pelaksanaan</button>
+                      </form>
+                    ) : null}
+                    {canWriteWorkplans && plan.status === "active" ? (
+                      <form action={changeFieldWorkplanStatus} className="mt-3 border-t border-line pt-3">
+                        <input type="hidden" name="field_key" value={field.slug} />
+                        <input type="hidden" name="workplan_id" value={plan.id} />
+                        <input type="hidden" name="next_status" value="completed" />
+                        <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]">Tandai rencana selesai</button>
                       </form>
                     ) : null}
                   </article>
