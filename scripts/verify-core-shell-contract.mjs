@@ -599,3 +599,20 @@ assert.ok(
 );
 
 process.stdout.write("Community reply self-report protection: PASS\\n");
+
+const memberCommunityResubmissionMigration = read("db/migrations/0032_member_community_author_resubmission.sql");
+const topicResubmissionStart = memberCommunityResubmissionMigration.indexOf("CREATE OR REPLACE FUNCTION v9.protect_member_community_topic()");
+const replyResubmissionStart = memberCommunityResubmissionMigration.indexOf("CREATE OR REPLACE FUNCTION v9.protect_member_community_reply()");
+assert.ok(
+  topicResubmissionStart >= 0 &&
+  replyResubmissionStart > topicResubmissionStart &&
+  memberCommunityResubmissionMigration.includes("OLD.status = 'rejected'") &&
+  memberCommunityResubmissionMigration.includes("NEW.status = 'pending'") &&
+  memberCommunityActions.includes("member_community_topic.resubmitted") &&
+  memberCommunityActions.includes("member_community_reply.resubmitted") &&
+  memberCommunityPage.includes("Perbaiki & ajukan ulang") &&
+  memberCommunityPage.includes("Kirim ulang untuk moderasi"),
+  "Rejected member topics and replies must be editable by their authors and re-enter moderation as pending, never published automatically.",
+);
+
+process.stdout.write("Community author resubmission contract: PASS\\n");
