@@ -34,3 +34,23 @@ export function canAccessApp(identity: AppIdentity, app: AppKey): boolean {
     }
   }
 }
+/** Resolve an application scope from a workspace destination for navigation filtering. */
+export function appKeyForHref(href: string): AppKey {
+  if (href.startsWith("/studio")) return "studio";
+  if (href.startsWith("/portal")) return "portal";
+  if (href.startsWith("/app/pengurus")) return "pengurus";
+  if (href.startsWith("/app/sekretariat")) return "sekretariat";
+  if (href.startsWith("/app/keuangan")) return "keuangan";
+  if (href.startsWith("/app/anggota")) return "anggota";
+  if (href.startsWith("/app/pos")) return "pos";
+  if (href.startsWith("/app/bidang/organisasi")) return "organisasi";
+  if (href.startsWith("/app/bidang/pertanian")) return "pertanian";
+  if (href.startsWith("/app/bidang/pelatihan")) return "pelatihan";
+  if (href.startsWith("/app/bidang/usaha")) return "usaha";
+  return "launcher";
+}
+
+/** Navigation visibility only; the destination layout performs final authorization. */
+export function canAccessAppHref(identity: AppIdentity, href: string): boolean {
+  return canAccessApp(identity, appKeyForHref(href));
+}
