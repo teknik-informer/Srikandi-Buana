@@ -26,7 +26,7 @@ const ALLOWED_EXPERIENCE_LEVELS = new Set([
 ]);
 
 function phoneRateKey(value: string): string {
-  const digits = value.replace(/\\D/g, "");
+  const digits = value.replace(/\D/g, "");
   if (digits.startsWith("62")) return digits;
   if (digits.startsWith("0")) return "62" + digits.slice(1);
   if (digits.startsWith("8")) return "62" + digits;
@@ -46,7 +46,7 @@ export async function submitJoinInterest(
   const catatan = String(formData.get("catatan") ?? "").trim();
   const setuju = formData.get("setuju") === "on" || formData.get("setuju") === "true";
   const website = String(formData.get("website") ?? "").trim();
-  const ratePhone = telepon.replace(/\D/g, "");
+  const ratePhone = phoneRateKey(telepon);
 
   if (website.length > 0) {
     return { ok: false, message: "Formulir tidak dapat diproses. Muat ulang halaman lalu coba kembali." };
