@@ -115,8 +115,8 @@ export default async function IuranPage({
           WHERE allocation.organization_id = ${identity.organizationId}
         )
         SELECT
-          COALESCE(sum(contribution.net_amount), 0)::text AS contribution_total,
-          count(*)::int AS entry_count,
+          COALESCE((SELECT sum(contribution.net_amount) FROM contribution_journals AS contribution), 0)::text AS contribution_total,
+          (SELECT count(*)::int FROM contribution_journals) AS entry_count,
           allocation_summary.allocation_total::text AS allocation_total,
           allocation_summary.allocation_count,
           (
@@ -130,9 +130,7 @@ export default async function IuranPage({
               AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
               AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
           ) AS active_members
-        FROM contribution_journals AS contribution
-        CROSS JOIN allocation_summary
-        GROUP BY allocation_summary.allocation_total, allocation_summary.allocation_count
+        FROM allocation_summary
       `,
       sql`
         SELECT
