@@ -61,7 +61,7 @@ const resultMessages: Record<string, { tone: "success" | "warning" | "danger"; t
   "account-status-updated": { tone: "success", text: "Status akun berhasil diperbarui." },
   "account-not-draft": { tone: "warning", text: "Akun tidak lagi berstatus draf sehingga tidak dapat diedit dengan formulir ini." },
   "duplicate-account-code": { tone: "warning", text: "Kode akun sudah digunakan dalam organisasi." },
-  "account-status-blocked": { tone: "warning", text: "Status akun tidak dapat diubah. Akun yang sudah memiliki jurnal terposting tidak dapat diarsipkan." },
+  "account-status-blocked": { tone: "warning", text: "Status akun tidak dapat diubah. Akun yang sudah dipakai jurnal atau terhubung ke register kas/bank harus dipertahankan." },
   invalid: { tone: "warning", text: "Periksa kembali kode, nama, tipe, saldo normal, dan kelompok akun." },
   error: { tone: "danger", text: "Perubahan akun gagal disimpan. Periksa koneksi atau log aplikasi." },
 };
