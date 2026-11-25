@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Bell, ChevronDown, ChevronRight, LogOut, Menu, Plus, Search, X,
+  Bell, ChevronDown, ChevronRight, LogOut, Menu, Plus, Search, X, Check,
   Settings, Mail, FileText, ListChecks, BarChart3, Activity, Target,
   ClipboardCheck, CalendarDays, Users, Network, SlidersHorizontal, Home,
   CircleHelp, ArrowUpRight, ArrowRight, Facebook, Instagram, Youtube,
