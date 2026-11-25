@@ -93,6 +93,7 @@ export default async function SecretariatTemplateBuilderPage({
       WHERE document.id = ${search.document_id}
         AND document.organization_id = ${identity.organizationId}
         AND document.status <> 'arsip'
+        AND document.visibility <> 'publik'
       LIMIT 1
     `;
     existing = rowsFromResult<ExistingDocumentRow>(result)[0];
