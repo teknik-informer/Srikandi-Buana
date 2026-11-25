@@ -14,7 +14,6 @@ import { canAccessApp, canAccessAppHref } from "@/lib/app-access";
 import { AppIcon } from "@/components/brand";
 import { SearchProvider, SearchButton } from "@/components/search-dialog";
 import type { DemoIdentity } from "@/lib/identity";
-import { useStoreOptional } from "@/lib/store";
 
 interface NavItem { label: string; href: string; badge?: number }
 interface NavGroup { label?: string; items: NavItem[] }
@@ -49,10 +48,6 @@ export function AppShell({
   fallbackNotices?: number;
 }) {
   const pathname = usePathname();
-  // Optional: shells can mount outside a StoreProvider (public/preview), in
-  // which case "mark all read" is simply hidden rather than crashing the page.
-  const store = useStoreOptional();
-  const markAllRead = () => store?.dispatch({ type: "notice.readAll" });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [launcher, setLauncher] = useState(false);
   const [bell, setBell] = useState(false);
@@ -165,15 +160,6 @@ export function AppShell({
                     <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
                       <span className="text-[12px] font-semibold text-ink">Notifikasi</span>
                       <div className="flex items-center gap-2">
-                        {unread > 0 && store ? (
-                          <button
-                            type="button"
-                            onClick={markAllRead}
-                            className="inline-flex min-h-[28px] items-center gap-1 rounded-full px-2 text-[11px] font-semibold text-primary-700 hover:bg-primary-50"
-                          >
-                            <Check size={12} /> Tandai dibaca
-                          </button>
-                        ) : null}
                         <Link href="/app/notifikasi" className="text-[11px] font-semibold text-primary-700">Lihat semua</Link>
                       </div>
                     </div>
