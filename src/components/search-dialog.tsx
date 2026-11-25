@@ -101,7 +101,7 @@ export function SearchButton() {
 /* ── the dialog itself ─────────────────────────────────────────────────── */
 
 function SearchDialog() {
-  const { open, setOpen } = useSearch();
+  const { open, setOpen, identity } = useSearch();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -152,7 +152,8 @@ function SearchDialog() {
 
   if (!open) return null;
 
-  const shown = apps.slice(0, 4);\n  const shortcuts = SHORTCUTS.filter((shortcut) => canAccessAppHref(identity, shortcut.href));
+  const shown = apps.slice(0, 4);
+  const shortcuts = SHORTCUTS.filter((shortcut) => canAccessAppHref(identity, shortcut.href));
   const hits = flat.slice(0, 12);
 
   return (
