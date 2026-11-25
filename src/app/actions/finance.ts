@@ -679,7 +679,16 @@ export async function submitFinanceJournal(formData: FormData): Promise<void> {
         WHERE journal.id = ${journalId}
           AND journal.organization_id = ${identity.organizationId}
           AND journal.status = 'draft'
-          AND ${inactiveCheck}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM v9.finance_journal_lines AS line
+            INNER JOIN v9.finance_cash_accounts AS cash_account
+              ON cash_account.organization_id = line.organization_id
+              AND cash_account.ledger_account_id = line.account_id
+            WHERE line.organization_id = journal.organization_id
+              AND line.journal_id = journal.id
+              AND cash_account.status <> 'active'
+          )
         RETURNING journal.id, journal.organization_id, journal.reference_no, journal.status,
           journal.total_debit, journal.total_credit
       ),
@@ -749,7 +758,16 @@ export async function reviewFinanceJournal(formData: FormData): Promise<void> {
           AND journal.created_by <> ${identity.userId}
           AND (
             ${decision} = 'rejected'
-            OR ${inactiveCheck}
+            OR NOT EXISTS (
+            SELECT 1
+            FROM v9.finance_journal_lines AS line
+            INNER JOIN v9.finance_cash_accounts AS cash_account
+              ON cash_account.organization_id = line.organization_id
+              AND cash_account.ledger_account_id = line.account_id
+            WHERE line.organization_id = journal.organization_id
+              AND line.journal_id = journal.id
+              AND cash_account.status <> 'active'
+          )
           )
         RETURNING journal.id, journal.organization_id, journal.reference_no, journal.status, journal.created_by,
           journal.approved_by, journal.rejected_by, journal.review_note, journal.total_debit, journal.total_credit
@@ -800,7 +818,16 @@ export async function postFinanceJournal(formData: FormData): Promise<void> {
         WHERE journal.id = ${journalId}
           AND journal.organization_id = ${identity.organizationId}
           AND journal.status = 'approved'
-          AND ${inactiveCheck}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM v9.finance_journal_lines AS line
+            INNER JOIN v9.finance_cash_accounts AS cash_account
+              ON cash_account.organization_id = line.organization_id
+              AND cash_account.ledger_account_id = line.account_id
+            WHERE line.organization_id = journal.organization_id
+              AND line.journal_id = journal.id
+              AND cash_account.status <> 'active'
+          )
         RETURNING journal.id, journal.organization_id, journal.reference_no, journal.journal_date,
           journal.description, journal.status, journal.total_debit, journal.total_credit, journal.approved_by
       ),
