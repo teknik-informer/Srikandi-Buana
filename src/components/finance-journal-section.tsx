@@ -140,7 +140,7 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
   const canPost = can(identity, "finance:journal:post");
   const sql = getV9Sql();
 
-  const [summaryResult, accountResult, journalResult, budgetResult] = await Promise.all([
+  const [summaryResult, accountResult, budgetResult, journalResult] = await Promise.all([
     sql`
       SELECT
         count(*) FILTER (WHERE status = 'draft')::int AS draft_count,
