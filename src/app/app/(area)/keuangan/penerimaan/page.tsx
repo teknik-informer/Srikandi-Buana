@@ -410,7 +410,10 @@ export default async function PenerimaanPage({
                         <div className="mt-1 text-[10px] text-muted2">Diterima oleh {payment.received_by_name}</div>
                         {payment.payment_reference ? <div className="mt-1 text-[10px] text-muted2">Referensi pembayaran: {payment.payment_reference}</div> : null}
                         {payment.note ? <div className="mt-1 text-[10.5px] text-muted">Catatan: {payment.note}</div> : null}
-                        <div className="mt-2 text-[13px] font-semibold tabular-nums text-ink">{rupiah(payment.amount)}</div>
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[13px] font-semibold tabular-nums text-ink">{rupiah(payment.amount)}</div>
+                          <Link href={`/app/pos/penerimaan/${payment.id}`} className="text-[10px] font-semibold text-primary-700 hover:underline">Lihat kuitansi</Link>
+                        </div>
                       </div>
                       <div className="rounded-lg border border-line bg-paper p-3">
                         {canLinkPayment ? options.length ? (
