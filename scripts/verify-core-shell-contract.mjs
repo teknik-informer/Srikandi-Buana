@@ -59,4 +59,35 @@ assert.ok(
   "The launcher must not present static demo records or invented operational metrics.",
 );
 
+
+const searchIndex = read("src/lib/search.ts");
+const searchPage = read("src/app/app/(launcher)/cari/page.tsx");
+const searchDialog = read("src/components/search-dialog.tsx");
+const memberShell = read("src/components/member-shell.tsx");
+const fieldShell = read("src/components/field-shell-chrome.tsx");
+
+assert.ok(
+  !["@/data/organization", "@/data/operations", "@/data/finance", "@/data/content"].some((marker) => searchIndex.includes(marker)),
+  "Global search must not index seeded operational records.",
+);
+assert.ok(
+  !["@/data/organization", "@/data/operations", "@/data/finance", "@/data/content"].some((marker) => searchPage.includes(marker)),
+  "The full search page must not render seeded operational records.",
+);
+assert.ok(
+  searchPage.includes("SEARCH_PLACES") && searchPage.includes("canAccessAppHref"),
+  "The full search page must filter destinations to permitted applications.",
+);
+assert.ok(
+  searchDialog.includes("canAccessAppHref(identity, hit.href)") &&
+  searchDialog.includes("canAccessApp(identity, app.key)"),
+  "The topbar search must filter both destinations and application results by identity permissions.",
+);
+assert.ok(
+  memberShell.includes("<SearchProvider identity={identity}>") &&
+  fieldShell.includes("<SearchProvider identity={identity}>") &&
+  coreShell.includes("<SearchProvider identity={identity}>"),
+  "Each workspace search provider must receive the authenticated identity.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
