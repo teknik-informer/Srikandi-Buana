@@ -100,7 +100,7 @@ BEGIN
   FROM v9.finance_contribution_allocations AS allocation
   WHERE allocation.organization_id = NEW.organization_id
     AND allocation.journal_id = NEW.journal_id
-    AND (TG_OP <> 'UPDATE' OR allocation.id <> OLD.id);
+    AND allocation.id IS DISTINCT FROM CASE WHEN TG_OP = 'UPDATE' THEN OLD.id ELSE NULL::uuid END;
 
   IF allocated_total + NEW.allocation_amount > contribution_total THEN
     RAISE EXCEPTION 'Member allocations cannot exceed the posted contribution revenue in the journal.';
