@@ -24,7 +24,7 @@ for (const code of templateCodes) {
 assert.ok(
   templates.includes("Menimbang") &&
   templates.includes("Mengingat") &&
-  templates.includes("keputusan rapat") === false &&
+  templates.includes("Keputusan rapat") &&
   templates.includes("Ringkasan pembahasan") &&
   templates.includes("Hasil / capaian") &&
   templates.includes("Narasumber yang dimohon"),
