@@ -37,6 +37,12 @@ function accountPath(result: string): string {
   return `/app/keuangan/bagan-akun?result=${encodeURIComponent(result)}`;
 }
 
+function budgetPath(result: string, budgetId?: string): string {
+  const query = new URLSearchParams({ result });
+  if (budgetId && validUuid(budgetId)) query.set("budget_id", budgetId);
+  return `/app/keuangan/anggaran?${query.toString()}`;
+}
+
 function cashBankPath(result: string): string {
   return `/app/keuangan/kas-bank?result=${encodeURIComponent(result)}`;
 }
@@ -54,6 +60,7 @@ function refreshFinance(): void {
   revalidatePath("/app/keuangan/jurnal");
   revalidatePath("/app/keuangan/bagan-akun");
   revalidatePath("/app/keuangan/kas-bank");
+  revalidatePath("/app/keuangan/anggaran");
   revalidatePath("/app/keuangan/penerimaan");
   revalidatePath("/app/keuangan/pembayaran");
   revalidatePath("/app/keuangan/buku-besar");
@@ -402,6 +409,26 @@ export async function createFinanceCashAccount(formData: FormData): Promise<void
               AND cash_account.ledger_account_id = account.id
               AND cash_account.status <> 'active'
           )
+          AND (
+            account.account_type <> 'beban'
+            OR ${budgetId} = ''
+            OR EXISTS (
+              SELECT 1
+              FROM v9.finance_budget_lines AS budget_line
+              WHERE budget_line.organization_id = account.organization_id
+                AND budget_line.budget_id = ${budgetId}::uuid
+                AND budget_line.account_id = account.id
+            )
+          )
+      ),
+      valid_budget AS MATERIALIZED (
+        SELECT budget.id
+        FROM v9.finance_budgets AS budget
+        WHERE ${budgetId} <> ''
+          AND budget.id = NULLIF(${budgetId}, '')::uuid
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.status = 'approved'
+          AND ${journalDate}::date BETWEEN budget.period_start AND budget.period_end
       ),
       inserted AS (
         INSERT INTO v9.finance_cash_accounts (
@@ -528,6 +555,8 @@ export async function createFinanceJournalDraft(formData: FormData): Promise<voi
   const journalDate = String(formData.get("journal_date") ?? "").trim();
   const description = normalize(String(formData.get("description") ?? ""));
   const sourceType = String(formData.get("source_type") ?? "manual").trim();
+  const budgetId = String(formData.get("budget_id") ?? "").trim();
+  if (budgetId && !validUuid(budgetId)) redirect(financePath("invalid-budget"));
   const sourceReference = normalize(String(formData.get("source_reference") ?? ""));
   const linesText = String(formData.get("lines_json") ?? "[]");
   let lines: { line_number: number; account_id: string; debit: number; credit: number; memo?: string }[];
@@ -598,7 +627,7 @@ export async function createFinanceJournalDraft(formData: FormData): Promise<voi
       inserted AS (
         INSERT INTO v9.finance_journals (
           organization_id, journal_date, description, source_type,
-          source_reference, idempotency_key, status, created_by
+          source_reference, budget_id, idempotency_key, status, created_by
         )
         SELECT
           ${identity.organizationId},
@@ -606,10 +635,12 @@ export async function createFinanceJournalDraft(formData: FormData): Promise<voi
           ${description},
           ${sourceType},
           NULLIF(${sourceReference}, ''),
+          NULLIF(${budgetId}, '')::uuid,
           ${idempotencyKey},
           'draft',
           ${identity.userId}
         WHERE (SELECT count(*) FROM selected_accounts) = (SELECT count(*) FROM input)
+          AND (${budgetId} = '' OR EXISTS (SELECT 1 FROM valid_budget))
         RETURNING id, organization_id, reference_no, journal_date, description, status
       ),
       inserted_lines AS (
@@ -671,7 +702,7 @@ export async function createFinanceJournalDraft(formData: FormData): Promise<voi
     redirect(financePath("error"));
   }
 
-  if (!created) redirect(financePath("account-unavailable"));
+  if (!created) redirect(financePath(budgetId ? "budget-or-account-unavailable" : "account-unavailable"));
   refreshFinance();
   redirect(financePath("journal-created", created.id));
 }
@@ -938,6 +969,8 @@ export async function updateDraftFinanceJournal(formData: FormData): Promise<voi
   const description = normalize(String(formData.get("description") ?? ""));
   const sourceType = String(formData.get("source_type") ?? "manual").trim();
   const sourceReference = normalize(String(formData.get("source_reference") ?? ""));
+  const budgetId = String(formData.get("budget_id") ?? "").trim();
+  if (budgetId && !validUuid(budgetId)) redirect(financePath("invalid-budget", journalId));
   const linesText = String(formData.get("lines_json") ?? "[]");
   let lines: { line_number: number; account_id: string; debit: number; credit: number; memo?: string }[];
 
@@ -1012,6 +1045,26 @@ export async function updateDraftFinanceJournal(formData: FormData): Promise<voi
               AND cash_account.ledger_account_id = account.id
               AND cash_account.status <> 'active'
           )
+          AND (
+            account.account_type <> 'beban'
+            OR ${budgetId} = ''
+            OR EXISTS (
+              SELECT 1
+              FROM v9.finance_budget_lines AS budget_line
+              WHERE budget_line.organization_id = account.organization_id
+                AND budget_line.budget_id = ${budgetId}::uuid
+                AND budget_line.account_id = account.id
+            )
+          )
+      ),
+      valid_budget AS MATERIALIZED (
+        SELECT budget.id
+        FROM v9.finance_budgets AS budget
+        WHERE ${budgetId} <> ''
+          AND budget.id = NULLIF(${budgetId}, '')::uuid
+          AND budget.organization_id = ${identity.organizationId}
+          AND budget.status = 'approved'
+          AND ${journalDate}::date BETWEEN budget.period_start AND budget.period_end
       ),
       deleted_lines AS (
         DELETE FROM v9.finance_journal_lines AS line
@@ -1055,6 +1108,7 @@ export async function updateDraftFinanceJournal(formData: FormData): Promise<voi
           description = ${description},
           source_type = ${sourceType},
           source_reference = NULLIF(${sourceReference}, ''),
+          budget_id = NULLIF(${budgetId}, '')::uuid,
           total_debit = totals.debit_total,
           total_credit = totals.credit_total,
           updated_at = now()
@@ -1064,6 +1118,7 @@ export async function updateDraftFinanceJournal(formData: FormData): Promise<voi
           AND journal.organization_id = locked_journal.organization_id
           AND journal.status = 'draft'
           AND totals.line_count = (SELECT count(*) FROM input)
+          AND (${budgetId} = '' OR EXISTS (SELECT 1 FROM valid_budget))
         RETURNING journal.id, journal.organization_id, journal.reference_no,
           journal.journal_date, journal.description, journal.status,
           journal.total_debit, journal.total_credit
@@ -1123,7 +1178,8 @@ export async function createFinanceReversalJournal(formData: FormData): Promise<
           journal.id,
           journal.organization_id,
           journal.reference_no,
-          journal.description
+          journal.description,
+          journal.budget_id
         FROM v9.finance_journals AS journal
         WHERE journal.id = ${originalJournalId}
           AND journal.organization_id = ${identity.organizationId}
@@ -1152,7 +1208,7 @@ export async function createFinanceReversalJournal(formData: FormData): Promise<
       inserted AS (
         INSERT INTO v9.finance_journals (
           organization_id, journal_date, description, source_type,
-          source_reference, idempotency_key, status, reversal_of_id, created_by
+          source_reference, budget_id, idempotency_key, status, reversal_of_id, created_by
         )
         SELECT
           original.organization_id,
@@ -1160,6 +1216,7 @@ export async function createFinanceReversalJournal(formData: FormData): Promise<
           'Pembalik ' || original.reference_no || ': ' || ${reason},
           'reversal',
           original.reference_no,
+          original.budget_id,
           ${randomUUID()},
           'draft',
           original.id,
