@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can, requireIdentity } from "@/lib/session";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { getSecretariatTemplate } from "@/lib/secretariat-templates";
 
 const CATEGORIES = ["SK", "Laporan", "SOP", "Surat", "Notulen", "Publikasi"] as const;
 const VISIBILITIES = ["publik", "internal", "terbatas"] as const;
@@ -478,4 +479,234 @@ export async function archiveSecretariatDocument(formData: FormData): Promise<vo
   revalidatePath("/app/sekretariat/dokumen");
   revalidatePath("/dokumen");
   redirect("/app/sekretariat/dokumen?result=archived");
+}
+
+
+export async function saveGeneratedSecretariatDocument(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("secretariat:documents:write");
+  const templateCode = String(formData.get("template_code") ?? "").trim();
+  const template = getSecretariatTemplate(templateCode);
+  const documentId = String(formData.get("document_id") ?? "").trim();
+  const title = String(formData.get("document_title") ?? "").trim().replace(/\s+/g, " ");
+  const number = String(formData.get("number") ?? "").trim();
+  const documentDate = String(formData.get("document_date") ?? "").trim();
+  const owner = String(formData.get("owner_label") ?? "").trim().replace(/\s+/g, " ");
+  const visibility = String(formData.get("visibility") ?? "internal").trim();
+
+  if (!template || title.length < 3 || title.length > 300 ||
+      number.length > 100 || !validDate(documentDate) ||
+      owner.length < 2 || owner.length > 160 ||
+      !["internal", "terbatas"].includes(visibility) ||
+      (documentId && !validUuid(documentId))) {
+    redirect("/app/sekretariat/template?result=invalid");
+  }
+
+  const values = new Map<string, string>();
+  let totalCharacters = title.length + number.length + owner.length;
+  for (const field of template.fields) {
+    const raw = String(formData.get(`field_${field.key}`) ?? "");
+    const value = field.type === "textarea"
+      ? raw.replace(/\r\n?/g, "\n").trim()
+      : raw.trim().replace(/\s+/g, " ");
+
+    if ((field.required && !value) || value.length > field.maxLength) {
+      redirect(`/app/sekretariat/template/${template.code}?result=invalid`);
+    }
+    if (field.type === "date" && value && !validDate(value)) {
+      redirect(`/app/sekretariat/template/${template.code}?result=invalid`);
+    }
+    totalCharacters += value.length;
+    values.set(field.key, value);
+  }
+
+  if (totalCharacters > 30000) {
+    redirect(`/app/sekretariat/template/${template.code}?result=too-long`);
+  }
+
+  const groups = template.sections.map((section) => ({
+    title: section.title,
+    fields: section.fields.map((key) => {
+      const definition = template.fields.find((field) => field.key === key);
+      if (!definition) throw new Error(`Template field definition missing: ${key}`);
+      return {
+        key: definition.key,
+        label: definition.label,
+        value: values.get(key) ?? "",
+        type: definition.type,
+      };
+    }).filter((field) => field.value !== ""),
+  })).filter((section) => section.fields.length > 0);
+
+  const sql = getV9Sql();
+  let organization: { legal_name: string; short_name: string; address: string | null } | undefined;
+  try {
+    const organizationResult = await sql`
+      SELECT legal_name, short_name, address
+      FROM v9.organizations
+      WHERE id = ${identity.organizationId}
+        AND status = 'active'
+      LIMIT 1
+    `;
+    organization = rowsFromResult<{ legal_name: string; short_name: string; address: string | null }>(organizationResult)[0];
+  } catch (error) {
+    logFailure("secretariat-document-generator-organization", error);
+    redirect(`/app/sekretariat/template/${template.code}?result=error`);
+  }
+
+  if (!organization) redirect(`/app/sekretariat/template/${template.code}?result=unavailable`);
+
+  const content = {
+    version: 1 as const,
+    templateCode: template.code,
+    templateName: template.name,
+    documentHeading: template.documentHeading,
+    title,
+    documentNumber: number || null,
+    documentDate,
+    ownerLabel: owner,
+    organization,
+    groups,
+  };
+  const contentJson = JSON.stringify(content);
+  const contentSha256 = createHash("sha256").update(contentJson).digest("hex");
+  if (Buffer.byteLength(contentJson, "utf8") > 100000) {
+    redirect(`/app/sekretariat/template/${template.code}?result=too-long`);
+  }
+
+  let saved: { id: string; revision_no: number; operation: "created" | "revised" } | undefined;
+  try {
+    const result = await sql`
+      WITH organization AS (
+        SELECT id
+        FROM v9.organizations
+        WHERE id = ${identity.organizationId}
+          AND status = 'active'
+      ),
+      new_document AS (
+        INSERT INTO v9.secretariat_documents (
+          organization_id, number, title, category, document_date,
+          owner_label, visibility, status, description, created_by, updated_by
+        )
+        SELECT
+          organization.id,
+          NULLIF(${number}, ''),
+          ${title},
+          ${template.category},
+          ${documentDate}::date,
+          ${owner},
+          ${visibility},
+          'draft',
+          ${"Dibuat melalui Generator " + template.name + ". Periksa isi dan kewenangan sebelum finalisasi."},
+          ${identity.userId},
+          ${identity.userId}
+        FROM organization
+        WHERE ${documentId} = ''
+        RETURNING id, reference_no, organization_id, title, number, category, visibility, status
+      ),
+      existing_target AS (
+        SELECT document.id, document.reference_no, document.organization_id,
+          document.title, document.number, document.category, document.visibility, document.status
+        FROM v9.secretariat_documents AS document
+        WHERE document.id = NULLIF(${documentId}, '')::uuid
+          AND document.organization_id = ${identity.organizationId}
+          AND document.status <> 'arsip'
+          AND ${documentId} <> ''
+          AND EXISTS (
+            SELECT 1
+            FROM v9.secretariat_document_generations AS generation
+            WHERE generation.document_id = document.id
+              AND generation.template_code = ${template.code}
+          )
+        FOR UPDATE
+      ),
+      updated_document AS (
+        UPDATE v9.secretariat_documents AS document
+        SET number = NULLIF(${number}, ''),
+            title = ${title},
+            category = ${template.category},
+            document_date = ${documentDate}::date,
+            owner_label = ${owner},
+            visibility = ${visibility},
+            description = ${"Dibuat melalui Generator " + template.name + ". Periksa isi dan kewenangan sebelum finalisasi."},
+            status = CASE WHEN document.status = 'final' THEN 'draft' ELSE document.status END,
+            finalized_by = CASE WHEN document.status = 'final' THEN NULL ELSE document.finalized_by END,
+            finalized_at = CASE WHEN document.status = 'final' THEN NULL ELSE document.finalized_at END,
+            updated_by = ${identity.userId},
+            updated_at = now()
+        FROM existing_target
+        WHERE document.id = existing_target.id
+        RETURNING document.id, document.reference_no, document.organization_id,
+          document.title, document.number, document.category, document.visibility, document.status
+      ),
+      target_document AS (
+        SELECT id, reference_no, organization_id, title, number, category, visibility, status,
+          'created'::text AS operation
+        FROM new_document
+        UNION ALL
+        SELECT id, reference_no, organization_id, title, number, category, visibility, status,
+          'revised'::text AS operation
+        FROM updated_document
+      ),
+      next_revision AS (
+        SELECT target_document.*,
+          COALESCE(MAX(previous.revision_no), 0) + 1 AS revision_no
+        FROM target_document
+        LEFT JOIN v9.secretariat_document_generations AS previous
+          ON previous.document_id = target_document.id
+        GROUP BY target_document.id, target_document.reference_no, target_document.organization_id,
+          target_document.title, target_document.number, target_document.category,
+          target_document.visibility, target_document.status, target_document.operation
+      ),
+      generation AS (
+        INSERT INTO v9.secretariat_document_generations (
+          document_id, revision_no, template_code, content_json, content_sha256, created_by
+        )
+        SELECT id, revision_no, ${template.code}, ${contentJson}::jsonb, ${contentSha256}, ${identity.userId}
+        FROM next_revision
+        RETURNING id, document_id, revision_no
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state
+        )
+        SELECT next_revision.organization_id, ${identity.userId},
+          CASE WHEN next_revision.operation = 'created'
+            THEN 'secretariat_document.generated'
+            ELSE 'secretariat_document.content_revision_created' END,
+          'secretariat_document', next_revision.id::text,
+          CASE WHEN next_revision.operation = 'created' THEN NULL
+            ELSE jsonb_build_object('previous_status', 'draft') END,
+          jsonb_build_object(
+            'reference_no', next_revision.reference_no,
+            'template_code', ${template.code},
+            'template_name', ${template.name},
+            'title', next_revision.title,
+            'revision_no', generation.revision_no,
+            'content_sha256', ${contentSha256},
+            'status', next_revision.status
+          )
+        FROM next_revision
+        INNER JOIN generation ON generation.document_id = next_revision.id
+        RETURNING id
+      )
+      SELECT next_revision.id::text AS id,
+        next_revision.revision_no,
+        next_revision.operation
+      FROM next_revision
+      INNER JOIN generation ON generation.document_id = next_revision.id
+      INNER JOIN audit ON true
+    `;
+    saved = rowsFromResult<{ id: string; revision_no: number; operation: "created" | "revised" }>(result)[0];
+  } catch (error) {
+    logFailure("secretariat-document-generator-save", error);
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    if (message.includes("unique")) redirect(`/app/sekretariat/template/${template.code}?result=duplicate`);
+    redirect(`/app/sekretariat/template/${template.code}?result=error`);
+  }
+
+  if (!saved) redirect(`/app/sekretariat/template/${template.code}?result=unavailable`);
+  revalidatePath("/app/sekretariat/dokumen");
+  revalidatePath("/app/sekretariat/template");
+  revalidatePath("/app/sekretariat/program");
+  redirect(`/app/sekretariat/dokumen/${saved.id}/cetak?result=${saved.operation}`);
 }
