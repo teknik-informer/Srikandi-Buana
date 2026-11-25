@@ -296,7 +296,7 @@ export default async function DokumenPage({
                                 <div className="text-[10px] text-muted2">Berkas rev {document.file_revision} · {sizeLabel(document.size_bytes)}</div>
                               </>
                             ) : null}
-                            {document.has_generated_content ? (
+                            {document.has_generated_content && document.status !== "arsip" ? (
                               <Link href={`/app/sekretariat/dokumen/${document.id}/cetak`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">
                                 <FileText size={12} /> Isi dokumen · rev {document.generated_revision}
                               </Link>
@@ -384,7 +384,7 @@ export default async function DokumenPage({
                           <Download size={12} /> {document.file_name} · rev {document.file_revision} · {sizeLabel(document.size_bytes)}
                         </Link>
                       ) : null}
-                      {document.has_generated_content ? (
+                      {document.has_generated_content && document.status !== "arsip" ? (
                         <Link href={`/app/sekretariat/dokumen/${document.id}/cetak`} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700">
                           <FileText size={12} /> Buka isi & cetak · rev {document.generated_revision}
                         </Link>
