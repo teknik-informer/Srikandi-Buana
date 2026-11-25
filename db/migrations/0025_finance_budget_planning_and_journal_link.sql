@@ -161,7 +161,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$finance_budget_header$;
 
 CREATE OR REPLACE FUNCTION v9.protect_finance_budget_line()
 RETURNS trigger
