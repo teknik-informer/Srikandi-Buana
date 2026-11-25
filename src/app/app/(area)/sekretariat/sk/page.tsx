@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { DOCUMENTS, MEETINGS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { FIELDS } from "@/config/fields";
 import { ORG } from "@/config/org";
 import { Badge, Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
@@ -8,7 +8,11 @@ import { formatDateID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Struktur & SK" };
 
-export default function SKPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SKPage() {
+  // Dokumen keputusan dikelola sekretariat; rapat belum punya aksi tulis.
+  const { documents: DOCUMENTS, meetings: MEETINGS } = await orgSummary();
   const sk = DOCUMENTS.filter((d) => d.category === "SK");
   const finalDocs = DOCUMENTS.filter((d) => d.status === "final");
 

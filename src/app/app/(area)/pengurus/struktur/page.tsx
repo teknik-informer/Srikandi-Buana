@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { MEMBERS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { FIELDS } from "@/config/fields";
 import { ORG } from "@/config/org";
 import { Avatar, Badge, Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
@@ -10,7 +10,10 @@ export const metadata: Metadata = { title: "Struktur & Kepengurusan" };
 
 const INTI_ROLES = ["Ketua", "Sekretaris", "Bendahara"];
 
-export default function StrukturPage() {
+export default async function StrukturPage() {
+  // Susunan dibaca dari buku induk bersama: promosi/jabatan yang tercatat di
+  // sana langsung tampil di sini.
+  const { members: MEMBERS } = await orgSummary();
   const inti = MEMBERS.filter((m) => INTI_ROLES.includes(m.role));
   // A person is linked to a field through `field`, not through a job title (§8.2).
   const pengampuBidang = MEMBERS.filter((m) => m.field);

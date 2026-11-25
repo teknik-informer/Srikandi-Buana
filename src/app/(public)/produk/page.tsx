@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PRODUCTS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
+import { DataStamp } from "@/components/data-stamp";
 import { formatIDR } from "@/lib/format";
 import { Badge, Card, Notice } from "@/components/ui";
 
@@ -11,7 +12,10 @@ export const metadata: Metadata = {
 
 export default async function ProdukPage({ searchParams }: { searchParams: Promise<{ lihat?: string; oleh?: string }> }) {
   const { lihat, oleh } = await searchParams;
-  const published = PRODUCTS.filter((p) => p.published);
+  // Katalog publik membaca dokumen bersama yang sama dengan layar pengurus,
+  // bukan konstanta statis — supaya tidak pernah ada dua kebenaran.
+  const { products, shared, updatedBy, updatedAt } = await orgSummary();
+  const published = products.filter((p) => p.published);
   const categories = [...new Set(published.map((p) => p.category))];
   const visible = oleh === "anggota" ? published : published;
 
@@ -76,6 +80,7 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
           Tidak ada pembayaran otomatis di situs ini.
         </Notice>
       </div>
+      <DataStamp shared={shared} updatedBy={updatedBy} updatedAt={updatedAt} what="katalog produk" />
     </div>
   );
 }

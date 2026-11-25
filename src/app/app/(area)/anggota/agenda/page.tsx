@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
-import { ACTIVITIES, TRAININGS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
 import { Badge, Card, CardHeader, PageHeader, StatusBadge } from "@/components/ui";
 import { formatDateFull, relativeID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Agenda & Kehadiran" };
 
-export default function AgendaAnggotaPage() {
+// Agenda dicatat pengurus (activity.create/activity.status), jadi daftar ini
+// harus mengikuti dokumen bersama — bukan ACTIVITIES statis.
+export const dynamic = "force-dynamic";
+
+export default async function AgendaAnggotaPage() {
+  const { activities: ACTIVITIES, trainings: TRAININGS, shared } = await orgSummary();
   return (
     <div className="pb-10">
       <PageHeader
         eyebrow="Portal Anggota"
         title="Agenda & kehadiran"
-        description="Kegiatan yang tersedia untuk Anda, termasuk kelas yang masih membuka pendaftaran."
+        description={`Kegiatan yang tersedia untuk Anda, termasuk kelas yang masih membuka pendaftaran.${shared ? "" : " (Mode lokal — dokumen bersama belum terbaca.)"}`}
       />
       <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
         <Card>

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { FieldDef } from "@/config/fields";
-import { PROGRAMS, TASKS, ACTIVITIES, LANDS, HARVESTS, TRAININGS, PRODUCTS, ORDERS, PARTNERS } from "@/data/operations";
-import { MEMBERS } from "@/data/organization";
+// Koleksi operasional TIDAK lagi diimpor sebagai konstanta: dasbor bidang
+// menerima data hidup dari orgSummary() di server (lihat FieldDashboard).
+import { ORDERS, HARVESTS as SEED_HARVESTS } from "@/data/operations";
+import type { Member, LandPlot, Product, Partner, Activity, Task, Training } from "@/data/types";
+import type { OrgSummary } from "@/lib/org-summary";
 import { Badge, Card, CardHeader, PageHeader, Progress, StatCard, StatusBadge, EmptyState } from "@/components/ui";
 import { FieldMark } from "@/components/brand";
 import { AppBanner } from "@/components/dash-kit";
@@ -16,7 +19,17 @@ const BIDANG_LABEL: Record<string, string> = {
 };
 
 /** Domain table that differs per bidang — the template stays shared, the data does not. */
-function OperationalTable({ field }: { field: FieldDef }) {
+interface DataBidang {
+  members: Member[];
+  lands: LandPlot[];
+  products: Product[];
+  partners: Partner[];
+  harvests: typeof SEED_HARVESTS;
+  trainings: Training[];
+}
+
+function OperationalTable({ field, data }: { field: FieldDef; data: DataBidang }) {
+  const { members: MEMBERS, lands: LANDS, products: PRODUCTS, partners: PARTNERS, harvests: HARVESTS, trainings: TRAININGS } = data;
   const code = field.slug;
 
   if (code === "pertanian") {
@@ -101,7 +114,8 @@ function OperationalTable({ field }: { field: FieldDef }) {
   );
 }
 
-function FieldSignals({ field }: { field: FieldDef }) {
+function FieldSignals({ field, data }: { field: FieldDef; data: DataBidang }) {
+  const { members: MEMBERS, lands: LANDS, products: PRODUCTS, partners: PARTNERS, harvests: HARVESTS } = data;
   const code = field.slug;
   if (code === "pertanian") {
     const total = HARVESTS.reduce((s, h) => s + h.weightKg, 0);
@@ -126,7 +140,7 @@ function FieldSignals({ field }: { field: FieldDef }) {
     );
   }
   if (code === "pelatihan") {
-    const done = TRAININGS.filter((t) => t.status === "selesai");
+    const done = data.trainings.filter((t) => t.status === "selesai");
     return (
       <Card>
         <CardHeader title="Capaian pembelajaran" subtitle="Pre/post assessment dari kelas terlaksana" />
@@ -196,7 +210,20 @@ function FieldSignals({ field }: { field: FieldDef }) {
   );
 }
 
-export function FieldDashboard({ field }: { field: FieldDef }) {
+export async function FieldDashboard({ field }: { field: FieldDef }) {
+  // Satu bacaan dokumen bersama untuk seluruh dasbor bidang.
+  const { orgSummary } = await import("@/lib/org-summary");
+  const ringkas = await orgSummary();
+  const data: DataBidang = {
+    members: ringkas.members,
+    lands: ringkas.lands,
+    products: ringkas.products,
+    partners: ringkas.partners,
+    harvests: ringkas.harvests,
+    trainings: ringkas.trainings,
+  };
+  const { programs: PROGRAMS, tasks: TASKS, activities: ACTIVITIES } = ringkas;
+  const { partners: PARTNERS } = data;
   const code = field.slug;
   const programs = PROGRAMS.filter((p) => p.bidang === code);
   const tasks = TASKS.filter((t) => t.bidang === code);
@@ -273,12 +300,12 @@ export function FieldDashboard({ field }: { field: FieldDef }) {
               subtitle={field.operationalData.map((d) => `${d.entity} (${d.count})`).join(" · ")}
               action={<Link href={`${field.appHref}/data`} className="text-[11.5px] font-semibold text-primary-700">Buka data →</Link>}
             />
-            <OperationalTable field={field} />
+            <OperationalTable field={field} data={data} />
           </Card>
         </div>
 
         <div className="space-y-4">
-          <FieldSignals field={field} />
+          <FieldSignals field={field} data={data} />
           <Card>
             <CardHeader title="Agenda bidang" action={<Link href={`${field.appHref}/kegiatan`} className="text-[11.5px] font-semibold text-primary-700">Semua</Link>} />
             <ul className="divide-y divide-line">

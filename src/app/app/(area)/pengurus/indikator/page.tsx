@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import { PROGRAMS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
 import { Card, CardHeader, PageHeader, Progress, Badge, StatCard } from "@/components/ui";
 import { formatIDR, percent } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Kinerja & Indikator" };
 
-export default function IndikatorPage() {
+// Program dikelola pengurus (program.create/update/status), jadi angka di
+// halaman ini harus mengikuti dokumen bersama — bukan PROGRAMS statis.
+export const dynamic = "force-dynamic";
+
+export default async function IndikatorPage() {
+  const { programs: PROGRAMS, shared } = await orgSummary();
   const totalBudget = PROGRAMS.reduce((s, p) => s + p.budget, 0);
   const totalSpent = PROGRAMS.reduce((s, p) => s + p.spent, 0);
   const allIndicators = PROGRAMS.flatMap((p) => p.indicators.map((i) => ({ ...i, program: p.name })));
@@ -15,7 +20,7 @@ export default function IndikatorPage() {
       <PageHeader
         eyebrow="Pengurus Harian"
         title="Kinerja & indikator"
-        description="Indikator yang ditetapkan pada rencana kerja bidang. Nilai berasal dari data operasional, bukan input manual di dashboard."
+        description={`Indikator yang ditetapkan pada rencana kerja bidang. Nilai berasal dari data operasional, bukan input manual di dashboard.${shared ? "" : " (Mode lokal — dokumen bersama belum terbaca.)"}`}
       />
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Indikator terpantau" value={allIndicators.length} note={`${PROGRAMS.filter((p) => p.status === "berjalan").length} program`} />

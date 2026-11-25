@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { MEETINGS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { Badge, Card, CardHeader, Notice, PageHeader, StatusBadge } from "@/components/ui";
 import { formatDateFull } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Notulen & Putusan" };
 
-export default function NotulenPage() {
+export const dynamic = "force-dynamic";
+
+export default async function NotulenPage() {
+  // Notulen kini dikelola sekretariat (meeting.create/notulen).
+  const { meetings: MEETINGS } = await orgSummary();
   return (
     <div className="pb-10">
       <PageHeader

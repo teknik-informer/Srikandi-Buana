@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Save, Lock, ShieldCheck, UserRound } from "lucide-react";
-import { MEMBERS } from "@/data/organization";
 import { Badge, Card, CardHeader, Avatar } from "@/components/ui";
 import { Btn, DemoStateChip, Field, TextInput } from "@/components/act";
 import { useStore } from "@/lib/store";
@@ -12,10 +11,17 @@ const SUGGESTED = ["Kopi", "Budidaya kopi", "Pascapanen", "Pemasaran", "Kemasan"
 
 export function ProfilClient() {
   const { state, exec, actor } = useStore();
-  const me = MEMBERS.find((m) => m.id === actor.key) ?? MEMBERS.find((m) => m.name === actor.name) ?? MEMBERS[0];
+  /**
+   * Identitas diambil dari buku induk bersama. Dulu halaman ini membaca
+   * konstanta dan menyimpan salinan di localStorage, sehingga nama yang diubah
+   * anggota tidak pernah sampai ke sekretariat — dua sumber kebenaran yang
+   * sama-sama mengaku benar.
+   */
+  const me =
+    state.members.find((m) => m.name === actor.name) ??
+    state.members.find((m) => m.id === actor.key) ??
+    state.members[0];
 
-  type Saved = { name: string; village: string; phone: string; interests: string[] };
-  const [saved, setSaved] = useState<Saved | null>(null);
   const [name, setName] = useState(me.name);
   const [village, setVillage] = useState(me.village);
   const [phone, setPhone] = useState(me.phone);
@@ -24,23 +30,17 @@ export function ProfilClient() {
   const [err, setErr] = useState<string | null>(null);
 
   /**
-   * Stored overrides are applied after mount. Reading localStorage during render
-   * would produce different markup on the server and trip hydration.
+   * Setelah dokumen bersama dimuat dari server, isian mengikuti catatan resmi
+   * anggota ini — bukan salinan lama di peramban.
    */
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("sb_profile_v1");
-      if (!raw) return;
-      const p = JSON.parse(raw) as Saved;
-      setSaved(p);
-      setName(p.name);
-      setVillage(p.village);
-      setPhone(p.phone);
-      setInterests(p.interests);
-    } catch {
-      /* ignore corrupt payload */
-    }
-  }, [me.name]);
+    if (!me) return;
+    setName(me.name);
+    setVillage(me.village);
+    setPhone(me.phone);
+    setInterests(me.interests);
+    setDirty(false);
+  }, [me?.id, me?.name, me?.village, me?.phone]);
 
   function toggle(i: string) {
     setDirty(true);
@@ -49,15 +49,15 @@ export function ProfilClient() {
 
   function save() {
     setErr(null);
-    const r = exec({ type: "profile.update", name, village, phone, interests, actor });
+    if (!me) return setErr("Data anggota tidak ditemukan di buku induk.");
+    // Menulis langsung ke buku induk bersama; tidak ada salinan lokal.
+    const r = exec({
+      type: "member.update",
+      id: me.id,
+      patch: { name, village, phone, interests },
+      actor,
+    });
     if (!r.ok) return setErr(r.message);
-    const next: Saved = { name, village, phone, interests };
-    try {
-      localStorage.setItem("sb_profile_v1", JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
-    setSaved(next);
     setDirty(false);
   }
 
@@ -134,7 +134,7 @@ export function ProfilClient() {
             <div className="flex items-center gap-2 pt-1">
               <Btn variant="primary" icon={<Save size={14} />} onClick={save} disabled={!dirty}>Simpan profil</Btn>
               {dirty ? (
-                <Btn variant="ghost" onClick={() => { setName(saved?.name ?? me.name); setVillage(saved?.village ?? me.village); setPhone(saved?.phone ?? me.phone); setInterests(saved?.interests ?? me.interests); setDirty(false); }}>
+                <Btn variant="ghost" onClick={() => { setName(me.name); setVillage(me.village); setPhone(me.phone); setInterests(me.interests); setDirty(false); }}>
                   Batalkan perubahan
                 </Btn>
               ) : null}

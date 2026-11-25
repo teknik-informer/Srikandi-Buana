@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import type { FieldDef } from "@/config/fields";
-import { TASKS, ACTIVITIES, PROGRAMS, LANDS, HARVESTS, TRAININGS, ATTENDANCE, PRODUCTS, ORDERS, PARTNERS } from "@/data/operations";
-import { MEMBERS, DOCUMENTS, APPROVALS } from "@/data/organization";
+// Koleksi yang punya jalur tulis (tugas, program, agenda, lahan, dokumen,
+// persetujuan, anggota, mitra, produk) dibaca dari state bersama; sisanya
+// (panen, pelatihan, absensi, pesanan) belum punya aksi tulis dan tetap benih.
+import { HARVESTS, TRAININGS as SEED_TRAININGS, ORDERS } from "@/data/operations";
 import { BUDGETS } from "@/data/finance";
+import {
+  TASKS as TASKS_SEED, PROGRAMS as PROGRAMS_SEED, ACTIVITIES as ACTIVITIES_SEED,
+  LANDS as LANDS_SEED, PARTNERS as PARTNERS_SEED, PRODUCTS as PRODUCTS_SEED,
+} from "@/data/operations";
+import { MEMBERS as MEMBERS_SEED, DOCUMENTS as DOCUMENTS_SEED } from "@/data/organization";
 import { Badge, Card, CardHeader, EmptyState, Notice, PageHeader, Progress, StatusBadge } from "@/components/ui";
 import { formatDateID, formatIDR, relativeID, percent } from "@/lib/format";
 import { InventoryCrud } from "@/components/inventory-crud";
-import { DocumentCrud, LandCrud, PartnerCrud } from "@/components/master-crud";
+import { DocumentCrud, LandCrud, PartnerCrud, ProductCrud, TrainingCrud } from "@/components/master-crud";
 import { useStoreOptional } from "@/lib/store";
 
 const TITLES: Record<string, { title: string; desc: string }> = {
@@ -39,6 +46,40 @@ function TableWrap({ head, children, min = 620 }: { head: string[]; children: Re
 export function FieldSectionView({ field, section }: { field: FieldDef; section: string }) {
   const meta = TITLES[section] ?? { title: section, desc: "" };
   const code = field.slug;
+  // Satu sumber hidup untuk panel bidang. `useStoreOptional` dipakai agar
+  // pratinjau tanpa provider tetap dapat dirender.
+  const store = useStoreOptional();
+  const TASKS = store?.state.tasks ?? TASKS_SEED;
+  const PROGRAMS = store?.state.programs ?? PROGRAMS_SEED;
+  const ACTIVITIES = store?.state.activities ?? ACTIVITIES_SEED;
+  const LANDS = store?.state.lands ?? LANDS_SEED;
+  const MEMBERS = store?.state.members ?? MEMBERS_SEED;
+  const DOCUMENTS = store?.state.documents ?? DOCUMENTS_SEED;
+  const APPROVALS = store?.state.approvals ?? [];
+  const PARTNERS = store?.state.partners ?? PARTNERS_SEED;
+  const PRODUCTS = store?.state.products ?? PRODUCTS_SEED;
+  const TRAININGS = store?.state.trainings ?? SEED_TRAININGS;
+  const ENROLLMENTS = store?.state.enrollments ?? [];
+
+  // Pendaftar sesi terakhir: siapa saja yang benar-benar mendaftar, bukan
+  // daftar nama contoh. Nama diambil dari buku induk hidup.
+  const sesiDenganPendaftar = TRAININGS
+    .map((t) => ({
+      t,
+      daftar: ENROLLMENTS.filter((e) => e.trainingId === t.id),
+    }))
+    .filter((x) => x.daftar.length > 0)
+    .sort((a, b) => b.t.date.localeCompare(a.t.date));
+  const pesertaTerakhir = sesiDenganPendaftar[0]
+    ? {
+        t: sesiDenganPendaftar[0].t,
+        nama: sesiDenganPendaftar[0].daftar.map((e) => ({
+          nama: MEMBERS.find((m) => m.id === e.memberId)?.name ?? e.memberId,
+          at: e.at,
+        })),
+      }
+    : null;
+
   const tasks = TASKS.filter((t) => t.bidang === code);
   const programs = PROGRAMS.filter((p) => p.bidang === code);
   const agenda = ACTIVITIES.filter((a) => a.bidang === code);
@@ -269,7 +310,7 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
           {code === "pelatihan" && (
             <>
               <Card>
-                <CardHeader title="Rencana & sesi pelatihan" subtitle={`${TRAININGS.length} pelatihan tahun 2026`} />
+                <CardHeader title="Rencana & sesi pelatihan" subtitle={`${TRAININGS.length} pelatihan tercatat — dikelola di dokumen bersama`} />
                 <TableWrap head={["Pelatihan", "Kategori", "Tanggal", "Narasumber", "Peserta", "Status"]}>
                   {TRAININGS.map((t) => (
                     <tr key={t.id}>
@@ -283,17 +324,36 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
                   ))}
                 </TableWrap>
               </Card>
+              <div className="mt-4">
+                <TrainingCrud />
+              </div>
               <Card>
-                <CardHeader title="Presensi sesi terakhir" subtitle="PLT-2026-07 · Pengolahan Pascapanen Kopi" />
-                <TableWrap head={["Peserta", "Kehadiran", "Catatan"]} min={480}>
-                  {ATTENDANCE.slice(0, 6).map((a, i) => (
-                    <tr key={i}>
-                      <td className="font-medium text-ink">{a.memberName}</td>
-                      <td><Badge tone={a.present ? "success" : "danger"}>{a.present ? "Hadir" : "Tidak hadir"}</Badge></td>
-                      <td className="text-muted">{a.note ?? "—"}</td>
-                    </tr>
-                  ))}
-                </TableWrap>
+                <CardHeader
+                  title="Pendaftar sesi"
+                  subtitle={
+                    pesertaTerakhir
+                      ? `${pesertaTerakhir.t.id} · ${pesertaTerakhir.t.title} — ${pesertaTerakhir.nama.length} pendaftar`
+                      : "Belum ada pendaftaran anggota"
+                  }
+                />
+                {pesertaTerakhir && pesertaTerakhir.nama.length > 0 ? (
+                  <TableWrap head={["Peserta", "Waktu daftar", "Kursi"]} min={480}>
+                    {pesertaTerakhir.nama.map((n, i) => (
+                      <tr key={`${n.nama}-${i}`}>
+                        <td className="font-medium text-ink">{n.nama}</td>
+                        <td className="whitespace-nowrap text-muted">{n.at}</td>
+                        <td>
+                          <Badge tone="success">Terdaftar</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </TableWrap>
+                ) : (
+                  <p className="px-4 py-4 text-[12px] leading-relaxed text-muted">
+                    Anggota mendaftar dari dasbor anggota. Begitu ada pendaftar, namanya muncul di sini —
+                    bukan daftar contoh.
+                  </p>
+                )}
               </Card>
             </>
           )}
@@ -315,6 +375,14 @@ export function FieldSectionView({ field, section }: { field: FieldDef; section:
                   ))}
                 </TableWrap>
               </Card>
+              {/* katalog produk: jalur tulis + ekspor CSV */}
+              <div>
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-display text-[16px] font-bold text-ink">Kelola katalog</h2>
+                  <p className="text-[11px] text-muted2">Harga &amp; stok di sini yang dibaca katalog publik. Ekspor CSV ada di toolbar.</p>
+                </div>
+                <ProductCrud />
+              </div>
               {/* barang & persediaan: the module's working master data */}
               <div>
                 <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">

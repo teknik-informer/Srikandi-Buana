@@ -194,6 +194,7 @@ export const CORE_NAV: Record<"pengurus" | "sekretariat" | "keuangan" | "anggota
   sekretariat: [
     { label: "Dashboard Sekretariat", href: "/app/sekretariat" },
     { label: "Buku Induk Anggota", href: "/app/sekretariat/anggota" },
+    { label: "Data Lahan", href: "/app/sekretariat/lahan" },
     { label: "Pendaftaran & Verifikasi", href: "/app/sekretariat/verifikasi" },
     { label: "Struktur & SK", href: "/app/sekretariat/sk" },
     { label: "Surat Masuk & Keluar", href: "/app/sekretariat/surat" },

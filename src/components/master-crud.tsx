@@ -4,7 +4,7 @@ import { useStore } from "@/lib/store";
 import { DataTable, type Column, type FormField } from "@/components/data-table";
 import { Badge, StatusBadge } from "@/components/ui";
 import { formatDateID, formatIDR } from "@/lib/format";
-import type { DocumentRow, LandPlot, Partner } from "@/data/types";
+import type { DocumentRow, LandPlot, Partner, Product, Training } from "@/data/types";
 
 /**
  * The three master-data tables that used to be read-only. Each one writes
@@ -198,6 +198,169 @@ export function PartnerCrud() {
       onCreate={async (d) => exec({ type: "partner.create", row: { ...d, name: d.name.trim() }, actor }).ok}
       onUpdate={async (row, d) => exec({ type: "partner.update", id: row.id, patch: { ...d, id: row.id }, actor }).ok}
       onDelete={async (row) => exec({ type: "partner.delete", id: row.id, actor }).ok}
+      onImport={async (d) => {
+        const { id: _id, ...rest } = d;
+        void _id;
+        return exec({ type: "partner.create", row: { ...rest, name: d.name.trim() }, actor }).ok;
+      }}
+    />
+  );
+}
+
+/* ── Bidang Pelatihan: rencana & sesi ─────────────────────────────── */
+/** Baris form memakai string datar; materi dipisah koma lalu dipecah saat simpan. */
+type TrainingDraft = Omit<Training, "materials"> & { materials: string };
+
+const statusTrainingLabel: Record<string, string> = { rencana: "Rencana", dibuka: "Dibuka", selesai: "Selesai" };
+
+export function TrainingCrud() {
+  const { state, exec, actor } = useStore();
+
+  const columns: Column<TrainingDraft>[] = [
+    { key: "id", label: "Kode", width: "120px", render: (r) => <span className="whitespace-nowrap font-mono text-[11.5px] text-muted">{r.id}</span> },
+    { key: "title", label: "Pelatihan", render: (r) => <span className="font-medium text-ink">{r.title}</span> },
+    { key: "category", label: "Kategori" },
+    { key: "date", label: "Tanggal", render: (r) => <span className="whitespace-nowrap text-muted">{formatDateID(r.date, "short")}</span> },
+    { key: "trainer", label: "Narasumber", render: (r) => <span className="text-muted">{r.trainer || "—"}</span> },
+    { key: "registered", label: "Peserta", numeric: true, render: (r) => `${r.registered}/${r.seats}` },
+    { key: "status", label: "Status", render: (r) => (
+      <Badge tone={r.status === "dibuka" ? "success" : r.status === "selesai" ? "neutral" : "warning"}>
+        {statusTrainingLabel[r.status] ?? r.status}
+      </Badge>
+    ) },
+  ];
+
+  const fields: FormField<TrainingDraft>[] = [
+    { key: "title", label: "Judul pelatihan", type: "text", required: true, placeholder: "mis. Praktik Sambung Pucuk Kopi" },
+    { key: "category", label: "Kategori", type: "text", required: true, placeholder: "Pascapanen / Usaha / Digital" },
+    { key: "date", label: "Tanggal", type: "date", required: true },
+    { key: "trainer", label: "Narasumber", type: "text", placeholder: "Nama & lembaga" },
+    { key: "location", label: "Lokasi", type: "text", placeholder: "Balai pertemuan / demplot" },
+    { key: "seats", label: "Kursi tersedia", type: "number", required: true, min: 1, hint: "Tidak boleh kurang dari jumlah pendaftar yang sudah masuk." },
+    { key: "status", label: "Status", type: "select", required: true, options: [
+      { value: "rencana", label: "Rencana" },
+      { value: "dibuka", label: "Pendaftaran dibuka" },
+      { value: "selesai", label: "Selesai" },
+    ], hint: "Membuka pendaftaran hanya untuk tanggal hari ini atau setelahnya." },
+    { key: "materials", label: "Materi", type: "textarea", placeholder: "Satu materi per baris atau pisahkan dengan koma", hint: "Boleh dikosongkan." },
+  ];
+
+  const pecahMateri = (v: string) => v.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
+  const gabungMateri = (list: string[]) => list.join(", ");
+
+  return (
+    <DataTable<TrainingDraft>
+      rows={state.trainings.map((t) => ({ ...t, materials: gabungMateri(t.materials) }))}
+      columns={columns}
+      fields={fields}
+      getId={(r) => r.id}
+      noun="pelatihan"
+      initialSort="date"
+      makeEmpty={() => ({ id: "", title: "", category: "Pascapanen", date: "", trainer: "", location: "Balai pertemuan", seats: 24, registered: 0, status: "rencana", materials: "" })}
+      validate={(d, mode) => {
+        if (!d.title?.trim() || d.title.trim().length < 4) return "Judul pelatihan minimal 4 huruf.";
+        if (!d.category?.trim()) return "Kategori wajib diisi.";
+        if (!d.date) return "Tanggal wajib diisi.";
+        if (mode === "edit" && d.status === "dibuka" && d.date < new Date().toISOString().slice(0, 10))
+          return "Pelatihan bertanggal lampau tidak bisa dibuka pendaftarannya.";
+        if (!Number.isFinite(Number(d.seats)) || Number(d.seats) < 1) return "Kursi minimal satu.";
+        if (Number(d.seats) < d.registered) return `Kursi tidak boleh kurang dari ${d.registered} pendaftar.`;
+        return null;
+      }}
+      onCreate={async (d) => {
+        const { id: _id, registered: _reg, materials, ...rest } = d;
+        void _id; void _reg;
+        return exec({ type: "training.create", training: { ...rest, seats: Number(d.seats), materials: pecahMateri(materials) }, actor }).ok;
+      }}
+      onUpdate={async (row, d) => {
+        const { id: _id, materials, ...rest } = d;
+        void _id;
+        return exec({ type: "training.update", id: row.id, patch: { ...rest, seats: Number(d.seats), materials: pecahMateri(materials) }, actor }).ok;
+      }}
+      detail={(r) => (
+        <div className="rounded-sb-sm border border-line bg-paper px-3 py-2 text-[11.5px] text-muted">
+          Materi: <span className="text-ink">{r.materials || "—"}</span>
+        </div>
+      )}
+      note="Pendaftaran dibuka lewat status; anggota mendaftar dari dasbor anggota dan kursi terisi otomatis."
+    />
+  );
+}
+
+/* ── Usaha: katalog produk ────────────────────────────────────────── */
+export function ProductCrud() {
+  const { state, exec, actor } = useStore();
+
+  const columns: Column<Product>[] = [
+    { key: "name", label: "Produk", render: (r) => <span className="font-medium text-ink">{r.name}</span> },
+    { key: "category", label: "Kategori" },
+    { key: "price", label: "Harga", numeric: true, render: (r) => formatIDR(r.price) },
+    { key: "hpp", label: "HPP", numeric: true, render: (r) => <span className="text-muted">{formatIDR(r.hpp)}</span> },
+    { key: "stock", label: "Stok", numeric: true },
+    { key: "unit", label: "Satuan" },
+    { key: "published", label: "Publikasi", render: (r) => (
+      <Badge tone={r.published ? "success" : "neutral"}>{r.published ? "Tayang" : "Draf"}</Badge>
+    ) },
+  ];
+
+  const fields: FormField<Product>[] = [
+    { key: "name", label: "Nama produk", type: "text", required: true, placeholder: "mis. Kopi Arabika 250 g" },
+    { key: "category", label: "Kategori", type: "text", required: true, placeholder: "Kopi / Madu / Beras / Olahan" },
+    { key: "unit", label: "Satuan jual", type: "text", required: true, placeholder: "bungkus / botol / kg" },
+    { key: "price", label: "Harga jual (Rp)", type: "money", required: true, min: 0 },
+    { key: "hpp", label: "Harga pokok (Rp)", type: "money", min: 0, hint: "Dipakai menghitung margin di katalog publik." },
+    { key: "stock", label: "Stok tersedia", type: "number", required: true, min: 0 },
+    { key: "producer", label: "Produsen / pengrajin", type: "text" },
+    { key: "story", label: "Cerita produk", type: "textarea", hint: "Tampil di halaman detail produk." },
+    { key: "published", label: "Tayangkan di katalog publik", type: "checkbox", hint: "Produk draf tidak muncul di /produk." },
+  ];
+
+  return (
+    <DataTable<Product>
+      rows={state.products}
+      columns={columns}
+      fields={fields}
+      getId={(r) => r.id}
+      noun="produk"
+      initialSort="name"
+      makeEmpty={() => ({
+        id: "", slug: "", name: "", category: "Kopi", unit: "bungkus",
+        price: 0, stock: 0, producer: "", story: "", published: false, image: "", hpp: 0,
+      })}
+      validate={(d) => {
+        if (!d.name?.trim() || d.name.trim().length < 3) return "Nama produk minimal 3 huruf.";
+        if (!d.category?.trim()) return "Kategori wajib diisi.";
+        if (!d.unit?.trim()) return "Satuan jual wajib diisi.";
+        if (!Number.isFinite(Number(d.price)) || Number(d.price) <= 0) return "Harga jual harus lebih besar dari nol.";
+        if (Number(d.hpp) > Number(d.price)) return "HPP tidak boleh melebihi harga jual — margin negatif tidak masuk akal untuk katalog.";
+        if (!Number.isFinite(Number(d.stock)) || Number(d.stock) < 0) return "Stok tidak boleh negatif.";
+        if (state.products.some((p) => p.name.trim().toLowerCase() === d.name.trim().toLowerCase() && p.id !== d.id))
+          return "Produk dengan nama ini sudah ada di katalog.";
+        return null;
+      }}
+      onCreate={async (d) => {
+        const { id: _id, slug: _slug, ...rest } = d;
+        void _id; void _slug;
+        return exec({ type: "product.create", row: { ...rest, price: Number(d.price), hpp: Number(d.hpp), stock: Number(d.stock) }, actor }).ok;
+      }}
+      onUpdate={async (row, d) => {
+        const { id: _id, slug: _slug, ...rest } = d;
+        void _id; void _slug;
+        return exec({ type: "product.update", id: row.id, patch: { ...rest, price: Number(d.price), hpp: Number(d.hpp), stock: Number(d.stock) }, actor }).ok;
+      }}
+      onDelete={async (row) => exec({ type: "product.delete", id: row.id, actor }).ok}
+      onImport={async (d) => {
+        const { id: _id, slug: _slug, ...rest } = d;
+        void _id; void _slug;
+        return exec({ type: "product.create", row: { ...rest, price: Number(d.price), hpp: Number(d.hpp), stock: Number(d.stock) }, actor }).ok;
+      }}
+      detail={(r) => (
+        <div className="rounded-sb-sm border border-line bg-paper px-3 py-2 text-[11.5px] text-muted">
+          Margin {(r.price > 0 ? Math.round(((r.price - r.hpp) / r.price) * 100) : 0)}% ·{" "}
+          <span className="font-mono text-[11px]">{r.slug || "—"}</span>
+        </div>
+      )}
+      note="Harga dan stok di sini adalah yang dibaca katalog publik dan kasir POS. Ekspor CSV memakai tombol di toolbar."
     />
   );
 }

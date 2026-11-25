@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { MEETINGS, DOCUMENTS } from "@/data/organization";
-import { APPROVALS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { Badge, Card, CardHeader, PageHeader, StatCard } from "@/components/ui";
 import { formatDateID } from "@/lib/format";
 
@@ -10,7 +9,11 @@ export const metadata: Metadata = { title: "Dokumen Keputusan" };
 /** Decision documents = records that carry an adopted decision: SK, notulen, laporan resmi. */
 const DECISION_CATEGORIES = ["SK", "Notulen", "Laporan"] as const;
 
-export default function DokumenKeputusanPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DokumenKeputusanPage() {
+  // Dokumen & persetujuan hidup; rapat masih benih.
+  const { documents: DOCUMENTS, approvals: APPROVALS, meetings: MEETINGS } = await orgSummary();
   const decisions = DOCUMENTS.filter((d) => (DECISION_CATEGORIES as readonly string[]).includes(d.category));
   const adopted = MEETINGS.filter((m) => m.decisions.length > 0);
   const totalDecisions = adopted.reduce((s, m) => s + m.decisions.length, 0);

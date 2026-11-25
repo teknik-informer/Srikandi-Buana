@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { TASKS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
 import { Badge, Card, CardHeader, PageHeader, StatusBadge } from "@/components/ui";
 import { formatDateID, relativeID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Penugasan" };
 
-export default function TugasAnggotaPage() {
+// Tugas punya aksi hidup (task.create/assign/status), jadi baca dokumen bersama.
+export const dynamic = "force-dynamic";
+
+export default async function TugasAnggotaPage() {
+  const { tasks: TASKS } = await orgSummary();
   return (
     <div className="pb-10">
       <PageHeader

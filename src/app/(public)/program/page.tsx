@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PROGRAMS, ACTIVITIES } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
+import { DataStamp } from "@/components/data-stamp";
 import { FIELDS } from "@/config/fields";
 import { formatDateID } from "@/lib/format";
 import { Badge, Card, Progress, StatusBadge } from "@/components/ui";
@@ -17,13 +18,20 @@ const FIELD_LABEL: Record<string, string> = {
   usaha: "Usaha & Kemitraan",
 };
 
-export default function ProgramPage({ searchParams }: { searchParams: Promise<{ bidang?: string }> }) {
+export default async function ProgramPage({ searchParams }: { searchParams: Promise<{ bidang?: string }> }) {
+  /**
+   * Halaman publik membaca program dan agenda dari dokumen bersama. Dengan
+   * begitu, program yang diterbitkan pengurus langsung tampil di sini —
+   * bukan data contoh yang tidak pernah berubah.
+   */
   return <ProgramList searchParams={searchParams} />;
 }
 
 async function ProgramList({ searchParams }: { searchParams: Promise<{ bidang?: string }> }) {
   const { bidang } = await searchParams;
-  const visible = PROGRAMS.filter((p) => p.published).filter((p) => !bidang || p.bidang === bidang);
+  const ringkas = await orgSummary();
+  const { shared, updatedBy, updatedAt } = ringkas;
+  const visible = ringkas.programs.filter((p) => p.published).filter((p) => !bidang || p.bidang === bidang);
 
   return (
     <div className="sb-shell py-12">
@@ -106,7 +114,7 @@ async function ProgramList({ searchParams }: { searchParams: Promise<{ bidang?: 
       <section className="mt-12">
         <h2 className="font-display text-[22px] font-semibold text-ink">Agenda terdekat</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {ACTIVITIES.filter((a) => a.openToPublic && a.status === "terjadwal").slice(0, 3).map((a) => (
+          {ringkas.activities.filter((a) => a.openToPublic && a.status === "terjadwal").slice(0, 3).map((a) => (
             <Card key={a.id} className="p-4">
               <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-accent-700">{formatDateID(a.date)}</div>
               <div className="mt-1.5 text-[13.5px] font-semibold text-ink">{a.name}</div>
@@ -116,6 +124,7 @@ async function ProgramList({ searchParams }: { searchParams: Promise<{ bidang?: 
           ))}
         </div>
       </section>
+      <DataStamp shared={shared} updatedBy={updatedBy} updatedAt={updatedAt} what="program & agenda" />
     </div>
   );
 }

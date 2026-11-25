@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { MEMBERS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { FIELDS } from "@/config/fields";
 import { ORG } from "@/config/org";
 import { Avatar, Badge, Card, CardHeader, Notice, PageHeader, Progress, StatCard } from "@/components/ui";
@@ -8,7 +8,8 @@ import { formatDateID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Anggota & Keanggotaan" };
 
-export default function KeanggotaanPage() {
+export default async function KeanggotaanPage() {
+  const { members: MEMBERS } = await orgSummary();
   const aktif = MEMBERS.filter((m) => m.status === "aktif");
   const menunggu = MEMBERS.filter((m) => m.status === "menunggu");
   const nonaktif = MEMBERS.filter((m) => m.status === "nonaktif");

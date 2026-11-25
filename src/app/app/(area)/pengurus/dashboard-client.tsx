@@ -9,8 +9,7 @@ import {
   Clock, SlidersHorizontal, BarChart3, FolderOpen, CircleHelp, Home, Network,
 } from "lucide-react";
 import { FIELDS } from "@/config/fields";
-import { MEETINGS, MEMBERS } from "@/data/organization";
-import { ACTIVITIES, LANDS } from "@/data/operations";
+import { MEETINGS as SEED_MEETINGS, MEMBERS as SEED_MEMBERS } from "@/data/organization";
 import { NEWS } from "@/data/content";
 import { formatIDR, formatDateID, relativeID } from "@/lib/format";
 import { Badge, Card, CardHeader } from "@/components/ui";
@@ -47,12 +46,21 @@ export function PengurusDashboardClient() {
   const pending = state.approvals.filter((a) => a.status === "menunggu");
   const openTasks = state.tasks.filter((t) => t.status !== "selesai");
   const late = state.tasks.filter((t) => t.status === "terlambat");
-  const nextMeeting = MEETINGS.filter((m) => m.date >= "2026-11-22").sort((a, b) => a.date.localeCompare(b.date))[0];
+  // Rapat bagian dari dokumen bersama sejak meeting.create ada.
+  const semuaRapat = state.meetings ?? SEED_MEETINGS;
+  const nextMeeting = semuaRapat.filter((m) => m.date >= "2026-11-22").sort((a, b) => a.date.localeCompare(b.date))[0];
 
   /* ---- live figures, all derived from the same store the apps write to ---- */
-  const activeMembers = MEMBERS.filter((m) => m.status === "aktif").length;
-  const candidates = MEMBERS.filter((m) => m.status === "menunggu").length;
-  const landHa = LANDS.reduce((s: number, l) => s + l.areaHa, 0);
+  /**
+   * Angka di bawah dibaca dari state bersama, bukan dari konstanta data.
+   * Sebelumnya `MEMBERS` dan `LANDS` diimpor langsung, sehingga anggota yang
+   * baru didaftarkan tidak pernah mengubah dasbor — dasbor tampak hidup padahal
+   * hanya membaca arsip contoh. Sekarang ia mengikuti apa yang benar-benar
+   * tercatat di buku induk dan data lahan.
+   */
+  const activeMembers = state.members.filter((m) => m.status === "aktif").length;
+  const candidates = state.members.filter((m) => m.status === "menunggu").length;
+  const landHa = state.lands.reduce((s: number, l) => s + (Number(l.areaHa) || 0), 0);
   const cash = postedBalance(state.journals, "1-1000");
   const bank = postedBalance(state.journals, "1-1100");
 
@@ -61,7 +69,7 @@ export function PengurusDashboardClient() {
   const planPrograms = state.programs.filter((p) => p.status !== "selesai" && p.status !== "berjalan").length;
   const programTotal = state.programs.length || 1;
 
-  const meetingsDone = ACTIVITIES.filter((a) => a.status === "selesai").length;
+  const meetingsDone = state.activities.filter((a) => a.status === "selesai").length;
   const partners = 3; // documented in the partner register; not a live entity in this demo
 
   /* Activity chart: three real series, bucketed from real dated records.
@@ -87,7 +95,7 @@ export function PengurusDashboardClient() {
         key: "kegiatan",
         label: "Kegiatan",
         color: "#127e2f",
-        points: days.map((iso) => ACTIVITIES.filter((a) => a.date === iso).length),
+        points: days.map((iso) => state.activities.filter((a) => a.date === iso).length),
       },
       {
         key: "tugas",
@@ -120,7 +128,7 @@ export function PengurusDashboardClient() {
         "22h": seriesFor(window22),
       },
     };
-  }, [state.tasks, state.journals]);
+  }, [state.tasks, state.journals, state.activities]);
 
   const target = state.approvals.find((a) => a.id === deciding);
 
@@ -137,7 +145,7 @@ export function PengurusDashboardClient() {
       label: "Jumlah Anggota",
       value: String(activeMembers),
       delta: candidates ? `${candidates} calon menunggu` : undefined,
-      note: `dari ${MEMBERS.length} terdaftar`,
+      note: `dari ${state.members.length} terdaftar`,
       href: "/app/pengurus/anggota",
       tone: "green",
       icon: <Users size={15} />,
@@ -146,7 +154,7 @@ export function PengurusDashboardClient() {
     {
       label: "Luas Lahan Produktif",
       value: `${landHa.toFixed(2).replace(".", ",")} Ha`,
-      note: `${LANDS.filter((l) => l.status === "produktif").length} petak produktif`,
+      note: `${state.lands.filter((l) => l.status === "produktif").length} petak produktif`,
       href: "/app/bidang/pertanian",
       tone: "blue",
       icon: <Sprout size={15} />,
@@ -163,7 +171,7 @@ export function PengurusDashboardClient() {
     },
     {
       label: "Kegiatan Bulan Ini",
-      value: String(ACTIVITIES.filter((a) => a.date.startsWith("2026-11")).length),
+      value: String(state.activities.filter((a) => a.date.startsWith("2026-11")).length),
       note: `${meetingsDone} selesai · ${nextMeeting ? relativeID(nextMeeting.date).toLowerCase() : "—"} rapat`,
       href: "/app/sekretariat/agenda",
       tone: "violet",
@@ -231,9 +239,9 @@ export function PengurusDashboardClient() {
     tag: n.kind === "pengumuman" ? "Pengumuman" : n.kind === "artikel" ? "Artikel" : "Berita",
   }));
 
-  const profileMember = MEMBERS.find((m) => m.role === actor.role) ?? MEMBERS[0];
+  const profileMember = state.members.find((m) => m.role === actor.role) ?? state.members[0] ?? SEED_MEMBERS[0];
   const profilePct = useMemo(() => {
-    const m = MEMBERS.find((x) => x.role === actor.role);
+    const m = state.members.find((x) => x.role === actor.role);
     if (!m) return 0;
     const checks = [!!m.name, !!m.role && m.role !== "—", !!m.scope && m.scope !== "—", !!m.village, !!m.joined, !!m.phone, (m.interests?.length ?? 0) > 0, !!m.status];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);

@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { getIdentity } from "@/lib/session";
 import { APPS } from "@/config/apps";
 import { FIELDS } from "@/config/fields";
-import { PROGRAMS, TASKS, ACTIVITIES } from "@/data/operations";
-import { APPROVALS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { AppIcon, FieldMark } from "@/components/brand";
 import { AppBanner } from "@/components/dash-kit";
 import { APP_IDENTITY } from "@/config/app-identity";
@@ -18,6 +17,9 @@ export default async function AppHome() {
   const identity = await getIdentity();
   if (!identity) redirect("/masuk");
 
+  // Satu bacaan dokumen bersama: tugas, agenda, program, dan antrean
+  // persetujuan semuanya bisa berubah dari layar pengurus.
+  const { tasks: TASKS, activities: ACTIVITIES, programs: PROGRAMS, approvals: APPROVALS } = await orgSummary();
   const myTasks = TASKS.filter((t) => t.status !== "selesai").slice(0, 5);
   const pending = APPROVALS.filter((a) => a.status === "menunggu");
   const upcoming = ACTIVITIES.filter((a) => a.status === "terjadwal").slice(0, 4);

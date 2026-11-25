@@ -1,14 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { FIELDS } from "@/config/fields";
-import { PROGRAMS, TASKS, ACTIVITIES } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
 import { Badge, Card, CardHeader, PageHeader, Progress, StatCard } from "@/components/ui";
 import { FieldMark } from "@/components/brand";
 import { formatIDR, percent } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Lintas Bidang" };
 
-export default function LintasBidangPage() {
+export const dynamic = "force-dynamic";
+
+export default async function LintasBidangPage() {
+  const { programs: PROGRAMS, tasks: TASKS, activities: ACTIVITIES } = await orgSummary();
   const totalBudget = PROGRAMS.reduce((s, p) => s + p.budget, 0);
   const totalSpent = PROGRAMS.reduce((s, p) => s + p.spent, 0);
 

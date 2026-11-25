@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ORG } from "@/config/org";
 import { FIELDS } from "@/config/fields";
-import { MEMBERS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { FieldMark } from "@/components/brand";
 import { Card, CardHeader, Badge, Notice } from "@/components/ui";
 
@@ -21,7 +21,9 @@ const MILESTONES = [
   { year: "2026", text: "Sistem digital organisasi disiapkan agar pencatatan, keuangan, dan pelaporan lebih terbuka." },
 ];
 
-export default function ProfilPage() {
+export default async function ProfilPage() {
+  // Susunan pengurus dibaca dari buku induk bersama, bukan konstanta.
+  const { members: MEMBERS } = await orgSummary();
   const pengurus = MEMBERS.filter((m) => ["Ketua", "Sekretaris", "Bendahara"].includes(m.role));
 
   return (

@@ -1,8 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PARTNERS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
+import { DataStamp } from "@/components/data-stamp";
 import { formatDateID } from "@/lib/format";
 import { Badge, Card, CardHeader, Notice } from "@/components/ui";
+
+// Daftar mitra berasal dari dokumen bersama dan bisa berubah kapan saja,
+// jadi halaman ini tidak boleh dibekukan saat build.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Kemitraan",
@@ -17,7 +22,10 @@ const TYPE_LABEL: Record<string, string> = {
   akademik: "Akademik",
 };
 
-export default function KemitraanPage() {
+export default async function KemitraanPage() {
+  // Pengurus bisa menambah/mengubah mitra (partner.create/update/delete),
+  // jadi daftar ini harus berasal dari dokumen bersama — bukan konstanta.
+  const { partners: PARTNERS, shared, updatedBy, updatedAt } = await orgSummary();
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Kemitraan</div>
@@ -89,6 +97,7 @@ export default function KemitraanPage() {
           yang dapat dicabut. Portofolio mitra tidak membuka data transaksi internal.
         </Notice>
       </div>
+      <DataStamp shared={shared} updatedBy={updatedBy} updatedAt={updatedAt} what="data mitra" />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MEMBERS, DOCUMENTS } from "@/data/organization";
-import { PROGRAMS, PRODUCTS, LANDS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
 import { NEWS } from "@/data/content";
 import { JOURNALS } from "@/data/finance";
 import { Card, CardHeader, EmptyState, PageHeader, Badge } from "@/components/ui";
@@ -11,6 +10,12 @@ export const metadata: Metadata = { title: "Pencarian" };
 export default async function CariPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const term = (q ?? "").toLowerCase().trim();
+  // Anggota dan lahan dicari di dokumen bersama, bukan di arsip contoh —
+  // kalau tidak, anggota yang baru didaftarkan tidak akan pernah ditemukan.
+  const {
+    members: MEMBERS, lands: LANDS, documents: DOCUMENTS,
+    programs: PROGRAMS, products: PRODUCTS,
+  } = await orgSummary();
 
   const results = term
     ? [

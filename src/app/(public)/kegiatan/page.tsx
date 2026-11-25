@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ACTIVITIES } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
+import { DataStamp } from "@/components/data-stamp";
 import { formatDateFull, relativeID } from "@/lib/format";
 import { Badge, Card, StatusBadge } from "@/components/ui";
 
@@ -17,6 +18,8 @@ const BIDANG_LABEL: Record<string, string> = {
 };
 
 export default async function KegiatanPage({ searchParams }: { searchParams: Promise<{ bidang?: string }> }) {
+  // Agenda dari dokumen bersama: kegiatan yang dicatat pengurus tampil di sini.
+  const { activities: ACTIVITIES, shared, updatedBy, updatedAt } = await orgSummary();
   const { bidang } = await searchParams;
   const upcoming = ACTIVITIES.filter((a) => a.status === "terjadwal" && (!bidang || a.bidang === bidang));
   const past = ACTIVITIES.filter((a) => a.status === "selesai" && (!bidang || a.bidang === bidang));
@@ -75,6 +78,7 @@ export default async function KegiatanPage({ searchParams }: { searchParams: Pro
           </div>
         ))}
       </div>
+      <DataStamp shared={shared} updatedBy={updatedBy} updatedAt={updatedAt} what="agenda kegiatan" />
     </div>
   );
 }

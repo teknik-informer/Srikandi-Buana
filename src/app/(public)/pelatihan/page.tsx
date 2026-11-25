@@ -1,17 +1,23 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { TRAININGS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
+import { DataStamp } from "@/components/data-stamp";
 import { formatDateID, relativeID } from "@/lib/format";
 import { Badge, Card, Progress } from "@/components/ui";
+
+// Jadwal pelatihan dikelola pengurus (training.create/update/status), jadi
+// halaman publik tidak boleh dibekukan saat build.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Pelatihan",
   description: "Jadwal pelatihan dan kelas keterampilan untuk anggota dan warga Srikandi Buana, Kedu, Temanggung.",
 };
 
-export default function PelatihanPage() {
-  const open = TRAININGS.filter((t) => t.status !== "selesai");
-  const done = TRAININGS.filter((t) => t.status === "selesai");
+export default async function PelatihanPage() {
+  const { trainings, shared, updatedBy, updatedAt } = await orgSummary();
+  const open = trainings.filter((t) => t.status !== "selesai");
+  const done = trainings.filter((t) => t.status === "selesai");
 
   return (
     <div className="sb-shell py-12">
@@ -65,6 +71,7 @@ export default function PelatihanPage() {
           </Card>
         ))}
       </div>
+      <DataStamp shared={shared} updatedBy={updatedBy} updatedAt={updatedAt} what="jadwal pelatihan" />
     </div>
   );
 }

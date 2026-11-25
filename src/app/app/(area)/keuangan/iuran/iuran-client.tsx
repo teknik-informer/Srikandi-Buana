@@ -5,7 +5,6 @@ import { useMemo } from "react";
 import { ArrowUpRight, Info, Users, Wallet } from "lucide-react";
 import { Card, CardHeader, EmptyState, StatCard } from "@/components/ui";
 import { useStore } from "@/lib/store";
-import { MEMBERS } from "@/data/organization";
 import { formatDateID, formatIDR } from "@/lib/format";
 import { COA } from "@/data/coa";
 import { balancesFor } from "@/lib/ledger";
@@ -58,8 +57,8 @@ export function IuranClient() {
         />
         <StatCard
           label="Anggota aktif"
-          value={MEMBERS.filter((m) => m.status === "aktif").length}
-          note={`${MEMBERS.filter((m) => m.status === "menunggu").length} calon menunggu verifikasi`}
+          value={state.members.filter((m) => m.status === "aktif").length}
+          note={`${state.members.filter((m) => m.status === "menunggu").length} calon menunggu verifikasi`}
           tone="info"
           href="/app/sekretariat/anggota"
           icon={<Users size={17} strokeWidth={2.2} />}

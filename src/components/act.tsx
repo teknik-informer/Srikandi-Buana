@@ -229,7 +229,7 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 /* ------------------------------------------------------------------ */
 
 export function Toaster() {
-  const { toast, clearToast } = useStore();
+  const { toast, clearToast, shared, sharedNote } = useStore();
   useEffect(() => {
     if (!toast) return;
     const t = window.setTimeout(clearToast, 6500);
@@ -272,24 +272,58 @@ export function Toaster() {
   );
 }
 
+/**
+ * Bilah jujur di kaki layar ketika data TIDAK dibagi.
+ *
+ * Bila basis data belum diisi, aplikasi tetap terbuka — tetapi setiap pengurus
+ * harus tahu bahwa pekerjaannya hanya tersimpan di peramban ini, bukan di data
+ * organisasi. Tanpa penanda ini, mode lokal tampak persis seperti mode
+ * bersama, dan orang akan mengira catatannya tersimpan.
+ */
+export function SharedStatusBar() {
+  const { shared, sharedNote, ready } = useStore();
+  // Selama `shared` belum terbukti true, bilah tetap tampil. Lebih baik
+  // mengaku sedang menyambung daripada diam-diam berpura-pura tersimpan.
+  if (shared) return null;
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[90] flex justify-center px-3 pb-3">
+      <div className="pointer-events-auto flex max-w-2xl items-start gap-2 rounded-sb border px-3 py-2 text-[11.5px] shadow-[var(--sb-shadow)]" style={{ borderColor: "var(--sb-warning)", background: "var(--sb-warning-bg)", color: "var(--sb-warning)" }}>
+        <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+        <span>
+          <strong className="font-semibold">Data belum tersiar.</strong>{" "}
+          {sharedNote ?? "Perubahan hanya tersimpan di peramban ini."}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Demo state chip + reset                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Penanda keadaan data.
+ *
+ * Dulu chip ini berbunyi "Data demo · tersimpan di peramban" — dua-duanya
+ * sudah tidak benar: datanya bukan demo lagi, dan sejak persistensi server
+ * ia tidak lagi tinggal di peramban. Sekarang chip melaporkan apa yang
+ * sebenarnya terjadi: tersiar ke semua perangkat, atau belum.
+ */
 export function DemoStateChip({ compact = false, tone = "light" }: { compact?: boolean; tone?: "light" | "dark" }) {
-  const { state } = useStore();
+  const { state, shared } = useStore();
   const pending = state.approvals.filter((a) => a.status === "menunggu").length;
   const skin =
     tone === "dark"
       ? "border-white/20 bg-white/10 text-[#dfeadd] backdrop-blur-sm"
       : "border-line bg-paper text-muted";
-  const dot = tone === "dark" ? "bg-[#7ddc93]" : "bg-[var(--sb-primary-500)]";
+  const dot = shared ? (tone === "dark" ? "bg-[#7ddc93]" : "bg-[var(--sb-primary-500)]") : "bg-amber-500";
   const sep = tone === "dark" ? "text-white/30" : "text-line-strong";
   return (
     <span className={`inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full border px-2.5 py-1 text-[10.5px] font-medium ${skin}`}>
       <span className="inline-flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
-        Data demo
+        {shared ? "Data bersama" : "Mode lokal"}
       </span>
       {!compact ? (
         <>
@@ -298,7 +332,7 @@ export function DemoStateChip({ compact = false, tone = "light" }: { compact?: b
           <span aria-hidden className={sep}>·</span>
           <span>{pending} menunggu</span>
           <span aria-hidden className={sep}>·</span>
-          <span>tersimpan di peramban</span>
+          <span>{shared ? "tersiar ke semua perangkat" : "belum tersiar"}</span>
         </>
       ) : null}
     </span>
@@ -307,7 +341,7 @@ export function DemoStateChip({ compact = false, tone = "light" }: { compact?: b
 
 export function ResetDemo({
   variant = "ghost",
-  label = "Kembalikan data demo",
+  label = "Kembalikan data awal",
 }: {
   variant?: Variant;
   label?: string;
@@ -322,8 +356,8 @@ export function ResetDemo({
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Kembalikan data demo ke kondisi awal?"
-        description="Semua perubahan Anda pada sesi ini — persetujuan, jurnal, surat, penjualan — akan dihapus dan data kembali seperti 22 November 2026."
+        title="Kembalikan data ke kondisi awal?"
+        description="Semua perubahan yang tercatat — anggota, lahan, kas, program, agenda, persetujuan, jurnal, surat — akan dihapus untuk SEMUA pengurus, dan data kembali seperti 22 November 2026. Tindakan ini memengaruhi data bersama, bukan hanya peramban ini."
         width={480}
         footer={
           <>

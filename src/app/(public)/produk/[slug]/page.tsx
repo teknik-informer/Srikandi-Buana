@@ -1,26 +1,28 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PRODUCTS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
 import { formatIDR } from "@/lib/format";
 import { Badge, Card, Notice } from "@/components/ui";
 
-export function generateStaticParams() {
-  return PRODUCTS.filter((p) => p.published).map((p) => ({ slug: p.slug }));
-}
+// Katalog kini berasal dari dokumen bersama, jadi rute detailnya dirender
+// dinamis: daftar slug tidak bisa dibekukan saat build.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const p = PRODUCTS.find((x) => x.slug === slug && x.published);
+  const { products } = await orgSummary();
+  const p = products.find((x) => x.slug === slug && x.published);
   if (!p) return { title: "Produk tidak ditemukan" };
   return { title: p.name, description: p.story };
 }
 
 export default async function ProductDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = PRODUCTS.find((x) => x.slug === slug && x.published);
+  const { products } = await orgSummary();
+  const p = products.find((x) => x.slug === slug && x.published);
   if (!p) notFound();
-  const related = PRODUCTS.filter((x) => x.published && x.id !== p.id && x.category === p.category).slice(0, 3);
+  const related = products.filter((x) => x.published && x.id !== p.id && x.category === p.category).slice(0, 3);
 
   return (
     <div className="sb-shell py-10">

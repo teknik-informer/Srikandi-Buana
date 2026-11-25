@@ -3,12 +3,194 @@ import type { Metadata } from "next";
 import { STUDIO_PAGES, MENU_DRAFT } from "@/data/content";
 import { BLOCK_REGISTRY, PAGE_COMPOSITIONS } from "@/config/blocks";
 import { MEGA_MENU } from "@/config/navigation";
-import { Badge, Card, CardHeader, Notice, PageHeader, StatCard, StatusBadge } from "@/components/ui";
+import { Badge, Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
 import { SiteSettingsPanel } from "./site-settings-panel";
+import { StudioTabs } from "./studio-tabs";
+import { PageEditor } from "./page-editor";
+import { ProductCrud } from "@/components/master-crud";
 
 export const metadata: Metadata = { title: "Website Studio" };
 
-export default async function WebsiteStudio({ searchParams }: { searchParams: Promise<{ halaman?: string }> }) {
+/* ════════════════════════════════════════════════════════════════════════
+ * PANEL 1 — HALAMAN (daftar + komposisi)
+ * ════════════════════════════════════════════════════════════════════════ */
+function HalamanPanel({ activePath }: { activePath: string }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[210px_minmax(0,1fr)]">
+      <Card className="h-fit">
+        <CardHeader title="Halaman situs" subtitle={`${STUDIO_PAGES.length} halaman`} />
+        <nav className="p-1.5" aria-label="Daftar halaman">
+          {STUDIO_PAGES.map((p) => {
+            const isActive = activePath === p.path;
+            return (
+              <Link
+                key={p.path}
+                href={`/studio/website?halaman=${encodeURIComponent(p.path)}`}
+                aria-current={isActive ? "page" : undefined}
+                className={`flex items-center justify-between gap-2 rounded-[7px] px-2.5 py-2 text-[11.5px] transition ${
+                  isActive ? "bg-primary text-primary-50" : "text-ink2 hover:bg-surface2"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{p.title}</span>
+                  <span className={`font-mono text-[10px] ${isActive ? "text-primary-200" : "text-muted2"}`}>
+                    {p.path}
+                  </span>
+                </span>
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    p.status === "published" ? "bg-[var(--sb-success)]" : "bg-[var(--sb-warning)]"
+                  }`}
+                  title={p.status === "published" ? "Terbit" : "Dalam tinjauan"}
+                />
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="border-t border-line px-2.5 py-2 text-[10px] leading-relaxed text-muted2">
+          Pilih halaman untuk menyunting susunan block-nya.
+        </div>
+      </Card>
+
+      <div className="min-w-0">
+        <PageEditor activePath={activePath} />
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * PANEL 2 — BLOCK (katalog referensi)
+ * ════════════════════════════════════════════════════════════════════════ */
+function BlockPanel() {
+  const groups = Array.from(new Set(BLOCK_REGISTRY.map((b) => b.group)));
+  return (
+    <Card>
+      <CardHeader
+        title="Registry block"
+        subtitle="Hanya block terdaftar di sini yang dapat dipakai halaman. Katalog ini referensi — bukan tempat menyunting."
+        action={<Badge tone="neutral">{BLOCK_REGISTRY.length} block</Badge>}
+      />
+      <div className="space-y-4 p-4">
+        {groups.map((g) => {
+          const items = BLOCK_REGISTRY.filter((b) => b.group === g);
+          return (
+            <div key={g}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted2">{g}</span>
+                <span className="h-px flex-1 bg-line" />
+                <span className="text-[10px] text-muted2">{items.length}</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {items.map((b) => (
+                  <div key={b.key} className="rounded-[9px] border border-line bg-white p-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[12px] font-semibold leading-tight text-ink">{b.name}</span>
+                      <code className="shrink-0 rounded bg-surface2 px-1 py-0.5 text-[9px] text-muted2">
+                        {b.key}
+                      </code>
+                    </div>
+                    <div className="mt-1 text-[10.5px] leading-snug text-muted">{b.description}</div>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {b.fields.map((f) => (
+                        <span
+                          key={f.name}
+                          className={`rounded px-1.5 py-0.5 text-[9.5px] ${
+                            f.required
+                              ? "bg-[var(--sb-tint-green,#e7f2e9)] text-ink2"
+                              : "bg-surface2 text-ink2"
+                          }`}
+                          title={f.required ? "Wajib" : "Opsional"}
+                        >
+                          {f.name}
+                          {f.required ? "*" : ""}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * PANEL 3 — MENU (navigasi utama)
+ * ════════════════════════════════════════════════════════════════════════ */
+function MenuPanel() {
+  const totalLinks = MEGA_MENU.reduce((n, g) => n + g.items.length, 0);
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Grup menu" value={MEGA_MENU.length} note="Kolom pada mega menu" tone="accent" />
+        <StatCard label="Tautan aktif" value={totalLinks} note="Seluruh tujuan" tone="info" />
+        <StatCard
+          label="Status"
+          value={MENU_DRAFT.status === "published" ? "Terbit" : "Draf"}
+          note={`Diperbarui ${MENU_DRAFT.updatedAt}`}
+          tone="success"
+        />
+      </div>
+
+      <Card>
+        <CardHeader
+          title="Struktur mega menu"
+          subtitle="Grup, jumlah tautan, dan contoh tujuan. Penyuntingan menu mengikuti alur Menu Builder."
+          action={<Badge tone="success">Terbit</Badge>}
+        />
+        <div className="sb-scroll">
+          <table className="sb-table min-w-[560px]">
+            <thead>
+              <tr>
+                <th className="w-[28%]">Grup</th>
+                <th className="w-[10%]">Tautan</th>
+                <th>Tujuan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MEGA_MENU.map((g) => (
+                <tr key={g.heading}>
+                  <td className="font-semibold text-ink">{g.heading}</td>
+                  <td>
+                    <Badge tone="neutral">{g.items.length}</Badge>
+                  </td>
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {g.items.slice(0, 4).map((i) => (
+                        <code
+                          key={i.href}
+                          className="rounded bg-surface2 px-1.5 py-0.5 text-[10px] text-muted"
+                        >
+                          {i.href}
+                        </code>
+                      ))}
+                      {g.items.length > 4 ? (
+                        <span className="text-[10px] text-muted2">+{g.items.length - 4}</span>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * HALAMAN
+ * ════════════════════════════════════════════════════════════════════════ */
+export default async function WebsiteStudio({
+  searchParams,
+}: {
+  searchParams: Promise<{ halaman?: string }>;
+}) {
   const { halaman } = await searchParams;
   const activePath = halaman ?? "/";
   const composition = PAGE_COMPOSITIONS[activePath] ?? [];
@@ -19,120 +201,40 @@ export default async function WebsiteStudio({ searchParams }: { searchParams: Pr
         eyebrow="Website Studio"
         title="Halaman, block, menu & pengaturan"
         description="Bangun halaman dari block terdaftar. Konten draf tidak memengaruhi website live sampai diterbitkan; setiap perubahan tercatat pada riwayat revisi."
-        actions={<Link href="/" className="sb-btn sb-btn-outline">Lihat live</Link>}
+        actions={
+          <Link href="/" className="sb-btn sb-btn-outline">
+            Lihat live
+          </Link>
+        }
       />
 
-      {/* Settings first: the footer is the part of the site people edit most. */}
-      <div className="mb-6">
-        <SiteSettingsPanel />
-      </div>
-
-      <h2 className="mb-2 text-[15px] font-semibold text-ink">Halaman &amp; menu</h2>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Halaman" value={STUDIO_PAGES.length} note={`${STUDIO_PAGES.filter((p) => p.status === "published").length} terbit`} tone="success" />
-        <StatCard label="Block terdaftar" value={BLOCK_REGISTRY.length} note="Allowlist tervalidasi" tone="info" />
-        <StatCard label="Menu utama" value={`${MENU_DRAFT.items} grup`} note={`${MENU_DRAFT.subItems} tautan aktif`} tone="accent" />
-      </div>
-
-      <div className="mt-5 grid gap-4 lg:grid-cols-[280px_1fr]">
-        <Card className="h-fit">
-          <CardHeader title="Halaman situs" subtitle="Pilih untuk mengedit komposisi" />
-          <div className="p-1.5">
-            {STUDIO_PAGES.map((p) => (
-              <Link
-                key={p.path}
-                href={`/studio/website?halaman=${encodeURIComponent(p.path)}`}
-                className={`flex items-center justify-between gap-2 rounded-[7px] px-2.5 py-2 text-[11.5px] ${activePath === p.path ? "bg-primary text-primary-50" : "text-ink2 hover:bg-surface2"}`}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{p.title}</span>
-                  <span className={`font-mono text-[10px] ${activePath === p.path ? "text-primary-200" : "text-muted2"}`}>{p.path}</span>
-                </span>
-                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${p.status === "published" ? "bg-[var(--sb-success)]" : "bg-[var(--sb-warning)]"}`} />
-              </Link>
-            ))}
+      <StudioTabs
+        badges={{
+          halaman: String(STUDIO_PAGES.length),
+          block: String(BLOCK_REGISTRY.length),
+          menu: String(MEGA_MENU.length),
+        }}
+        pengaturan={<SiteSettingsPanel />}
+        halaman={<HalamanPanel activePath={activePath} />}
+        katalog={
+          <div>
+            <Card className="mb-4">
+              <CardHeader
+                title="Katalog produk yang tampil di situs"
+                subtitle="Harga, stok, dan status tayang di sini adalah yang dibaca /produk dan kasir POS."
+                action={<Link href="/produk" className="sb-btn sb-btn-outline">Lihat katalog</Link>}
+              />
+              <p className="px-4 pb-4 text-[12px] leading-relaxed text-muted">
+                Produk berstatus <strong>Draf</strong> tidak muncul di situs publik walau datanya tersimpan.
+                Mengubah harga di sini langsung berlaku — tidak perlu menerbitkan ulang halaman.
+              </p>
+            </Card>
+            <ProductCrud />
           </div>
-        </Card>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader
-              title={`Komposisi: ${STUDIO_PAGES.find((p) => p.path === activePath)?.title ?? activePath}`}
-              subtitle="Susunan block sesuai registry — dieksekusi sebagai konfigurasi terstruktur, bukan kode"
-              action={<Badge tone="neutral">{composition.length} block</Badge>}
-            />
-            {composition.length ? (
-              <ol className="divide-y divide-line">
-                {composition.map((c, i) => {
-                  const def = BLOCK_REGISTRY.find((b) => b.key === c.block);
-                  return (
-                    <li key={i} className="flex items-start gap-3 px-4 py-3">
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface2 text-[10.5px] font-bold text-ink2">{i + 1}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[12.5px] font-semibold text-ink">{def?.name ?? c.block}</span>
-                          <span className="font-mono text-[10px] text-muted2">{c.block}</span>
-                          <Badge tone="neutral">{def?.group}</Badge>
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-muted">{c.note}</div>
-                      </div>
-                      <div className="flex shrink-0 gap-1">
-                        <button type="button" className="rounded border border-line px-1.5 py-1 text-[10.5px] text-muted" disabled title="Urutan blok ditentukan template pada demo ini — pengurutan bebas belum aktif." aria-label="Naikkan blok (nonaktif)">↑</button>
-                        <button type="button" className="rounded border border-line px-1.5 py-1 text-[10.5px] text-muted" disabled title="Urutan blok ditentukan template pada demo ini — pengurutan bebas belum aktif." aria-label="Turunkan blok (nonaktif)">↓</button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <div className="px-4 py-6 text-[12px] text-muted">Belum ada komposisi tersimpan untuk halaman ini.</div>
-            )}
-            <div className="border-t border-line bg-paper px-4 py-2.5 text-[10.5px] text-muted2">
-              Pengurutan block & pengeditan field dilakukan di Page Editor (layout studio-editor). Pada
-              demo ini kontrol edit dinonaktifkan agar tidak ada perubahan konfigurasi yang tersimpan palsu.
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader title="Registry block" subtitle="Hanya block ini yang dapat dipakai halaman" />
-            <div className="grid gap-2 p-3 sm:grid-cols-2">
-              {BLOCK_REGISTRY.map((b) => (
-                <div key={b.key} className="rounded-sb-sm border border-line bg-white p-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-semibold text-ink">{b.name}</span>
-                    <Badge tone="neutral">{b.group}</Badge>
-                  </div>
-                  <div className="mt-0.5 text-[10.5px] leading-snug text-muted">{b.description}</div>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {b.fields.map((f) => (
-                      <span key={f.name} className="rounded bg-surface2 px-1.5 py-0.5 text-[9.5px] text-ink2">{f.name}{f.required ? "*" : ""}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader title="Mega menu" subtitle={`Status: ${MENU_DRAFT.status} · ${MENU_DRAFT.updatedAt}`} action={<Badge tone="success">Terbit</Badge>} />
-            <div className="sb-scroll">
-              <table className="sb-table min-w-[560px]">
-                <thead><tr><th>Grup</th><th>Tautan</th><th>Contoh tujuan</th></tr></thead>
-                <tbody>
-                  {MEGA_MENU.map((g) => (
-                    <tr key={g.heading}>
-                      <td className="font-semibold text-ink">{g.heading}</td>
-                      <td>{g.items.length}</td>
-                      <td className="font-mono text-[10.5px] text-muted">{g.items.map((i) => i.href).slice(0, 3).join(", ")}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      </div>
+        }
+        block={<BlockPanel />}
+        menu={<MenuPanel />}
+      />
 
       <div className="mt-5">
         <Notice tone="warning" title="Batas Website Studio">

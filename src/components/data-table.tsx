@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
-  Plus, Pencil, Trash2, Eye, Search, Download, ChevronDown, ArrowUpDown,
+  Plus, Pencil, Trash2, Eye, Search, Download, Upload, ChevronDown, ArrowUpDown,
 } from "lucide-react";
-import { Modal } from "@/components/act";
+import { Btn, Modal } from "@/components/act";
 import { Badge, Card, EmptyState } from "@/components/ui";
 import { useStoreOptional } from "@/lib/store";
 
@@ -63,6 +63,12 @@ export interface CrudConfig<T> {
   onDelete?: (row: T) => Promise<boolean> | boolean;
   /** Shown in the view dialog under the key/value list. */
   detail?: (row: T) => ReactNode;
+  /**
+   * Impor baris dari CSV. Dipanggil sekali per baris yang lolos validasi;
+   * kembalikan true bila baris tersimpan. Tanpa prop ini tombol impor tidak
+   * muncul — jadi modul yang belum siap tidak menawarkan janji kosong.
+   */
+  onImport?: (draft: T) => Promise<boolean> | boolean;
   /** Optional extra actions per row (links, status toggles). */
   rowActions?: (row: T) => ReactNode;
   initialSort?: string;
@@ -84,6 +90,27 @@ function display(field: FormField<never>, value: unknown): string {
   return String(value);
 }
 
+/**
+ * Angka gaya Indonesia dari sel CSV: "Rp 55.000" → 55000, "1.234,5" → 1234.5,
+ * "55.000" → 55000 (titik = pemisah ribuan, bukan desimal).
+ */
+function parseAngkaID(mentah: string): number {
+  const bersih = mentah.replace(/[^\d,.-]/g, "").trim();
+  if (!bersih) return 0;
+  const adaKoma = bersih.includes(",");
+  let normal: string;
+  if (adaKoma) {
+    // koma = desimal; titik = ribuan
+    normal = bersih.replace(/\./g, "").replace(",", ".");
+  } else {
+    // hanya titik: bila tepat 3 digit di belakang titik, itu pemisah ribuan
+    const bagian = bersih.split(".");
+    normal = bagian.length > 1 && bagian[bagian.length - 1].length === 3 ? bagian.join("") : bersih;
+  }
+  const angka = Number(normal);
+  return Number.isFinite(angka) ? angka : 0;
+}
+
 export function DataTable<T>({
   rows,
   columns,
@@ -95,6 +122,7 @@ export function DataTable<T>({
   onCreate,
   onUpdate,
   onDelete,
+  onImport,
   detail,
   rowActions,
   initialSort,
@@ -110,6 +138,13 @@ export function DataTable<T>({
   const [err, setErr] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<T | null>(null);
   const [busy, setBusy] = useState(false);
+  const [impor, setImpor] = useState<null | {
+    nama: string;
+    siap: T[];
+    ditolak: { baris: number; alasan: string }[];
+  }>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [imporHasil, setImporHasil] = useState<number | null>(null);
 
   const searchable = columns.filter((c) => c.search !== false);
 
@@ -145,6 +180,91 @@ export function DataTable<T>({
   const close = () => { setMode(null); setDraft(null); setErr(null); };
 
   const editable = (f: FormField<T>) => !f.hidden;
+
+  /**
+   * Baca CSV yang ekspornya berasal dari tabel ini sendiri: pemisah titik
+   * koma, kolom dipetakan lewat label, BOM dibuang. Baris yang gagal validasi
+   * tidak menggagalkan seluruh berkas — dilaporkan per baris.
+   */
+  const bacaCsv = async (file: File) => {
+    const teks = (await file.text()).replace(/^\uFEFF/, "");
+    const baris = teks.split(/\r?\n/).filter((b) => b.trim().length > 0);
+    if (baris.length < 2) {
+      setImpor({ nama: file.name, siap: [], ditolak: [{ baris: 0, alasan: "Berkas tidak punya baris data." }] });
+      return;
+    }
+    const pisah = (b: string) => {
+      const out: string[] = [];
+      let cur = "";
+      let dalamKutip = false;
+      for (let i = 0; i < b.length; i += 1) {
+        const c = b[i];
+        if (c === '"') {
+          if (dalamKutip && b[i + 1] === '"') { cur += '"'; i += 1; }
+          else dalamKutip = !dalamKutip;
+        } else if (c === ";" && !dalamKutip) {
+          out.push(cur);
+          cur = "";
+        } else cur += c;
+      }
+      out.push(cur);
+      return out.map((x) => x.trim());
+    };
+    const kepala = pisah(baris[0]);
+    const kolomByLabel = new Map(columns.map((c) => [c.label.toLowerCase(), c.key]));
+    const peta = kepala.map((h) => kolomByLabel.get(h.toLowerCase()) ?? null);
+
+    const siap: T[] = [];
+    const ditolak: { baris: number; alasan: string }[] = [];
+    for (let i = 1; i < baris.length; i += 1) {
+      const sel = pisah(baris[i]);
+      const kosong = makeEmpty();
+      const rec = kosong as Record<string, unknown>;
+      peta.forEach((key, idx) => {
+        if (!key) return;
+        const mentah = sel[idx] ?? "";
+        const field = fields.find((f) => f.key === key);
+        const asli = rec[key];
+        if (typeof asli === "number" || field?.type === "money" || field?.type === "number") {
+          rec[key] = parseAngkaID(mentah);
+        } else if (typeof asli === "boolean") {
+          rec[key] = /^(ya|true|1|tayang)$/i.test(mentah.trim());
+        } else if (field?.type === "select" && field.options) {
+          const cocok = field.options.find(
+            (o) => o.value.toLowerCase() === mentah.toLowerCase() || o.label.toLowerCase() === mentah.toLowerCase(),
+          );
+          rec[key] = cocok ? cocok.value : mentah;
+        } else {
+          rec[key] = mentah;
+        }
+      });
+      const draftRow = rec as T;
+      const verdict = validate?.(draftRow, "create") ?? null;
+      if (verdict) ditolak.push({ baris: i + 1, alasan: verdict });
+      else siap.push(draftRow);
+    }
+    setImpor({ nama: file.name, siap, ditolak });
+  };
+
+  const jalankanImpor = async () => {
+    if (!impor || !onImport) return;
+    setBusy(true);
+    let berhasil = 0;
+    try {
+      for (const row of impor.siap) {
+        const okBaris = await onImport(row);
+        if (okBaris) berhasil += 1;
+      }
+      setImpor(null);
+      setQ("");
+      setSort(null);
+      setPage(0);
+      setErr(null);
+      setImporHasil(berhasil);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const save = async () => {
     if (!draft || !mode) return;
@@ -199,6 +319,29 @@ export function DataTable<T>({
           {sorted.length} {noun}{sorted.length !== filtered.length ? ` (dari ${rows.length})` : ""}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
+          {onImport ? (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                aria-label={`Berkas CSV ${noun}`}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) void bacaCsv(f);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-line bg-white px-3 text-[11.5px] font-semibold text-ink2 transition hover:border-primary-300 hover:text-primary-800"
+              >
+                <Upload size={13} /> Impor CSV
+              </button>
+            </>
+          ) : null}
           <button
             type="button"
             onClick={() => exportCsv(columns, sorted, `srikandi-${noun}.csv`)}
@@ -220,7 +363,7 @@ export function DataTable<T>({
 
       {/* table */}
       {current.length ? (
-        <div className="overflow-x-auto">
+        <div className="sb-scroll">
           <table className="w-full min-w-[560px] border-collapse text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-line bg-[#f7faf7] text-[10.5px] uppercase tracking-[0.06em] text-muted">
@@ -461,6 +604,70 @@ export function DataTable<T>({
           </div>
         ) : null}
       </Modal>
+
+      {impor ? (
+        <Modal
+          open
+          onClose={() => setImpor(null)}
+          title={`Impor ${noun} dari CSV`}
+          description={`${impor.nama} — ${impor.siap.length} baris siap, ${impor.ditolak.length} ditolak.`}
+          width={620}
+          footer={
+            <>
+              <Btn variant="ghost" onClick={() => setImpor(null)}>Batal</Btn>
+              <Btn variant="primary" onClick={jalankanImpor} disabled={busy || impor.siap.length === 0}>
+                {busy ? "Menyimpan…" : `Simpan ${impor.siap.length} baris`}
+              </Btn>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <p className="text-[12px] leading-relaxed text-muted">
+              Berkas dibaca dengan pemisah titik koma, sama seperti hasil "Ekspor CSV" di toolbar. Kolom
+              dipetakan lewat judul kolom; baris yang tidak lolos pemeriksaan tidak menghalangi baris lain.
+            </p>
+            {impor.siap.length > 0 ? (
+              <div className="rounded-sb-sm border border-[#cfe3cd] bg-[var(--sb-success-bg)] px-3 py-2">
+                <p className="text-[12px] font-semibold text-[var(--sb-success)]">{impor.siap.length} baris siap disimpan</p>
+                <ul className="mt-1 space-y-0.5 text-[11.5px] text-ink2">
+                  {impor.siap.slice(0, 4).map((r, i) => (
+                    <li key={i} className="truncate">
+                      · {String((r as Record<string, unknown>)[fields[0]?.key ?? "id"] ?? `baris ${i + 1}`)}
+                    </li>
+                  ))}
+                  {impor.siap.length > 4 ? <li className="text-muted2">… dan {impor.siap.length - 4} baris lain</li> : null}
+                </ul>
+              </div>
+            ) : null}
+            {impor.ditolak.length > 0 ? (
+              <div className="rounded-sb-sm border border-[var(--sb-danger)]/30 bg-[var(--sb-danger-bg)] px-3 py-2">
+                <p className="text-[12px] font-semibold text-[var(--sb-danger)]">{impor.ditolak.length} baris ditolak</p>
+                <ul className="mt-1 space-y-0.5 text-[11.5px] text-ink2">
+                  {impor.ditolak.slice(0, 6).map((d) => (
+                    <li key={d.baris}>· Baris {d.baris}: {d.alasan}</li>
+                  ))}
+                  {impor.ditolak.length > 6 ? <li className="text-muted2">… dan {impor.ditolak.length - 6} baris lain</li> : null}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
+
+      {imporHasil !== null ? (
+        <Modal
+          open
+          onClose={() => setImporHasil(null)}
+          title="Impor selesai"
+          description={`${imporHasil} ${noun} tersimpan dari berkas CSV.`}
+          footer={<Btn variant="primary" onClick={() => setImporHasil(null)}>Tutup</Btn>}
+        >
+          <p className="text-[12.5px] leading-relaxed text-muted">
+            Semua baris yang tersimpan sudah masuk ke dokumen bersama, tampil di tabel ini, dan tercatat
+            satu per satu di jejak audit.
+          </p>
+        </Modal>
+      ) : null}
     </Card>
   );
 }

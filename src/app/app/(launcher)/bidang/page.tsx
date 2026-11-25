@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ArrowRight, ArrowUpRight, CheckCircle2, Circle, ExternalLink, MapPin } from "lucide-react";
 import { FIELDS } from "@/config/fields";
 import { APPS } from "@/config/apps";
-import { PROGRAMS } from "@/data/operations";
+import { orgSummary } from "@/lib/org-summary";
 import { Badge, Card } from "@/components/ui";
 import { AppIcon } from "@/components/brand";
 
@@ -42,7 +42,10 @@ const HERO: Record<string, { img: string; alt: string; tint: string }> = {
   },
 };
 
-export default function BidangIndex() {
+export default async function BidangIndex() {
+  // Hitungan program di peta bidang harus sama dengan yang dilihat pengurus
+  // di panel bidang — jadi dibaca dari dokumen bersama.
+  const { programs: PROGRAMS } = await orgSummary();
   const activeApps = APPS.filter((a) => a.group !== "bidang" && a.key !== "studio" && a.key !== "launcher");
   const fieldApps = FIELDS.length;
 

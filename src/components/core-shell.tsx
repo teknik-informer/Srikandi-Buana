@@ -1,11 +1,11 @@
 "use client";
 
 import { useStore, StoreProvider, type Actor } from "@/lib/store";
-import { Toaster } from "@/components/act";
+import { Toaster, SharedStatusBar } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
 import { SearchProvider } from "@/components/search-dialog";
 import { DEMO_ACCOUNTS, type DemoIdentity } from "@/lib/identity";
-import { NOTICES } from "@/data/organization";
+import { NOTICES as SEED_NOTICES } from "@/data/organization";
 import type { AppKey } from "@/config/apps";
 
 /**
@@ -40,6 +40,7 @@ export function CoreShell({
         </LiveChrome>
       </SearchProvider>
       <Toaster />
+      <SharedStatusBar />
     </StoreProvider>
   );
 }
@@ -93,7 +94,7 @@ function LiveChrome({
         href: n.href,
         unread: !n.read,
       }))}
-      fallbackNotices={NOTICES.length}
+      fallbackNotices={SEED_NOTICES.length}
     >
       {children}
     </AppShell>

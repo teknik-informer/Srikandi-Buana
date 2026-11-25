@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CheckCheck, Bell, ExternalLink } from "lucide-react";
+import { CheckCheck, Bell, ExternalLink, Megaphone, Trash2 } from "lucide-react";
 import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
-import { Btn, DemoStateChip, Segmented } from "@/components/act";
+import { Btn, DemoStateChip, Field, Modal, Segmented, Select, TextArea, TextInput } from "@/components/act";
 import { useStore } from "@/lib/store";
 import { formatDateID } from "@/lib/format";
 
 type Filter = "belum" | "semua";
 
 export function NotifikasiClient() {
-  const { state, exec } = useStore();
+  const { state, exec, actor } = useStore();
   const [filter, setFilter] = useState<Filter>("belum");
+  const [umumkan, setUmumkan] = useState(false);
 
   const unread = state.notices.filter((n) => !n.read).length;
   const list = filter === "belum" ? state.notices.filter((n) => !n.read) : state.notices;
@@ -29,6 +30,9 @@ export function NotifikasiClient() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <DemoStateChip compact />
+          <Btn variant="primary" icon={<Megaphone size={14} />} onClick={() => setUmumkan(true)}>
+            Umumkan
+          </Btn>
           <Btn variant="outline" icon={<CheckCheck size={14} />} onClick={() => exec({ type: "notice.readAll" })} disabled={unread === 0}>
             Tandai semua dibaca
           </Btn>
@@ -77,6 +81,18 @@ export function NotifikasiClient() {
                   {!n.read ? (
                     <Btn size="sm" variant="ghost" onClick={() => exec({ type: "notice.read", id: n.id })}>Tandai dibaca</Btn>
                   ) : null}
+                  <button
+                    type="button"
+                    aria-label={`Hapus notifikasi ${n.title}`}
+                    onClick={() => {
+                      if (window.confirm(`Hapus notifikasi "${n.title}"?`)) {
+                        exec({ type: "notice.delete", id: n.id, actor });
+                      }
+                    }}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted2 transition hover:bg-[var(--sb-danger-bg)] hover:text-[var(--sb-danger)]"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               </div>
             </li>
@@ -90,6 +106,89 @@ export function NotifikasiClient() {
           ) : null}
         </ul>
       </Card>
+
+      {umumkan ? <FormUmumkan onTutup={() => setUmumkan(false)} /> : null}
     </div>
+  );
+}
+
+const TONE_PILIHAN = [
+  { value: "info", label: "Informasi" },
+  { value: "success", label: "Kabar baik" },
+  { value: "warning", label: "Perlu perhatian" },
+  { value: "danger", label: "Mendesak" },
+] as const;
+
+function FormUmumkan({ onTutup }: { onTutup: () => void }) {
+  const { exec, actor } = useStore();
+  const [judul, setJudul] = useState("");
+  const [isi, setIsi] = useState("");
+  const [untuk, setUntuk] = useState("Semua pengurus");
+  const [tone, setTone] = useState<(typeof TONE_PILIHAN)[number]["value"]>("info");
+  const [tautan, setTautan] = useState("");
+  const [galat, setGalat] = useState<string | null>(null);
+
+  const kirim = () => {
+    const hasil = exec({
+      type: "notice.broadcast",
+      title: judul,
+      body: isi,
+      audience: untuk,
+      tone,
+      href: tautan,
+      actor,
+    });
+    if (!hasil.ok) {
+      setGalat(hasil.message);
+      return;
+    }
+    onTutup();
+  };
+
+  return (
+    <Modal
+      open
+      onClose={onTutup}
+      title="Umumkan pemberitahuan"
+      description="Pengumuman langsung masuk ke pusat notifikasi semua pengurus dan tercatat di jejak audit."
+      width={540}
+      footer={
+        <>
+          <Btn variant="ghost" onClick={onTutup}>Batal</Btn>
+          <Btn variant="primary" onClick={kirim}>Kirim pengumuman</Btn>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <Field label="Judul" required>
+          {(id) => (
+            <TextInput id={id} value={judul} onChange={(e) => setJudul(e.target.value)} placeholder="mis. Rapat koordinasi dimajukan" />
+          )}
+        </Field>
+        <Field label="Isi pemberitahuan" required hint="Sebutkan siapa yang perlu bertindak, apa, dan kapan.">
+          {(id) => (
+            <TextArea id={id} className="min-h-[96px]" value={isi} onChange={(e) => setIsi(e.target.value)} placeholder="Rapat koordinasi bidang dimajukan ke Kamis, 26 November 2026, pukul 19.00 WIB di balai desa." />
+          )}
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Untuk">
+            {(id) => <TextInput id={id} value={untuk} onChange={(e) => setUntuk(e.target.value)} placeholder="Semua pengurus / Bidang Usaha" />}
+          </Field>
+          <Field label="Nada">
+            {(id) => (
+              <Select id={id} value={tone} onChange={(e) => setTone(e.target.value as typeof tone)}>
+                {TONE_PILIHAN.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </Select>
+            )}
+          </Field>
+        </div>
+        <Field label="Tautan tujuan" hint="Opsional — mis. /app/sekretariat/rapat agar penerima bisa langsung membuka.">
+          {(id) => <TextInput id={id} value={tautan} onChange={(e) => setTautan(e.target.value)} placeholder="/app/sekretariat/rapat" />}
+        </Field>
+        {galat ? (
+          <p className="rounded-sb-sm border border-[var(--sb-danger)]/30 bg-[var(--sb-danger-bg)] px-3 py-2 text-[12px] text-[var(--sb-danger)]">{galat}</p>
+        ) : null}
+      </div>
+    </Modal>
   );
 }

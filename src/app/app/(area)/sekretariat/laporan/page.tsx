@@ -1,12 +1,23 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { LETTERS, DOCUMENTS, MEETINGS, MEMBERS } from "@/data/organization";
+import { MEETINGS as SEED_MEETINGS } from "@/data/organization";
+import { orgSummary, hitungAnggota } from "@/lib/org-summary";
 import { Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
 import { formatDateID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Laporan Sekretariat" };
 
-export default function LaporanSekretariatPage() {
+export default async function LaporanSekretariatPage() {
+  // Angka keanggotaan mengikuti dokumen bersama — laporan tidak boleh
+  // menyebut jumlah yang berbeda dari buku induk.
+  const ringkas = await orgSummary();
+  const anggota = hitungAnggota(ringkas.members);
+  // Surat, dokumen, rapat, dan kehadiran semuanya dikelola sekretariat, jadi
+  // angkanya dibaca dari dokumen bersama.
+  const { letters: LETTERS, documents: DOCUMENTS } = ringkas;
+  const { meetings: MEETINGS, meetingAttendance: KEHADIRAN } = ringkas;
+  const rapatBerdaftar = MEETINGS.filter((m) => KEHADIRAN.some((a) => a.meetingId === m.id)).length;
+  const orangHadir = KEHADIRAN.filter((a) => a.present).length;
   const masuk = LETTERS.filter((l) => l.direction === "masuk");
   const keluar = LETTERS.filter((l) => l.direction === "keluar");
   const selesai = LETTERS.filter((l) => l.status === "selesai");
@@ -24,7 +35,7 @@ export default function LaporanSekretariatPage() {
         <StatCard label="Surat tercatat" value={LETTERS.length} note={`${masuk.length} masuk · ${keluar.length} keluar`} />
         <StatCard label="Surat selesai" value={selesai.length} note={`${LETTERS.length - selesai.length} masih berjalan`} tone="success" />
         <StatCard label="Dokumen diarsip" value={DOCUMENTS.length} note={`${DOCUMENTS.filter((d) => d.status === "final").length} final`} tone="info" href="/app/sekretariat/dokumen" />
-        <StatCard label="Rapat tercatat" value={MEETINGS.length} note={`${MEETINGS.filter((m) => m.notulenStatus === "final").length} notulen final`} tone="accent" />
+        <StatCard label="Rapat tercatat" value={MEETINGS.length} note={`${MEETINGS.filter((m) => m.notulenStatus === "final").length} notulen final · ${rapatBerdaftar} berdaftar hadir`} tone="accent" />
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -84,7 +95,10 @@ export default function LaporanSekretariatPage() {
               <li key={m.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
                 <div className="min-w-0">
                   <div className="text-[12px] font-medium text-ink">{m.title}</div>
-                  <div className="text-[10.5px] text-muted2">{formatDateID(m.date, "short")} · {m.attendees} hadir</div>
+                  <div className="text-[10.5px] text-muted2">
+                    {formatDateID(m.date, "short")} · {m.attendees} hadir
+                    {KEHADIRAN.some((a) => a.meetingId === m.id) ? " (daftar tercatat)" : ""}
+                  </div>
                 </div>
                 <span className={`shrink-0 text-[11px] font-semibold ${m.notulenStatus === "final" ? "text-[var(--sb-success)]" : "text-[var(--sb-warning)]"}`}>
                   {m.notulenStatus === "final" ? "notulen final" : "notulen draf"}
@@ -95,13 +109,46 @@ export default function LaporanSekretariatPage() {
         </Card>
 
         <Card>
+          <CardHeader
+            title="Kehadiran per orang"
+            subtitle={orangHadir ? `${orangHadir} kehadiran tercatat di ${rapatBerdaftar} rapat` : "Belum ada daftar hadir yang diisi"}
+          />
+          {orangHadir === 0 ? (
+            <p className="px-4 py-4 text-[12px] leading-relaxed text-muted">
+              Daftar hadir per orang belum diisi. Buka{" "}
+              <Link href="/app/sekretariat/presensi" className="font-semibold text-primary-800 underline">
+                Daftar hadir rapat
+              </Link>{" "}
+              untuk menandai kehadiran anggota pada rapat tertentu.
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {Array.from(
+                KEHADIRAN.filter((a) => a.present).reduce((peta, a) => {
+                  peta.set(a.memberName, (peta.get(a.memberName) ?? 0) + 1);
+                  return peta;
+                }, new Map<string, number>()),
+              )
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8)
+                .map(([nama, jumlah]) => (
+                  <li key={nama} className="flex items-center justify-between gap-2 px-4 py-2.5">
+                    <span className="text-[12px] font-medium text-ink">{nama}</span>
+                    <span className="text-[11px] text-muted2">{jumlah} rapat</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card>
           <CardHeader title="Keanggotaan" subtitle="Catatan induk" />
           <ul className="divide-y divide-line">
             {[
-              ["Terdaftar", MEMBERS.length, "Seluruh nomor induk"],
-              ["Aktif", MEMBERS.filter((m) => m.status === "aktif").length, "Berhak atas layanan anggota"],
-              ["Menunggu verifikasi", MEMBERS.filter((m) => m.status === "menunggu").length, "Perlu keputusan"],
-              ["Nonaktif", MEMBERS.filter((m) => m.status === "nonaktif").length, "Arsip, riwayat disimpan"],
+              ["Terdaftar", anggota.total, "Seluruh nomor induk"],
+              ["Aktif", anggota.aktif, "Berhak atas layanan anggota"],
+              ["Menunggu verifikasi", anggota.menunggu, "Perlu keputusan"],
+              ["Nonaktif", anggota.nonaktif, "Arsip, riwayat disimpan"],
             ].map(([k, v, note]) => (
               <li key={String(k)} className="flex items-center justify-between gap-3 px-4 py-2.5">
                 <div>

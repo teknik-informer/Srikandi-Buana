@@ -2,13 +2,16 @@ import { redirect } from "next/navigation";
 import { getIdentity } from "@/lib/session";
 import { CoreShell } from "@/components/core-shell";
 import { CORE_NAV } from "@/config/apps";
-import { APPROVALS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 
 export default async function PengurusLayout({ children }: { children: React.ReactNode }) {
   const identity = await getIdentity();
 
   if (!identity) redirect("/masuk");
-  const pending = APPROVALS.filter((a) => a.status === "menunggu" || a.status === "revisi").length;
+  // Badge sidebar harus mencerminkan antrean yang benar-benar menunggu
+  // keputusan pengurus, bukan konstanta.
+  const { approvals } = await orgSummary();
+  const pending = approvals.filter((a) => a.status === "menunggu" || a.status === "revisi").length;
 
   return (
     <CoreShell

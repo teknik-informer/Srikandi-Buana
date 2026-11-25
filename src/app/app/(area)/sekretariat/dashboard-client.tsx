@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { DOCUMENTS, MEETINGS } from "@/data/organization";
+import { MEETINGS as SEED_MEETINGS } from "@/data/organization";
 import { NEWS, STUDIO_PAGES } from "@/data/content";
-import { ACTIVITIES } from "@/data/operations";
 import { formatDateID, relativeID } from "@/lib/format";
 import { Badge, Card, CardHeader, StatCard, StatusBadge } from "@/components/ui";
 import { Btn, DemoStateChip } from "@/components/act";
@@ -15,6 +14,10 @@ export function SekretariatDashboardClient() {
   const { state, exec, actor } = useStore();
   const LETTERS = state.letters;
   const inbound = LETTERS.filter((l) => l.direction === "masuk" && l.status !== "selesai");
+  // Dokumen & laporan dipelihara sekretariat; dibaca dari state bersama.
+  const DOCUMENTS = state.documents;
+  // Rapat kini punya aksi tulis (meeting.create/notulen) — baca state.
+  const MEETINGS = state.meetings ?? SEED_MEETINGS;
   const drafts = NEWS.filter((n) => n.status !== "published");
 
   return (
@@ -25,7 +28,7 @@ export function SekretariatDashboardClient() {
           `${inbound.length} surat perlu tindak lanjut`,
           `${DOCUMENTS.length} dokumen aktif`,
           `${drafts.length} draf publikasi`,
-          `${ACTIVITIES.filter((a) => a.status === "terjadwal").length} agenda minggu ini`,
+          `${state.activities.filter((a) => a.status === "terjadwal").length} agenda terjadwal`,
         ]}
         badge={<DemoStateChip tone="dark" />}
         actions={[
@@ -38,7 +41,7 @@ export function SekretariatDashboardClient() {
         <StatCard label="Surat masuk perlu tindak lanjut" value={inbound.length} note="Termasuk 1 surat pencairan bantuan" tone="warning" href="/app/sekretariat/surat" />
         <StatCard label="Dokumen aktif" value={DOCUMENTS.length} note={`${DOCUMENTS.filter((d) => d.visibility === "publik").length} publik`} tone="info" href="/app/sekretariat/dokumen" />
         <StatCard label="Draf publikasi" value={drafts.length} note="Menunggu review pengurus" tone="accent" href="/studio/website" />
-        <StatCard label="Agenda minggu ini" value={ACTIVITIES.filter((a) => a.status === "terjadwal").length} note="Lintas bidang" href="/app/sekretariat/agenda" />
+        <StatCard label="Agenda minggu ini" value={state.activities.filter((a) => a.status === "terjadwal").length} note="Lintas bidang" href="/app/sekretariat/agenda" />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
@@ -114,7 +117,7 @@ export function SekretariatDashboardClient() {
           <Card>
             <CardHeader title="Agenda sekretariat" />
             <ul className="divide-y divide-line">
-              {ACTIVITIES.filter((a) => a.status === "terjadwal").slice(0, 4).map((a) => (
+              {state.activities.filter((a) => a.status === "terjadwal").slice(0, 4).map((a) => (
                 <li key={a.id} className="px-4 py-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[12px] font-medium text-ink">{a.name}</div>

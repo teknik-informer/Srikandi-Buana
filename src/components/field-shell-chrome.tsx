@@ -1,11 +1,11 @@
 "use client";
 
-import { StoreProvider, type Actor } from "@/lib/store";
+import { StoreProvider, useStore, type Actor } from "@/lib/store";
 import { Toaster } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
 import { SearchProvider } from "@/components/search-dialog";
 import { DEMO_ACCOUNTS, type DemoIdentity } from "@/lib/identity";
-import { NOTICES } from "@/data/organization";
+
 import { FIELDS_BY_SLUG, type FieldDef } from "@/config/fields";
 import { fieldNav } from "@/config/field-nav";
 import type { AppKey } from "@/config/apps";
@@ -52,18 +52,45 @@ export function FieldShellChrome({
 
   return (
     <StoreProvider actor={actor}>
-    <SearchProvider>
+      <SearchProvider>
+        <ShellDalam
+          identity={identity}
+          activeApp={field ? FIELD_APP_KEY[fieldSlug] ?? "organisasi" : "organisasi"}
+          nav={nav}
+        >
+          {children}
+        </ShellDalam>
+      </SearchProvider>
+      <Toaster />
+    </StoreProvider>
+  );
+}
+
+/**
+ * Cangkang bidang perlu membaca store dari dalam provider: notifikasi yang
+ * baru diumumkan pengurus harus muncul di lonceng tanpa memuat ulang.
+ */
+function ShellDalam({
+  identity,
+  activeApp,
+  nav,
+  children,
+}: {
+  identity: DemoIdentity;
+  activeApp: AppKey;
+  nav: React.ComponentProps<typeof AppShell>["nav"];
+  children: React.ReactNode;
+}) {
+  const { state } = useStore();
+  return (
     <AppShell
       identity={identity}
       accounts={DEMO_ACCOUNTS.map((a) => ({ key: a.key, label: a.label, scope: a.identity.scope }))}
-      activeApp={field ? FIELD_APP_KEY[fieldSlug] ?? "organisasi" : "organisasi"}
+      activeApp={activeApp}
       nav={nav}
-      notices={NOTICES.map((n) => ({ id: n.id, title: n.title, date: n.date, href: n.href, unread: !n.read }))}
+      notices={state.notices.map((n) => ({ id: n.id, title: n.title, date: n.date, href: n.href, unread: !n.read }))}
     >
       {children}
     </AppShell>
-    </SearchProvider>
-    <Toaster />
-    </StoreProvider>
   );
 }

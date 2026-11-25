@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PROGRAMS, TASKS, ACTIVITIES, HARVESTS } from "@/data/operations";
-import { MEMBERS } from "@/data/organization";
+import { orgSummary, hitungAnggota, hitungLahan } from "@/lib/org-summary";
 import { FIELDS } from "@/config/fields";
 import { incomeStatement, trialBalance, cashPosition } from "@/lib/finance";
 import { formatIDR, formatNumber, percent } from "@/lib/format";
@@ -9,7 +8,15 @@ import { Badge, Card, CardHeader, Notice, PageHeader, Progress, StatCard } from 
 
 export const metadata: Metadata = { title: "Laporan Organisasi" };
 
-export default function LaporanOrganisasiPage() {
+export default async function LaporanOrganisasiPage() {
+  /**
+   * Anggota dan lahan dibaca dari dokumen bersama, bukan konstanta. Laporan
+   * yang menyebut jumlah anggota berbeda dari buku induk bukan laporan.
+   */
+  const ringkas = await orgSummary();
+  const anggota = hitungAnggota(ringkas.members);
+  const lahan = hitungLahan(ringkas.lands);
+  const { programs: PROGRAMS, tasks: TASKS, activities: ACTIVITIES, harvests: HARVESTS } = ringkas;
   const is = incomeStatement();
   const tb = trialBalance();
   const cash = cashPosition();
@@ -88,8 +95,8 @@ export default function LaporanOrganisasiPage() {
           <CardHeader title="Keanggotaan & partisipasi" />
           <dl className="divide-y divide-line">
             {[
-              ["Anggota aktif", `${MEMBERS.filter((m) => m.status === "aktif").length} orang`],
-              ["Menunggu verifikasi", `${MEMBERS.filter((m) => m.status === "menunggu").length} orang`],
+              ["Anggota aktif", `${anggota.aktif} orang`],
+              ["Menunggu verifikasi", `${anggota.menunggu} orang`],
               ["Kegiatan tercatat", `${ACTIVITIES.length} (${ACTIVITIES.filter((a) => a.status === "selesai").length} selesai)`],
               ["Total peserta kegiatan", `${formatNumber(ACTIVITIES.reduce((s, a) => s + a.participants, 0))} orang-kegiatan`],
             ].map(([k, v]) => (

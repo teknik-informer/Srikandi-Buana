@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { MEMBERS } from "@/data/organization";
-import { ACTIVITIES } from "@/data/operations";
 import { formatDateID, relativeID, formatIDR } from "@/lib/format";
 import { Badge, Card, CardHeader, StatCard, StatusBadge, Progress } from "@/components/ui";
 import { Btn, DemoStateChip } from "@/components/act";
@@ -12,11 +10,15 @@ import { useStore } from "@/lib/store";
 
 export function AnggotaHomeClient() {
   const { state, exec, actor } = useStore();
-  const me = MEMBERS.find((m) => m.name === actor.name) ?? MEMBERS.find((m) => m.id === actor.key) ?? MEMBERS[7];
+  // Anggota yang sedang masuk dibaca dari buku induk bersama.
+  const me =
+    state.members.find((m) => m.name === actor.name) ??
+    state.members.find((m) => m.id === actor.key) ??
+    state.members[0];
   const identity = { name: actor.name, role: actor.role, memberId: me.id };
   const TRAININGS = state.trainings;
   const TASKS = state.tasks;
-  const agenda = ACTIVITIES.filter((a) => a.status === "terjadwal").slice(0, 4);
+  const agenda = state.activities.filter((a) => a.status === "terjadwal").slice(0, 4);
   const myTasks = TASKS.slice(0, 4);
   const trainings = TRAININGS.filter((t) => t.status !== "selesai").slice(0, 3);
 

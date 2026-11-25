@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, UserPlus, CheckCircle2, Circle, Loader2, AlertTriangle, CalendarClock } from "lucide-react";
 import { FIELDS } from "@/config/fields";
-import { MEMBERS } from "@/data/organization";
 import { Badge, Card, CardHeader, StatCard } from "@/components/ui";
 import { Btn, DemoStateChip, Field, Modal, NoRows, SearchBox, SearchProvider, Select, Segmented, TextInput, useSearch, match } from "@/components/act";
 import { useStore } from "@/lib/store";
@@ -31,7 +30,7 @@ function Inner() {
   const [createOpen, setCreateOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState<string | null>(null);
 
-  const [form, setForm] = useState({ title: "", bidang: "pertanian", assignee: MEMBERS[1]?.name ?? "", due: "2026-11-30", priority: "sedang" as Task["priority"] });
+  const [form, setForm] = useState({ title: "", bidang: "pertanian", assignee: "", due: "2026-11-30", priority: "sedang" as Task["priority"] });
   const [assignee, setAssignee] = useState("");
   const [due, setDue] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -232,7 +231,7 @@ function Inner() {
             )}</Field>
             <Field label="Penanggung jawab">{(id) => (
               <Select id={id} value={form.assignee} onChange={(e) => setForm({ ...form, assignee: e.target.value })}>
-                {MEMBERS.map((m) => <option key={m.id} value={m.name}>{m.name} — {m.role}</option>)}
+                {state.members.map((m) => <option key={m.id} value={m.name}>{m.name} — {m.role}</option>)}
               </Select>
             )}</Field>
             <Field label="Tenggat" required>{(id) => <TextInput id={id} type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} />}</Field>
@@ -256,7 +255,7 @@ function Inner() {
         <div className="space-y-3">
           <Field label="Penanggung jawab baru">{(id) => (
             <Select id={id} value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-              {MEMBERS.map((m) => <option key={m.id} value={m.name}>{m.name} — {m.role}</option>)}
+              {state.members.map((m) => <option key={m.id} value={m.name}>{m.name} — {m.role}</option>)}
             </Select>
           )}</Field>
           <Field label="Tenggat baru">{(id) => <TextInput id={id} type="date" value={due} onChange={(e) => setDue(e.target.value)} />}</Field>

@@ -252,6 +252,22 @@ export interface AttendanceRow {
   note?: string;
 }
 
+/**
+ * Kehadiran per orang pada satu rapat.
+ *
+ * `meetingId` menunjuk `Meeting.id`; `memberId` menunjuk buku induk. Nama
+ * disimpan juga supaya daftar hadir tetap terbaca walau anggota kemudian
+ * keluar dari buku induk.
+ */
+export interface MeetingAttendance {
+  meetingId: string;
+  memberId: string;
+  memberName: string;
+  role: string;
+  present: boolean;
+  note?: string;
+}
+
 export interface DocumentRow {
   id: string;
   number: string;

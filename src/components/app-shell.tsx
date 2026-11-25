@@ -13,7 +13,7 @@ import { APPS, type AppKey } from "@/config/apps";
 import { AppIcon } from "@/components/brand";
 import { SearchProvider, SearchButton } from "@/components/search-dialog";
 import { switchContext } from "@/app/actions/auth";
-import { MEMBERS } from "@/data/organization";
+import { MEMBERS as SEED_MEMBERS } from "@/data/organization";
 import { demoNow } from "@/lib/store";
 import type { DemoIdentity } from "@/lib/identity";
 import { useStoreOptional } from "@/lib/store";
@@ -45,8 +45,9 @@ function demoStamp() {
 }
 
 /** Honest profile completeness: share of member fields that are actually filled. */
-function profileCompleteness(memberId: string) {
-  const m = MEMBERS.find((x) => x.id === memberId);
+function profileCompleteness(memberId: string, members: typeof SEED_MEMBERS = SEED_MEMBERS) {
+  // Anggota berasal dari buku induk hidup; seed hanya jaring pengaman.
+  const m = members.find((x) => x.id === memberId) ?? SEED_MEMBERS.find((x) => x.id === memberId);
   if (!m) return { pct: 0, label: "Belum terhubung" };
   const checks = [
     !!m.name, !!m.role && m.role !== "—", !!m.scope && m.scope !== "—",
@@ -84,7 +85,7 @@ export function AppShell({
   const [user, setUser] = useState(false);
   const unread = notices.filter((n) => n.unread).length;
   const app = APPS.find((a) => a.key === activeApp)!;
-  const profile = profileCompleteness(identity.memberId);
+  const profile = profileCompleteness(identity.memberId, store?.state.members);
 
   /**
    * Only one nav item may look active. A parent route like `/app/pengurus`

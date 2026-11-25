@@ -1,12 +1,16 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { LETTERS } from "@/data/organization";
+import { orgSummary } from "@/lib/org-summary";
 import { Badge, Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
 import { formatDateID, daysUntil } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Agenda Surat & Ekspedisi" };
 
-export default function EkspedisiPage() {
+export const dynamic = "force-dynamic";
+
+export default async function EkspedisiPage() {
+  // Surat dikelola sekretariat (letter.register/letter.status).
+  const { letters: LETTERS } = await orgSummary();
   const keluar = LETTERS.filter((l) => l.direction === "keluar");
   const masuk = LETTERS.filter((l) => l.direction === "masuk");
   const perluTindak = LETTERS.filter((l) => l.status !== "selesai");
