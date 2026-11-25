@@ -277,6 +277,7 @@ BEGIN
       IF target_status IS DISTINCT FROM 'published'
         OR target_membership = NEW.reporter_membership_id
         OR target_author IS NOT DISTINCT FROM NEW.reporter_user_id
+        OR target_author IS NOT DISTINCT FROM NEW.reporter_user_id
       THEN
         RAISE EXCEPTION 'A member may report published content from another member only.';
       END IF;
