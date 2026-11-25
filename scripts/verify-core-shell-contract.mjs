@@ -315,3 +315,33 @@ assert.ok(
 );
 
 process.stdout.write("Core workspace shell contract: PASS\n");
+
+const financeActions = read("src/app/actions/finance.ts");
+const cashBankPage = read("src/app/app/(area)/keuangan/kas-bank/page.tsx");
+const financeDashboard = read("src/components/finance-dashboard-section.tsx");
+assert.ok(
+  financeActions.includes("export async function createFinanceCashAccount") &&
+  financeActions.includes("export async function updateFinanceCashAccountStatus") &&
+  financeActions.includes('can(identity, "finance:accounts:write")') &&
+  financeActions.includes('can(identity, "finance:accounts:approve")') &&
+  financeActions.includes("finance_cash_accounts") &&
+  financeActions.includes("finance_cash_account.created") &&
+  financeActions.includes('currency !== "IDR"'),
+  "Finance cash/bank mappings must be organization-scoped, audited, IDR-only, and permission-gated for creation and activation.",
+);
+assert.ok(
+  cashBankPage.includes("createFinanceCashAccount") &&
+  cashBankPage.includes("updateFinanceCashAccountStatus") &&
+  cashBankPage.includes("v9.finance_cash_accounts") &&
+  cashBankPage.includes("journal.status = 'posted'") &&
+  cashBankPage.includes("account_number_last4") &&
+  cashBankPage.includes("Rekonsiliasi bank belum tersedia"),
+  "Cash/bank UI must read the register, derive balances only from posted journals, mask account numbers, and clearly distinguish register from reconciliation.",
+);
+assert.ok(
+  financeDashboard.includes("register Kas/Bank sudah tersedia") &&
+  !financeDashboard.includes("Kas/bank, rekonsiliasi"),
+  "The finance dashboard must describe the register as implemented without claiming bank reconciliation is available.",
+);
+
+process.stdout.write("Finance cash and bank register contract: PASS\n");
