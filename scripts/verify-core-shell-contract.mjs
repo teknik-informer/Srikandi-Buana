@@ -273,4 +273,29 @@ assert.ok(
   "Public programme and news pages must not display seeded sample content.",
 );
 
+
+const joinForm = read("src/components/join-form.tsx");
+const joinAction = read("src/app/actions/forms.ts");
+assert.ok(
+  joinForm.includes('name="website"') &&
+  joinForm.includes('tabIndex={-1}') &&
+  joinForm.includes("aria-hidden=\"true\""),
+  "The public join form must include a non-focusable honeypot field.",
+);
+assert.ok(
+  joinAction.includes("pg_advisory_xact_lock") &&
+  joinAction.includes("interval '15 minutes'") &&
+  joinAction.includes("rate_limited") &&
+  joinAction.includes("const ratePhone = telepon.replace("),
+  "Public join submissions must be throttled per normalized phone number under a transaction-scoped advisory lock.",
+);
+assert.ok(
+  joinAction.includes("'submitted'") &&
+  joinAction.includes("v9.membership_interests") &&
+  joinAction.includes("v9.outbox_events") &&
+  !joinAction.includes("INSERT INTO v9.memberships") &&
+  !joinAction.includes("INSERT INTO v9.user_accounts"),
+  "The public form may submit an interest and notification event only; it must not activate membership or create login accounts.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
