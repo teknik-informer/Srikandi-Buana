@@ -85,9 +85,9 @@ BEGIN
       OR NEW.closed_by IS NOT NULL
       OR NEW.closed_at IS NOT NULL
       OR NEW.close_note IS NOT NULL
-      OR NEW.reopened_by IS NOT NULL
-      OR NEW.reopened_at IS NOT NULL
-      OR NEW.reopen_note IS NOT NULL
+      OR NEW.reopened_by IS DISTINCT FROM OLD.reopened_by
+      OR NEW.reopened_at IS DISTINCT FROM OLD.reopened_at
+      OR NEW.reopen_note IS DISTINCT FROM OLD.reopen_note
       OR NEW.updated_by <> NEW.created_by
     THEN
       RAISE EXCEPTION 'A new finance period must start open with no closing or reopening metadata.';
@@ -118,7 +118,6 @@ BEGIN
     );
 
     IF NEW.closed_by IS NULL
-      OR NEW.closed_by = OLD.created_by
       OR NEW.closed_at IS NULL
       OR NEW.updated_by IS DISTINCT FROM NEW.closed_by
       OR NEW.close_note IS NULL
@@ -127,7 +126,7 @@ BEGIN
       OR NEW.reopened_at IS NOT NULL
       OR NEW.reopen_note IS NOT NULL
     THEN
-      RAISE EXCEPTION 'Closing a period requires another authorized user and a recorded reason.';
+      RAISE EXCEPTION 'Closing a period requires an authorized actor and a recorded reason.';
     END IF;
 
     IF EXISTS (
@@ -145,7 +144,6 @@ BEGIN
 
   IF OLD.status = 'closed' AND NEW.status = 'open' THEN
     IF NEW.reopened_by IS NULL
-      OR NEW.reopened_by = OLD.closed_by
       OR NEW.reopened_at IS NULL
       OR NEW.updated_by IS DISTINCT FROM NEW.reopened_by
       OR NEW.reopen_note IS NULL
@@ -154,7 +152,7 @@ BEGIN
       OR NEW.closed_at IS NOT NULL
       OR NEW.close_note IS NOT NULL
     THEN
-      RAISE EXCEPTION 'Reopening a period requires a different authorized user and a recorded reason.';
+      RAISE EXCEPTION 'Reopening a period requires an authorized actor and a recorded reason.';
     END IF;
 
     RETURN NEW;
