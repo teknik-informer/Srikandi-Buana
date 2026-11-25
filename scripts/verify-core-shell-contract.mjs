@@ -125,16 +125,16 @@ assert.ok(
 );
 
 
-const appShellSource = read("src/components/app-shell.tsx");
+const sidebarShellSource = read("src/components/app-shell.tsx");
 const appAccessSource = read("src/lib/app-access.ts");
 assert.ok(
-  appShellSource.includes("const visibleNav = nav") &&
-  appShellSource.includes("canAccessAppHref(identity, item.href)") &&
-  appShellSource.includes("{visibleNav.map((group, gi) => ("),
+  sidebarShellSource.includes("const visibleNav = nav") &&
+  sidebarShellSource.includes("canAccessAppHref(identity, item.href)") &&
+  sidebarShellSource.includes("{visibleNav.map((group, gi) => ("),
   "The shared sidebar must filter navigation destinations through application permissions.",
 );
 assert.ok(
-  appShellSource.includes("visibleNav.flatMap((g) => g.items)") &&
+  sidebarShellSource.includes("visibleNav.flatMap((g) => g.items)") &&
   appAccessSource.includes('if (path.startsWith("/app/") && app === "launcher") return false;'),
   "Navigation badges must use the filtered menu and unknown internal paths must be hidden.",
 );
