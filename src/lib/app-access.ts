@@ -52,7 +52,8 @@ export function appKeyForHref(href: string): AppKey {
 
 /** Navigation visibility only; the destination layout performs final authorization. */
 export function canAccessAppHref(identity: AppIdentity, href: string): boolean {
-  const path = href.split(/[?#]/, 1)[0].replace(/\\/+$/, "") || "/";
+  let path = href.split("?")[0].split("#")[0] || "/";
+  if (path.length > 1 && path.endsWith("/")) path = path.slice(0, -1);
   const launcherDestinations = new Set([
     "/app",
     "/app/bidang",
