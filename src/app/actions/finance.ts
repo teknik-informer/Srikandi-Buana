@@ -1811,3 +1811,165 @@ export async function closeFinanceBudget(formData: FormData): Promise<void> {
   refreshFinance();
   redirect(budgetPath("budget-closed", budgetId));
 }
+
+export async function createFinanceContributionAllocation(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:write")) redirect("/app");
+
+  const journalId = String(formData.get("journal_id") ?? "").trim();
+  const membershipId = String(formData.get("membership_id") ?? "").trim();
+  const amountText = String(formData.get("allocation_amount") ?? "").trim();
+  const amount = Number(amountText);
+  const note = normalize(String(formData.get("note") ?? ""));
+
+  if (
+    !validUuid(journalId) ||
+    !validUuid(membershipId) ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    Math.round(amount * 100) !== amount * 100 ||
+    amount > 9999999999999999 ||
+    note.length > 1000
+  ) redirect("/app/keuangan/iuran?result=allocation-invalid");
+
+  let created: MutationRow | undefined;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH inserted AS (
+        INSERT INTO v9.finance_contribution_allocations (
+          organization_id, journal_id, membership_id, allocation_amount,
+          note, created_by, updated_by
+        )
+        VALUES (
+          ${identity.organizationId}, ${journalId}, ${membershipId},
+          ${amount}, NULLIF(${note}, ''), ${identity.userId}, ${identity.userId}
+        )
+        RETURNING id, organization_id, journal_id, membership_id,
+          allocation_amount, note
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT organization_id, ${identity.userId},
+          'finance_contribution_allocation.created',
+          'finance_contribution_allocation', id::text,
+          jsonb_build_object(
+            'journal_id', journal_id,
+            'membership_id', membership_id,
+            'allocation_amount', allocation_amount,
+            'note', note
+          )
+        FROM inserted
+        RETURNING id
+      )
+      SELECT inserted.id::text AS id FROM inserted INNER JOIN audit ON true
+    `;
+    created = rowsFromResult<MutationRow>(result)[0];
+  } catch (reason) {
+    fail("finance-contribution-allocation-create", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("finance_contribution_allocations_organization_id_journal_id_membership_id_key")) {
+      redirect("/app/keuangan/iuran?result=allocation-already-exists");
+    }
+    if (message.includes("exceed the posted contribution revenue")) {
+      redirect("/app/keuangan/iuran?result=allocation-exceeds");
+    }
+    redirect("/app/keuangan/iuran?result=allocation-blocked");
+  }
+
+  if (!created) redirect("/app/keuangan/iuran?result=allocation-blocked");
+  refreshFinance();
+  revalidatePath("/app/anggota/kontribusi");
+  redirect("/app/keuangan/iuran?result=allocation-created");
+}
+
+export async function updateFinanceContributionAllocation(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:write")) redirect("/app");
+
+  const allocationId = String(formData.get("allocation_id") ?? "").trim();
+  const membershipId = String(formData.get("membership_id") ?? "").trim();
+  const amountText = String(formData.get("allocation_amount") ?? "").trim();
+  const amount = Number(amountText);
+  const reason = normalize(String(formData.get("correction_note") ?? ""));
+
+  if (
+    !validUuid(allocationId) ||
+    !validUuid(membershipId) ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    Math.round(amount * 100) !== amount * 100 ||
+    amount > 9999999999999999 ||
+    reason.length < 3 ||
+    reason.length > 1000
+  ) redirect("/app/keuangan/iuran?result=allocation-invalid");
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT allocation.id, allocation.organization_id, allocation.journal_id,
+          allocation.membership_id, allocation.allocation_amount, allocation.note
+        FROM v9.finance_contribution_allocations AS allocation
+        WHERE allocation.id = ${allocationId}
+          AND allocation.organization_id = ${identity.organizationId}
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.finance_contribution_allocations AS allocation
+        SET membership_id = ${membershipId},
+          allocation_amount = ${amount},
+          note = ${reason},
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM before_row
+        WHERE allocation.id = before_row.id
+          AND allocation.organization_id = before_row.organization_id
+        RETURNING allocation.id, allocation.organization_id, allocation.journal_id,
+          allocation.membership_id, allocation.allocation_amount, allocation.note
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id,
+          before_state, after_state
+        )
+        SELECT
+          updated.organization_id,
+          ${identity.userId},
+          'finance_contribution_allocation.corrected',
+          'finance_contribution_allocation',
+          updated.id::text,
+          jsonb_build_object(
+            'membership_id', before_row.membership_id,
+            'allocation_amount', before_row.allocation_amount,
+            'note', before_row.note
+          ),
+          jsonb_build_object(
+            'membership_id', updated.membership_id,
+            'allocation_amount', updated.allocation_amount,
+            'note', updated.note
+          )
+        FROM updated
+        INNER JOIN before_row ON before_row.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-contribution-allocation-update", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("exceed the posted contribution revenue")) {
+      redirect("/app/keuangan/iuran?result=allocation-exceeds");
+    }
+    redirect("/app/keuangan/iuran?result=allocation-correction-blocked");
+  }
+
+  if (!changed) redirect("/app/keuangan/iuran?result=allocation-correction-blocked");
+  refreshFinance();
+  revalidatePath("/app/anggota/kontribusi");
+  redirect("/app/keuangan/iuran?result=allocation-corrected");
+}
