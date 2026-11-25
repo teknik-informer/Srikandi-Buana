@@ -15,18 +15,28 @@ export default async function SuratPage({
   const sql = getV9Sql();
   const query = await sql`
     SELECT
-      id::text AS id,
-      reference_no,
-      direction,
-      number,
-      subject,
-      counterpart,
-      letter_date::text AS date,
-      status,
-      assignee_label AS assignee
-    FROM v9.secretariat_letters
-    WHERE organization_id = ${identity.organizationId}
-    ORDER BY letter_date DESC, created_at DESC
+      letter.id::text AS id,
+      letter.reference_no,
+      letter.direction,
+      letter.number,
+      letter.subject,
+      letter.counterpart,
+      letter.letter_date::text AS date,
+      letter.status,
+      letter.assignee_label AS assignee,
+      generated_document.id::text AS document_id
+    FROM v9.secretariat_letters AS letter
+    LEFT JOIN LATERAL (
+      SELECT document.id
+      FROM v9.secretariat_documents AS document
+      WHERE document.organization_id = letter.organization_id
+        AND document.source_letter_id = letter.id
+        AND document.status <> 'arsip'
+      ORDER BY document.created_at DESC
+      LIMIT 1
+    ) AS generated_document ON true
+    WHERE letter.organization_id = ${identity.organizationId}
+    ORDER BY letter.letter_date DESC, letter.created_at DESC
     LIMIT 500
   `;
   const rows = rowsFromResult<SecretariatLetter>(query);

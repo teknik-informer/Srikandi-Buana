@@ -504,6 +504,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
   const templateCode = String(formData.get("template_code") ?? "").trim();
   const template = getSecretariatTemplate(templateCode);
   const documentId = String(formData.get("document_id") ?? "").trim();
+  const submittedMeetingId = String(formData.get("source_meeting_id") ?? "").trim();
+  const submittedMinutesId = String(formData.get("source_minutes_id") ?? "").trim();
+  const submittedLetterId = String(formData.get("source_letter_id") ?? "").trim();
   const title = String(formData.get("document_title") ?? "").trim().replace(/\s+/g, " ");
   const number = String(formData.get("number") ?? "").trim();
   const documentDate = String(formData.get("document_date") ?? "").trim();
@@ -514,8 +517,89 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
       number.length > 100 || !validDate(documentDate) ||
       owner.length < 2 || owner.length > 160 ||
       !["internal", "terbatas"].includes(visibility) ||
-      (documentId && !validUuid(documentId))) {
+      (documentId && !validUuid(documentId)) ||
+      [submittedMeetingId, submittedMinutesId, submittedLetterId].some((id) => id && !validUuid(id)) ||
+      [submittedMeetingId, submittedMinutesId, submittedLetterId].filter(Boolean).length > 1) {
     redirect("/app/sekretariat/template?result=invalid");
+  }
+
+  const sql = getV9Sql();
+  let persistedSource: { source_meeting_id: string | null; source_minutes_id: string | null; source_letter_id: string | null } | undefined;
+  if (documentId) {
+    try {
+      const existingSourceResult = await sql`
+        SELECT source_meeting_id::text AS source_meeting_id,
+          source_minutes_id::text AS source_minutes_id,
+          source_letter_id::text AS source_letter_id
+        FROM v9.secretariat_documents
+        WHERE id = ${documentId}
+          AND organization_id = ${identity.organizationId}
+          AND status <> 'arsip'
+          AND visibility <> 'publik'
+        LIMIT 1
+      `;
+      persistedSource = rowsFromResult<{ source_meeting_id: string | null; source_minutes_id: string | null; source_letter_id: string | null }>(existingSourceResult)[0];
+    } catch (error) {
+      logFailure("secretariat-document-source-check", error);
+      redirect(`/app/sekretariat/template/${template.code}?result=error`);
+    }
+    if (!persistedSource) redirect(`/app/sekretariat/template/${template.code}?result=unavailable`);
+    if ((submittedMeetingId && submittedMeetingId !== persistedSource.source_meeting_id) ||
+        (submittedMinutesId && submittedMinutesId !== persistedSource.source_minutes_id) ||
+        (submittedLetterId && submittedLetterId !== persistedSource.source_letter_id)) {
+      redirect(`/app/sekretariat/template/${template.code}?result=source-invalid`);
+    }
+  }
+
+  const sourceMeetingId = persistedSource?.source_meeting_id ?? submittedMeetingId;
+  const sourceMinutesId = persistedSource?.source_minutes_id ?? submittedMinutesId;
+  const sourceLetterId = persistedSource?.source_letter_id ?? submittedLetterId;
+  const sourceCount = [sourceMeetingId, sourceMinutesId, sourceLetterId].filter(Boolean).length;
+  if (sourceCount > 1 ||
+      (sourceMeetingId && template.code !== "TPL-UND") ||
+      (sourceMinutesId && template.code !== "TPL-NOT") ||
+      (sourceLetterId && template.code !== "TPL-KEL")) {
+    redirect(`/app/sekretariat/template/${template.code}?result=source-invalid`);
+  }
+
+  let sourceReference: string | null = null;
+  try {
+    if (sourceMeetingId) {
+      const result = await sql`
+        SELECT reference_no FROM v9.secretariat_meetings
+        WHERE id = ${sourceMeetingId}
+          AND organization_id = ${identity.organizationId}
+          AND status <> 'cancelled'
+        LIMIT 1
+      `;
+      sourceReference = rowsFromResult<{ reference_no: string }>(result)[0]?.reference_no ?? null;
+    } else if (sourceMinutesId) {
+      const result = await sql`
+        SELECT meeting.reference_no || ' · revisi notulen ' || minutes.revision_no::text AS reference_no
+        FROM v9.secretariat_minutes AS minutes
+        INNER JOIN v9.secretariat_meetings AS meeting ON meeting.id = minutes.meeting_id
+        WHERE minutes.id = ${sourceMinutesId}
+          AND meeting.organization_id = ${identity.organizationId}
+          AND meeting.status <> 'cancelled'
+        LIMIT 1
+      `;
+      sourceReference = rowsFromResult<{ reference_no: string }>(result)[0]?.reference_no ?? null;
+    } else if (sourceLetterId) {
+      const result = await sql`
+        SELECT reference_no FROM v9.secretariat_letters
+        WHERE id = ${sourceLetterId}
+          AND organization_id = ${identity.organizationId}
+          AND direction = 'keluar'
+        LIMIT 1
+      `;
+      sourceReference = rowsFromResult<{ reference_no: string }>(result)[0]?.reference_no ?? null;
+    }
+  } catch (error) {
+    logFailure("secretariat-document-source-validate", error);
+    redirect(`/app/sekretariat/template/${template.code}?result=error`);
+  }
+  if (sourceCount && !sourceReference) {
+    redirect(`/app/sekretariat/template/${template.code}?result=source-invalid`);
   }
 
   const values = new Map<string, string>();
@@ -554,7 +638,6 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
     }).filter((field) => field.value !== ""),
   })).filter((section) => section.fields.length > 0);
 
-  const sql = getV9Sql();
   let organization: { legal_name: string; short_name: string; address: string | null } | undefined;
   try {
     const organizationResult = await sql`
@@ -583,6 +666,11 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
     ownerLabel: owner,
     organization,
     groups,
+    source: sourceCount ? {
+      kind: sourceMeetingId ? "meeting" as const : sourceMinutesId ? "minutes" as const : "letter" as const,
+      id: sourceMeetingId || sourceMinutesId || sourceLetterId,
+      reference: sourceReference,
+    } : undefined,
   };
   const contentJson = JSON.stringify(content);
   const contentSha256 = createHash("sha256").update(contentJson).digest("hex");
@@ -602,7 +690,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
       new_document AS (
         INSERT INTO v9.secretariat_documents (
           organization_id, number, title, category, document_date,
-          owner_label, visibility, status, description, created_by, updated_by
+          owner_label, visibility, status, description,
+          source_meeting_id, source_minutes_id, source_letter_id,
+          created_by, updated_by
         )
         SELECT
           organization.id,
@@ -614,6 +704,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
           ${visibility},
           'draft',
           ${"Dibuat melalui Generator " + template.name + ". Periksa isi dan kewenangan sebelum finalisasi."},
+          NULLIF(${sourceMeetingId}, '')::uuid,
+          NULLIF(${sourceMinutesId}, '')::uuid,
+          NULLIF(${sourceLetterId}, '')::uuid,
           ${identity.userId},
           ${identity.userId}
         FROM organization
@@ -628,6 +721,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
           AND document.organization_id = ${identity.organizationId}
           AND document.status <> 'arsip'
           AND document.visibility <> 'publik'
+          AND document.source_meeting_id IS NOT DISTINCT FROM NULLIF(${sourceMeetingId}, '')::uuid
+          AND document.source_minutes_id IS NOT DISTINCT FROM NULLIF(${sourceMinutesId}, '')::uuid
+          AND document.source_letter_id IS NOT DISTINCT FROM NULLIF(${sourceLetterId}, '')::uuid
           AND ${documentId} <> ''
           AND EXISTS (
             SELECT 1
@@ -709,7 +805,8 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
             'title', next_revision.title,
             'revision_no', generation.revision_no,
             'content_sha256', ${contentSha256},
-            'status', next_revision.status
+            'status', next_revision.status,
+            'source_reference', ${sourceReference}
           )
         FROM next_revision
         INNER JOIN generation ON generation.document_id = next_revision.id
@@ -727,6 +824,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
     logFailure("secretariat-document-generator-save", error);
     const message = error instanceof Error ? error.message.toLowerCase() : "";
     if (message.includes("unique")) redirect(`/app/sekretariat/template/${template.code}?result=duplicate`);
+    if (message.includes("foreign key") || message.includes("source")) {
+      redirect(`/app/sekretariat/template/${template.code}?result=source-invalid`);
+    }
     redirect(`/app/sekretariat/template/${template.code}?result=error`);
   }
 
@@ -734,5 +834,9 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
   revalidatePath("/app/sekretariat/dokumen");
   revalidatePath("/app/sekretariat/template");
   revalidatePath("/app/sekretariat/program");
+  revalidatePath("/app/sekretariat/rapat");
+  revalidatePath("/app/sekretariat/notulen");
+  revalidatePath("/app/sekretariat/presensi");
+  revalidatePath("/app/sekretariat/surat");
   redirect(`/app/sekretariat/dokumen/${saved.id}/cetak?result=${saved.operation}`);
 }

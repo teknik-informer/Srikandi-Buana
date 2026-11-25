@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Plus, ArrowRight, Inbox, Send, CheckCheck } from "lucide-react";
 import {
@@ -41,6 +42,7 @@ export interface SecretariatLetter {
   date: string;
   status: LetterStatus;
   assignee: string;
+  document_id: string | null;
 }
 
 export function SuratClient({
@@ -212,6 +214,7 @@ function Inner({
                 <th>Tanggal</th>
                 <th>PIC</th>
                 <th>Status</th>
+                <th>Naskah</th>
               </tr>
             </thead>
             <tbody>
@@ -267,6 +270,16 @@ function Inner({
                         }
                       />
                     )}
+                  </td>
+                  <td className="whitespace-nowrap">
+                    {canWrite && letter.direction === "keluar" ? (
+                      <Link
+                        href={"/app/sekretariat/template/TPL-KEL?source_letter_id=" + letter.id}
+                        className="font-semibold text-primary-700 hover:underline"
+                      >
+                        {letter.document_id ? "Buka naskah" : "Susun naskah"}
+                      </Link>
+                    ) : "—"}
                   </td>
                 </tr>
               ))}

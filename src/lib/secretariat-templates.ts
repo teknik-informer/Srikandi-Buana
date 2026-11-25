@@ -54,6 +54,11 @@ export interface GeneratedDocumentContent {
     shortName: string;
     address: string | null;
   };
+  source?: {
+    kind: "meeting" | "minutes" | "letter";
+    id: string;
+    reference: string | null;
+  };
   groups: Array<{
     title: string;
     fields: GeneratedDocumentField[];

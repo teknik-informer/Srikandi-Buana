@@ -27,6 +27,9 @@ interface ExistingDocumentRow {
   status: "draft" | "final";
   content_json: GeneratedDocumentContent;
   revision_no: number;
+  source_meeting_id: string | null;
+  source_minutes_id: string | null;
+  source_letter_id: string | null;
 }
 
 function dateToday(timezone: string): string {
@@ -47,7 +50,13 @@ export default async function SecretariatTemplateBuilderPage({
   searchParams,
 }: {
   params: Promise<{ code: string }>;
-  searchParams?: Promise<{ document_id?: string; result?: string }>;
+  searchParams?: Promise<{
+    document_id?: string;
+    source_meeting_id?: string;
+    source_minutes_id?: string;
+    source_letter_id?: string;
+    result?: string;
+  }>;
 }) {
   const identity = await requireIdentity("secretariat:documents:write");
   const { code } = await params;
@@ -80,6 +89,9 @@ export default async function SecretariatTemplateBuilderPage({
         document.owner_label,
         document.visibility,
         document.status,
+        document.source_meeting_id::text AS source_meeting_id,
+        document.source_minutes_id::text AS source_minutes_id,
+        document.source_letter_id::text AS source_letter_id,
         generation.content_json,
         generation.revision_no
       FROM v9.secretariat_documents AS document
@@ -104,10 +116,270 @@ export default async function SecretariatTemplateBuilderPage({
     }
   }
 
+
+  const requestedSources = [
+    search?.source_meeting_id ?? "",
+    search?.source_minutes_id ?? "",
+    search?.source_letter_id ?? "",
+  ].filter(Boolean);
+  const validSourceUuid = (value: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  if (requestedSources.length > 1 || requestedSources.some((value) => !validSourceUuid(value))) notFound();
+
+  const sourceMeetingId = existing?.source_meeting_id ?? search?.source_meeting_id ?? "";
+  const sourceMinutesId = existing?.source_minutes_id ?? search?.source_minutes_id ?? "";
+  const sourceLetterId = existing?.source_letter_id ?? search?.source_letter_id ?? "";
+  const sourceCount = [sourceMeetingId, sourceMinutesId, sourceLetterId].filter(Boolean).length;
+  if (sourceCount > 1 ||
+      (sourceMeetingId && template.code !== "TPL-UND") ||
+      (sourceMinutesId && template.code !== "TPL-NOT") ||
+      (sourceLetterId && template.code !== "TPL-KEL")) notFound();
+  if (existing && (
+    (search?.source_meeting_id && search.source_meeting_id !== existing.source_meeting_id) ||
+    (search?.source_minutes_id && search.source_minutes_id !== existing.source_minutes_id) ||
+    (search?.source_letter_id && search.source_letter_id !== existing.source_letter_id)
+  )) notFound();
+
+  const sourceValues = new Map<string, string>();
+  let sourceLabel = "";
+  let sourceReference = "";
+  let sourceTitle = "";
+  let sourceNumber = "";
+  let sourceDate = "";
+  let sourceOwner = "";
+  let linkedDocumentId: string | null = null;
+
+  const attendanceLabels = {
+    hadir: "Hadir",
+    izin: "Izin",
+    sakit: "Sakit",
+    alpa: "Tanpa keterangan",
+  } as const;
+  const decisionStatusLabels = {
+    open: "Terbuka",
+    in_progress: "Berjalan",
+    completed: "Selesai",
+    cancelled: "Dibatalkan",
+  } as const;
+
+  if (sourceMeetingId) {
+    const sourceResult = await sql`
+      SELECT
+        meeting.id::text AS id,
+        meeting.reference_no,
+        meeting.title,
+        meeting.meeting_date::text AS meeting_date,
+        meeting.time_label,
+        meeting.location,
+        meeting.description,
+        linked.id::text AS document_id
+      FROM v9.secretariat_meetings AS meeting
+      LEFT JOIN LATERAL (
+        SELECT document.id
+        FROM v9.secretariat_documents AS document
+        WHERE document.organization_id = meeting.organization_id
+          AND document.source_meeting_id = meeting.id
+          AND document.status <> 'arsip'
+        ORDER BY document.created_at DESC
+        LIMIT 1
+      ) AS linked ON true
+      WHERE meeting.id = ${sourceMeetingId}
+        AND meeting.organization_id = ${identity.organizationId}
+        AND meeting.status <> 'cancelled'
+      LIMIT 1
+    `;
+    const source = rowsFromResult<{
+      id: string; reference_no: string; title: string; meeting_date: string;
+      time_label: string | null; location: string | null; description: string | null;
+      document_id: string | null;
+    }>(sourceResult)[0];
+    if (!source) notFound();
+    linkedDocumentId = source.document_id;
+    sourceLabel = "Agenda rapat terhubung";
+    sourceReference = source.reference_no;
+    sourceTitle = ("Undangan Rapat — " + source.title).slice(0, 300);
+    sourceValues.set("perihal", ("Undangan " + source.title).slice(0, 240));
+    sourceValues.set("nama_agenda", source.title);
+    sourceValues.set("hari_tanggal", source.meeting_date);
+    sourceValues.set("waktu", source.time_label ?? "");
+    sourceValues.set("tempat", source.location ?? "");
+    sourceValues.set("agenda_pembahasan", source.description ?? "");
+  }
+
+  if (sourceMinutesId) {
+    const sourceResult = await sql`
+      SELECT
+        minutes.id::text AS minutes_id,
+        minutes.revision_no,
+        minutes.opening_notes,
+        minutes.discussion_notes,
+        minutes.closing_notes,
+        minutes.prepared_by_label,
+        meeting.id::text AS id,
+        meeting.reference_no,
+        meeting.title,
+        meeting.meeting_date::text AS meeting_date,
+        meeting.time_label,
+        meeting.location,
+        meeting.description,
+        linked.id::text AS document_id
+      FROM v9.secretariat_minutes AS minutes
+      INNER JOIN v9.secretariat_meetings AS meeting ON meeting.id = minutes.meeting_id
+      LEFT JOIN LATERAL (
+        SELECT document.id
+        FROM v9.secretariat_documents AS document
+        WHERE document.organization_id = meeting.organization_id
+          AND document.source_minutes_id = minutes.id
+          AND document.status <> 'arsip'
+        ORDER BY document.created_at DESC
+        LIMIT 1
+      ) AS linked ON true
+      WHERE minutes.id = ${sourceMinutesId}
+        AND meeting.organization_id = ${identity.organizationId}
+        AND meeting.status <> 'cancelled'
+      LIMIT 1
+    `;
+    const source = rowsFromResult<{
+      minutes_id: string; revision_no: number; opening_notes: string | null;
+      discussion_notes: string | null; closing_notes: string | null; prepared_by_label: string | null;
+      id: string; reference_no: string; title: string; meeting_date: string;
+      time_label: string | null; location: string | null; description: string | null;
+      document_id: string | null;
+    }>(sourceResult)[0];
+    if (!source) notFound();
+    linkedDocumentId = source.document_id;
+    sourceLabel = "Notulen dan daftar hadir terhubung";
+    sourceReference = source.reference_no + " · revisi notulen " + source.revision_no;
+    sourceTitle = ("Notulen Rapat — " + source.title).slice(0, 300);
+    sourceDate = source.meeting_date;
+    sourceOwner = source.prepared_by_label ?? "";
+    sourceValues.set("nama_rapat", source.title);
+    sourceValues.set("tanggal_rapat", source.meeting_date);
+    sourceValues.set("waktu_rapat", source.time_label ?? "");
+    sourceValues.set("tempat_rapat", source.location ?? "");
+    sourceValues.set("notulis", source.prepared_by_label ?? "");
+    sourceValues.set("agenda", source.description ?? "");
+
+    const [decisionResult, attendanceResult] = await Promise.all([
+      sql`
+        SELECT order_no, decision_text, responsible_label, due_date::text AS due_date, status
+        FROM v9.secretariat_meeting_decisions
+        WHERE minutes_id = ${source.minutes_id}
+        ORDER BY order_no
+      `,
+      sql`
+        SELECT attendance.display_name, attendance.role_label,
+          attendance.attendance_status, attendance.signature_recorded
+        FROM v9.secretariat_meeting_attendance AS attendance
+        INNER JOIN v9.secretariat_meetings AS meeting ON meeting.id = attendance.meeting_id
+        WHERE meeting.id = ${source.id}
+          AND meeting.organization_id = ${identity.organizationId}
+        ORDER BY
+          CASE attendance.attendance_status
+            WHEN 'hadir' THEN 1 WHEN 'izin' THEN 2 WHEN 'sakit' THEN 3 ELSE 4
+          END,
+          attendance.display_name
+      `,
+    ]);
+    const decisions = rowsFromResult<{
+      order_no: number; decision_text: string; responsible_label: string | null;
+      due_date: string | null; status: keyof typeof decisionStatusLabels;
+    }>(decisionResult);
+    const attendees = rowsFromResult<{
+      display_name: string; role_label: string | null;
+      attendance_status: keyof typeof attendanceLabels; signature_recorded: boolean;
+    }>(attendanceResult);
+    const discussion = [
+      source.opening_notes ? "Pembukaan:\n" + source.opening_notes : "",
+      source.discussion_notes ? "Pokok pembahasan:\n" + source.discussion_notes : "",
+      source.closing_notes ? "Penutup:\n" + source.closing_notes : "",
+    ].filter(Boolean).join("\n\n");
+    const decisionText = decisions.map((item) => item.order_no + ". " + item.decision_text).join("\n");
+    const followUpText = decisions
+      .filter((item) => item.responsible_label || item.due_date)
+      .map((item) => {
+        const details = [
+          item.responsible_label ? "PIC: " + item.responsible_label : "",
+          item.due_date ? "Tenggat: " + item.due_date : "",
+          "Status: " + decisionStatusLabels[item.status],
+        ].filter(Boolean).join(" · ");
+        return item.order_no + ". " + item.decision_text + "\n   " + details;
+      }).join("\n");
+    const attendanceText = attendees.map((item, index) => {
+      const role = item.role_label ? " · " + item.role_label : "";
+      const signature = item.signature_recorded ? " · tanda tangan fisik diperiksa" : "";
+      return (index + 1) + ". " + item.display_name + " — " +
+        attendanceLabels[item.attendance_status] + role + signature;
+    }).join("\n");
+    sourceValues.set("peserta", attendanceText);
+    sourceValues.set("pembahasan", discussion);
+    sourceValues.set("keputusan", decisionText);
+    sourceValues.set("tindak_lanjut", followUpText);
+  }
+
+  if (sourceLetterId) {
+    const sourceResult = await sql`
+      SELECT
+        letter.id::text AS id,
+        letter.reference_no,
+        letter.number,
+        letter.subject,
+        letter.counterpart,
+        letter.letter_date::text AS letter_date,
+        letter.assignee_label,
+        linked.id::text AS document_id
+      FROM v9.secretariat_letters AS letter
+      LEFT JOIN LATERAL (
+        SELECT document.id
+        FROM v9.secretariat_documents AS document
+        WHERE document.organization_id = letter.organization_id
+          AND document.source_letter_id = letter.id
+          AND document.status <> 'arsip'
+        ORDER BY document.created_at DESC
+        LIMIT 1
+      ) AS linked ON true
+      WHERE letter.id = ${sourceLetterId}
+        AND letter.organization_id = ${identity.organizationId}
+        AND letter.direction = 'keluar'
+      LIMIT 1
+    `;
+    const source = rowsFromResult<{
+      id: string; reference_no: string; number: string | null; subject: string;
+      counterpart: string; letter_date: string; assignee_label: string; document_id: string | null;
+    }>(sourceResult)[0];
+    if (!source) notFound();
+    linkedDocumentId = source.document_id;
+    sourceLabel = "Register surat keluar terhubung";
+    sourceReference = source.reference_no;
+    sourceTitle = source.subject;
+    sourceNumber = source.number ?? "";
+    sourceDate = source.letter_date;
+    sourceOwner = source.assignee_label;
+    sourceValues.set("tujuan", source.counterpart);
+    sourceValues.set("perihal", source.subject);
+  }
+
+  if (existing && linkedDocumentId && existing.id !== linkedDocumentId) notFound();
+  if (!existing && linkedDocumentId) {
+    redirect("/app/sekretariat/template/" + template.code + "?document_id=" +
+      linkedDocumentId + "&" +
+      (sourceMeetingId ? "source_meeting_id=" + sourceMeetingId :
+        sourceMinutesId ? "source_minutes_id=" + sourceMinutesId :
+          "source_letter_id=" + sourceLetterId));
+  }
+  if (existing && (
+    existing.source_meeting_id !== (sourceMeetingId || null) ||
+    existing.source_minutes_id !== (sourceMinutesId || null) ||
+    existing.source_letter_id !== (sourceLetterId || null)
+  )) notFound();
+
   const contentJson = existing?.content_json;
   const initialValues = new Map<string, string>();
   for (const group of contentJson?.groups ?? []) {
     for (const field of group.fields) initialValues.set(field.key, field.value);
+  }
+  for (const [key, value] of sourceValues) {
+    if (!initialValues.has(key)) initialValues.set(key, value);
   }
 
   const resultNotices: Record<string, { tone: "success" | "warning" | "danger"; text: string }> = {
@@ -116,8 +388,14 @@ export default async function SecretariatTemplateBuilderPage({
     "too-long": { tone: "warning", text: "Isi dokumen terlalu panjang. Ringkas keterangan sebelum disimpan." },
     error: { tone: "danger", text: "Dokumen belum berhasil disimpan. Tidak ada perubahan yang dinyatakan berhasil." },
     unavailable: { tone: "warning", text: "Register dokumen tidak tersedia atau catatan sudah berubah." },
+    "source-invalid": { tone: "danger", text: "Sumber dokumen tidak ditemukan, tidak sesuai organisasi, atau tidak cocok dengan jenis template." },
   };
   const resultNotice = search?.result ? resultNotices[search.result] : undefined;
+  const documentTitle = existing?.title ?? sourceTitle ??
+    (template.code === "TPL-UND" ? "Undangan Rapat" : template.name);
+  const documentNumber = existing?.number ?? sourceNumber;
+  const documentDate = existing?.document_date ?? sourceDate ?? dateToday(organization.timezone);
+  const documentOwner = existing?.owner_label ?? sourceOwner ?? identity.name;
 
   return (
     <div className="pb-10">
@@ -145,6 +423,15 @@ export default async function SecretariatTemplateBuilderPage({
         <Badge tone="neutral">{existing ? `Dokumen ${existing.revision_no} · ${existing.status === "final" ? "Final" : "Draf"}` : "Nomor referensi dibuat oleh register"}</Badge>
       </div>
 
+      {sourceLabel ? (
+        <div className="mb-4">
+          <Notice tone="info" title={sourceLabel}>
+            Data yang tersedia dimuat dari catatan operasional organisasi. Kolom yang belum memiliki
+            data tetap harus dilengkapi berdasarkan fakta yang telah diverifikasi.
+          </Notice>
+        </div>
+      ) : null}
+
       <Card>
         <CardHeader
           title="Identitas dokumen"
@@ -153,6 +440,9 @@ export default async function SecretariatTemplateBuilderPage({
         <form action={saveGeneratedSecretariatDocument} className="space-y-5 p-4">
           <input type="hidden" name="template_code" value={template.code} />
           {existing ? <input type="hidden" name="document_id" value={existing.id} /> : null}
+          {sourceMeetingId ? <input type="hidden" name="source_meeting_id" value={sourceMeetingId} /> : null}
+          {sourceMinutesId ? <input type="hidden" name="source_minutes_id" value={sourceMinutesId} /> : null}
+          {sourceLetterId ? <input type="hidden" name="source_letter_id" value={sourceLetterId} /> : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label htmlFor="generated-document-title" className="mb-1 block text-[11.5px] font-semibold text-ink2">Judul dokumen <span className="text-danger">*</span></label>
@@ -162,7 +452,7 @@ export default async function SecretariatTemplateBuilderPage({
                 required
                 minLength={3}
                 maxLength={300}
-                defaultValue={existing?.title ?? (template.code === "TPL-UND" ? "Undangan Rapat" : template.name)}
+                defaultValue={documentTitle}
                 className="sb-input"
                 placeholder="Masukkan judul dokumen"
               />
@@ -173,7 +463,7 @@ export default async function SecretariatTemplateBuilderPage({
                 id="generated-document-number"
                 name="number"
                 maxLength={100}
-                defaultValue={existing?.number ?? ""}
+                defaultValue={documentNumber}
                 className="sb-input"
                 placeholder="Diisi sesuai keputusan penomoran"
               />
@@ -185,7 +475,7 @@ export default async function SecretariatTemplateBuilderPage({
                 name="document_date"
                 type="date"
                 required
-                defaultValue={existing?.document_date ?? dateToday(organization.timezone)}
+                defaultValue={documentDate}
                 className="sb-input"
               />
             </div>
@@ -197,7 +487,7 @@ export default async function SecretariatTemplateBuilderPage({
                 required
                 minLength={2}
                 maxLength={160}
-                defaultValue={existing?.owner_label ?? identity.name}
+                defaultValue={documentOwner}
                 className="sb-input"
               />
             </div>

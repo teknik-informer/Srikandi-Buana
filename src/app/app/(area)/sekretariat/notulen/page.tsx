@@ -11,7 +11,7 @@ import {
   StatusBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireIdentity } from "@/lib/session";
+import { can, requireIdentity } from "@/lib/session";
 import {
   addSecretariatDecision,
   createSecretariatMinutesRevision,
@@ -35,6 +35,7 @@ interface MeetingOption {
   discussion_notes: string | null;
   closing_notes: string | null;
   prepared_by_label: string | null;
+  generated_document_id: string | null;
 }
 
 interface DecisionRow {
@@ -80,6 +81,7 @@ export default async function NotulenPage({
   searchParams: Promise<{ meeting_id?: string; result?: string }>;
 }) {
   const identity = await requireIdentity("secretariat:read");
+  const canGenerateDocuments = can(identity, "secretariat:documents:write");
   const { meeting_id, result } = await searchParams;
   const sql = getV9Sql();
 
@@ -97,7 +99,8 @@ export default async function NotulenPage({
       latest_minutes.opening_notes,
       latest_minutes.discussion_notes,
       latest_minutes.closing_notes,
-      latest_minutes.prepared_by_label
+      latest_minutes.prepared_by_label,
+      generated_document.id::text AS generated_document_id
     FROM v9.secretariat_meetings AS meeting
     LEFT JOIN LATERAL (
       SELECT minutes.id, minutes.revision_no, minutes.status,
@@ -108,6 +111,15 @@ export default async function NotulenPage({
       ORDER BY minutes.revision_no DESC
       LIMIT 1
     ) AS latest_minutes ON true
+    LEFT JOIN LATERAL (
+      SELECT document.id
+      FROM v9.secretariat_documents AS document
+      WHERE document.organization_id = meeting.organization_id
+        AND document.source_minutes_id = latest_minutes.id
+        AND document.status <> 'arsip'
+      ORDER BY document.created_at DESC
+      LIMIT 1
+    ) AS generated_document ON true
     WHERE meeting.organization_id = ${identity.organizationId}
     ORDER BY meeting.meeting_date DESC, meeting.created_at DESC
     LIMIT 200
@@ -225,6 +237,11 @@ export default async function NotulenPage({
                     <Link href={`/app/sekretariat/presensi?meeting_id=${selected.id}`} className="sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]">
                       Daftar hadir
                     </Link>
+                    {canGenerateDocuments && selected.minutes_id ? (
+                      <Link href={"/app/sekretariat/template/TPL-NOT?source_minutes_id=" + selected.minutes_id} className="sb-btn sb-btn-soft !h-8 !px-3 text-[10.5px]">
+                        {selected.generated_document_id ? "Buka naskah notulen" : "Susun naskah notulen"}
+                      </Link>
+                    ) : null}
                     <Link href="/app/sekretariat/rapat" className="text-[10.5px] font-semibold text-primary-700">
                       Ubah status rapat
                     </Link>

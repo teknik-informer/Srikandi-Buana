@@ -11,7 +11,7 @@ import {
   StatCard,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireIdentity } from "@/lib/session";
+import { can, requireIdentity } from "@/lib/session";
 import { recordSecretariatAttendance } from "@/app/actions/secretariat-meetings";
 
 export const metadata: Metadata = { title: "Daftar Hadir" };
@@ -22,6 +22,8 @@ interface MeetingOption {
   title: string;
   meeting_date: string;
   status: "scheduled" | "completed" | "cancelled";
+  minutes_id: string | null;
+  generated_document_id: string | null;
 }
 
 interface AttendanceRow {
@@ -84,21 +86,40 @@ export default async function PresensiPage({
   searchParams: Promise<{ meeting_id?: string; result?: string }>;
 }) {
   const identity = await requireIdentity("secretariat:read");
+  const canGenerateDocuments = can(identity, "secretariat:documents:write");
   const { meeting_id, result } = await searchParams;
   const sql = getV9Sql();
 
   const [meetingResult, membersResult, aggregateResult] = await Promise.all([
     sql`
       SELECT
-        id::text AS id,
-        reference_no,
-        title,
-        meeting_date::text AS meeting_date,
-        status
-      FROM v9.secretariat_meetings
-      WHERE organization_id = ${identity.organizationId}
-        AND status <> 'cancelled'
-      ORDER BY meeting_date DESC, created_at DESC
+        meeting.id::text AS id,
+        meeting.reference_no,
+        meeting.title,
+        meeting.meeting_date::text AS meeting_date,
+        meeting.status,
+        latest_minutes.id::text AS minutes_id,
+        generated_document.id::text AS generated_document_id
+      FROM v9.secretariat_meetings AS meeting
+      LEFT JOIN LATERAL (
+        SELECT minutes.id
+        FROM v9.secretariat_minutes AS minutes
+        WHERE minutes.meeting_id = meeting.id
+        ORDER BY minutes.revision_no DESC
+        LIMIT 1
+      ) AS latest_minutes ON true
+      LEFT JOIN LATERAL (
+        SELECT document.id
+        FROM v9.secretariat_documents AS document
+        WHERE document.organization_id = meeting.organization_id
+          AND document.source_minutes_id = latest_minutes.id
+          AND document.status <> 'arsip'
+        ORDER BY document.created_at DESC
+        LIMIT 1
+      ) AS generated_document ON true
+      WHERE meeting.organization_id = ${identity.organizationId}
+        AND meeting.status <> 'cancelled'
+      ORDER BY meeting.meeting_date DESC, meeting.created_at DESC
       LIMIT 200
     `,
     sql`
@@ -278,6 +299,11 @@ export default async function PresensiPage({
               <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3 text-[10.5px] text-muted2">
                 <span className="inline-flex items-center gap-1.5"><UsersRound size={12} />{attendance.length} orang tercatat</span>
                 <Link href={`/app/sekretariat/notulen?meeting_id=${selected.id}`} className="font-semibold text-primary-700">Buka notulen</Link>
+                {canGenerateDocuments && selected.minutes_id ? (
+                  <Link href={"/app/sekretariat/template/TPL-NOT?source_minutes_id=" + selected.minutes_id} className="font-semibold text-primary-700">
+                    {selected.generated_document_id ? "Buka naskah notulen" : "Susun notulen dari presensi"}
+                  </Link>
+                ) : null}
               </div>
             </Card>
 

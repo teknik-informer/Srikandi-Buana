@@ -32,6 +32,7 @@ interface MeetingRow {
   unit_name: string | null;
   attendance_count: number;
   minutes_status: "draft" | "final" | null;
+  invitation_document_id: string | null;
 }
 
 interface MeetingSummary {
@@ -69,6 +70,7 @@ export default async function RapatSekretariatPage({
 }) {
   const identity = await requireIdentity("secretariat:read");
   const canWrite = can(identity, "secretariat:meetings:write");
+  const canGenerateDocuments = can(identity, "secretariat:documents:write");
   const { result } = await searchParams;
   const sql = getV9Sql();
 
@@ -102,7 +104,8 @@ export default async function RapatSekretariatPage({
         meeting.status,
         unit.name AS unit_name,
         COALESCE(attendance.count, 0)::int AS attendance_count,
-        latest_minutes.status AS minutes_status
+        latest_minutes.status AS minutes_status,
+        invitation_document.id::text AS invitation_document_id
       FROM v9.secretariat_meetings AS meeting
       LEFT JOIN v9.organization_units AS unit
         ON unit.id = meeting.unit_id
@@ -120,6 +123,15 @@ export default async function RapatSekretariatPage({
         ORDER BY minutes.revision_no DESC
         LIMIT 1
       ) AS latest_minutes ON true
+      LEFT JOIN LATERAL (
+        SELECT document.id
+        FROM v9.secretariat_documents AS document
+        WHERE document.organization_id = meeting.organization_id
+          AND document.source_meeting_id = meeting.id
+          AND document.status <> 'arsip'
+        ORDER BY document.created_at DESC
+        LIMIT 1
+      ) AS invitation_document ON true
       WHERE meeting.organization_id = ${identity.organizationId}
       ORDER BY
         CASE meeting.status WHEN 'scheduled' THEN 1 WHEN 'completed' THEN 2 ELSE 3 END,
@@ -266,6 +278,11 @@ export default async function RapatSekretariatPage({
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                     <Link href={`/app/sekretariat/notulen?meeting_id=${meeting.id}`} className="sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]">Notulen</Link>
                     <Link href={`/app/sekretariat/presensi?meeting_id=${meeting.id}`} className="sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]">Daftar hadir</Link>
+                    {canGenerateDocuments && (meeting.status !== "cancelled" || meeting.invitation_document_id) ? (
+                      <Link href={"/app/sekretariat/template/TPL-UND?source_meeting_id=" + meeting.id} className="sb-btn sb-btn-soft !h-8 !px-3 text-[10.5px]">
+                        {meeting.invitation_document_id ? "Buka undangan" : "Susun undangan"}
+                      </Link>
+                    ) : null}
                     {canWrite && meeting.status === "scheduled" ? (
                       <>
                         <form action={updateSecretariatMeetingStatus}>
