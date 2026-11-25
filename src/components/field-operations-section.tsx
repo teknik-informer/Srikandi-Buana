@@ -14,6 +14,8 @@ import type { FieldDef } from "@/config/fields";
 import {
   addFieldProgramIndicator,
   updateFieldProgramIndicatorActual,
+  updateFieldProgram,
+  changeFieldProgramStatus,
   createFieldActivity,
   createFieldProgram,
   createFieldTask,
@@ -48,6 +50,7 @@ interface ProgramRow {
   objective: string | null;
   period_start: string | null;
   period_end: string | null;
+  budget_request: string | null;
   status: "draft" | "planned" | "active" | "completed" | "paused" | "cancelled";
   indicator_count: number;
 }
@@ -147,6 +150,8 @@ function resultNotice(result?: string): ResultNotice | null {
     "workplan-created": { tone: "success", text: "Rencana kerja berhasil disimpan sebagai draf." },
     "workplan-submitted": { tone: "success", text: "Rencana kerja diajukan untuk proses persetujuan organisasi." },
     "program-created": { tone: "success", text: "Program berhasil diregistrasikan." },
+    "program-updated": { tone: "success", text: "Rincian program berhasil diperbarui dan dicatat pada audit." },
+    "program-status-updated": { tone: "success", text: "Status program berhasil diperbarui." },
     "indicator-created": { tone: "success", text: "Indikator program berhasil ditambahkan. Capaian aktual tetap kosong sampai ada hasil yang dicatat." },
     "indicator-updated": { tone: "success", text: "Capaian aktual indikator berhasil diperbarui dan dicatat pada audit." },
     "activity-created": { tone: "success", text: "Kegiatan berhasil dijadwalkan." },
@@ -222,6 +227,7 @@ export async function FieldOperationsSection({
           program.objective,
           program.period_start::text AS period_start,
           program.period_end::text AS period_end,
+          program.budget_request::text AS budget_request,
           program.status,
           (
             SELECT count(*)::int
@@ -397,7 +403,65 @@ export async function FieldOperationsSection({
                       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-muted2">
                         {program.period_start || program.period_end ? <span>{dateLabel(program.period_start)} – {dateLabel(program.period_end)}</span> : null}
                         <span>{items.length} indikator</span>
+                        <span>{program.budget_request === null ? "Usulan biaya belum dicatat" : `Usulan biaya ${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(program.budget_request))}`}</span>
                       </div>
+                      {canWritePrograms && (program.status === "draft" || program.status === "planned") ? (
+                        <form action={updateFieldProgram} className="mt-3 grid gap-2 border-t border-line pt-3 sm:grid-cols-2">
+                          <input type="hidden" name="field_key" value={field.slug} />
+                          <input type="hidden" name="program_id" value={program.id} />
+                          <div className="sm:col-span-2">
+                            <label htmlFor={`program-title-${program.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Nama program</label>
+                            <input id={`program-title-${program.id}`} name="title" required minLength={3} maxLength={300} defaultValue={program.title} className="sb-input !h-9 text-[11px]" />
+                          </div>
+                          <div>
+                            <label htmlFor={`program-start-${program.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Mulai</label>
+                            <input id={`program-start-${program.id}`} name="period_start" type="date" defaultValue={program.period_start ?? ""} className="sb-input !h-9 text-[11px]" />
+                          </div>
+                          <div>
+                            <label htmlFor={`program-end-${program.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Selesai</label>
+                            <input id={`program-end-${program.id}`} name="period_end" type="date" defaultValue={program.period_end ?? ""} className="sb-input !h-9 text-[11px]" />
+                          </div>
+                          <div>
+                            <label htmlFor={`program-budget-${program.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Usulan biaya (Rp)</label>
+                            <input id={`program-budget-${program.id}`} name="budget_request" type="number" min="0" max="1000000000000" step="1000" defaultValue={program.budget_request ?? ""} className="sb-input !h-9 text-[11px]" />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label htmlFor={`program-objective-${program.id}`} className="mb-1 block text-[10.5px] font-semibold text-ink2">Tujuan dan hasil yang diharapkan</label>
+                            <textarea id={`program-objective-${program.id}`} name="objective" rows={2} maxLength={5000} defaultValue={program.objective ?? ""} className="sb-input !h-auto resize-y py-2 text-[11px]" />
+                          </div>
+                          <div className="flex justify-end sm:col-span-2">
+                            <button type="submit" className="sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]">Simpan perubahan</button>
+                          </div>
+                        </form>
+                      ) : null}
+                      {canWritePrograms && program.status !== "completed" && program.status !== "cancelled" ? (
+                        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                          {(program.status === "draft"
+                            ? [{ next: "planned", label: "Jadikan terencana" }, { next: "cancelled", label: "Batalkan" }]
+                            : program.status === "planned"
+                              ? [{ next: "active", label: "Mulai program" }, { next: "paused", label: "Tunda" }, { next: "cancelled", label: "Batalkan" }]
+                              : program.status === "active"
+                                ? [{ next: "paused", label: "Tunda" }, { next: "completed", label: "Selesaikan program" }, { next: "cancelled", label: "Batalkan" }]
+                                : [{ next: "active", label: "Lanjutkan program" }, { next: "cancelled", label: "Batalkan" }]
+                          ).map((action) => (
+                            <form action={changeFieldProgramStatus} key={action.next}>
+                              <input type="hidden" name="field_key" value={field.slug} />
+                              <input type="hidden" name="program_id" value={program.id} />
+                              <input type="hidden" name="next_status" value={action.next} />
+                              <button
+                                type="submit"
+                                className={action.next === "cancelled"
+                                  ? "sb-btn sb-btn-ghost !h-8 !px-3 text-[10.5px]"
+                                  : action.next === "completed"
+                                    ? "sb-btn sb-btn-primary !h-8 !px-3 text-[10.5px]"
+                                    : "sb-btn sb-btn-outline !h-8 !px-3 text-[10.5px]"}
+                              >
+                                {action.label}
+                              </button>
+                            </form>
+                          ))}
+                        </div>
+                      ) : null}
                       {items.length ? (
                         <div className="mt-3 overflow-x-auto">
                           <table className="w-full min-w-[360px] text-left text-[10.5px]">
