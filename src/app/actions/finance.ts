@@ -734,7 +734,7 @@ export async function reviewFinanceJournal(formData: FormData): Promise<void> {
     const sql = getV9Sql();
     const result = await sql`
       WITH updated AS (
-        UPDATE v9.finance_journals
+        UPDATE v9.finance_journals AS journal
         SET
           status = ${decision},
           approved_by = CASE WHEN ${decision} = 'approved' THEN ${identity.userId}::uuid ELSE NULL END,
@@ -743,16 +743,16 @@ export async function reviewFinanceJournal(formData: FormData): Promise<void> {
           rejected_at = CASE WHEN ${decision} = 'rejected' THEN now() ELSE NULL END,
           review_note = CASE WHEN ${decision} = 'rejected' THEN ${reviewNote} ELSE NULL END,
           updated_at = now()
-        WHERE id = ${journalId}
-          AND organization_id = ${identity.organizationId}
-          AND status = 'submitted'
-          AND created_by <> ${identity.userId}
+        WHERE journal.id = ${journalId}
+          AND journal.organization_id = ${identity.organizationId}
+          AND journal.status = 'submitted'
+          AND journal.created_by <> ${identity.userId}
           AND (
             ${decision} = 'rejected'
             OR ${inactiveCheck}
           )
-        RETURNING id, organization_id, reference_no, status, created_by,
-          approved_by, rejected_by, review_note, total_debit, total_credit
+        RETURNING journal.id, journal.organization_id, journal.reference_no, journal.status, journal.created_by,
+          journal.approved_by, journal.rejected_by, journal.review_note, journal.total_debit, journal.total_credit
       ),
       audit AS (
         INSERT INTO v9.audit_events (
