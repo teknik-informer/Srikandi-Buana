@@ -201,4 +201,21 @@ assert.doesNotMatch(
   "The active Secretariat document register must not mount its legacy demo client.",
 );
 
+
+const fieldMapPage = read("src/app/app/(launcher)/bidang/page.tsx");
+assert.ok(
+  fieldMapPage.includes("getV9Sql()") &&
+  fieldMapPage.includes("v9.field_applications") &&
+  fieldMapPage.includes("v9.field_programs") &&
+  fieldMapPage.includes("v9.field_team_assignments"),
+  "The field map must derive field, program and team counts from the organization registry and operational records.",
+);
+assert.ok(
+  fieldMapPage.includes("canAccessApp(identity") &&
+  fieldMapPage.includes("canReadRegistry") &&
+  !fieldMapPage.includes("@/data/operations") &&
+  !fieldMapPage.includes("PROGRAMS"),
+  "The field map must not expose seeded programs or fields outside the signed-in scope.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
