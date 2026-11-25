@@ -151,19 +151,19 @@ export async function FinanceJournalSection({ result }: { result?: string }) {
       WHERE organization_id = ${identity.organizationId}
     `,
     sql`
-      SELECT id::text AS id, account_code, account_name
-      FROM v9.finance_accounts
-      WHERE organization_id = ${identity.organizationId}
-        AND status = 'active'
-        AND is_postable = true
+      SELECT account.id::text AS id, account.account_code, account.account_name
+      FROM v9.finance_accounts AS account
+      WHERE account.organization_id = ${identity.organizationId}
+        AND account.status = 'active'
+        AND account.is_postable = true
         AND NOT EXISTS (
           SELECT 1
           FROM v9.finance_cash_accounts AS cash_account
-          WHERE cash_account.organization_id = v9.finance_accounts.organization_id
-            AND cash_account.ledger_account_id = v9.finance_accounts.id
+          WHERE cash_account.organization_id = account.organization_id
+            AND cash_account.ledger_account_id = account.id
             AND cash_account.status <> 'active'
         )
-      ORDER BY account_code
+      ORDER BY account.account_code
       LIMIT 500
     `,
     sql`
