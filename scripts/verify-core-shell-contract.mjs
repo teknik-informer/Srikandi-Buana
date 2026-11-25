@@ -9,6 +9,9 @@ const read = (path) => readFileSync(resolve(root, path), "utf8");
 const coreShell = read("src/components/core-shell.tsx");
 const appShell = read("src/components/app-shell.tsx");
 const pengurusLayout = read("src/app/app/(area)/pengurus/layout.tsx");
+const launcherPage = read("src/app/app/(launcher)/page.tsx");
+const appAccess = read("src/lib/app-access.ts");
+const appShellSource = read("src/components/app-shell.tsx");
 
 assert.match(coreShell, /nav=\{nav\}/, "CoreShell must preserve navigation supplied by the server layout.");
 assert.match(coreShell, /notices=\{\[\]\}/, "CoreShell must not display local demo notices.");
@@ -26,6 +29,24 @@ assert.match(
   pengurusLayout,
   /badge: item\.label === "Persetujuan" && pending !== null && pending > 0/,
   "Pengurus approval badges must continue to be derived from the server-side pending count.",
+);
+
+
+assert.match(
+  appAccess,
+  /case "studio":[\\s\\S]*identity\\.roleKey === "platform_admin" \\|\\| identity\\.roleKey === "organization_admin"/,
+  "Studio application visibility must be limited to platform and organization administrators.",
+);
+assert.match(
+  appShellSource,
+  /const availableApps = APPS\\.filter\\(\\(candidate\\) => canAccessApp\\(identity, candidate\\.key\\)\\)/,
+  "The application switcher must filter links using resolved identity permissions.",
+);
+assert.match(launcherPage, /getV9Sql\\(\\)/, "The launcher must read operational data from Neon.");
+assert.doesNotMatch(
+  launcherPage,
+  /@\\/data\\/(operations|organization|finance|content)|\\b(APPROVALS|TASKS|ACTIVITIES|PROGRAMS|MEMBERS|JOURNALS)\\b|Notifikasi baru.{0,30}4|70%/,
+  "The launcher must not present static demo records or invented operational metrics.",
 );
 
 process.stdout.write("Core workspace shell contract: PASS\n");
