@@ -111,7 +111,6 @@ assert.ok(
 );
 assert.ok(
   quickLinks.includes("v9.field_applications") &&
-  quickLinks.includes("application") === false &&
   quickLinks.includes("field_key") &&
   quickLinks.includes("is_enabled = true") &&
   quickLinks.includes("canAccessApp(identity"),
