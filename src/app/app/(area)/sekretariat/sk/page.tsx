@@ -4,7 +4,6 @@ import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireIdentity } from "@/lib/session";
 import { Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, StatusBadge } from "@/components/ui";
 import { formatDateID } from "@/lib/format";
-import { safeErrorType } from "@/lib/errors";
 
 export const metadata: Metadata = { title: "Struktur & SK" };
 
@@ -141,7 +140,7 @@ export default async function SKPage() {
     decisionMeetings = rowsFromResult<DecisionMeetingRow>(meetingResult);
   } catch (reason) {
     unavailable = true;
-    console.warn("[secretariat-sk] Source unavailable", safeErrorType(reason));
+    console.warn("[secretariat-sk] Source unavailable", reason instanceof Error ? reason.name : "UnknownError");
   }
 
   const legalStatus = organization?.legal_status?.trim() || "Belum tercatat dalam registry organisasi";
