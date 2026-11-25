@@ -44,7 +44,7 @@ export function FieldShellChrome({
 
   return (
     <>
-      <SearchProvider>
+      <SearchProvider identity={identity}>
         <AppShell
           identity={identity}
           accounts={[]}
