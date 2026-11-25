@@ -286,7 +286,10 @@ assert.ok(
   joinAction.includes("pg_advisory_xact_lock") &&
   joinAction.includes("interval '15 minutes'") &&
   joinAction.includes("rate_limited") &&
-  joinAction.includes("const ratePhone = telepon.replace("),
+  joinAction.includes("const ratePhone = phoneRateKey(telepon);") &&
+  joinAction.includes('if (digits.startsWith("62")) return digits;') &&
+  joinAction.includes('if (digits.startsWith("0")) return "62" + digits.slice(1);') &&
+  joinAction.includes("phone_digits.digits"),
   "Public join submissions must be throttled per normalized phone number under a transaction-scoped advisory lock.",
 );
 assert.ok(
