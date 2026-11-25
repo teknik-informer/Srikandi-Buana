@@ -103,4 +103,26 @@ assert.ok(
   "The Secretariat SK page must use the organization document, field and meeting decision registers.",
 );
 
+
+const quickLinks = read("src/app/app/(launcher)/cepat/page.tsx");
+assert.ok(
+  !["@/data/organization", "@/data/operations", "@/data/finance", "@/data/content", "useStore("].some((marker) => quickLinks.includes(marker)),
+  "Quick links must not create operational actions from seeded data or browser-local state.",
+);
+assert.ok(
+  quickLinks.includes("v9.field_applications") &&
+  quickLinks.includes("application") === false &&
+  quickLinks.includes("field_key") &&
+  quickLinks.includes("is_enabled = true") &&
+  quickLinks.includes("canAccessApp(identity"),
+  "Field quick links must be derived from enabled organization registry rows and current permissions.",
+);
+assert.ok(
+  quickLinks.includes("pembayaran dan settlement belum aktif") &&
+  !quickLinks.includes("Pengajuan anggaran") &&
+  !quickLinks.includes("Catatan panen") &&
+  !quickLinks.includes("Penerimaan kas"),
+  "Quick links must describe the POS draft boundary and must not advertise unfinished financial/agriculture actions as live forms.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
