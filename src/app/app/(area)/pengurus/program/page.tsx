@@ -13,6 +13,7 @@ import {
 import { FIELDS } from "@/config/fields";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireIdentity } from "@/lib/session";
+import { approveFieldWorkplan } from "@/app/actions/field-operations";
 import { formatDateID, formatIDR } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Program & Rencana Kerja" };
@@ -34,6 +35,17 @@ interface ProgramRow {
   open_task_count: number;
   completed_task_count: number;
   activity_count: number;
+}
+
+interface WorkplanReviewRow {
+  id: string;
+  reference_no: string;
+  field_key: string;
+  title: string;
+  objective: string | null;
+  period_start: string;
+  period_end: string;
+  submitted_at: string;
 }
 
 interface IndicatorRow {
@@ -96,15 +108,22 @@ function periodLabel(start: string | null, end: string | null): string {
   return "Periode belum ditentukan";
 }
 
-export default async function ProgramPengurusPage() {
+export default async function ProgramPengurusPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ result?: string }>;
+} = {}) {
+  const search = await searchParams;
   const identity = await requireIdentity("organization:read");
+  const canApproveWorkplans = ["platform_admin", "organization_admin", "chair"].includes(identity.roleKey);
   let programs: ProgramRow[] = [];
   let indicators: IndicatorRow[] = [];
+  let pendingWorkplans: WorkplanReviewRow[] = [];
   let unavailable = false;
 
   try {
     const sql = getV9Sql();
-    const [programResult, indicatorResult] = await Promise.all([
+    const [programResult, indicatorResult, workplanResult] = await Promise.all([
       sql`
         SELECT
           program.id::text AS id,
@@ -163,10 +182,27 @@ export default async function ProgramPengurusPage() {
         ORDER BY program.title, indicator.sort_order, indicator.created_at
         LIMIT 1000
       `,
+      sql`
+        SELECT
+          workplan.id::text AS id,
+          workplan.reference_no,
+          workplan.field_key,
+          workplan.title,
+          workplan.objective,
+          workplan.period_start::text AS period_start,
+          workplan.period_end::text AS period_end,
+          workplan.submitted_at::text AS submitted_at
+        FROM v9.field_workplans AS workplan
+        WHERE workplan.organization_id = ${identity.organizationId}
+          AND workplan.status = 'submitted'
+        ORDER BY workplan.submitted_at ASC, workplan.created_at ASC
+        LIMIT 100
+      `,
     ]);
 
     programs = rowsFromResult<ProgramRow>(programResult);
     indicators = rowsFromResult<IndicatorRow>(indicatorResult);
+    pendingWorkplans = rowsFromResult<WorkplanReviewRow>(workplanResult);
   } catch (reason) {
     unavailable = true;
     console.warn("[pengurus-programs] Source unavailable", safeErrorType(reason));
@@ -202,6 +238,26 @@ export default async function ProgramPengurusPage() {
         </div>
       ) : null}
 
+      {search?.result === "workplan-approved" ? (
+        <div className="mb-4">
+          <Notice tone="success" title="Persetujuan tersimpan">
+            Rencana kerja telah disetujui. Koordinator bidang dapat memulai pelaksanaan dari aplikasi bidang.
+          </Notice>
+        </div>
+      ) : search?.result === "stale" ? (
+        <div className="mb-4">
+          <Notice tone="warning" title="Daftar persetujuan berubah">
+            Rencana kerja sudah berubah atau tidak lagi menunggu persetujuan. Muat ulang daftar untuk melihat status terbaru.
+          </Notice>
+        </div>
+      ) : search?.result === "error" ? (
+        <div className="mb-4">
+          <Notice tone="danger" title="Persetujuan belum tersimpan">
+            Sistem tidak berhasil menyimpan persetujuan. Tidak ada perubahan yang diklaim berhasil.
+          </Notice>
+        </div>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Program tercatat" value={programs.length} note={activeCount + " berjalan · " + completedCount + " selesai"} tone="info" icon={<ClipboardList size={17} />} />
         <StatCard label="Tugas terbuka" value={openTasks} note="Status belum atau proses" tone="warning" icon={<CalendarDays size={17} />} />
@@ -216,6 +272,52 @@ export default async function ProgramPengurusPage() {
           dan sisa plafon dari angka tersebut.
         </Notice>
       </div>
+
+      <Card className="mt-5">
+        <CardHeader
+          title="Antrean persetujuan rencana kerja"
+          subtitle={`${pendingWorkplans.length} rencana menunggu keputusan Pengurus`}
+          action={<Badge tone={pendingWorkplans.length ? "warning" : "neutral"}>{pendingWorkplans.length ? "Perlu ditinjau" : "Tidak ada antrean"}</Badge>}
+        />
+        {pendingWorkplans.length ? (
+          <div className="divide-y divide-line">
+            {pendingWorkplans.map((workplan) => {
+              const field = FIELDS.find((item) => item.slug === workplan.field_key);
+              return (
+                <article key={workplan.id} className="px-4 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-[10px] text-muted2">{workplan.reference_no}</span>
+                        <Badge tone="warning">Menunggu persetujuan</Badge>
+                        <Badge tone="neutral">{field?.shortName ?? workplan.field_key}</Badge>
+                      </div>
+                      <h3 className="mt-1.5 text-[13px] font-semibold text-ink">{workplan.title}</h3>
+                      <div className="mt-1 text-[10.5px] text-muted">
+                        {periodLabel(workplan.period_start, workplan.period_end)} · Diajukan {formatDateID(workplan.submitted_at, "short")}
+                      </div>
+                      {workplan.objective ? <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[11px] leading-relaxed text-muted">{workplan.objective}</p> : null}
+                    </div>
+                    {canApproveWorkplans ? (
+                      <form action={approveFieldWorkplan} className="shrink-0">
+                        <input type="hidden" name="field_key" value={workplan.field_key} />
+                        <input type="hidden" name="workplan_id" value={workplan.id} />
+                        <button type="submit" className="sb-btn sb-btn-primary !h-9 !px-3 text-[11px]">Setujui rencana</button>
+                      </form>
+                    ) : (
+                      <span className="text-[10.5px] text-muted2">Menunggu Ketua / Administrator Organisasi</span>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-5 py-8">
+            <EmptyState title="Belum ada rencana menunggu persetujuan" body="Rencana yang diajukan oleh bidang akan masuk ke antrean ini untuk ditinjau." />
+          </div>
+        )}
+      </Card>
 
       {programs.length ? (
         <div className="mt-5 space-y-4">
