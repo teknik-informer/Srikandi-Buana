@@ -11,6 +11,10 @@ import {
 import {
   createMemberCommunityReply,
   createMemberCommunityTopic,
+  updateOwnCommunityTopic,
+  withdrawOwnCommunityTopic,
+  updateOwnCommunityReply,
+  withdrawOwnCommunityReply,
   moderateMemberCommunityReply,
   moderateMemberCommunityTopic,
   reportMemberCommunityContent,
@@ -87,6 +91,18 @@ const reasonLabel: Record<string, string> = {
 const notices: Record<string, { tone: "success" | "warning" | "danger"; text: string }> = {
   "topic-submitted": { tone: "success", text: "Topik dikirim ke antrean moderasi. Topik akan terlihat oleh anggota setelah disetujui." },
   "reply-submitted": { tone: "success", text: "Balasan dikirim untuk ditinjau moderator sebelum tampil kepada anggota lain." },
+  "topic-updated": { tone: "success", text: "Draf topik berhasil diperbarui." },
+  "topic-withdrawn": { tone: "success", text: "Topik yang menunggu moderasi berhasil ditarik." },
+  "reply-updated": { tone: "success", text: "Draf balasan berhasil diperbarui." },
+  "reply-withdrawn": { tone: "success", text: "Balasan yang menunggu moderasi berhasil ditarik." },
+  "topic-update-stale": { tone: "warning", text: "Topik tidak lagi berstatus menunggu moderasi atau bukan milik akun Anda." },
+  "topic-withdraw-stale": { tone: "warning", text: "Topik tidak dapat ditarik karena statusnya sudah berubah." },
+  "reply-update-stale": { tone: "warning", text: "Balasan tidak lagi berstatus menunggu moderasi atau bukan milik akun Anda." },
+  "reply-withdraw-stale": { tone: "warning", text: "Balasan tidak dapat ditarik karena statusnya sudah berubah." },
+  "topic-update-blocked": { tone: "danger", text: "Perubahan topik tidak dapat disimpan." },
+  "topic-withdraw-blocked": { tone: "danger", text: "Topik tidak dapat ditarik." },
+  "reply-update-blocked": { tone: "danger", text: "Perubahan balasan tidak dapat disimpan." },
+  "reply-withdraw-blocked": { tone: "danger", text: "Balasan tidak dapat ditarik." },
   "report-submitted": { tone: "success", text: "Laporan diterima. Moderator akan meninjau konten yang dilaporkan." },
   "moderation-saved": { tone: "success", text: "Keputusan moderasi berhasil dicatat." },
   "report-review-saved": { tone: "success", text: "Penanganan laporan berhasil dicatat." },
@@ -380,7 +396,7 @@ export default async function KomunitasPage({
         <div className="mb-4"><Notice tone="warning" title="Layanan komunitas belum dapat dimuat">Daftar topik, balasan, dan antrean moderasi disembunyikan sampai koneksi database pulih.</Notice></div>
       ) : null}
 
-      {canReadMemberArea && !activeMembershipId ? (
+      {canReadMemberArea && !canModerate && !activeMembershipId ? (
         <div className="mb-4">
           <Notice tone="warning" title="Keanggotaan belum aktif">
             Anda dapat membaca topik yang telah diterbitkan, tetapi mengirim topik, membalas, atau melaporkan konten memerlukan keanggotaan aktif dan terverifikasi.
@@ -520,7 +536,28 @@ export default async function KomunitasPage({
                 <h2 className="mt-2 text-[14px] font-semibold text-ink">{topic.title}</h2>
                 <p className="mt-2 whitespace-pre-wrap text-[11.5px] leading-5 text-ink2">{topic.body}</p>
                 {ownPending ? (
-                  <p className="mt-2 text-[10.5px] text-warning">Topik ini hanya terlihat oleh Anda dan moderator sampai diterbitkan.</p>
+                  <div className="mt-2 space-y-2">
+                    <p className="text-[10.5px] text-warning">Topik ini hanya terlihat oleh Anda dan moderator sampai diterbitkan.</p>
+                    {topic.status === "pending" ? (
+                      <div className="flex flex-wrap gap-2">
+                        <details className="min-w-[240px] flex-1">
+                          <summary className="sb-btn sb-btn-outline !h-8 cursor-pointer !px-3 text-[10px]">Edit draf topik</summary>
+                          <form action={updateOwnCommunityTopic} className="mt-2 space-y-2 rounded-lg border border-line bg-paper p-3">
+                            <input type="hidden" name="topic_id" value={topic.id} />
+                            <label className="block text-[10px] font-semibold text-muted">Judul</label>
+                            <input name="title" required minLength={5} maxLength={180} defaultValue={topic.title} className="sb-input !h-9 text-[10.5px]" />
+                            <label className="block text-[10px] font-semibold text-muted">Isi diskusi</label>
+                            <textarea name="body" required minLength={10} maxLength={5000} rows={4} defaultValue={topic.body} className="sb-input !h-auto min-h-[90px] resize-y py-2 text-[10.5px]" />
+                            <button type="submit" className="sb-btn sb-btn-primary !h-8 text-[10px]">Simpan draf</button>
+                          </form>
+                        </details>
+                        <form action={withdrawOwnCommunityTopic}>
+                          <input type="hidden" name="topic_id" value={topic.id} />
+                          <button type="submit" className="sb-btn sb-btn-ghost !h-8 text-[10px]">Tarik topik</button>
+                        </form>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
                 {topic.status === "rejected" && topic.moderation_note ? (
                   <Notice tone="warning" title="Catatan moderator">{topic.moderation_note}</Notice>
@@ -540,7 +577,21 @@ export default async function KomunitasPage({
                             </div>
                             <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5 text-ink2">{reply.body}</p>
                             {reply.author_user_id === identity.userId && reply.status === "pending" ? (
-                              <p className="mt-1 text-[10px] text-warning">Balasan menunggu moderasi.</p>
+                              <div className="mt-2 flex flex-wrap items-start gap-2">
+                                <span className="pt-1 text-[10px] text-warning">Menunggu moderasi</span>
+                                <details className="min-w-[220px] flex-1">
+                                  <summary className="sb-btn sb-btn-outline !h-7 cursor-pointer !px-2.5 text-[10px]">Edit draf balasan</summary>
+                                  <form action={updateOwnCommunityReply} className="mt-2 space-y-2 rounded-lg border border-line bg-paper p-3">
+                                    <input type="hidden" name="reply_id" value={reply.id} />
+                                    <textarea name="body" required minLength={2} maxLength={2500} rows={3} defaultValue={reply.body} className="sb-input !h-auto min-h-[70px] resize-y py-2 text-[10.5px]" />
+                                    <button type="submit" className="sb-btn sb-btn-primary !h-8 text-[10px]">Simpan draf</button>
+                                  </form>
+                                </details>
+                                <form action={withdrawOwnCommunityReply}>
+                                  <input type="hidden" name="reply_id" value={reply.id} />
+                                  <button type="submit" className="sb-btn sb-btn-ghost !h-7 text-[10px]">Tarik</button>
+                                </form>
+                              </div>
                             ) : null}
                             {canPost && reply.status === "published" && reply.author_user_id !== identity.userId ? <ReportForm targetType="reply" targetId={reply.id} /> : null}
                           </div>
