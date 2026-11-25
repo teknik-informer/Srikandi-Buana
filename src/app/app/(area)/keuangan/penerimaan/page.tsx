@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Badge,
   Card,
@@ -383,7 +384,7 @@ export default async function PenerimaanPage({
                         ) : (
                           <div className="text-[10.5px] leading-relaxed text-muted">
                             Belum ditemukan jurnal Penjualan yang sudah terposting dengan referensi kuitansi ini. Buat jurnal melalui Jurnal & Posting menggunakan sumber <strong>Penjualan</strong> dan referensi kuitansi persis seperti nomor di atas.
-                            <a href="/app/keuangan/jurnal" className="mt-2 inline-flex font-semibold text-primary-700">Buka Jurnal & Posting</a>
+                            <Link href="/app/keuangan/jurnal" className="mt-2 inline-flex font-semibold text-primary-700">Buka Jurnal & Posting</Link>
                           </div>
                         ) : (
                           <p className="text-[10.5px] leading-relaxed text-muted">Akses penautan jurnal memerlukan hak tulis Jurnal & Posting pada modul Keuangan.</p>
