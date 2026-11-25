@@ -78,4 +78,52 @@ assert.ok(
   "The manager overview must show live program budget requests without misrepresenting them as approved or realized funds.",
 );
 
+const workplanMigration = read("db/migrations/0038_field_workplan_lifecycle_approval.sql");
+
+assert.ok(
+  workplanMigration.includes("CREATE OR REPLACE FUNCTION v9.protect_field_workplan()") &&
+  workplanMigration.includes("OLD.status = 'draft' AND NEW.status IN ('submitted','cancelled')") &&
+  workplanMigration.includes("OLD.status = 'submitted' AND NEW.status IN ('approved','cancelled')") &&
+  workplanMigration.includes("NEW.approved_by IS NOT DISTINCT FROM NEW.created_by") &&
+  workplanMigration.includes("A workplan cannot be closed while linked programs remain open.") &&
+  workplanMigration.includes("CREATE TRIGGER field_workplans_guard"),
+  "Workplans must preserve their lifecycle, require independent approval, and close only after linked programs are closed.",
+);
+
+assert.ok(
+  workplanMigration.includes("CREATE OR REPLACE FUNCTION v9.protect_field_program_workplan_link()") &&
+  workplanMigration.includes("FOR UPDATE") &&
+  workplanMigration.includes("parent_status IN ('completed','cancelled')") &&
+  workplanMigration.includes("CREATE TRIGGER field_programs_workplan_status_guard"),
+  "Programs must not be newly linked to a closed workplan, with row locking to serialize parent/child writes.",
+);
+
+assert.ok(
+  actions.includes("export async function updateFieldWorkplan") &&
+  actions.includes("export async function approveFieldWorkplan") &&
+  actions.includes("export async function changeFieldWorkplanStatus") &&
+  actions.includes("requireRoles(['platform_admin', 'organization_admin', 'chair'])") &&
+  actions.includes("'field_workplan.approved'") &&
+  actions.includes("current_workplan.created_by IS DISTINCT FROM") &&
+  actions.includes("'field_workplan.status.' || updated.status"),
+  "Workplan edit, approval and execution actions must be role-gated and audited; approval is separate from the submitter.",
+);
+
+assert.ok(
+  workspace.includes("action={updateFieldWorkplan}") &&
+  workspace.includes("action={changeFieldWorkplanStatus}") &&
+  workspace.includes("Ajukan untuk persetujuan") &&
+  workspace.includes("Mulai pelaksanaan") &&
+  workspace.includes("Tandai rencana selesai"),
+  "The field workspace must expose draft correction, submission, execution start and completion actions.",
+);
+
+assert.ok(
+  managerPage.includes("pendingWorkplans") &&
+  managerPage.includes("action={approveFieldWorkplan}") &&
+  managerPage.includes("canApproveWorkplans") &&
+  managerPage.includes("Antrean persetujuan rencana kerja"),
+  "The Pengurus dashboard must present submitted workplans and expose approval only to authorized leadership roles.",
+);
+
 process.stdout.write("Field program lifecycle and controls: PASS\\n");
