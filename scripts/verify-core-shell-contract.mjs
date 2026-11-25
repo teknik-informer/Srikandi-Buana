@@ -124,4 +124,19 @@ assert.ok(
   "Quick links must describe the POS draft boundary and must not advertise unfinished financial/agriculture actions as live forms.",
 );
 
+
+const appShellSource = read("src/components/app-shell.tsx");
+const appAccessSource = read("src/lib/app-access.ts");
+assert.ok(
+  appShellSource.includes("const visibleNav = nav") &&
+  appShellSource.includes("canAccessAppHref(identity, item.href)") &&
+  appShellSource.includes("{visibleNav.map((group, gi) => ("),
+  "The shared sidebar must filter navigation destinations through application permissions.",
+);
+assert.ok(
+  appShellSource.includes("visibleNav.flatMap((g) => g.items)") &&
+  appAccessSource.includes('if (path.startsWith("/app/") && app === "launcher") return false;'),
+  "Navigation badges must use the filtered menu and unknown internal paths must be hidden.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
