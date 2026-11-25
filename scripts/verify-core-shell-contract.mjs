@@ -518,3 +518,16 @@ assert.ok(
 );
 
 process.stdout.write("Finance member contribution sub-ledger: PASS\\n");
+
+const financeReceivablesPage = read("src/app/app/(area)/keuangan/piutang-utang/page.tsx");
+assert.ok(
+  financeReceivablesPage.includes("account.account_type = 'kewajiban'") &&
+  financeReceivablesPage.includes("account.group_label ILIKE '%piutang%'") &&
+  financeReceivablesPage.includes("account.account_name ILIKE '%piutang%'") &&
+  financeReceivablesPage.includes("account.group_label ILIKE '%tagihan%'") &&
+  financeReceivablesPage.includes("account.is_postable = true") &&
+  !financeReceivablesPage.includes("account.account_code IN ('1-1200', '2-1000', '2-1100')"),
+  "Receivables and payables must follow the organization's active postable chart categories, not fixed account codes.",
+);
+
+process.stdout.write("Finance receivable and payable category contract: PASS\\n");
