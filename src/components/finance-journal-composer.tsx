@@ -20,8 +20,18 @@ export interface FinanceJournalDraftLine {
   memo: string | null;
 }
 
+export interface FinanceBudgetOption {
+  id: string;
+  budget_code: string;
+  title: string;
+  period_start: string;
+  period_end: string;
+  status: string;
+}
+
 export interface FinanceJournalDraft {
   id: string;
+  budget_id: string | null;
   journal_date: string;
   description: string;
   source_type: string;
@@ -53,9 +63,11 @@ function currency(value: number): string {
 
 export function FinanceJournalComposer({
   accounts,
+  budgets,
   initialJournal,
 }: {
   accounts: FinanceAccountOption[];
+  budgets: FinanceBudgetOption[];
   initialJournal?: FinanceJournalDraft;
 }) {
   const [lines, setLines] = useState<DraftLine[]>(() =>
@@ -70,6 +82,7 @@ export function FinanceJournalComposer({
   const [journalDate, setJournalDate] = useState(initialJournal?.journal_date ?? "");
   const [sourceType, setSourceType] = useState(initialJournal?.source_type ?? "manual");
   const [sourceReference, setSourceReference] = useState(initialJournal?.source_reference ?? "");
+  const [budgetId, setBudgetId] = useState(initialJournal?.budget_id ?? "");
   const editing = Boolean(initialJournal);
   const formAction = editing ? updateDraftFinanceJournal : createFinanceJournalDraft;
 
@@ -154,6 +167,25 @@ export function FinanceJournalComposer({
             <option value="reversal">Jurnal pembalik</option>
           </select>
         </div>
+      </div>
+      <div>
+        <label htmlFor="journal-budget" className="mb-1 block text-[11px] font-semibold text-ink2">Tautkan ke anggaran (opsional)</label>
+        <select
+          id="journal-budget"
+          name="budget_id"
+          value={budgetId}
+          onChange={(event) => setBudgetId(event.target.value)}
+          className="sb-input"
+        >
+          <option value="">Tanpa anggaran</option>
+          {budgets.map((budget) => (
+            <option key={budget.id} value={budget.id}>
+              {budget.budget_code} · {budget.title}
+              {budget.status !== "approved" ? " · Tidak aktif untuk realisasi" : ""}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-[10px] text-muted2">Hanya anggaran berstatus disetujui yang dapat menerima jurnal yang diajukan atau diposting.</p>
       </div>
       <div>
         <label htmlFor="journal-description" className="mb-1 block text-[11px] font-semibold text-ink2">Uraian transaksi</label>
