@@ -47,6 +47,10 @@ function cashBankPath(result: string): string {
   return `/app/keuangan/kas-bank?result=${encodeURIComponent(result)}`;
 }
 
+function periodPath(result: string): string {
+  return `/app/keuangan/pengaturan?result=${encodeURIComponent(result)}`;
+}
+
 
 type FinanceBudgetLineInput = {
   line_number: number;
@@ -123,6 +127,7 @@ function refreshFinance(): void {
   revalidatePath("/app/keuangan/buku-besar");
   revalidatePath("/app/keuangan/neraca-saldo");
   revalidatePath("/app/keuangan/laporan");
+  revalidatePath("/app/keuangan/pengaturan");
   revalidatePath("/app/pengurus/persetujuan");
 }
 
@@ -2072,4 +2077,234 @@ export async function linkBusinessOrderPaymentJournal(formData: FormData): Promi
   revalidatePath("/app/pos");
   revalidatePath("/app/bidang/usaha/pesanan");
   redirect("/app/keuangan/penerimaan?result=payment-linked");
+}
+
+export async function createFinancePeriod(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:period:write")) redirect("/app");
+
+  const periodCode = normalize(String(formData.get("period_code") ?? "")).toUpperCase();
+  const title = normalize(String(formData.get("title") ?? ""));
+  const dateStart = String(formData.get("date_start") ?? "").trim();
+  const dateEnd = String(formData.get("date_end") ?? "").trim();
+
+  if (
+    !/^[A-Z0-9][A-Z0-9._/-]{1,39}$/.test(periodCode) ||
+    title.length < 3 || title.length > 160 ||
+    !validDate(dateStart) || !validDate(dateEnd) || dateStart > dateEnd
+  ) redirect(periodPath("period-invalid"));
+
+  let created: MutationRow | undefined;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH created AS (
+        INSERT INTO v9.finance_periods (
+          organization_id, period_code, title, date_start, date_end,
+          status, created_by, updated_by
+        )
+        VALUES (
+          ${identity.organizationId}, ${periodCode}, ${title},
+          ${dateStart}::date, ${dateEnd}::date,
+          'open', ${identity.userId}, ${identity.userId}
+        )
+        RETURNING id, organization_id, period_code, title, date_start,
+          date_end, status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          organization_id, ${identity.userId}, 'finance_period.created',
+          'finance_period', id::text,
+          jsonb_build_object(
+            'period_code', period_code,
+            'title', title,
+            'date_start', date_start,
+            'date_end', date_end,
+            'status', status
+          )
+        FROM created
+        RETURNING id
+      )
+      SELECT created.id::text AS id FROM created INNER JOIN audit ON true
+    `;
+    created = rowsFromResult<MutationRow>(result)[0];
+  } catch (reason) {
+    fail("finance-period-create", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("cannot overlap an existing period")) redirect(periodPath("period-overlap"));
+    if (message.includes("finance_periods_organization_id_period_code_key")) redirect(periodPath("period-code-exists"));
+    if (message.includes("existing unposted journals")) redirect(periodPath("period-first-journals-open"));
+    redirect(periodPath("period-create-blocked"));
+  }
+
+  if (!created) redirect(periodPath("period-create-blocked"));
+  refreshFinance();
+  redirect(periodPath("period-created"));
+}
+
+export async function closeFinancePeriod(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:period:close")) redirect("/app");
+
+  const periodId = String(formData.get("period_id") ?? "").trim();
+  const closeNote = normalize(String(formData.get("close_note") ?? ""));
+  if (!validUuid(periodId) || closeNote.length < 3 || closeNote.length > 1000) {
+    redirect(periodPath("period-close-invalid"));
+  }
+
+  let closed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT
+          period.id, period.organization_id, period.period_code, period.title,
+          period.date_start, period.date_end, period.status, period.created_by
+        FROM v9.finance_periods AS period
+        WHERE period.id = ${periodId}
+          AND period.organization_id = ${identity.organizationId}
+          AND period.status = 'open'
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.finance_periods AS period
+        SET
+          status = 'closed',
+          closed_by = ${identity.userId},
+          closed_at = now(),
+          close_note = ${closeNote},
+          reopened_by = NULL,
+          reopened_at = NULL,
+          reopen_note = NULL,
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM before_row
+        WHERE period.id = before_row.id
+          AND period.organization_id = before_row.organization_id
+        RETURNING period.id, period.organization_id, period.period_code,
+          period.title, period.date_start, period.date_end, period.status,
+          period.closed_by, period.closed_at, period.close_note
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id,
+          before_state, after_state
+        )
+        SELECT
+          updated.organization_id, ${identity.userId}, 'finance_period.closed',
+          'finance_period', updated.id::text,
+          jsonb_build_object('status', before_row.status),
+          jsonb_build_object(
+            'period_code', updated.period_code,
+            'title', updated.title,
+            'date_start', updated.date_start,
+            'date_end', updated.date_end,
+            'status', updated.status,
+            'closed_at', updated.closed_at,
+            'close_note', updated.close_note
+          )
+        FROM updated
+        INNER JOIN before_row ON before_row.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    closed = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-period-close", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("another authorized user")) redirect(periodPath("period-close-needs-second-person"));
+    if (message.includes("all journals in the period must be posted")) redirect(periodPath("period-has-unposted-journals"));
+    redirect(periodPath("period-close-blocked"));
+  }
+
+  if (!closed) redirect(periodPath("period-close-stale"));
+  refreshFinance();
+  redirect(periodPath("period-closed"));
+}
+
+export async function reopenFinancePeriod(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:period:close")) redirect("/app");
+
+  const periodId = String(formData.get("period_id") ?? "").trim();
+  const reopenNote = normalize(String(formData.get("reopen_note") ?? ""));
+  if (!validUuid(periodId) || reopenNote.length < 3 || reopenNote.length > 1000) {
+    redirect(periodPath("period-reopen-invalid"));
+  }
+
+  let reopened = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT
+          period.id, period.organization_id, period.period_code, period.title,
+          period.status, period.closed_by, period.closed_at, period.close_note
+        FROM v9.finance_periods AS period
+        WHERE period.id = ${periodId}
+          AND period.organization_id = ${identity.organizationId}
+          AND period.status = 'closed'
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.finance_periods AS period
+        SET
+          status = 'open',
+          closed_by = NULL,
+          closed_at = NULL,
+          close_note = NULL,
+          reopened_by = ${identity.userId},
+          reopened_at = now(),
+          reopen_note = ${reopenNote},
+          updated_by = ${identity.userId},
+          updated_at = now()
+        FROM before_row
+        WHERE period.id = before_row.id
+          AND period.organization_id = before_row.organization_id
+        RETURNING period.id, period.organization_id, period.period_code,
+          period.title, period.status, period.reopened_by, period.reopened_at,
+          period.reopen_note
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id,
+          before_state, after_state
+        )
+        SELECT
+          updated.organization_id, ${identity.userId}, 'finance_period.reopened',
+          'finance_period', updated.id::text,
+          jsonb_build_object(
+            'status', before_row.status,
+            'closed_by', before_row.closed_by,
+            'closed_at', before_row.closed_at,
+            'close_note', before_row.close_note
+          ),
+          jsonb_build_object(
+            'period_code', updated.period_code,
+            'title', updated.title,
+            'status', updated.status,
+            'reopened_at', updated.reopened_at,
+            'reopen_note', updated.reopen_note
+          )
+        FROM updated
+        INNER JOIN before_row ON before_row.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    reopened = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("finance-period-reopen", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (message.includes("different authorized user")) redirect(periodPath("period-reopen-needs-second-person"));
+    redirect(periodPath("period-reopen-blocked"));
+  }
+
+  if (!reopened) redirect(periodPath("period-reopen-stale"));
+  refreshFinance();
+  redirect(periodPath("period-reopened"));
 }
