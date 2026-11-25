@@ -268,6 +268,51 @@ export default async function PenerimaanPage({
               AND journal.source_type = 'sale'
               AND journal.source_reference = payment.reference_no
               AND journal.status = 'posted'
+              AND journal.total_debit = payment.amount
+              AND journal.total_credit = payment.amount
+              AND (
+                SELECT COALESCE(sum(line.debit), 0)::numeric(18,2)
+                FROM v9.finance_journal_lines AS line
+                WHERE line.organization_id = payment.organization_id
+                  AND line.journal_id = journal.id
+                  AND line.account_id = cash_account.ledger_account_id
+              ) = payment.amount
+              AND (
+                SELECT COALESCE(sum(line.debit), 0)::numeric(18,2)
+                FROM v9.finance_journal_lines AS line
+                WHERE line.organization_id = payment.organization_id
+                  AND line.journal_id = journal.id
+                  AND EXISTS (
+                    SELECT 1
+                    FROM v9.finance_cash_accounts AS register
+                    WHERE register.organization_id = line.organization_id
+                      AND register.ledger_account_id = line.account_id
+                  )
+              ) = payment.amount
+              AND (
+                SELECT COALESCE(sum(line.credit), 0)::numeric(18,2)
+                FROM v9.finance_journal_lines AS line
+                WHERE line.organization_id = payment.organization_id
+                  AND line.journal_id = journal.id
+                  AND EXISTS (
+                    SELECT 1
+                    FROM v9.finance_cash_accounts AS register
+                    WHERE register.organization_id = line.organization_id
+                      AND register.ledger_account_id = line.account_id
+                  )
+              ) = 0
+              AND (
+                SELECT COALESCE(sum(line.credit), 0)::numeric(18,2)
+                FROM v9.finance_journal_lines AS line
+                WHERE line.organization_id = payment.organization_id
+                  AND line.journal_id = journal.id
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM v9.finance_cash_accounts AS register
+                    WHERE register.organization_id = line.organization_id
+                      AND register.ledger_account_id = line.account_id
+                  )
+              ) = payment.amount
           ), '[]'::json)::text AS journal_options
         FROM v9.business_order_payments AS payment
         INNER JOIN v9.business_orders AS order_row
