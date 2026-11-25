@@ -20,6 +20,7 @@ import {
 import {
   FinanceJournalComposer,
   type FinanceAccountOption,
+  type FinanceBudgetOption,
   type FinanceJournalDraft,
 } from "@/components/finance-journal-composer";
 
