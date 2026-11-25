@@ -671,15 +671,17 @@ export async function submitFinanceJournal(formData: FormData): Promise<void> {
     const sql = getV9Sql();
     const result = await sql`
       WITH updated AS (
-        UPDATE v9.finance_journals
+        UPDATE v9.finance_journals AS journal
         SET status = 'submitted',
           submitted_by = ${identity.userId},
           submitted_at = now(),
           updated_at = now()
-        WHERE id = ${journalId}
-          AND organization_id = ${identity.organizationId}
-          AND status = 'draft'
-        RETURNING id, organization_id, reference_no, status, total_debit, total_credit
+        WHERE journal.id = ${journalId}
+          AND journal.organization_id = ${identity.organizationId}
+          AND journal.status = 'draft'
+          AND ${inactiveCheck}
+        RETURNING journal.id, journal.organization_id, journal.reference_no, journal.status,
+          journal.total_debit, journal.total_credit
       ),
       audit AS (
         INSERT INTO v9.audit_events (
@@ -745,6 +747,10 @@ export async function reviewFinanceJournal(formData: FormData): Promise<void> {
           AND organization_id = ${identity.organizationId}
           AND status = 'submitted'
           AND created_by <> ${identity.userId}
+          AND (
+            ${decision} = 'rejected'
+            OR ${inactiveCheck}
+          )
         RETURNING id, organization_id, reference_no, status, created_by,
           approved_by, rejected_by, review_note, total_debit, total_credit
       ),
@@ -786,16 +792,17 @@ export async function postFinanceJournal(formData: FormData): Promise<void> {
     const sql = getV9Sql();
     const result = await sql`
       WITH updated AS (
-        UPDATE v9.finance_journals
+        UPDATE v9.finance_journals AS journal
         SET status = 'posted',
           posted_by = ${identity.userId}::uuid,
           posted_at = now(),
           updated_at = now()
-        WHERE id = ${journalId}
-          AND organization_id = ${identity.organizationId}
-          AND status = 'approved'
-        RETURNING id, organization_id, reference_no, journal_date,
-          description, status, total_debit, total_credit, approved_by
+        WHERE journal.id = ${journalId}
+          AND journal.organization_id = ${identity.organizationId}
+          AND journal.status = 'approved'
+          AND ${inactiveCheck}
+        RETURNING journal.id, journal.organization_id, journal.reference_no, journal.journal_date,
+          journal.description, journal.status, journal.total_debit, journal.total_credit, journal.approved_by
       ),
       audit AS (
         INSERT INTO v9.audit_events (
