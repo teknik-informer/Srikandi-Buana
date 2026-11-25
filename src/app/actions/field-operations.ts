@@ -248,6 +248,152 @@ export async function createFieldProgram(formData: FormData): Promise<void> {
   redirect(fieldPath(fieldKey, "rencana", "program-created"));
 }
 
+export async function updateFieldProgram(formData: FormData): Promise<void> {
+  const identity = await requireIdentity();
+  const fieldKey = getFieldKey(formData);
+  const programId = String(formData.get('program_id') ?? '').trim();
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:program:write`);
+
+  const title = normalize(String(formData.get('title') ?? ''));
+  const objective = String(formData.get('objective') ?? '').trim();
+  const start = String(formData.get('period_start') ?? '').trim();
+  const end = String(formData.get('period_end') ?? '').trim();
+  const budgetText = String(formData.get('budget_request') ?? '').trim();
+  const budget = budgetText === '' ? null : Number(budgetText);
+
+  if (!validUuid(programId) || title.length < 3 || title.length > 300 ||
+      objective.length > 5000 || (start && !validDate(start)) ||
+      (end && !validDate(end)) || (start && end && end < start) ||
+      (budget !== null && (!Number.isFinite(budget) || budget < 0 || budget > 1_000_000_000_000))) {
+    redirect(fieldPath(fieldKey, 'rencana', 'invalid'));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH current_program AS (
+        SELECT id, organization_id, field_key, reference_no, title, objective,
+          period_start, period_end, budget_request, status
+        FROM v9.field_programs
+        WHERE id = ${programId}
+          AND organization_id = ${identity.organizationId}
+          AND field_key = ${fieldKey}
+          AND status IN ('draft','planned')
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.field_programs AS program
+        SET title = ${title},
+            objective = NULLIF(${objective}, ''),
+            period_start = NULLIF(${start}, '')::date,
+            period_end = NULLIF(${end}, '')::date,
+            budget_request = ${budget},
+            updated_by = ${identity.userId},
+            updated_at = now()
+        FROM current_program
+        WHERE program.id = current_program.id
+        RETURNING program.id, program.organization_id, program.field_key,
+          program.reference_no, program.title, program.objective,
+          program.period_start, program.period_end, program.budget_request, program.status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state
+        )
+        SELECT updated.organization_id, ${identity.userId}, 'field_program.updated',
+          'field_program', updated.id::text,
+          jsonb_build_object('title', current_program.title, 'objective', current_program.objective,
+            'period_start', current_program.period_start, 'period_end', current_program.period_end,
+            'budget_request', current_program.budget_request),
+          jsonb_build_object('reference_no', updated.reference_no, 'field_key', updated.field_key,
+            'title', updated.title, 'objective', updated.objective,
+            'period_start', updated.period_start, 'period_end', updated.period_end,
+            'budget_request', updated.budget_request, 'status', updated.status)
+        FROM updated
+        INNER JOIN current_program ON current_program.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<FieldStatusResult>(result).length === 1;
+  } catch (reason) {
+    error('field-program-update', reason);
+    redirect(fieldPath(fieldKey, 'rencana', 'error'));
+  }
+
+  if (!changed) redirect(fieldPath(fieldKey, 'rencana', 'stale'));
+  revalidatePath(`/app/bidang/${fieldKey}`);
+  revalidatePath(sectionPath(fieldKey, 'rencana'));
+  revalidatePath('/app/pengurus/program');
+  redirect(fieldPath(fieldKey, 'rencana', 'program-updated'));
+}
+
+export async function changeFieldProgramStatus(formData: FormData): Promise<void> {
+  const identity = await requireIdentity();
+  const fieldKey = getFieldKey(formData);
+  const programId = String(formData.get('program_id') ?? '').trim();
+  const next = String(formData.get('next_status') ?? '').trim();
+  ensurePermission(identity, fieldKey, `field:${fieldKey}:program:write`);
+
+  if (!validUuid(programId) || !['planned','active','paused','completed','cancelled'].includes(next)) {
+    redirect(fieldPath(fieldKey, 'rencana', 'invalid'));
+  }
+
+  let changed = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH current_program AS (
+        SELECT id, organization_id, field_key, reference_no, title, status
+        FROM v9.field_programs
+        WHERE id = ${programId}
+          AND organization_id = ${identity.organizationId}
+          AND field_key = ${fieldKey}
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.field_programs AS program
+        SET status = ${next}, updated_by = ${identity.userId}, updated_at = now()
+        FROM current_program
+        WHERE program.id = current_program.id
+          AND (
+            (current_program.status = 'draft' AND ${next} IN ('planned','cancelled'))
+            OR (current_program.status = 'planned' AND ${next} IN ('active','paused','cancelled'))
+            OR (current_program.status = 'active' AND ${next} IN ('paused','completed','cancelled'))
+            OR (current_program.status = 'paused' AND ${next} IN ('active','cancelled'))
+          )
+        RETURNING program.id, program.organization_id, program.field_key,
+          program.reference_no, program.title, program.status
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state
+        )
+        SELECT updated.organization_id, ${identity.userId},
+          'field_program.status.' || updated.status, 'field_program', updated.id::text,
+          jsonb_build_object('reference_no', current_program.reference_no, 'field_key', current_program.field_key,
+            'title', current_program.title, 'status', current_program.status),
+          jsonb_build_object('reference_no', updated.reference_no, 'field_key', updated.field_key,
+            'title', updated.title, 'status', updated.status)
+        FROM updated
+        INNER JOIN current_program ON current_program.id = updated.id
+        RETURNING id
+      )
+      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+    `;
+    changed = rowsFromResult<FieldStatusResult>(result).length === 1;
+  } catch (reason) {
+    error('field-program-status', reason);
+    redirect(fieldPath(fieldKey, 'rencana', 'error'));
+  }
+
+  if (!changed) redirect(fieldPath(fieldKey, 'rencana', 'stale'));
+  revalidatePath(`/app/bidang/${fieldKey}`);
+  revalidatePath(sectionPath(fieldKey, 'rencana'));
+  revalidatePath('/app/pengurus/program');
+  redirect(fieldPath(fieldKey, 'rencana', 'program-status-updated'));
+}
 export async function addFieldProgramIndicator(formData: FormData): Promise<void> {
   const identity = await requireIdentity();
   const fieldKey = getFieldKey(formData);
