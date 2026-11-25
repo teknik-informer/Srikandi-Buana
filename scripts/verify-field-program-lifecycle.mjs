@@ -8,6 +8,7 @@ const read = (path) => readFileSync(resolve(root, path), "utf8");
 
 const lifecycleMigration = read("db/migrations/0035_field_program_lifecycle_guard.sql");
 const childGuardMigration = read("db/migrations/0036_field_program_child_link_guard.sql");
+const closedChildGuardMigration = read("db/migrations/0037_field_program_closed_child_guard.sql");
 const actions = read("src/app/actions/field-operations.ts");
 const workspace = read("src/components/field-operations-section.tsx");
 const managerPage = read("src/app/app/(area)/pengurus/program/page.tsx");
@@ -39,6 +40,14 @@ assert.ok(
   childGuardMigration.includes("ON v9.field_activities") &&
   childGuardMigration.includes("ON v9.field_tasks"),
   "Task and activity creation must serialize against program completion and reject closed parent programs.",
+);
+
+assert.ok(
+  closedChildGuardMigration.includes("UPDATE OF program_id, organization_id, field_key, status") &&
+  closedChildGuardMigration.includes("TG_TABLE_NAME = 'field_tasks' AND NEW.status IN ('belum','proses')") &&
+  closedChildGuardMigration.includes("TG_TABLE_NAME = 'field_activities' AND NEW.status IN ('scheduled','in_progress')") &&
+  closedChildGuardMigration.includes("A closed program cannot receive new links or reopen tasks and activities."),
+  "Closed programs must also prevent their linked tasks and activities from being reopened.",
 );
 
 assert.ok(
