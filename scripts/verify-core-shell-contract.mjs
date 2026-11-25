@@ -467,13 +467,54 @@ assert.ok(
   "Budget and journal composers must submit budget linkage and expose linked budget references.",
 );
 
+const financeBudgetCloseMigration = read("db/migrations/0026_finance_budget_pending_journal_close_guard.sql");
 assert.ok(
-  financeBudgetMigration.includes("NEW.status = 'closed'") &&
-  financeBudgetMigration.includes("journal.status <> 'posted'") &&
   financeBudgetMigration.includes("budget.status = 'approved'") &&
   financeBudgetMigration.includes("budget_line.account_id = line.account_id") &&
-  financeBudgetMigration.includes("NEW.budget_id IS DISTINCT FROM OLD.budget_id"),
-  "Database guards must prevent closing budgets with pending journals and require budget-line eligibility before a linked journal advances.",
+  financeBudgetMigration.includes("NEW.budget_id IS DISTINCT FROM OLD.budget_id") &&
+  financeBudgetCloseMigration.includes("A budget with unposted linked journals cannot be closed.") &&
+  financeBudgetCloseMigration.includes("journal.status <> 'posted'"),
+  "Budget linkage and pending-journal closure guards must be enforced by the correct ordered migrations.",
 );
 
 process.stdout.write("Finance budget planning and journal integration: PASS\n");
+
+const financeContributionActions = read("src/app/actions/finance.ts");
+const financeContributionPage = read("src/app/app/(area)/keuangan/iuran/page.tsx");
+const memberContributionPage = read("src/app/app/(area)/anggota/kontribusi/page.tsx");
+const financeContributionMigration = read("db/migrations/0027_finance_member_contribution_allocations.sql");
+const financeContributionUpdateMigration = read("db/migrations/0028_finance_contribution_allocation_update_guard.sql");
+
+assert.ok(
+  financeContributionActions.includes("createFinanceContributionAllocation") &&
+  financeContributionActions.includes("updateFinanceContributionAllocation") &&
+  financeContributionActions.includes("finance_contribution_allocation.created") &&
+  financeContributionActions.includes("finance_contribution_allocation.corrected") &&
+  financeContributionActions.includes("before_state") &&
+  financeContributionActions.includes("correction_note"),
+  "Contribution allocation actions must be permission-gated and audit both creation and corrections.",
+);
+
+assert.ok(
+  financeContributionPage.includes("journal.source_type = 'contribution'") &&
+  financeContributionPage.includes("journal.status = 'posted'") &&
+  financeContributionPage.includes("createFinanceContributionAllocation") &&
+  financeContributionPage.includes("updateFinanceContributionAllocation") &&
+  financeContributionPage.includes("allocation_total") &&
+  memberContributionPage.includes("allocation.membership_id = membership.id") &&
+  memberContributionPage.includes("account.id = ${identity.userId}") &&
+  memberContributionPage.includes("journal.status = 'posted'"),
+  "Contribution workspace must allocate only posted journals and member portal must scope entries to the signed-in person's memberships.",
+);
+
+assert.ok(
+  financeContributionMigration.includes("Only an already-posted contribution journal can be allocated to a member.") &&
+  financeContributionMigration.includes("membership.valid_from") &&
+  financeContributionMigration.includes("membership.valid_until") &&
+  financeContributionMigration.includes("Contribution allocations are retained for audit") &&
+  financeContributionMigration.includes("UNIQUE (organization_id, journal_id, membership_id)") &&
+  financeContributionUpdateMigration.includes("allocation.id IS DISTINCT FROM CASE WHEN TG_OP = 'UPDATE' THEN OLD.id ELSE NULL::uuid END"),
+  "Contribution sub-ledger database guards must validate posted source journals, membership validity, audit retention, uniqueness and safe corrections.",
+);
+
+process.stdout.write("Finance member contribution sub-ledger: PASS\\n");
