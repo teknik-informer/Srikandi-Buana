@@ -1423,7 +1423,7 @@ export async function createFinanceBudget(formData: FormData): Promise<void> {
     `;
     created = rowsFromResult<MutationRow>(result)[0];
     if (!created) redirect(budgetPath("invalid"));
-    await sql`
+    const lineInsertResult = await sql`
       WITH input AS MATERIALIZED (
         SELECT item.line_number, item.account_id, item.description,
           item.planned_amount, item.note
@@ -1458,6 +1458,8 @@ export async function createFinanceBudget(formData: FormData): Promise<void> {
       )
       SELECT count(*)::int AS inserted_count FROM inserted
     `;
+    const insertedCount = Number(rowsFromResult<{ inserted_count: number }>(lineInsertResult)[0]?.inserted_count ?? 0);
+    if (insertedCount !== lines.length) redirect(budgetPath("lines-invalid", created.id));
   } catch (reason) {
     fail("finance-budget-create", reason);
     const message = reason instanceof Error ? reason.message.toLowerCase() : "";
