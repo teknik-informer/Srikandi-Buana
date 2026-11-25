@@ -60,6 +60,7 @@ function permissionsFor(roleKey: string, fieldKey: string | null): string[] {
       return [
         "secretariat:*", "documents:*", "cms:publish",
         "approval:read", "field:read", "organization:read", "finance:read", "membership:activate",
+        "member:community:moderate",
       ];
     case "treasurer":
       return ["finance:*", "approval:read", "organization:read"];
