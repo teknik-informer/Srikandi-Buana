@@ -26,6 +26,17 @@ export function JoinForm() {
 
   return (
     <form action={action} className="sb-card space-y-4 p-5 sm:p-6" noValidate>
+      <div aria-hidden="true" className="pointer-events-none absolute -left-[10000px] top-auto h-px w-px overflow-hidden">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          defaultValue=""
+        />
+      </div>
       {state.message && !state.ok ? (
         <p role="alert" className="rounded-sb-sm border border-[#ecc9c3] bg-[var(--sb-danger-bg)] px-3 py-2 text-[12.5px] text-[var(--sb-danger)]">
           {state.message}
