@@ -10,7 +10,7 @@ import {
   CircleHelp, ArrowUpRight, ArrowRight, Facebook, Instagram, Youtube,
 } from "lucide-react";
 import { APPS, type AppKey } from "@/config/apps";
-import { canAccessApp } from "@/lib/app-access";
+import { canAccessApp, canAccessAppHref } from "@/lib/app-access";
 import { AppIcon } from "@/components/brand";
 import { SearchProvider, SearchButton } from "@/components/search-dialog";
 import type { DemoIdentity } from "@/lib/identity";
@@ -60,13 +60,16 @@ export function AppShell({
   const unread = notices.filter((n) => n.unread).length;
   const app = APPS.find((a) => a.key === activeApp)!;
   const availableApps = APPS.filter((candidate) => canAccessApp(identity, candidate.key));
+  const visibleNav = nav
+    .map((group) => ({ ...group, items: group.items.filter((item) => canAccessAppHref(identity, item.href)) }))
+    .filter((group) => group.items.length > 0);
 
   /**
    * Only one nav item may look active. A parent route like `/app/pengurus`
    * is a prefix of every child route, so the winner is the most specific
    * href that matches — exact match first, then the longest prefix.
    */
-  const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
+  const allHrefs = visibleNav.flatMap((g) => g.items.map((i) => i.href));
   const activeHref =
     allHrefs.find((h) => h === pathname) ??
     allHrefs
@@ -341,7 +344,7 @@ export function AppShell({
           {/* Everything below the pinned card scrolls; the card never does. */}
           <div className="sb-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <nav className="px-2.5 pb-3 pt-1 sm:px-3.5" aria-label="Navigasi aplikasi">
-            {nav.map((group, gi) => (
+            {visibleNav.map((group, gi) => (
               <div key={gi} className={gi > 0 ? "mt-3 border-t border-line pt-3" : "mt-1"}>
                 {group.label ? (
                   <div className="mb-1.5 px-2 text-[9.5px] font-bold uppercase tracking-[0.16em] text-muted2">{group.label}</div>
@@ -385,9 +388,9 @@ export function AppShell({
             <div className="grid grid-cols-2 gap-1.5">
               <Link href="/app/pengurus/persetujuan" className="flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-2 py-1.5 text-[11px] font-semibold text-ink2 transition hover:border-primary-300 hover:text-primary-800">
                 <ClipboardCheck size={13} className="text-[#127e2f]" /> Persetujuan
-                {(nav.flatMap((g) => g.items).find((i) => i.href === "/app/pengurus/persetujuan")?.badge ?? 0) > 0 ? (
+                {(visibleNav.flatMap((g) => g.items).find((i) => i.href === "/app/pengurus/persetujuan")?.badge ?? 0) > 0 ? (
                   <span className="ml-auto rounded-full bg-[var(--sb-accent-500)] px-1.5 text-[9.5px] font-bold text-[#241500]">
-                    {nav.flatMap((g) => g.items).find((i) => i.href === "/app/pengurus/persetujuan")?.badge}
+                    {visibleNav.flatMap((g) => g.items).find((i) => i.href === "/app/pengurus/persetujuan")?.badge}
                   </span>
                 ) : null}
               </Link>
