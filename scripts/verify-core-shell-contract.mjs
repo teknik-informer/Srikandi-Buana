@@ -358,6 +358,17 @@ assert.ok(
   "Cash receipt and payment reports must use the same active cash/bank register as the Kas & Bank workspace, not hard-coded chart-of-account codes.",
 );
 
+const receiptSourceExcludesTransfers =
+  receiptPage.includes("counterpart_line.credit > 0") &&
+  receiptPage.includes("counterpart_register.ledger_account_id = counterpart_line.account_id");
+const paymentSourceExcludesTransfers =
+  paymentPage.includes("counterpart_line.debit > 0") &&
+  paymentPage.includes("counterpart_register.ledger_account_id = counterpart_line.account_id");
+assert.ok(
+  receiptSourceExcludesTransfers && paymentSourceExcludesTransfers,
+  "Internal cash-to-cash and bank-to-bank transfers must not be double-counted as external receipts or payments.",
+);
+
 process.stdout.write("Finance receipt and payment register integration: PASS\\n");
 
 const journalComposer = read("src/components/finance-journal-section.tsx");
