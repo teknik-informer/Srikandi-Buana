@@ -1,6 +1,5 @@
 "use client";
 
-import { Toaster } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
 import { SearchProvider } from "@/components/search-dialog";
 import type { DemoIdentity } from "@/lib/identity";
@@ -35,7 +34,6 @@ export function CoreShell({
           {children}
         </AppShell>
       </SearchProvider>
-      <Toaster />
     </>
   );
 }
