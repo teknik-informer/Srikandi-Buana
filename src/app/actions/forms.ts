@@ -25,6 +25,15 @@ const ALLOWED_EXPERIENCE_LEVELS = new Set([
   "10+",
 ]);
 
+function phoneRateKey(value: string): string {
+  const digits = value.replace(/\\D/g, "");
+  if (digits.startsWith("62")) return digits;
+  if (digits.startsWith("0")) return "62" + digits.slice(1);
+  if (digits.startsWith("8")) return "62" + digits;
+  return digits;
+}
+
+
 export async function submitJoinInterest(
   _prev: JoinState,
   formData: FormData,
@@ -86,7 +95,16 @@ export async function submitJoinInterest(
           FROM v9.membership_interests AS existing
           INNER JOIN organization
             ON organization.id = existing.organization_id
-          WHERE regexp_replace(existing.phone, '[^0-9]', '', 'g') = ${ratePhone}
+          CROSS JOIN LATERAL (
+            SELECT regexp_replace(existing.phone, '[^0-9]', '', 'g') AS digits
+          ) AS phone_digits
+          WHERE (
+            CASE
+              WHEN phone_digits.digits LIKE '0%' THEN '62' || substring(phone_digits.digits FROM 2)
+              WHEN phone_digits.digits LIKE '8%' THEN '62' || phone_digits.digits
+              ELSE phone_digits.digits
+            END
+          ) = ${ratePhone}
             AND existing.created_at >= now() - interval '15 minutes'
         ) AS rate_limited
         FROM organization
