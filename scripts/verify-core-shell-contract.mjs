@@ -352,10 +352,27 @@ assert.ok(
   [receiptPage, paymentPage].every((page) =>
     page.includes("v9.finance_cash_accounts") &&
     page.includes("cash_account.ledger_account_id = account.id") &&
-    page.includes("cash_account.status = 'active'") &&
+    page.includes("cash_account.status IN ('active', 'inactive')") &&
     !page.includes("account.account_code IN ('1-1000', '1-1100')")
   ),
   "Cash receipt and payment reports must use the same active cash/bank register as the Kas & Bank workspace, not hard-coded chart-of-account codes.",
 );
 
 process.stdout.write("Finance receipt and payment register integration: PASS\\n");
+
+const journalComposer = read("src/components/finance-journal-section.tsx");
+const financeWriteActions = read("src/app/actions/finance.ts");
+assert.ok(
+  journalComposer.includes("cash_account.status <> 'active'") &&
+  financeWriteActions.includes("cash_account.status <> 'active'") &&
+  financeWriteActions.includes("FROM v9.finance_cash_accounts AS cash_account"),
+  "Journal composer and server actions must not allow new journal lines against a draft or inactive cash/bank mapping.",
+);
+assert.ok(
+  [receiptPage, paymentPage].every((page) =>
+    page.includes("cash_account.status IN ('active', 'inactive')")
+  ),
+  "Receipt and payment reports must retain historical postings from inactive registers while excluding draft mappings.",
+);
+
+process.stdout.write("Finance register lifecycle integration: PASS\\n");
