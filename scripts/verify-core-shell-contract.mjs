@@ -680,3 +680,20 @@ assert.ok(
 );
 
 process.stdout.write("Business POS payment receipt contract: PASS\\n");
+
+const posReceiptPage = read("src/app/app/(area)/pos/penerimaan/[paymentId]/page.tsx");
+const printPageButton = read("src/components/print-page-button.tsx");
+assert.ok(
+  posReceiptPage.includes("requireIdentity()") &&
+  posReceiptPage.includes("payment.organization_id = ${identity.organizationId}") &&
+  posReceiptPage.includes("payment.received_by = ${identity.userId}") &&
+  posReceiptPage.includes("Kuitansi ini merupakan bukti penerimaan internal") &&
+  posReceiptPage.includes("linked_journal_reference") &&
+  printPageButton.includes("window.print()") &&
+  printPageButton.includes("no-print") &&
+  posPaymentPage.includes("/app/pos/penerimaan/${payment.id}") &&
+  financeReceiptPage.includes("/app/pos/penerimaan/${payment.id}"),
+  "Payment receipts must be organization-scoped, private to the receiving cashier unless authorized, printable, linked from the POS and visible from Finance.",
+);
+
+process.stdout.write("Printable POS payment receipt contract: PASS\\n");
