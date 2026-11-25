@@ -17,7 +17,7 @@ import {
   type ReactNode,
 } from "react";
 import { CheckCircle2, AlertTriangle, X, Info, RotateCcw } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore, useStoreOptional } from "@/lib/store";
 
 /* ------------------------------------------------------------------ */
 /* Button                                                              */
@@ -229,14 +229,17 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 /* ------------------------------------------------------------------ */
 
 export function Toaster() {
-  const { toast, clearToast } = useStore();
+  const store = useStoreOptional();
+  const toast = store?.toast ?? null;
+  const clearToast = store?.clearToast;
+
   useEffect(() => {
-    if (!toast) return;
+    if (!toast || !clearToast) return;
     const t = window.setTimeout(clearToast, 6500);
     return () => window.clearTimeout(t);
   }, [toast, clearToast]);
 
-  if (!toast) return null;
+  if (!toast || !clearToast) return null;
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex justify-center px-4">
       <div
