@@ -25,7 +25,7 @@ export function JoinForm() {
   }
 
   return (
-    <form action={action} className="sb-card space-y-4 p-5 sm:p-6" noValidate>
+    <form action={action} className="relative sb-card space-y-4 p-5 sm:p-6" noValidate>
       <div aria-hidden="true" className="pointer-events-none absolute -left-[10000px] top-auto h-px w-px overflow-hidden">
         <label htmlFor="website">Website</label>
         <input
