@@ -117,6 +117,7 @@ function refreshFinance(): void {
   revalidatePath("/app/keuangan/bagan-akun");
   revalidatePath("/app/keuangan/kas-bank");
   revalidatePath("/app/keuangan/anggaran");
+  revalidatePath("/app/keuangan/iuran");
   revalidatePath("/app/keuangan/penerimaan");
   revalidatePath("/app/keuangan/pembayaran");
   revalidatePath("/app/keuangan/buku-besar");
