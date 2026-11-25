@@ -425,3 +425,55 @@ assert.ok(
 );
 
 process.stdout.write("Finance mapped account archive guard: PASS\\n");
+
+const financeBudgetActions = read("src/app/actions/finance.ts");
+const financeBudgetPage = read("src/app/app/(area)/keuangan/anggaran/page.tsx");
+const financeBudgetComposer = read("src/components/finance-budget-composer.tsx");
+const financeJournalComposer = read("src/components/finance-journal-composer.tsx");
+const financeJournalSection = read("src/components/finance-journal-section.tsx");
+const financeBudgetMigration = read("db/migrations/0025_finance_budget_planning_and_journal_link.sql");
+
+assert.ok(
+  [
+    "createFinanceBudget",
+    "updateDraftFinanceBudget",
+    "submitFinanceBudget",
+    "reviewFinanceBudget",
+    "reopenRejectedFinanceBudget",
+    "closeFinanceBudget",
+  ].every((name) => financeBudgetActions.includes(`export async function ${name}`)) &&
+  financeBudgetActions.includes('can(identity, "finance:budget:write")') &&
+  financeBudgetActions.includes('can(identity, "finance:budget:approve")') &&
+  financeBudgetActions.includes("finance_budget.created") &&
+  financeBudgetActions.includes("finance_budget.closed"),
+  "Budget lifecycle actions must be permission-gated and auditable.",
+);
+
+assert.ok(
+  financeBudgetPage.includes("journal.status = 'posted'") &&
+  financeBudgetPage.includes("journal.budget_id = budget.id") &&
+  financeBudgetPage.includes("Realisasi diambil hanya dari jurnal yang sudah berstatus terposting") &&
+  financeBudgetPage.includes("pending_journal_count"),
+  "Budget actuals must derive only from posted journals explicitly linked to the budget, and closure must show pending linked journals.",
+);
+
+assert.ok(
+  financeBudgetComposer.includes('name="lines_json"') &&
+  financeBudgetComposer.includes("Rincian rencana belanja") &&
+  financeBudgetComposer.includes("accounts.length") &&
+  financeJournalComposer.includes('name="budget_id"') &&
+  financeJournalSection.includes("budget.budget_code AS budget_code") &&
+  financeJournalSection.includes("budget_id: journal.budget_id"),
+  "Budget and journal composers must submit budget linkage and expose linked budget references.",
+);
+
+assert.ok(
+  financeBudgetMigration.includes("NEW.status = 'closed'") &&
+  financeBudgetMigration.includes("journal.status <> 'posted'") &&
+  financeBudgetMigration.includes("budget.status = 'approved'") &&
+  financeBudgetMigration.includes("budget_line.account_id = line.account_id") &&
+  financeBudgetMigration.includes("NEW.budget_id IS DISTINCT FROM OLD.budget_id"),
+  "Database guards must prevent closing budgets with pending journals and require budget-line eligibility before a linked journal advances.",
+);
+
+process.stdout.write("Finance budget planning and journal integration: PASS\n");
