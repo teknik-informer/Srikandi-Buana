@@ -365,7 +365,10 @@ const financeWriteActions = read("src/app/actions/finance.ts");
 assert.ok(
   journalComposer.includes("cash_account.status <> 'active'") &&
   financeWriteActions.includes("cash_account.status <> 'active'") &&
-  financeWriteActions.includes("FROM v9.finance_cash_accounts AS cash_account"),
+  (financeWriteActions.split("cash_account.status <> 'active'").length - 1) >= 5 &&
+  financeWriteActions.includes("FROM v9.finance_cash_accounts AS cash_account") &&
+  financeWriteActions.includes("journal.source_type = 'reversal'") &&
+  !financeWriteActions.includes("${inactiveCheck}"),
   "Journal composer and server actions must not allow new journal lines against a draft or inactive cash/bank mapping.",
 );
 assert.ok(
@@ -376,3 +379,14 @@ assert.ok(
 );
 
 process.stdout.write("Finance register lifecycle integration: PASS\\n");
+
+const cashRegisterJournalGuard = read("db/migrations/0023_finance_cash_bank_journal_guard.sql");
+assert.ok(
+  cashRegisterJournalGuard.includes("NEW.source_type <> 'reversal'") &&
+  cashRegisterJournalGuard.includes("NEW.status IN ('submitted','approved','posted')") &&
+  cashRegisterJournalGuard.includes("cash_account.status <> 'active'") &&
+  cashRegisterJournalGuard.includes("CREATE TRIGGER finance_journals_guard"),
+  "The database must prevent journal workflow transitions while a mapped cash/bank register is inactive, while preserving reversal journals for corrections.",
+);
+
+process.stdout.write("Finance cash register database guard contract: PASS\\n");
