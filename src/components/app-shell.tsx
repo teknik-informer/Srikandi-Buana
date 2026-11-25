@@ -10,6 +10,7 @@ import {
   CircleHelp, ArrowUpRight, ArrowRight, Facebook, Instagram, Youtube,
 } from "lucide-react";
 import { APPS, type AppKey } from "@/config/apps";
+import { canAccessApp } from "@/lib/app-access";
 import { AppIcon } from "@/components/brand";
 import { SearchProvider, SearchButton } from "@/components/search-dialog";
 import type { DemoIdentity } from "@/lib/identity";
@@ -58,6 +59,7 @@ export function AppShell({
   const [user, setUser] = useState(false);
   const unread = notices.filter((n) => n.unread).length;
   const app = APPS.find((a) => a.key === activeApp)!;
+  const availableApps = APPS.filter((candidate) => canAccessApp(identity, candidate.key));
 
   /**
    * Only one nav item may look active. A parent route like `/app/pengurus`
@@ -301,10 +303,10 @@ export function AppShell({
                   <div className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_28px_60px_-24px_rgba(15,26,43,0.45)] animate-rise">
                     <div className="flex items-center justify-between border-b border-line px-3.5 py-2">
                       <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted2">Ganti aplikasi</span>
-                      <span className="text-[10px] text-muted2">{APPS.length} tersedia</span>
+                      <span className="text-[10px] text-muted2">{availableApps.length} tersedia</span>
                     </div>
                     <ul className="max-h-[min(62dvh,420px)] overflow-y-auto p-1.5">
-                      {APPS.map((a) => {
+                      {availableApps.map((a) => {
                         const active = a.key === activeApp;
                         return (
                           <li key={a.key}>
