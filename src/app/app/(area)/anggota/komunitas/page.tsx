@@ -524,7 +524,7 @@ export default async function KomunitasPage({
       <div className="grid gap-4">
         {topics.map((topic) => {
           const topicReplies = repliesByTopic.get(topic.id) ?? [];
-          const ownPending = topic.author_user_id === identity.userId && topic.status !== "published";
+          const ownPending = topic.author_user_id === identity.userId && topic.status === "pending";
           return (
             <Card key={topic.id}>
               <article className="p-4">
@@ -559,7 +559,7 @@ export default async function KomunitasPage({
                     ) : null}
                   </div>
                 ) : null}
-                {topic.status === "rejected" && topic.moderation_note ? (
+                {["rejected","hidden"].includes(topic.status) && topic.moderation_note ? (
                   <Notice tone="warning" title="Catatan moderator">{topic.moderation_note}</Notice>
                 ) : null}
                 {canPost && topic.status === "published" && topic.author_user_id !== identity.userId ? <ReportForm targetType="topic" targetId={topic.id} /> : null}
@@ -576,6 +576,9 @@ export default async function KomunitasPage({
                               <span className="text-[10px] text-muted2">{reply.author_name} · {dateLabel(reply.created_at)}</span>
                             </div>
                             <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5 text-ink2">{reply.body}</p>
+                            {reply.author_user_id === identity.userId && ["rejected","hidden"].includes(reply.status) && reply.moderation_note ? (
+                              <Notice tone="warning" title="Catatan moderator">{reply.moderation_note}</Notice>
+                            ) : null}
                             {reply.author_user_id === identity.userId && reply.status === "pending" ? (
                               <div className="mt-2 flex flex-wrap items-start gap-2">
                                 <span className="pt-1 text-[10px] text-warning">Menunggu moderasi</span>
