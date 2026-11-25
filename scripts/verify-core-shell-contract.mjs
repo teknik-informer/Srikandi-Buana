@@ -218,4 +218,27 @@ assert.ok(
   "The field map must not expose seeded programs or fields outside the signed-in scope.",
 );
 
+
+const externalPortal = read("src/app/portal/page.tsx");
+const notificationPage = read("src/app/app/(launcher)/notifikasi/page.tsx");
+const notificationClient = read("src/app/app/(launcher)/notifikasi/notifikasi-client.tsx");
+assert.ok(
+  externalPortal.includes("requireRoles") &&
+  externalPortal.includes("await requireRoles") &&
+  externalPortal.includes("Belum ada dataset berbagi yang diaktifkan") &&
+  !externalPortal.includes("@/data/operations") &&
+  !externalPortal.includes("@/data/organization") &&
+  !externalPortal.includes("Grant data-sharing") &&
+  !externalPortal.includes("PROGRAMS"),
+  "External portal must not expose seeded grants, programs or documents without a real sharing registry.",
+);
+assert.ok(
+  notificationPage.includes("can(identity") &&
+  notificationPage.includes("shortcuts={shortcuts}") &&
+  notificationClient.includes("shortcuts.map") &&
+  !notificationClient.includes('href="/app/pengurus/persetujuan"') &&
+  !notificationClient.includes('href="/app/sekretariat/surat"'),
+  "Notification shortcuts must be supplied by the server after permission checks.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
