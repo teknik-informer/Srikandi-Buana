@@ -117,7 +117,7 @@ export default async function PenerimaanPage() {
               FROM v9.finance_cash_accounts AS cash_account
               WHERE cash_account.organization_id = account.organization_id
                 AND cash_account.ledger_account_id = account.id
-                AND cash_account.status = 'active'
+                AND cash_account.status IN ('active', 'inactive')
             )
             AND line.debit > 0
           GROUP BY journal.id, journal.status
@@ -155,7 +155,7 @@ export default async function PenerimaanPage() {
               FROM v9.finance_cash_accounts AS cash_account
               WHERE cash_account.organization_id = account.organization_id
                 AND cash_account.ledger_account_id = account.id
-                AND cash_account.status = 'active'
+                AND cash_account.status IN ('active', 'inactive')
             )
             AND line.debit > 0
         ) AS receipt ON receipt.amount > 0
