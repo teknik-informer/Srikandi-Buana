@@ -112,6 +112,19 @@ export default async function PembayaranPage() {
                 AND cash_account.status IN ('active', 'inactive')
             )
             AND line.credit > 0
+            AND EXISTS (
+              SELECT 1
+              FROM v9.finance_journal_lines AS counterpart_line
+              WHERE counterpart_line.organization_id = journal.organization_id
+                AND counterpart_line.journal_id = journal.id
+                AND counterpart_line.debit > 0
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM v9.finance_cash_accounts AS counterpart_register
+                  WHERE counterpart_register.organization_id = counterpart_line.organization_id
+                    AND counterpart_register.ledger_account_id = counterpart_line.account_id
+                )
+            )
           GROUP BY journal.id, journal.status
         )
         SELECT
@@ -150,6 +163,19 @@ export default async function PembayaranPage() {
                 AND cash_account.status IN ('active', 'inactive')
             )
             AND line.credit > 0
+            AND EXISTS (
+              SELECT 1
+              FROM v9.finance_journal_lines AS counterpart_line
+              WHERE counterpart_line.organization_id = journal.organization_id
+                AND counterpart_line.journal_id = journal.id
+                AND counterpart_line.debit > 0
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM v9.finance_cash_accounts AS counterpart_register
+                  WHERE counterpart_register.organization_id = counterpart_line.organization_id
+                    AND counterpart_register.ledger_account_id = counterpart_line.account_id
+                )
+            )
         ) AS payment ON payment.amount > 0
         LEFT JOIN LATERAL (
           SELECT string_agg(
@@ -163,6 +189,12 @@ export default async function PembayaranPage() {
           WHERE line.journal_id = journal.id
             AND line.organization_id = journal.organization_id
             AND line.debit > 0
+            AND NOT EXISTS (
+              SELECT 1
+              FROM v9.finance_cash_accounts AS counterpart_register
+              WHERE counterpart_register.organization_id = account.organization_id
+                AND counterpart_register.ledger_account_id = account.id
+            )
         ) AS counterpart ON true
         WHERE journal.organization_id = ${identity.organizationId}
         ORDER BY journal.journal_date DESC, journal.created_at DESC
