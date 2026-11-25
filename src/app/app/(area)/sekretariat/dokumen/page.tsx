@@ -44,6 +44,9 @@ interface DocumentRow {
   file_name: string | null;
   mime_type: string | null;
   size_bytes: number | null;
+  template_code: string | null;
+  generated_revision: number | null;
+  has_generated_content: boolean;
 }
 
 const categories = ["SK", "Laporan", "SOP", "Surat", "Notulen", "Publikasi"] as const;
@@ -114,7 +117,10 @@ export default async function DokumenPage({
         latest_file.revision_no AS file_revision,
         latest_file.file_name,
         latest_file.mime_type,
-        latest_file.size_bytes
+        latest_file.size_bytes,
+        latest_generation.template_code,
+        latest_generation.revision_no AS generated_revision,
+        (latest_generation.id IS NOT NULL) AS has_generated_content
       FROM v9.secretariat_documents AS document
       LEFT JOIN LATERAL (
         SELECT file.revision_no, file.file_name, file.mime_type, file.size_bytes
@@ -123,6 +129,13 @@ export default async function DokumenPage({
         ORDER BY file.revision_no DESC
         LIMIT 1
       ) AS latest_file ON true
+      LEFT JOIN LATERAL (
+        SELECT generation.id, generation.template_code, generation.revision_no
+        FROM v9.secretariat_document_generations AS generation
+        WHERE generation.document_id = document.id
+        ORDER BY generation.revision_no DESC
+        LIMIT 1
+      ) AS latest_generation ON true
       WHERE document.organization_id = ${identity.organizationId}
         AND (
           (${showArchived} = true AND document.status = 'arsip')
@@ -158,14 +171,21 @@ export default async function DokumenPage({
       <PageHeader
         eyebrow="Sekretariat"
         title="Dokumen & arsip"
-        description="Register dokumen dengan berkas yang tersimpan, klasifikasi akses, revisi, dan jejak audit. Dokumen final tidak dihapus; perubahan berkas menghasilkan revisi baru."
+        description="Register dokumen dengan konten hasil generator, lampiran, klasifikasi akses, revisi, dan jejak audit. Dokumen final tidak dihapus; setiap revisi memerlukan pemeriksaan ulang."
         actions={
-          <Link
-            href={showArchived ? "/app/sekretariat/dokumen" : "/app/sekretariat/dokumen?status=arsip"}
-            className="sb-btn sb-btn-outline"
-          >
-            <Archive size={14} /> {showArchived ? "Dokumen aktif" : "Lihat arsip"}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {!showArchived ? (
+              <Link href="/app/sekretariat/template" className="sb-btn sb-btn-primary">
+                <FilePlus2 size={14} /> Generator dokumen
+              </Link>
+            ) : null}
+            <Link
+              href={showArchived ? "/app/sekretariat/dokumen" : "/app/sekretariat/dokumen?status=arsip"}
+              className="sb-btn sb-btn-outline"
+            >
+              <Archive size={14} /> {showArchived ? "Dokumen aktif" : "Lihat arsip"}
+            </Link>
+          </div>
         }
       />
 
@@ -267,14 +287,24 @@ export default async function DokumenPage({
                         </td>
                         <td><Badge tone={document.visibility === "publik" ? "success" : document.visibility === "terbatas" ? "warning" : "neutral"}>{visibilityLabel[document.visibility]}</Badge></td>
                         <td>
-                          {document.file_name ? (
-                            <>
-                              <Link href={`/api/secretariat/documents/${document.id}/file`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">
-                                <Download size={12} /> {document.file_name}
+                          <div className="space-y-1.5">
+                            {document.file_name ? (
+                              <>
+                                <Link href={`/api/secretariat/documents/${document.id}/file`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">
+                                  <Download size={12} /> {document.file_name}
+                                </Link>
+                                <div className="text-[10px] text-muted2">Berkas rev {document.file_revision} · {sizeLabel(document.size_bytes)}</div>
+                              </>
+                            ) : null}
+                            {document.has_generated_content ? (
+                              <Link href={`/app/sekretariat/dokumen/${document.id}/cetak`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">
+                                <FileText size={12} /> Isi dokumen · rev {document.generated_revision}
                               </Link>
-                              <div className="mt-1 text-[10px] text-muted2">Revisi {document.file_revision} · {sizeLabel(document.size_bytes)}</div>
-                            </>
-                          ) : <span className="text-[10.5px] text-muted2">Belum ada berkas</span>}
+                            ) : null}
+                            {!document.file_name && !document.has_generated_content ? (
+                              <span className="text-[10.5px] text-muted2">Belum ada isi atau berkas</span>
+                            ) : null}
+                          </div>
                         </td>
                         <td><Badge tone={document.status === "final" ? "success" : document.status === "draft" ? "warning" : "neutral"}>{statusLabel[document.status]}</Badge></td>
                         <td>
@@ -311,7 +341,8 @@ export default async function DokumenPage({
                               {document.status === "draft" ? (
                                 <form action={finalizeSecretariatDocument}>
                                   <input type="hidden" name="document_id" value={document.id} />
-                                  <button type="submit" disabled={!document.file_name || (document.visibility === "publik" && !canPublish)} className="sb-btn sb-btn-primary !h-7 !w-full !px-2 text-[10px]">
+                                  <button type="submit" disabled={(!document.file_name && !document.has_generated_content) ||
+                                    (document.visibility === "publik" && (!document.file_name || !canPublish))} className="sb-btn sb-btn-primary !h-7 !w-full !px-2 text-[10px]">
                                     Finalkan dokumen
                                   </button>
                                 </form>
@@ -347,12 +378,18 @@ export default async function DokumenPage({
                       <Badge tone={document.visibility === "publik" ? "success" : document.visibility === "terbatas" ? "warning" : "neutral"}>{visibilityLabel[document.visibility]}</Badge>
                       <span className="self-center text-[10px] text-muted2">{dateLabel(document.document_date)}</span>
                     </div>
-                    <div className="mt-2 border-t border-line pt-2">
+                    <div className="mt-2 space-y-1.5 border-t border-line pt-2">
                       {document.file_name ? (
                         <Link href={`/api/secretariat/documents/${document.id}/file`} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700">
                           <Download size={12} /> {document.file_name} · rev {document.file_revision} · {sizeLabel(document.size_bytes)}
                         </Link>
-                      ) : <span className="text-[10.5px] text-muted2">Belum ada berkas</span>}
+                      ) : null}
+                      {document.has_generated_content ? (
+                        <Link href={`/app/sekretariat/dokumen/${document.id}/cetak`} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700">
+                          <FileText size={12} /> Buka isi & cetak · rev {document.generated_revision}
+                        </Link>
+                      ) : null}
+                      {!document.file_name && !document.has_generated_content ? <span className="text-[10.5px] text-muted2">Belum ada isi atau berkas</span> : null}
                     </div>
                     {canWrite && document.status !== "arsip" ? (
                       <div className="mt-3 space-y-2 border-t border-line pt-3">
@@ -383,7 +420,8 @@ export default async function DokumenPage({
                         {document.status === "draft" ? (
                           <form action={finalizeSecretariatDocument}>
                             <input type="hidden" name="document_id" value={document.id} />
-                            <button type="submit" disabled={!document.file_name || (document.visibility === "publik" && !canPublish)} className="sb-btn sb-btn-primary !h-9 !w-full text-[10.5px]">Finalkan dokumen</button>
+                            <button type="submit" disabled={(!document.file_name && !document.has_generated_content) ||
+                                    (document.visibility === "publik" && (!document.file_name || !canPublish))} className="sb-btn sb-btn-primary !h-9 !w-full text-[10.5px]">Finalkan dokumen</button>
                           </form>
                         ) : null}
                         <form action={archiveSecretariatDocument}>
@@ -408,10 +446,10 @@ export default async function DokumenPage({
 
       <div className="mt-5">
         <Notice tone="info" title="Akses, berkas, dan revisi">
-          Berkas disimpan pada penyimpanan database V9 dengan batas 3 MiB per unggahan. Dokumen publik
-          hanya dapat diunduh setelah finalisasi. Dokumen internal memerlukan sesi organisasi; dokumen
-          terbatas dibatasi ke pengurus berwenang. Mengunggah versi baru membuka draf kembali dan
-          mengharuskan pemeriksaan ulang. Dokumen tidak dihapus, tetapi dipindahkan ke arsip.
+          Konten hasil generator disimpan sebagai revisi yang tidak dapat ditimpa. Dokumen internal atau
+          terbatas dapat difinalkan setelah isi diperiksa. Dokumen publik memerlukan berkas final yang
+          diunggah sebelum dapat difinalkan dan dipublikasikan. Mengunggah berkas atau membuat revisi isi
+          membuka draf kembali untuk pemeriksaan ulang. Dokumen tidak dihapus, tetapi dipindahkan ke arsip.
         </Notice>
       </div>
     </div>
