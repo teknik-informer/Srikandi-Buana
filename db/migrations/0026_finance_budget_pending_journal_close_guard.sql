@@ -3,7 +3,7 @@
 CREATE OR REPLACE FUNCTION v9.protect_finance_budget_header()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $$
+AS $finance_budget_header$
 BEGIN
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'Finance budgets are retained for audit; close a budget instead of deleting it.';
