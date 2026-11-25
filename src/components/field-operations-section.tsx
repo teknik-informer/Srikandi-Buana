@@ -15,6 +15,7 @@ import {
   addFieldProgramIndicator,
   updateFieldWorkplan,
   changeFieldWorkplanStatus,
+  rejectFieldWorkplan,
   updateFieldProgramIndicatorActual,
   updateFieldProgram,
   changeFieldProgramStatus,
@@ -39,7 +40,8 @@ interface WorkplanRow {
   objective: string | null;
   period_start: string;
   period_end: string;
-  status: "draft" | "submitted" | "approved" | "active" | "completed" | "cancelled";
+  status: "draft" | "submitted" | "rejected" | "approved" | "active" | "completed" | "cancelled";
+  review_note: string | null;
   program_count: number;
 }
 
@@ -100,7 +102,8 @@ interface TaskRow {
 
 const workplanStatus: Record<WorkplanRow["status"], string> = {
   draft: "Draf",
-  submitted: "Diajukan",
+  submitted: "Menunggu persetujuan",
+  rejected: "Perlu perbaikan",
   approved: "Disetujui",
   active: "Berjalan",
   completed: "Selesai",
@@ -151,6 +154,7 @@ function resultNotice(result?: string): ResultNotice | null {
   const messages: Record<string, ResultNotice> = {
     "workplan-created": { tone: "success", text: "Rencana kerja berhasil disimpan sebagai draf." },
     "workplan-submitted": { tone: "success", text: "Rencana kerja diajukan untuk proses persetujuan organisasi." },
+    "workplan-rejected": { tone: "warning", text: "Rencana kerja memerlukan perbaikan. Baca catatan Pengurus lalu revisi dan ajukan kembali." },
     "workplan-updated": { tone: "success", text: "Rincian rencana kerja berhasil diperbarui." },
     "workplan-status-updated": { tone: "success", text: "Tahap rencana kerja berhasil diperbarui." },
     "program-created": { tone: "success", text: "Program berhasil diregistrasikan." },
@@ -209,6 +213,7 @@ export async function FieldOperationsSection({
           workplan.period_start::text AS period_start,
           workplan.period_end::text AS period_end,
           workplan.status,
+          workplan.review_note,
           (
             SELECT count(*)::int
             FROM v9.field_programs AS program
@@ -329,7 +334,8 @@ export async function FieldOperationsSection({
                       </Badge>
                     </div>
                     {plan.objective ? <p className="mt-2 whitespace-pre-wrap text-[11.5px] leading-relaxed text-muted">{plan.objective}</p> : null}
-                    {canWriteWorkplans && plan.status === "draft" ? (
+                    {plan.status === "rejected" && plan.review_note ? <Notice tone="warning" title="Catatan perbaikan dari Pengurus">{plan.review_note}</Notice> : null}
+                    {canWriteWorkplans && (plan.status === "draft" || plan.status === "rejected") ? (
                       <>
                         <form action={updateFieldWorkplan} className="mt-3 grid gap-2 border-t border-line pt-3 sm:grid-cols-2">
                           <input type="hidden" name="field_key" value={field.slug} />
@@ -357,7 +363,7 @@ export async function FieldOperationsSection({
                         <form action={submitFieldWorkplan} className="mt-2 flex justify-end">
                           <input type="hidden" name="field_key" value={field.slug} />
                           <input type="hidden" name="workplan_id" value={plan.id} />
-                          <button type="submit" className="sb-btn sb-btn-primary !h-8 !px-3 text-[10.5px]">Ajukan untuk persetujuan</button>
+                          <button type="submit" className="sb-btn sb-btn-primary !h-8 !px-3 text-[10.5px]">{plan.status === "rejected" ? "Kirim ulang untuk ditinjau" : "Ajukan untuk persetujuan"}</button>
                         </form>
                       </>
                     ) : null}
