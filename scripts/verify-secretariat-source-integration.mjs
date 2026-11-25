@@ -70,9 +70,11 @@ assert.ok(
   attendance.includes("source_minutes_id = latest_minutes.id") &&
   attendance.includes("TPL-NOT?source_minutes_id=") &&
   letters.includes("source_letter_id = letter.id") &&
-  lettersClient.includes("TPL-KEL?source_letter_id=") &&
-  lettersClient.includes("letter.direction === \"keluar\""),
-  "Operational pages must link invitation, minute, and outgoing-letter drafts to their existing source records.",
+  lettersClient.includes("letter.direction === \"keluar\"") &&
+  lettersClient.includes("canGenerateDocuments && letter.direction") &&
+  documentRegister.includes("source_reference") &&
+  printPage.includes("generated.source.reference"),
+  "Operational pages must link invitations, minutes, and outgoing letters, and preserve source references in the register and print view."
 );
 
 assert.ok(

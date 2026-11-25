@@ -47,6 +47,7 @@ export default async function SuratPage({
       actorName={identity.name}
       result={result}
       canWrite={can(identity, "secretariat:letters:write")}
+      canGenerateDocuments={can(identity, "secretariat:documents:write")}
     />
   );
 }

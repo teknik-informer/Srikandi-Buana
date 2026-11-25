@@ -50,11 +50,13 @@ export function SuratClient({
   actorName,
   result,
   canWrite,
+  canGenerateDocuments,
 }: {
   initialRows: SecretariatLetter[];
   actorName: string;
   result?: string;
   canWrite: boolean;
+  canGenerateDocuments: boolean;
 }) {
   return (
     <SearchProvider>
@@ -63,6 +65,7 @@ export function SuratClient({
         actorName={actorName}
         result={result}
         canWrite={canWrite}
+        canGenerateDocuments={canGenerateDocuments}
       />
     </SearchProvider>
   );
@@ -73,11 +76,13 @@ function Inner({
   actorName,
   result,
   canWrite,
+  canGenerateDocuments,
 }: {
   initialRows: SecretariatLetter[];
   actorName: string;
   result?: string;
   canWrite: boolean;
+  canGenerateDocuments: boolean;
 }) {
   const { q } = useSearch();
   const [dir, setDir] = useState<Direction>("masuk");
@@ -272,7 +277,7 @@ function Inner({
                     )}
                   </td>
                   <td className="whitespace-nowrap">
-                    {canWrite && letter.direction === "keluar" ? (
+                    {canGenerateDocuments && letter.direction === "keluar" ? (
                       <Link
                         href={"/app/sekretariat/template/TPL-KEL?source_letter_id=" + letter.id}
                         className="font-semibold text-primary-700 hover:underline"

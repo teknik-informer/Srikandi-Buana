@@ -154,6 +154,14 @@ export default async function SecretariatGeneratedDocumentPage({
           <div className="text-right">
             <p>{formatDateID(document.document_date, "long")}</p>
             <p className="mt-1 font-mono text-[9px] text-neutral-500">Ref. {document.reference_no}</p>
+            {generated.source ? (
+              <p className="mt-1 text-[9px] text-neutral-500">
+                Sumber operasional: {
+                  generated.source.kind === "meeting" ? "Agenda rapat" :
+                  generated.source.kind === "minutes" ? "Revisi notulen" : "Register surat keluar"
+                } · {generated.source.reference ?? "Referensi internal"}
+              </p>
+            ) : null}
           </div>
         </div>
 

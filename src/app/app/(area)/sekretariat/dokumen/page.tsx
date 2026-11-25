@@ -47,6 +47,7 @@ interface DocumentRow {
   template_code: string | null;
   generated_revision: number | null;
   has_generated_content: boolean;
+  source_reference: string | null;
 }
 
 const categories = ["SK", "Laporan", "SOP", "Surat", "Notulen", "Publikasi"] as const;
@@ -120,7 +121,13 @@ export default async function DokumenPage({
         latest_file.size_bytes,
         latest_generation.template_code,
         latest_generation.revision_no AS generated_revision,
-        (latest_generation.id IS NOT NULL) AS has_generated_content
+        (latest_generation.id IS NOT NULL) AS has_generated_content,
+        CASE
+          WHEN source_meeting.id IS NOT NULL THEN 'Agenda rapat · ' || source_meeting.reference_no
+          WHEN source_minutes.id IS NOT NULL THEN 'Notulen · ' || minutes_meeting.reference_no || ' · revisi ' || source_minutes.revision_no::text
+          WHEN source_letter.id IS NOT NULL THEN 'Surat keluar · ' || source_letter.reference_no
+          ELSE NULL
+        END AS source_reference
       FROM v9.secretariat_documents AS document
       LEFT JOIN LATERAL (
         SELECT file.revision_no, file.file_name, file.mime_type, file.size_bytes
@@ -136,6 +143,17 @@ export default async function DokumenPage({
         ORDER BY generation.revision_no DESC
         LIMIT 1
       ) AS latest_generation ON true
+      LEFT JOIN v9.secretariat_meetings AS source_meeting
+        ON source_meeting.id = document.source_meeting_id
+        AND source_meeting.organization_id = document.organization_id
+      LEFT JOIN v9.secretariat_minutes AS source_minutes
+        ON source_minutes.id = document.source_minutes_id
+      LEFT JOIN v9.secretariat_meetings AS minutes_meeting
+        ON minutes_meeting.id = source_minutes.meeting_id
+        AND minutes_meeting.organization_id = document.organization_id
+      LEFT JOIN v9.secretariat_letters AS source_letter
+        ON source_letter.id = document.source_letter_id
+        AND source_letter.organization_id = document.organization_id
       WHERE document.organization_id = ${identity.organizationId}
         AND (
           (${showArchived} = true AND document.status = 'arsip')
@@ -280,6 +298,9 @@ export default async function DokumenPage({
                           <div className="font-mono text-[9.5px] text-muted2">{document.reference_no}</div>
                           <div className="mt-1 font-semibold text-ink">{document.title}</div>
                           <div className="mt-1 text-[10.5px] text-muted">{document.number ?? "Nomor resmi belum dicatat"} · {document.owner_label}</div>
+                          {document.source_reference ? (
+                            <div className="mt-1 text-[10px] text-primary-700">Sumber: {document.source_reference}</div>
+                          ) : null}
                         </td>
                         <td>
                           <div className="text-[11.5px] text-ink2">{document.category}</div>
