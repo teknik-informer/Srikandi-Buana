@@ -894,3 +894,145 @@ export async function cancelBusinessOrder(formData: FormData): Promise<void> {
   refreshOrders();
   redirect(orderPath("order-cancelled", orderId));
 }
+
+
+export async function recordBusinessOrderPayment(formData: FormData): Promise<void> {
+  const identity = await requireIdentity();
+  const cashierOnly = can(identity, "pos:sell") &&
+    !(can(identity, "field:usaha:activity:write") && can(identity, "field:usaha:business:write"));
+
+  if (!cashierOnly) {
+    if (!can(identity, "field:usaha:activity:write")) redirect("/app");
+    requireOrderWrite(identity);
+  }
+
+  const orderId = String(formData.get("order_id") ?? "").trim();
+  const cashAccountId = String(formData.get("cash_account_id") ?? "").trim();
+  const idempotencyKey = String(formData.get("idempotency_key") ?? "").trim();
+  const amountText = String(formData.get("amount") ?? "").trim();
+  const amount = Number(amountText);
+  const paymentReference = normalize(String(formData.get("payment_reference") ?? ""));
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (
+    !validUuid(orderId) ||
+    !validUuid(cashAccountId) ||
+    !validUuid(idempotencyKey) ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    Math.round(amount * 100) !== amount * 100 ||
+    amount > 9999999999999999 ||
+    paymentReference.length > 160 ||
+    note.length > 1000
+  ) {
+    redirect(orderPath("payment-invalid", orderId, "pos"));
+  }
+
+  let created: MutationRow | undefined;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH order_context AS MATERIALIZED (
+        SELECT
+          order_row.id,
+          order_row.organization_id,
+          order_row.field_key,
+          order_row.reference_no,
+          order_row.created_by,
+          order_row.total_amount
+        FROM v9.business_orders AS order_row
+        WHERE order_row.id = ${orderId}
+          AND order_row.organization_id = ${identity.organizationId}
+          AND order_row.field_key = 'usaha'
+          AND order_row.order_channel = 'pos'
+          AND order_row.status = 'fulfilled'
+          AND (${cashierOnly} = false OR order_row.created_by = ${identity.userId})
+        FOR UPDATE
+      ),
+      register_context AS MATERIALIZED (
+        SELECT cash_account.id
+        FROM v9.finance_cash_accounts AS cash_account
+        WHERE cash_account.id = ${cashAccountId}
+          AND cash_account.organization_id = ${identity.organizationId}
+          AND cash_account.status = 'active'
+          AND cash_account.currency_code = 'IDR'
+      ),
+      paid AS MATERIALIZED (
+        SELECT COALESCE(sum(payment.amount), 0)::numeric(18,2) AS paid_total
+        FROM v9.business_order_payments AS payment
+        INNER JOIN order_context AS order_row
+          ON order_row.id = payment.order_id
+          AND order_row.organization_id = payment.organization_id
+      ),
+      inserted AS (
+        INSERT INTO v9.business_order_payments (
+          organization_id, field_key, order_id, cash_account_id,
+          payment_date, amount, payment_reference, note,
+          received_by, idempotency_key
+        )
+        SELECT
+          order_row.organization_id,
+          order_row.field_key,
+          order_row.id,
+          register.id,
+          current_date,
+          ${amount},
+          NULLIF(${paymentReference}, ''),
+          NULLIF(${note}, ''),
+          ${identity.userId},
+          ${idempotencyKey}::uuid
+        FROM order_context AS order_row
+        CROSS JOIN register_context AS register
+        CROSS JOIN paid
+        WHERE paid.paid_total + ${amount} <= order_row.total_amount
+        RETURNING id, organization_id, field_key, order_id, reference_no,
+          amount, cash_account_id, payment_date
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id, actor_user_id, action, entity_type, entity_id, after_state
+        )
+        SELECT
+          organization_id,
+          ${identity.userId},
+          'business_order_payment.recorded',
+          'business_order_payment',
+          id::text,
+          jsonb_build_object(
+            'field_key', field_key,
+            'order_id', order_id,
+            'reference_no', reference_no,
+            'amount', amount,
+            'cash_account_id', cash_account_id,
+            'payment_date', payment_date
+          )
+        FROM inserted
+        RETURNING id
+      )
+      SELECT inserted.id::text AS id, inserted.reference_no
+      FROM inserted
+      INNER JOIN audit ON true
+    `;
+    created = rowsFromResult<MutationRow>(result)[0];
+  } catch (reason) {
+    fail("business-order-payment-record", reason);
+    const message = reason instanceof Error ? reason.message.toLowerCase() : "";
+    if (
+      message.includes("business_order_payments_org_idempotency_key") ||
+      message.includes("business_order_payments_organization_id_idempotency_key")
+    ) {
+      redirect(orderPath("payment-duplicate", orderId, "pos"));
+    }
+    if (message.includes("cannot exceed the order total")) {
+      redirect(orderPath("payment-exceeds-balance", orderId, "pos"));
+    }
+    if (message.includes("active idr cash")) {
+      redirect(orderPath("payment-register-unavailable", orderId, "pos"));
+    }
+    redirect(orderPath("payment-blocked", orderId, "pos"));
+  }
+
+  if (!created) redirect(orderPath("payment-order-or-register-unavailable", orderId, "pos"));
+  refreshOrders();
+  redirect(orderPath("payment-recorded", orderId, "pos"));
+}
