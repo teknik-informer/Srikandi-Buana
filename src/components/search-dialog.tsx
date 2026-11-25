@@ -108,16 +108,27 @@ function SearchDialog() {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const groups = useMemo(\n    () => searchAll(q).map((group) => ({\n      ...group,\n      hits: group.hits.filter((hit) => canAccessAppHref(identity, hit.href)),\n    })).filter((group) => group.hits.length > 0),\n    [q, identity],\n  );
+  const groups = useMemo(
+    () =>
+      searchAll(q)
+        .map((group) => ({
+          ...group,
+          hits: group.hits.filter((hit) => canAccessAppHref(identity, hit.href)),
+        }))
+        .filter((group) => group.hits.length > 0),
+    [q, identity],
+  );
   const flat = useMemo(() => groups.flatMap((g) => g.hits).slice(0, 24), [groups]);
 
   const query = q.trim().toLowerCase();
   const apps = useMemo(
     () =>
       APPS.filter(
-        (a) => !query || `${a.short} ${a.name} ${a.audience} ${a.description}`.toLowerCase().includes(query),
+        (app) =>
+          canAccessApp(identity, app.key) &&
+          (!query || `${app.short} ${app.name} ${app.audience} ${app.description}`.toLowerCase().includes(query)),
       ).slice(0, 6),
-    [query],
+    [query, identity],
   );
 
   // reset whenever it opens so the field is always ready to type into
@@ -141,7 +152,7 @@ function SearchDialog() {
 
   if (!open) return null;
 
-  const shown = apps.slice(0, 4);
+  const shown = apps.slice(0, 4);\n  const shortcuts = SHORTCUTS.filter((shortcut) => canAccessAppHref(identity, shortcut.href));
   const hits = flat.slice(0, 12);
 
   return (
@@ -286,7 +297,7 @@ function SearchDialog() {
             <section className="px-3.5 pt-3" aria-label="Akses cepat">
               <p className="px-1 pb-1.5 text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted2">Akses cepat</p>
               <div className="grid gap-1 sm:grid-cols-2">
-                {SHORTCUTS.map((s) => (
+                {shortcuts.map((s) => (
                   <Link
                     key={s.href}
                     href={s.href}
