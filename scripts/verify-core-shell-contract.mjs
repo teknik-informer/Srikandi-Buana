@@ -345,3 +345,17 @@ assert.ok(
 );
 
 process.stdout.write("Finance cash and bank register contract: PASS\n");
+
+const receiptPage = read("src/app/app/(area)/keuangan/penerimaan/page.tsx");
+const paymentPage = read("src/app/app/(area)/keuangan/pembayaran/page.tsx");
+assert.ok(
+  [receiptPage, paymentPage].every((page) =>
+    page.includes("v9.finance_cash_accounts") &&
+    page.includes("cash_account.ledger_account_id = account.id") &&
+    page.includes("cash_account.status = 'active'") &&
+    !page.includes("account.account_code IN ('1-1000', '1-1100')")
+  ),
+  "Cash receipt and payment reports must use the same active cash/bank register as the Kas & Bank workspace, not hard-coded chart-of-account codes.",
+);
+
+process.stdout.write("Finance receipt and payment register integration: PASS\\n");
