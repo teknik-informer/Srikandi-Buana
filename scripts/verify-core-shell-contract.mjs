@@ -616,3 +616,67 @@ assert.ok(
 );
 
 process.stdout.write("Community author resubmission contract: PASS\\n");
+
+const businessOrderActions = read("src/app/actions/business-orders.ts");
+const posPaymentPage = read("src/app/app/(area)/pos/page.tsx");
+const posPaymentForm = read("src/components/business-order-payment-form.tsx");
+const financeReceiptPage = read("src/app/app/(area)/keuangan/penerimaan/page.tsx");
+const financePaymentActions = read("src/app/actions/finance.ts");
+const paymentReceiptMigration = read("db/migrations/0031_business_order_payment_receipts.sql");
+const paymentIdempotencyMigration = read("db/migrations/0032_business_order_payment_idempotency.sql");
+const paymentConcurrencyMigration = read("db/migrations/0033_business_order_payment_concurrency_guard.sql");
+
+assert.ok(
+  businessOrderActions.includes("export async function recordBusinessOrderPayment") &&
+  businessOrderActions.includes("order_row.order_channel = 'pos'") &&
+  businessOrderActions.includes("order_row.status = 'fulfilled'") &&
+  businessOrderActions.includes("cash_account.status = 'active'") &&
+  businessOrderActions.includes("cash_account.currency_code = 'IDR'") &&
+  businessOrderActions.includes("paid.paid_total + ${amount} <= order_row.total_amount") &&
+  businessOrderActions.includes("'business_order_payment.recorded'") &&
+  businessOrderActions.includes("idempotency_key"),
+  "POS receipts must be limited to fulfilled cashier orders, active IDR cash registers, order balances and an auditable idempotent insert.",
+);
+
+assert.ok(
+  posPaymentPage.includes("BusinessOrderPaymentForm") &&
+  posPaymentPage.includes("payment_summary.paid_total") &&
+  posPaymentPage.includes("recentPayments") &&
+  posPaymentPage.includes("linked_journal_reference") &&
+  posPaymentPage.includes("Saldo buku besar belum berubah"),
+  "The cashier workspace must display recorded receipts, paid totals and outstanding balances without misrepresenting them as posted ledger cash.",
+);
+
+assert.ok(
+  posPaymentForm.includes("recordBusinessOrderPayment") &&
+  posPaymentForm.includes("name=\"idempotency_key\"") &&
+  posPaymentForm.includes("name=\"cash_account_id\"") &&
+  posPaymentForm.includes("name=\"amount\""),
+  "The POS payment form must submit an idempotent cash-register receipt with an amount.",
+);
+
+assert.ok(
+  financePaymentActions.includes("export async function linkBusinessOrderPaymentJournal") &&
+  financePaymentActions.includes('can(identity, "finance:journal:write")') &&
+  financePaymentActions.includes("journal.source_type = 'sale'") &&
+  financePaymentActions.includes("journal.source_reference = before_row.reference_no") &&
+  financePaymentActions.includes("journal.status = 'posted'") &&
+  financeReceiptPage.includes("Kuitansi POS belum dibukukan") &&
+  financeReceiptPage.includes("journal.total_debit = payment.amount") &&
+  financeReceiptPage.includes("line.account_id = cash_account.ledger_account_id"),
+  "Only finance journal writers may link a receipt to an exactly matching posted sale journal, and the receipt queue must filter to matching cash-bank journal lines.",
+);
+
+assert.ok(
+  paymentReceiptMigration.includes("Payment can only be recorded for a fulfilled order.") &&
+  paymentReceiptMigration.includes("Total received payment cannot exceed the order total.") &&
+  paymentReceiptMigration.includes("Payment must use an active IDR cash, bank or e-wallet register.") &&
+  paymentReceiptMigration.includes("Link only a posted sale journal") &&
+  paymentReceiptMigration.includes("CREATE TRIGGER business_order_payments_guard") &&
+  paymentIdempotencyMigration.includes("business_order_payments_org_idempotency_key") &&
+  paymentConcurrencyMigration.includes("pg_advisory_xact_lock") &&
+  paymentConcurrencyMigration.includes("business-order-payment:"),
+  "Database guards must enforce fulfilled-order receipts, non-overpayment, active IDR registers, exact posted sale linkage, duplicate prevention and per-order concurrency serialization.",
+);
+
+process.stdout.write("Business POS payment receipt contract: PASS\\n");
