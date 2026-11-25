@@ -401,3 +401,16 @@ assert.ok(
 );
 
 process.stdout.write("Finance cash register database guard contract: PASS\\n");
+
+const financeAccountSection = read("src/components/finance-account-section.tsx");
+assert.ok(
+  financeWriteActions.includes("NOT EXISTS (") &&
+  financeWriteActions.includes("FROM v9.finance_journal_lines AS line") &&
+  financeWriteActions.includes("FROM v9.finance_cash_accounts AS cash_account") &&
+  financeAccountSection.includes("has_cash_register: boolean") &&
+  financeAccountSection.includes("!account.has_cash_register") &&
+  financeAccountSection.includes("register kas/bank harus dipertahankan"),
+  "A ledger account with journal history or a cash/bank register mapping must not be archived from either the server action or account UI.",
+);
+
+process.stdout.write("Finance account archive protection: PASS\\n");
