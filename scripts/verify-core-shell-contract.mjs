@@ -139,4 +139,63 @@ assert.ok(
   "Navigation badges must use the filtered menu and unknown internal paths must be hidden.",
 );
 
+
+assert.doesNotMatch(
+  coreShell,
+  /StoreProvider|@\\/lib\\/store/,
+  "The active CoreShell must not mount or import the browser demo store.",
+);
+const toasterSource = read("src/components/act.tsx");
+const toasterStart = toasterSource.indexOf("export function Toaster()");
+const toasterEnd = toasterSource.indexOf("/* Demo state chip + reset", toasterStart);
+const toasterBody = toasterSource.slice(toasterStart, toasterEnd);
+assert.ok(toasterBody.includes("useStoreOptional()") && !toasterBody.includes("useStore()"),
+  "Global toast chrome must be safe when no demo StoreProvider is mounted.");
+assert.ok(
+  !appShell.includes("useStoreOptional") &&
+  !appShell.includes("markAllRead") &&
+  !appShell.includes("Tandai dibaca"),
+  "Workspace notification chrome must not expose browser-local read-state actions.",
+);
+
+const activeClientSources = [
+  "src/app/app/(area)/anggota/dashboard-client.tsx",
+  "src/app/app/(area)/anggota/profil/profil-client.tsx",
+  "src/app/app/(area)/pengurus/persetujuan/persetujuan-client.tsx",
+  "src/app/app/(area)/pengurus/tugas/tugas-client.tsx",
+  "src/app/app/(area)/sekretariat/surat/surat-client.tsx",
+  "src/app/app/(launcher)/notifikasi/notifikasi-client.tsx",
+  "src/components/field-dashboard.tsx",
+  "src/components/field-section.tsx",
+  "src/components/field-operations-section.tsx",
+  "src/components/field-team-section.tsx",
+  "src/components/field-agriculture-section.tsx",
+  "src/components/field-training-section.tsx",
+  "src/components/field-business-section.tsx",
+  "src/components/field-business-catalog-section.tsx",
+  "src/components/field-business-orders-section.tsx",
+];
+for (const sourcePath of activeClientSources) {
+  const source = read(sourcePath);
+  assert.ok(
+    !source.includes("useStore(") && !source.includes("localStorage"),
+    sourcePath + " must not depend on browser-local operational state.",
+  );
+}
+assert.doesNotMatch(
+  read("src/app/app/(area)/pengurus/page.tsx"),
+  /dashboard-client/,
+  "The active Pengurus dashboard must not mount the legacy browser-store dashboard client.",
+);
+assert.doesNotMatch(
+  read("src/app/app/(area)/sekretariat/page.tsx"),
+  /dashboard-client/,
+  "The active Secretariat dashboard must not mount the legacy browser-store dashboard client.",
+);
+assert.doesNotMatch(
+  read("src/app/app/(area)/sekretariat/dokumen/page.tsx"),
+  /dokumen-client/,
+  "The active Secretariat document register must not mount its legacy demo client.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
