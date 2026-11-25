@@ -189,8 +189,9 @@ export async function FinanceDashboardSection() {
           termasuk rekening bank, dana terbatas, iuran, dan perlakuan pajak sebelum aktivasi.
         </Notice>
         <Notice tone="info" title="Batas tahap implementasi">
-          Saat ini yang aktif adalah bagan akun dan jurnal berpasangan. Kas/bank, rekonsiliasi,
-          anggaran, iuran, utang/piutang, POS, dan posting dari transaksi usaha belum disambungkan.
+          Bagan akun, jurnal berpasangan, serta register Kas/Bank sudah tersedia. Rekonsiliasi rekening koran,
+          anggaran, sub-ledger iuran per anggota, utang/piutang terperinci, dan posting otomatis dari POS atau transaksi usaha
+          masih memerlukan alur serta kontrol data tersendiri.
         </Notice>
       </div>
     </div>
