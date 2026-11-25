@@ -140,9 +140,8 @@ assert.ok(
 );
 
 
-assert.doesNotMatch(
-  coreShell,
-  /StoreProvider|@\\/lib\\/store/,
+assert.ok(
+  !coreShell.includes("StoreProvider") && !coreShell.includes("@/lib/store"),
   "The active CoreShell must not mount or import the browser demo store.",
 );
 const toasterSource = read("src/components/act.tsx");
