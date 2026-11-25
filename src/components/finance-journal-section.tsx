@@ -105,12 +105,12 @@ const resultMessages: Record<string, { tone: "success" | "warning" | "danger"; t
   "journal-posted": { tone: "success", text: "Jurnal berhasil diposting dan menjadi bagian dari buku besar." },
   "journal-reopened": { tone: "success", text: "Jurnal yang ditolak kembali menjadi draf." },
   "journal-not-balanced": { tone: "warning", text: "Total debit dan kredit belum seimbang atau akun belum aktif. Periksa kembali baris jurnal." },
-  "journal-not-draft": { tone: "warning", text: "Jurnal tidak lagi berstatus draf." },
-  "review-not-eligible": { tone: "warning", text: "Pemeriksaan tidak dapat dilakukan. Pembuat jurnal tidak boleh menyetujui jurnalnya sendiri." },
-  "journal-not-approved": { tone: "warning", text: "Jurnal belum disetujui sehingga tidak dapat diposting." },
+  "journal-not-draft": { tone: "warning", text: "Jurnal bukan lagi draf, atau pemetaan rekening kas/bank yang dipilih belum aktif." },
+  "review-not-eligible": { tone: "warning", text: "Pemeriksaan tidak dapat dilakukan. Pastikan pemeriksa berbeda dari pembuat dan semua register kas/bank yang digunakan masih aktif." },
+  "journal-not-approved": { tone: "warning", text: "Jurnal belum disetujui, atau register kas/bank terkait sudah tidak aktif sehingga jurnal tidak dapat diposting." },
   "invalid-lines": { tone: "warning", text: "Tanggal, akun, atau nilai pada baris jurnal tidak valid." },
   "account-unavailable": { tone: "warning", text: "Salah satu akun tidak aktif atau tidak tersedia untuk organisasi ini." },
-  "posting-blocked": { tone: "danger", text: "Posting ditolak oleh kontrol jurnal. Pastikan persetujuan, akun aktif, dan keseimbangan tetap valid." },
+  "posting-blocked": { tone: "danger", text: "Posting ditolak oleh kontrol jurnal. Periksa persetujuan, keseimbangan, status akun, dan aktivasi register kas/bank." },
   error: { tone: "danger", text: "Sistem tidak dapat menyimpan jurnal. Periksa koneksi atau log aplikasi." },
 };
 
