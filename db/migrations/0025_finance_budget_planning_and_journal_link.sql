@@ -375,7 +375,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS finance_journals_guard ON v9.finance_journals;
 CREATE TRIGGER finance_journals_guard
