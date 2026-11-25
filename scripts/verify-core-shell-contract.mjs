@@ -414,3 +414,14 @@ assert.ok(
 );
 
 process.stdout.write("Finance account archive protection: PASS\\n");
+
+const accountRegisterGuard = read("db/migrations/0024_finance_account_cash_register_archive_guard.sql");
+assert.ok(
+  accountRegisterGuard.includes("CREATE OR REPLACE FUNCTION v9.protect_finance_account()") &&
+  accountRegisterGuard.includes("FROM v9.finance_cash_accounts cash_account") &&
+  accountRegisterGuard.includes("ledger_account_id = OLD.id") &&
+  !accountRegisterGuard.includes("cash_account.status = 'active'"),
+  "The database account guard must preserve every mapped cash/bank ledger account, including inactive mappings.",
+);
+
+process.stdout.write("Finance mapped account archive guard: PASS\\n");
