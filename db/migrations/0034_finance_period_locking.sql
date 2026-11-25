@@ -185,6 +185,10 @@ BEGIN
     target_date := NEW.journal_date;
   END IF;
 
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended(target_organization::text || ':finance-periods', 0)
+  );
+
   IF NOT EXISTS (
     SELECT 1 FROM v9.finance_periods AS period
     WHERE period.organization_id = target_organization
@@ -229,6 +233,10 @@ BEGIN
     target_journal := NEW.journal_id;
     target_organization := NEW.organization_id;
   END IF;
+
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended(target_organization::text || ':finance-periods', 0)
+  );
 
   SELECT journal.organization_id, journal.journal_date
   INTO target_organization, target_date
