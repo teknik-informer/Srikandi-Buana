@@ -345,7 +345,7 @@ export default async function AnggaranPage({
           };
 
           return (
-            <Card key={budget.id} id={budget.id}>
+            <Card key={budget.id}>
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
