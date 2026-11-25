@@ -90,4 +90,17 @@ assert.ok(
   "Each workspace search provider must receive the authenticated identity.",
 );
 
+
+const skPage = read("src/app/app/(area)/sekretariat/sk/page.tsx");
+assert.ok(
+  !["@/data/organization", "@/data/operations", "@/data/finance", "@/data/content"].some((marker) => skPage.includes(marker)),
+  "The Secretariat SK page must not use seeded document or meeting data.",
+);
+assert.ok(
+  skPage.includes("v9.secretariat_documents") &&
+  skPage.includes("v9.field_applications") &&
+  skPage.includes("v9.secretariat_meeting_decisions"),
+  "The Secretariat SK page must use the organization document, field and meeting decision registers.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
