@@ -25,7 +25,7 @@ export function MemberShell({
   children: React.ReactNode;
 }) {
   return (
-    <SearchProvider>
+    <SearchProvider identity={identity}>
       <AppShell
         identity={identity}
         accounts={[]}
