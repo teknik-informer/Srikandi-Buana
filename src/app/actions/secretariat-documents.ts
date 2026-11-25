@@ -397,9 +397,18 @@ export async function finalizeSecretariatDocument(formData: FormData): Promise<v
         WHERE document.id = ${id}
           AND document.organization_id = ${identity.organizationId}
           AND document.status = 'draft'
-          AND EXISTS (
-            SELECT 1 FROM v9.secretariat_document_files AS file
-            WHERE file.document_id = document.id
+          AND (
+            EXISTS (
+              SELECT 1 FROM v9.secretariat_document_files AS file
+              WHERE file.document_id = document.id
+            )
+            OR (
+              document.visibility <> 'publik'
+              AND EXISTS (
+                SELECT 1 FROM v9.secretariat_document_generations AS generation
+                WHERE generation.document_id = document.id
+              )
+            )
           )
           AND (
             document.visibility <> 'publik'
@@ -417,7 +426,15 @@ export async function finalizeSecretariatDocument(formData: FormData): Promise<v
           'secretariat_document.finalized',
           'secretariat_document',
           target.id::text,
-          jsonb_build_object('reference_no', target.reference_no, 'title', target.title, 'visibility', target.visibility)
+          jsonb_build_object(
+            'reference_no', target.reference_no,
+            'title', target.title,
+            'visibility', target.visibility,
+            'generated_content', EXISTS (
+              SELECT 1 FROM v9.secretariat_document_generations AS generation
+              WHERE generation.document_id = target.id
+            )
+          )
         FROM target
         RETURNING id
       )
@@ -675,7 +692,15 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
             ELSE 'secretariat_document.content_revision_created' END,
           'secretariat_document', next_revision.id::text,
           CASE WHEN next_revision.operation = 'created' THEN NULL
-            ELSE jsonb_build_object('previous_status', 'draft') END,
+            ELSE (
+              SELECT jsonb_build_object(
+                'previous_status', existing_target.status,
+                'previous_title', existing_target.title,
+                'previous_number', existing_target.number
+              )
+              FROM existing_target
+              WHERE existing_target.id = next_revision.id
+            ) END,
           jsonb_build_object(
             'reference_no', next_revision.reference_no,
             'template_code', ${template.code},
