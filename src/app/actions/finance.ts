@@ -360,7 +360,7 @@ export async function createFinanceCashAccount(formData: FormData): Promise<void
     (kind !== "cash" && (institutionName.length < 2 || institutionName.length > 160)) ||
     holderLabel.length > 160 ||
     (last4 && !/^\d{4}$/.test(last4)) ||
-    !/^[A-Z]{3}$/.test(currency)
+    currency !== "IDR"
   ) {
     redirect(cashBankPath("mapping-invalid"));
   }
