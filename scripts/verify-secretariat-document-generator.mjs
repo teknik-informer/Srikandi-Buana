@@ -14,6 +14,7 @@ const migration = read("db/migrations/0040_secretariat_document_generator.sql");
 const registerPage = read("src/app/app/(area)/sekretariat/dokumen/page.tsx");
 const printPage = read("src/app/app/(area)/sekretariat/dokumen/[id]/cetak/page.tsx");
 const printActions = read("src/components/secretariat-document-print-actions.tsx");
+const globalStyles = read("src/app/globals.css");
 
 const templateCodes = ["TPL-SK", "TPL-UND", "TPL-KEL", "TPL-NOT", "TPL-LAP", "TPL-SPR"];
 for (const code of templateCodes) {
@@ -91,6 +92,18 @@ assert.ok(
   printActions.includes('"use client"') &&
   printActions.includes("window.print()"),
   "The print control must open the browser print dialog for paper or PDF output.",
+);
+
+assert.ok(
+  printPage.includes('id="sb-generated-document-print"') &&
+  globalStyles.includes("@page {") &&
+  globalStyles.includes("size: A4;") &&
+  globalStyles.includes("body * {") &&
+  globalStyles.includes("#sb-generated-document-print,") &&
+  globalStyles.includes("#sb-generated-document-print * {") &&
+  globalStyles.includes("visibility: hidden !important;") &&
+  globalStyles.includes("visibility: visible !important;"),
+  "Browser printing must isolate the generated A4 sheet and hide the application workspace.",
 );
 
 process.stdout.write("Secretariat document generator contract: PASS\\n");
