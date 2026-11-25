@@ -1974,3 +1974,102 @@ export async function updateFinanceContributionAllocation(formData: FormData): P
   revalidatePath("/app/anggota/kontribusi");
   redirect("/app/keuangan/iuran?result=allocation-corrected");
 }
+
+
+export async function linkBusinessOrderPaymentJournal(formData: FormData): Promise<void> {
+  const identity = await requireIdentity("finance:read");
+  if (!can(identity, "finance:journal:write")) redirect("/app");
+
+  const paymentId = String(formData.get("payment_id") ?? "").trim();
+  const journalId = String(formData.get("journal_id") ?? "").trim();
+  if (!validUuid(paymentId) || !validUuid(journalId)) {
+    redirect("/app/keuangan/penerimaan?result=payment-link-invalid");
+  }
+
+  let linked = false;
+  try {
+    const sql = getV9Sql();
+    const result = await sql`
+      WITH before_row AS MATERIALIZED (
+        SELECT
+          payment.id,
+          payment.organization_id,
+          payment.reference_no,
+          payment.amount,
+          payment.finance_journal_id
+        FROM v9.business_order_payments AS payment
+        WHERE payment.id = ${paymentId}
+          AND payment.organization_id = ${identity.organizationId}
+          AND payment.finance_journal_id IS NULL
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE v9.business_order_payments AS payment
+        SET
+          finance_journal_id = journal.id,
+          linked_by = ${identity.userId},
+          linked_at = now()
+        FROM before_row
+        INNER JOIN v9.finance_journals AS journal
+          ON journal.id = ${journalId}
+          AND journal.organization_id = before_row.organization_id
+          AND journal.source_type = 'sale'
+          AND journal.source_reference = before_row.reference_no
+          AND journal.status = 'posted'
+        WHERE payment.id = before_row.id
+          AND payment.organization_id = before_row.organization_id
+          AND payment.finance_journal_id IS NULL
+        RETURNING
+          payment.id,
+          payment.organization_id,
+          payment.reference_no,
+          payment.amount,
+          payment.order_id,
+          payment.finance_journal_id
+      ),
+      audit AS (
+        INSERT INTO v9.audit_events (
+          organization_id,
+          actor_user_id,
+          action,
+          entity_type,
+          entity_id,
+          before_state,
+          after_state
+        )
+        SELECT
+          updated.organization_id,
+          ${identity.userId},
+          'business_order_payment.journal_linked',
+          'business_order_payment',
+          updated.id::text,
+          jsonb_build_object(
+            'reference_no', updated.reference_no,
+            'amount', updated.amount,
+            'finance_journal_id', NULL
+          ),
+          jsonb_build_object(
+            'reference_no', updated.reference_no,
+            'amount', updated.amount,
+            'order_id', updated.order_id,
+            'finance_journal_id', updated.finance_journal_id
+          )
+        FROM updated
+        RETURNING id
+      )
+      SELECT updated.id::text AS id
+      FROM updated
+      INNER JOIN audit ON true
+    `;
+    linked = rowsFromResult<MutationRow>(result).length === 1;
+  } catch (reason) {
+    fail("business-order-payment-journal-link", reason);
+    redirect("/app/keuangan/penerimaan?result=payment-link-mismatch");
+  }
+
+  if (!linked) redirect("/app/keuangan/penerimaan?result=payment-link-stale");
+  refreshFinance();
+  revalidatePath("/app/pos");
+  revalidatePath("/app/bidang/usaha/pesanan");
+  redirect("/app/keuangan/penerimaan?result=payment-linked");
+}
