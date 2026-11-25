@@ -1,17 +1,17 @@
 "use client";
 
-import { useStore, StoreProvider, type Actor } from "@/lib/store";
+import { StoreProvider, type Actor } from "@/lib/store";
 import { Toaster } from "@/components/act";
 import { AppShell } from "@/components/app-shell";
 import { SearchProvider } from "@/components/search-dialog";
 import type { DemoIdentity } from "@/lib/identity";
-import { NOTICES } from "@/data/organization";
 import type { AppKey } from "@/config/apps";
 
 /**
- * Client wrapper that mounts the shared operational store for an app area, so
- * every screen can act on the same data. `seedNotices` keeps the chrome's
- * notification popover in step with the store on first paint.
+ * Shared workspace chrome. The legacy StoreProvider remains mounted while
+ * unmigrated client screens are retired, but it is not an authority for
+ * navigation badges or notifications. Layouts must supply server-backed
+ * navigation metadata; unsupported notification delivery stays visibly off.
  */
 export function CoreShell({
   identity,
@@ -34,67 +34,17 @@ export function CoreShell({
   return (
     <StoreProvider actor={actor}>
       <SearchProvider>
-        <LiveChrome identity={identity} activeApp={activeApp} nav={nav}>
+        <AppShell
+          identity={identity}
+          accounts={[]}
+          activeApp={activeApp}
+          nav={nav}
+          notices={[]}
+        >
           {children}
-        </LiveChrome>
+        </AppShell>
       </SearchProvider>
       <Toaster />
     </StoreProvider>
-  );
-}
-
-/** Read the live store so the bell badge reflects notices the user just read. */
-function LiveChrome({
-  identity,
-  activeApp,
-  nav,
-  children,
-}: {
-  identity: DemoIdentity;
-  activeApp: AppKey;
-  nav: { label?: string; items: { label: string; href: string; badge?: number }[] }[];
-  children: React.ReactNode;
-}) {
-  const { state } = useStore();
-  const liveBadges = nav.map((group) => ({
-    ...group,
-    items: group.items.map((i) => {
-      if (i.href === "/app/pengurus/persetujuan") {
-        const n = state.approvals.filter((a) => a.status === "menunggu").length;
-        return { ...i, badge: n || undefined };
-      }
-      if (i.href === "/app/sekretariat/verifikasi") {
-        const n = state.approvals.filter((a) => a.status === "revisi").length;
-        return { ...i, badge: n || undefined };
-      }
-      if (i.href === "/app/keuangan/jurnal") {
-        const n = state.drafts.length;
-        return { ...i, badge: n || undefined };
-      }
-      if (i.href === "/app/sekretariat/surat") {
-        const n = state.letters.filter((l) => l.status === "baru").length;
-        return { ...i, badge: n || undefined };
-      }
-      return i;
-    }),
-  }));
-
-  return (
-    <AppShell
-      identity={identity}
-      accounts={[]}
-      activeApp={activeApp}
-      nav={liveBadges}
-      notices={state.notices.map((n) => ({
-        id: n.id,
-        title: n.title,
-        date: n.date,
-        href: n.href,
-        unread: !n.read,
-      }))}
-      fallbackNotices={NOTICES.length}
-    >
-      {children}
-    </AppShell>
   );
 }
