@@ -104,7 +104,13 @@ export default async function PembayaranPage() {
             ON account.id = line.account_id
             AND account.organization_id = line.organization_id
           WHERE journal.organization_id = ${identity.organizationId}
-            AND account.account_code IN ('1-1000', '1-1100')
+            AND EXISTS (
+              SELECT 1
+              FROM v9.finance_cash_accounts AS cash_account
+              WHERE cash_account.organization_id = account.organization_id
+                AND cash_account.ledger_account_id = account.id
+                AND cash_account.status = 'active'
+            )
             AND line.credit > 0
           GROUP BY journal.id, journal.status
         )
@@ -136,7 +142,13 @@ export default async function PembayaranPage() {
             AND account.organization_id = line.organization_id
           WHERE line.journal_id = journal.id
             AND line.organization_id = journal.organization_id
-            AND account.account_code IN ('1-1000', '1-1100')
+            AND EXISTS (
+              SELECT 1
+              FROM v9.finance_cash_accounts AS cash_account
+              WHERE cash_account.organization_id = account.organization_id
+                AND cash_account.ledger_account_id = account.id
+                AND cash_account.status = 'active'
+            )
             AND line.credit > 0
         ) AS payment ON payment.amount > 0
         LEFT JOIN LATERAL (
