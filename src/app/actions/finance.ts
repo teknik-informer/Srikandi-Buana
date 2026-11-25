@@ -378,6 +378,13 @@ export async function createFinanceCashAccount(formData: FormData): Promise<void
           AND account.normal_balance = 'debit'
           AND account.status = 'active'
           AND account.is_postable = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM v9.finance_cash_accounts AS cash_account
+            WHERE cash_account.organization_id = account.organization_id
+              AND cash_account.ledger_account_id = account.id
+              AND cash_account.status <> 'active'
+          )
       ),
       inserted AS (
         INSERT INTO v9.finance_cash_accounts (
@@ -933,6 +940,13 @@ export async function updateDraftFinanceJournal(formData: FormData): Promise<voi
           AND account.organization_id = ${identity.organizationId}
           AND account.status = 'active'
           AND account.is_postable = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM v9.finance_cash_accounts AS cash_account
+            WHERE cash_account.organization_id = account.organization_id
+              AND cash_account.ledger_account_id = account.id
+              AND cash_account.status <> 'active'
+          )
       ),
       deleted_lines AS (
         DELETE FROM v9.finance_journal_lines AS line
