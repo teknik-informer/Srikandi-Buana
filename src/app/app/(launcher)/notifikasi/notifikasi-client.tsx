@@ -2,7 +2,12 @@ import Link from "next/link";
 import { BellRing, CheckCheck, ShieldCheck } from "lucide-react";
 import { Card, CardHeader, Notice, PageHeader } from "@/components/ui";
 
-export function NotifikasiClient() {
+interface NotificationShortcut {
+  label: string;
+  href: string;
+}
+
+export function NotifikasiClient({ shortcuts }: { shortcuts: NotificationShortcut[] }) {
   return (
     <div className="pb-10">
       <PageHeader
@@ -50,15 +55,14 @@ export function NotifikasiClient() {
           action={<ShieldCheck size={16} className="text-muted2" />}
         />
         <div className="divide-y divide-line">
-          <Link href="/app/pengurus/persetujuan" className="flex items-center justify-between gap-3 px-4 py-3 text-[11.5px] font-semibold text-ink2 hover:bg-paper">
-            Kotak Persetujuan <CheckCheck size={14} />
-          </Link>
-          <Link href="/app/pengurus/tugas" className="flex items-center justify-between gap-3 px-4 py-3 text-[11.5px] font-semibold text-ink2 hover:bg-paper">
-            Penugasan Pengurus <CheckCheck size={14} />
-          </Link>
-          <Link href="/app/sekretariat/surat" className="flex items-center justify-between gap-3 px-4 py-3 text-[11.5px] font-semibold text-ink2 hover:bg-paper">
-            Register Surat Sekretariat <CheckCheck size={14} />
-          </Link>
+          {shortcuts.map((shortcut) => (
+            <Link key={shortcut.href} href={shortcut.href} className="flex items-center justify-between gap-3 px-4 py-3 text-[11.5px] font-semibold text-ink2 hover:bg-paper">
+              {shortcut.label} <CheckCheck size={14} />
+            </Link>
+          ))}
+          {!shortcuts.length ? (
+            <p className="px-4 py-3 text-[11.5px] text-muted">Belum ada pintasan operasional untuk kewenangan akun ini.</p>
+          ) : null}
         </div>
       </Card>
     </div>
