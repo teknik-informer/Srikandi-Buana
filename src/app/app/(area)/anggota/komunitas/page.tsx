@@ -109,7 +109,6 @@ const notices: Record<string, { tone: "success" | "warning" | "danger"; text: st
   "reply-moderation-stale": { tone: "warning", text: "Status balasan sudah berubah. Muat ulang antrean moderasi." },
   "report-review-blocked": { tone: "danger", text: "Laporan tidak dapat diperbarui." },
   "report-review-stale": { tone: "warning", text: "Laporan sudah ditangani atau tidak ditemukan." },
-  "report-duplicate": { tone: "warning", text: "Laporan Anda untuk konten tersebut sudah tercatat." },
 };
 
 function dateLabel(value: string): string {
@@ -224,6 +223,7 @@ export default async function KomunitasPage({
           AND (
             topic.status = 'published'
             OR (topic.author_user_id = ${identity.userId} AND topic.status IN ('pending','rejected','hidden','withdrawn'))
+            OR (${canModerate} AND topic.status IN ('rejected','hidden'))
           )
         ORDER BY
           CASE topic.status WHEN 'published' THEN 0 ELSE 1 END,
@@ -253,6 +253,7 @@ export default async function KomunitasPage({
           AND (
             reply.status = 'published'
             OR (reply.author_user_id = ${identity.userId} AND reply.status IN ('pending','rejected','hidden','withdrawn'))
+            OR (${canModerate} AND reply.status IN ('rejected','hidden'))
           )
         ORDER BY reply.created_at
         LIMIT 500
@@ -524,7 +525,7 @@ export default async function KomunitasPage({
                 {topic.status === "rejected" && topic.moderation_note ? (
                   <Notice tone="warning" title="Catatan moderator">{topic.moderation_note}</Notice>
                 ) : null}
-                {topic.status === "published" ? <ReportForm targetType="topic" targetId={topic.id} /> : null}
+                {canPost && topic.status === "published" && topic.author_user_id !== identity.userId ? <ReportForm targetType="topic" targetId={topic.id} /> : null}
 
                 {topic.status === "published" ? (
                   <div className="mt-4 border-t border-line pt-3">
@@ -541,7 +542,7 @@ export default async function KomunitasPage({
                             {reply.author_user_id === identity.userId && reply.status === "pending" ? (
                               <p className="mt-1 text-[10px] text-warning">Balasan menunggu moderasi.</p>
                             ) : null}
-                            {reply.status === "published" ? <ReportForm targetType="reply" targetId={reply.id} /> : null}
+                            {canPost && reply.status === "published" && reply.author_user_id !== identity.userId ? <ReportForm targetType="reply" targetId={reply.id} /> : null}
                           </div>
                         ))}
                       </div>
