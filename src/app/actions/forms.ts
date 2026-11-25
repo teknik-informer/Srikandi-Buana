@@ -47,6 +47,7 @@ export async function submitJoinInterest(
   const setuju = formData.get("setuju") === "on" || formData.get("setuju") === "true";
   const website = String(formData.get("website") ?? "").trim();
   const ratePhone = phoneRateKey(telepon);
+  const rateName = nama.toLowerCase();
 
   if (website.length > 0) {
     return { ok: false, message: "Formulir tidak dapat diproses. Muat ulang halaman lalu coba kembali." };
@@ -85,7 +86,7 @@ export async function submitJoinInterest(
       ),
       lock_key AS MATERIALIZED (
         SELECT pg_advisory_xact_lock(
-          hashtextextended(organization.id::text || ':membership-interest:' || ${ratePhone}, 0)
+          hashtextextended(organization.id::text || ':membership-interest:' || ${ratePhone} || ':' || ${rateName}, 0)
         ) AS acquired
         FROM organization
       ),
@@ -98,7 +99,8 @@ export async function submitJoinInterest(
           CROSS JOIN LATERAL (
             SELECT regexp_replace(existing.phone, '[^0-9]', '', 'g') AS digits
           ) AS phone_digits
-          WHERE (
+          WHERE lower(btrim(existing.applicant_name)) = ${rateName}
+            AND (
             CASE
               WHEN phone_digits.digits LIKE '0%' THEN '62' || substring(phone_digits.digits FROM 2)
               WHEN phone_digits.digits LIKE '8%' THEN '62' || phone_digits.digits
