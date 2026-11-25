@@ -29,7 +29,7 @@ export default function PrivasiPage() {
           <Card>
             <CardHeader title="2. Tujuan pemrosesan" />
             <div className="px-5 py-4 text-[12.5px] leading-relaxed text-ink2">
-              Data digunakan untuk mencatat minat bergabung, menghubungi pemohon, meninjau kelengkapan informasi, melakukan verifikasi, dan mencatat keputusan pengurus. Mengirim formulir tidak otomatis menjadikan seseorang anggota resmi dan tidak otomatis membuat akun login.
+              Data digunakan untuk mencatat minat bergabung, menghubungi pemohon, meninjau kelengkapan informasi, melakukan verifikasi, mencatat keputusan pengurus, dan mencegah pengiriman ulang pengajuan dengan kombinasi nama serta nomor WhatsApp yang sama dalam 15 menit. Mengirim formulir tidak otomatis menjadikan seseorang anggota resmi dan tidak otomatis membuat akun login.
             </div>
           </Card>
 
