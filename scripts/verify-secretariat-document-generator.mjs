@@ -83,6 +83,7 @@ assert.ok(
   printPage.includes('document.status <> \'arsip\'') &&
   printPage.includes("generated.groups.map") &&
   printPage.includes("document.status === \"draft\"") &&
+  printPage.includes("DRAF — BELUM DISAHKAN") &&
   printPage.includes("finalizeSecretariatDocument") &&
   printPage.includes("document.visibility !== \"publik\""),
   "The print view must enforce organization access, show generated content, and only provide revision controls for supported visibility.",
