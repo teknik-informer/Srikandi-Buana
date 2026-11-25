@@ -172,21 +172,27 @@ export function AppShell({
                         <Link href="/app/notifikasi" className="text-[11px] font-semibold text-primary-700">Lihat semua</Link>
                       </div>
                     </div>
-                    <ul className="max-h-[50vh] divide-y divide-line overflow-y-auto">
-                      {notices.slice(0, 5).map((n) => (
-                        <li key={n.id}>
-                          <Link href={n.href ?? "/app/notifikasi"} className="block px-4 py-2.5 hover:bg-paper">
-                            <div className="flex items-start gap-2">
-                              {n.unread ? <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" /> : <span className="mt-1.5 h-1.5 w-1.5 shrink-0" />}
-                              <div>
-                                <div className="text-[12px] font-medium leading-snug text-ink">{n.title}</div>
-                                <div className="mt-0.5 text-[10.5px] text-muted2">{n.date}</div>
+                    {notices.length ? (
+                      <ul className="max-h-[50vh] divide-y divide-line overflow-y-auto">
+                        {notices.slice(0, 5).map((n) => (
+                          <li key={n.id}>
+                            <Link href={n.href ?? "/app/notifikasi"} className="block px-4 py-2.5 hover:bg-paper">
+                              <div className="flex items-start gap-2">
+                                {n.unread ? <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" /> : <span className="mt-1.5 h-1.5 w-1.5 shrink-0" />}
+                                <div>
+                                  <div className="text-[12px] font-medium leading-snug text-ink">{n.title}</div>
+                                  <div className="mt-0.5 text-[10.5px] text-muted2">{n.date}</div>
+                                </div>
                               </div>
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="px-4 py-4 text-[11.5px] leading-relaxed text-muted">
+                        Layanan notifikasi belum diaktifkan. Pemberitahuan akan muncul di sini setelah layanan tersedia.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
