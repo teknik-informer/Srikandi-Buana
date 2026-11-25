@@ -85,6 +85,7 @@ export default async function PiutangUtangPage() {
               account.group_label ILIKE '%piutang%'
               OR account.account_name ILIKE '%piutang%'
               OR account.group_label ILIKE '%tagihan%'
+              OR account.account_name ILIKE '%tagihan%'
             )
           )
         )
