@@ -126,4 +126,40 @@ assert.ok(
   "The Pengurus dashboard must present submitted workplans and expose approval only to authorized leadership roles.",
 );
 
+const workplanRevisionMigration = read("db/migrations/0039_field_workplan_revision_cycle.sql");
+
+assert.ok(
+  workplanRevisionMigration.includes("status IN ('draft','submitted','rejected','approved','active','completed','cancelled')") &&
+  workplanRevisionMigration.includes("OLD.status = 'submitted' AND NEW.status IN ('approved','rejected','cancelled')") &&
+  workplanRevisionMigration.includes("OLD.status = 'rejected' AND NEW.status IN ('submitted','cancelled')") &&
+  workplanRevisionMigration.includes("NEW.reviewed_by IS NOT DISTINCT FROM NEW.created_by") &&
+  workplanRevisionMigration.includes("A submission timestamp can only advance when a rejected workplan is resubmitted.") &&
+  workplanRevisionMigration.includes("A rejection decision is immutable; submit a revised workplan for a new review."),
+  "Workplan review must support recorded rejection, author revision and explicit resubmission without overwriting prior review history.",
+);
+
+assert.ok(
+  actions.includes("export async function rejectFieldWorkplan") &&
+  actions.includes("'field_workplan.rejected'") &&
+  actions.includes("'field_workplan.resubmitted'") &&
+  actions.includes("review_note = NULL") &&
+  actions.includes("status IN ('draft','rejected')"),
+  "Workplan rejection and resubmission actions must validate reviewer roles, require a reason, reset review metadata and audit every transition.",
+);
+
+assert.ok(
+  workspace.includes("plan.status === \"rejected\" && plan.review_note") &&
+  workspace.includes("plan.status === \"draft\" || plan.status === \"rejected\"") &&
+  workspace.includes("Kirim ulang untuk ditinjau"),
+  "The field workspace must show the rejection reason and allow corrected workplans to be resubmitted.",
+);
+
+assert.ok(
+  managerPage.includes("action={rejectFieldWorkplan}") &&
+  managerPage.includes('name="review_note"') &&
+  managerPage.includes("Kembalikan untuk perbaikan") &&
+  managerPage.includes("canApproveWorkplans && workplan.created_by !== identity.userId"),
+  "The Pengurus review queue must require a written correction note and prevent the creator from approving or rejecting their own workplan.",
+);
+
 process.stdout.write("Field program lifecycle and controls: PASS\\n");
