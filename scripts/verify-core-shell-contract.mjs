@@ -301,4 +301,17 @@ assert.ok(
   "The public form may submit an interest and notification event only; it must not activate membership or create login accounts.",
 );
 
+
+assert.ok(
+  joinAction.includes("const rateName = nama.toLowerCase();") &&
+  joinAction.includes("lower(btrim(existing.applicant_name)) = ${rateName}") &&
+  joinAction.includes("|| ':' || ${rateName}, 0"),
+  "Duplicate throttling must scope by both applicant name and canonical phone so shared family numbers do not block different applicants.",
+);
+const privacyPage = read("src/app/(public)/privasi/page.tsx");
+assert.ok(
+  privacyPage.includes("kombinasi nama serta nomor WhatsApp yang sama dalam 15 menit"),
+  "The public privacy notice must disclose the duplicate-submission prevention behavior.",
+);
+
 process.stdout.write("Core workspace shell contract: PASS\n");
