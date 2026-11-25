@@ -260,7 +260,7 @@ export function AnggotaHomeClient({
             <CardHeader title="Kontribusi organisasi" subtitle="Catatan pribadi, bila sudah ditautkan" />
             <div className="px-4 py-3">
               <p className="text-[11.5px] leading-5 text-muted">
-                Kebijakan iuran wajib belum ditetapkan. Riwayat kontribusi individu belum terhubung ke buku besar melalui identitas anggota, sehingga sistem tidak menampilkan angka perkiraan atau catatan dari data contoh.
+                Kebijakan iuran wajib belum ditetapkan. Riwayat ini hanya menampilkan kontribusi yang telah dialokasikan Bendahara dari jurnal organisasi berstatus terposting; bila belum ada catatan, tidak ada nilai perkiraan atau tagihan yang ditampilkan.
               </p>
               <Link href="/app/anggota/kontribusi" className="mt-2 inline-block text-[11.5px] font-semibold text-primary-700 hover:underline">Lihat status kontribusi →</Link>
             </div>
