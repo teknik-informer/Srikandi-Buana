@@ -109,7 +109,7 @@ export default async function PembayaranPage() {
               FROM v9.finance_cash_accounts AS cash_account
               WHERE cash_account.organization_id = account.organization_id
                 AND cash_account.ledger_account_id = account.id
-                AND cash_account.status = 'active'
+                AND cash_account.status IN ('active', 'inactive')
             )
             AND line.credit > 0
           GROUP BY journal.id, journal.status
@@ -147,7 +147,7 @@ export default async function PembayaranPage() {
               FROM v9.finance_cash_accounts AS cash_account
               WHERE cash_account.organization_id = account.organization_id
                 AND cash_account.ledger_account_id = account.id
-                AND cash_account.status = 'active'
+                AND cash_account.status IN ('active', 'inactive')
             )
             AND line.credit > 0
         ) AS payment ON payment.amount > 0
