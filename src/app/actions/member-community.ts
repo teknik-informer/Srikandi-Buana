@@ -486,27 +486,32 @@ export async function updateOwnCommunityTopic(formData: FormData): Promise<void>
   ) redirect(communityPath("topic-invalid"));
 
   let changed = false;
+  let resubmitted = false;
   try {
     const sql = getV9Sql();
     const result = await sql`
       WITH before_row AS MATERIALIZED (
-        SELECT topic.id, topic.organization_id, topic.title, topic.body
+        SELECT topic.id, topic.organization_id, topic.title, topic.body, topic.status, topic.moderation_note
         FROM v9.member_community_topics AS topic
         WHERE topic.id = ${topicId}
           AND topic.organization_id = ${identity.organizationId}
           AND topic.author_user_id = ${identity.userId}
-          AND topic.status = 'pending'
+          AND topic.status IN ('pending','rejected')
         FOR UPDATE
       ),
       updated AS (
         UPDATE v9.member_community_topics AS topic
         SET title = ${title},
           body = ${body},
+          status = CASE WHEN before_row.status = 'rejected' THEN 'pending' ELSE topic.status END,
+          moderated_by = CASE WHEN before_row.status = 'rejected' THEN NULL ELSE topic.moderated_by END,
+          moderated_at = CASE WHEN before_row.status = 'rejected' THEN NULL ELSE topic.moderated_at END,
+          moderation_note = CASE WHEN before_row.status = 'rejected' THEN NULL ELSE topic.moderation_note END,
           updated_by = ${identity.userId},
           updated_at = now()
         FROM before_row
         WHERE topic.id = before_row.id
-        RETURNING topic.id, topic.organization_id, topic.title, topic.body
+        RETURNING topic.id, topic.organization_id, topic.title, topic.body, topic.status
       ),
       audit AS (
         INSERT INTO v9.audit_events (
@@ -515,16 +520,21 @@ export async function updateOwnCommunityTopic(formData: FormData): Promise<void>
         )
         SELECT
           updated.organization_id, ${identity.userId},
-          'member_community_topic.edited', 'member_community_topic', updated.id::text,
-          jsonb_build_object('title', before_row.title, 'body', before_row.body),
-          jsonb_build_object('title', updated.title, 'body', updated.body)
+          CASE WHEN before_row.status = 'rejected' THEN 'member_community_topic.resubmitted' ELSE 'member_community_topic.edited' END,
+          'member_community_topic', updated.id::text,
+          jsonb_build_object('title', before_row.title, 'body', before_row.body, 'status', before_row.status, 'moderation_note', before_row.moderation_note),
+          jsonb_build_object('title', updated.title, 'body', updated.body, 'status', updated.status)
         FROM updated
         INNER JOIN before_row ON before_row.id = updated.id
         RETURNING id
       )
-      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+      SELECT updated.id::text AS id, (before_row.status = 'rejected') AS resubmitted
+      FROM updated INNER JOIN before_row ON before_row.id = updated.id
+      INNER JOIN audit ON true
     `;
-    changed = rowsFromResult<MutationRow>(result).length === 1;
+    const row = rowsFromResult<{ id: string; resubmitted: boolean }>(result)[0];
+    changed = Boolean(row);
+    resubmitted = row?.resubmitted === true;
   } catch (reason) {
     auditError("member-community-topic-update", reason);
     redirect(communityPath("topic-update-blocked"));
@@ -532,7 +542,7 @@ export async function updateOwnCommunityTopic(formData: FormData): Promise<void>
 
   if (!changed) redirect(communityPath("topic-update-stale"));
   revalidatePath("/app/anggota/komunitas");
-  redirect(communityPath("topic-updated"));
+  redirect(communityPath(resubmitted ? "topic-resubmitted" : "topic-updated"));
 }
 
 export async function withdrawOwnCommunityTopic(formData: FormData): Promise<void> {
@@ -602,26 +612,31 @@ export async function updateOwnCommunityReply(formData: FormData): Promise<void>
   ) redirect(communityPath("reply-invalid"));
 
   let changed = false;
+  let resubmitted = false;
   try {
     const sql = getV9Sql();
     const result = await sql`
       WITH before_row AS MATERIALIZED (
-        SELECT reply.id, reply.organization_id, reply.body
+        SELECT reply.id, reply.organization_id, reply.body, reply.status, reply.moderation_note
         FROM v9.member_community_replies AS reply
         WHERE reply.id = ${replyId}
           AND reply.organization_id = ${identity.organizationId}
           AND reply.author_user_id = ${identity.userId}
-          AND reply.status = 'pending'
+          AND reply.status IN ('pending','rejected')
         FOR UPDATE
       ),
       updated AS (
         UPDATE v9.member_community_replies AS reply
         SET body = ${body},
+          status = CASE WHEN before_row.status = 'rejected' THEN 'pending' ELSE reply.status END,
+          moderated_by = CASE WHEN before_row.status = 'rejected' THEN NULL ELSE reply.moderated_by END,
+          moderated_at = CASE WHEN before_row.status = 'rejected' THEN NULL ELSE reply.moderated_at END,
+          moderation_note = CASE WHEN before_row.status = 'rejected' THEN NULL ELSE reply.moderation_note END,
           updated_by = ${identity.userId},
           updated_at = now()
         FROM before_row
         WHERE reply.id = before_row.id
-        RETURNING reply.id, reply.organization_id, reply.body
+        RETURNING reply.id, reply.organization_id, reply.body, reply.status
       ),
       audit AS (
         INSERT INTO v9.audit_events (
@@ -629,16 +644,21 @@ export async function updateOwnCommunityReply(formData: FormData): Promise<void>
           before_state, after_state
         )
         SELECT updated.organization_id, ${identity.userId},
-          'member_community_reply.edited', 'member_community_reply', updated.id::text,
-          jsonb_build_object('body', before_row.body),
-          jsonb_build_object('body', updated.body)
+          CASE WHEN before_row.status = 'rejected' THEN 'member_community_reply.resubmitted' ELSE 'member_community_reply.edited' END,
+          'member_community_reply', updated.id::text,
+          jsonb_build_object('body', before_row.body, 'status', before_row.status, 'moderation_note', before_row.moderation_note),
+          jsonb_build_object('body', updated.body, 'status', updated.status)
         FROM updated
         INNER JOIN before_row ON before_row.id = updated.id
         RETURNING id
       )
-      SELECT updated.id::text AS id FROM updated INNER JOIN audit ON true
+      SELECT updated.id::text AS id, (before_row.status = 'rejected') AS resubmitted
+      FROM updated INNER JOIN before_row ON before_row.id = updated.id
+      INNER JOIN audit ON true
     `;
-    changed = rowsFromResult<MutationRow>(result).length === 1;
+    const row = rowsFromResult<{ id: string; resubmitted: boolean }>(result)[0];
+    changed = Boolean(row);
+    resubmitted = row?.resubmitted === true;
   } catch (reason) {
     auditError("member-community-reply-update", reason);
     redirect(communityPath("reply-update-blocked"));
@@ -646,7 +666,7 @@ export async function updateOwnCommunityReply(formData: FormData): Promise<void>
 
   if (!changed) redirect(communityPath("reply-update-stale"));
   revalidatePath("/app/anggota/komunitas");
-  redirect(communityPath("reply-updated"));
+  redirect(communityPath(resubmitted ? "reply-resubmitted" : "reply-updated"));
 }
 
 export async function withdrawOwnCommunityReply(formData: FormData): Promise<void> {
