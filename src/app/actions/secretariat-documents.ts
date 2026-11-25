@@ -627,6 +627,7 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
         WHERE document.id = NULLIF(${documentId}, '')::uuid
           AND document.organization_id = ${identity.organizationId}
           AND document.status <> 'arsip'
+          AND document.visibility <> 'publik'
           AND ${documentId} <> ''
           AND EXISTS (
             SELECT 1
