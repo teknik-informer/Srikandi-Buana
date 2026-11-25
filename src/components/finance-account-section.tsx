@@ -30,6 +30,7 @@ interface FinanceAccountRow {
   is_postable: boolean;
   note: string | null;
   journal_line_count: number;
+  has_cash_register: boolean;
 }
 
 const typeLabel: Record<AccountType, string> = {
@@ -96,7 +97,13 @@ export async function FinanceAccountSection({ result }: { result?: string }) {
           FROM v9.finance_journal_lines line
           WHERE line.account_id = account.id
             AND line.organization_id = account.organization_id
-        ) AS journal_line_count
+        ) AS journal_line_count,
+        EXISTS (
+          SELECT 1
+          FROM v9.finance_cash_accounts cash_account
+          WHERE cash_account.organization_id = account.organization_id
+            AND cash_account.ledger_account_id = account.id
+        ) AS has_cash_register
       FROM v9.finance_accounts AS account
       WHERE account.organization_id = ${identity.organizationId}
       ORDER BY account.account_code
@@ -198,7 +205,7 @@ export async function FinanceAccountSection({ result }: { result?: string }) {
                           <button type="submit" className="sb-btn sb-btn-primary !h-8 !px-3 text-[10px]"><CircleCheck size={12} /> Aktifkan</button>
                         </form>
                       ) : null}
-                      {canApprove && account.status === "active" && account.journal_line_count === 0 ? (
+                      {canApprove && account.status === "active" && account.journal_line_count === 0 && !account.has_cash_register ? (
                         <form action={updateFinanceAccountStatus}>
                           <input type="hidden" name="account_id" value={account.id} />
                           <input type="hidden" name="status" value="archived" />
