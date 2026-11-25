@@ -8,6 +8,8 @@ import {
 } from "react";
 import { ArrowUpRight, CornerDownLeft, Search, X } from "lucide-react";
 import { APPS } from "@/config/apps";
+import { canAccessApp, canAccessAppHref } from "@/lib/app-access";
+import type { AppIdentity } from "@/lib/identity";
 import { AppIcon } from "@/components/brand";
 import { searchAll, countHits, type SearchGroup } from "@/lib/search";
 
@@ -33,10 +35,10 @@ const SHORTCUTS = [
 
 /* ── shared state: one dialog, opened from the topbar or by ⌘K ───────────── */
 
-interface SearchCtx { open: boolean; setOpen: (v: boolean) => void }
+interface SearchCtx { open: boolean; setOpen: (v: boolean) => void; identity: AppIdentity }
 const Ctx = createContext<SearchCtx | null>(null);
 
-export function SearchProvider({ children }: { children: ReactNode }) {
+export function SearchProvider({ children, identity }: { children: ReactNode; identity: AppIdentity }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
-  const value = useMemo(() => ({ open, setOpen }), [open]);
+  const value = useMemo(() => ({ open, setOpen, identity }), [open, identity]);
   return (
     <Ctx.Provider value={value}>
       {children}
@@ -71,7 +73,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 export function useSearch() {
   const ctx = useContext(Ctx);
   // tolerate a page that renders the button outside the provider
-  return ctx ?? { open: false, setOpen: () => {} };
+  return ctx ?? { open: false, setOpen: () => {}, identity: { userId: "", organizationId: "", memberId: "", name: "", role: "", roleKey: "", scope: "", home: "/app", permissions: [], note: "" } };
 }
 
 /**
@@ -85,7 +87,7 @@ export function SearchButton() {
     <button
       type="button"
       onClick={() => setOpen(true)}
-      aria-label="Cari anggota, program, produk, atau dokumen"
+      aria-label="Cari aplikasi dan menu yang dapat diakses"
       aria-haspopup="dialog"
       aria-expanded={open}
       title="Cari · Ctrl/⌘ K"
@@ -106,7 +108,7 @@ function SearchDialog() {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const groups = useMemo(() => searchAll(q), [q]);
+  const groups = useMemo(\n    () => searchAll(q).map((group) => ({\n      ...group,\n      hits: group.hits.filter((hit) => canAccessAppHref(identity, hit.href)),\n    })).filter((group) => group.hits.length > 0),\n    [q, identity],\n  );
   const flat = useMemo(() => groups.flatMap((g) => g.hits).slice(0, 24), [groups]);
 
   const query = q.trim().toLowerCase();
@@ -165,7 +167,7 @@ function SearchDialog() {
           <div className="min-w-0">
             <h2 className="font-display text-[17px] font-bold leading-tight text-[#0e2a16]">Pencarian</h2>
             <p className="mt-0.5 text-[11.5px] leading-snug text-muted">
-              Cari anggota, program, produk, dokumen, lahan, jurnal — atau lompat ke aplikasi.
+              Cari menu dan aplikasi yang tersedia sesuai hak akses akun Anda.
             </p>
           </div>
           <button
@@ -187,7 +189,7 @@ function SearchDialog() {
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Cari anggota, program, produk, dokumen…"
+              placeholder="Cari aplikasi, jurnal, persetujuan, atau menu kerja…"
               aria-label="Cari di seluruh aplikasi"
               autoComplete="off"
               role="combobox"
@@ -274,7 +276,7 @@ function SearchDialog() {
             ) : (
               <div className="px-4 py-8 text-center">
                 <p className="text-[12.5px] font-semibold text-ink">Tidak ada hasil untuk “{q.trim()}”</p>
-                <p className="mt-1 text-[11px] text-muted2">Coba nama anggota, kode program, nomor jurnal, atau judul dokumen.</p>
+                <p className="mt-1 text-[11px] text-muted2">Coba nama aplikasi, menu, atau tujuan kerja lain.</p>
               </div>
             )
           ) : null}
