@@ -122,9 +122,9 @@ BEGIN
       OR NEW.updated_by IS DISTINCT FROM NEW.closed_by
       OR NEW.close_note IS NULL
       OR length(btrim(NEW.close_note)) < 3
-      OR NEW.reopened_by IS NOT NULL
-      OR NEW.reopened_at IS NOT NULL
-      OR NEW.reopen_note IS NOT NULL
+      OR NEW.reopened_by IS DISTINCT FROM OLD.reopened_by
+      OR NEW.reopened_at IS DISTINCT FROM OLD.reopened_at
+      OR NEW.reopen_note IS DISTINCT FROM OLD.reopen_note
     THEN
       RAISE EXCEPTION 'Closing a period requires an authorized actor and a recorded reason.';
     END IF;
