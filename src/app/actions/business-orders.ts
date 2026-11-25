@@ -30,10 +30,11 @@ function requireOrderWrite(identity: Awaited<ReturnType<typeof requireIdentity>>
 }
 
 function fail(area: string, reason: unknown): void {
-  console.error(
-    `[${area}] Operation failed:`,
-    reason instanceof Error ? reason.message : "Unknown error",
-  );
+  const errorType =
+    reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name)
+      ? reason.name
+      : "UnknownError";
+  console.warn(`[${area}] Operation failed`, errorType);
 }
 
 function refreshOrders(): void {
