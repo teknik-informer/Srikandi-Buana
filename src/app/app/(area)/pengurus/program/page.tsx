@@ -13,7 +13,7 @@ import {
 import { FIELDS } from "@/config/fields";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireIdentity } from "@/lib/session";
-import { approveFieldWorkplan } from "@/app/actions/field-operations";
+import { approveFieldWorkplan, rejectFieldWorkplan } from "@/app/actions/field-operations";
 import { formatDateID, formatIDR } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Program & Rencana Kerja" };
@@ -240,7 +240,13 @@ export default async function ProgramPengurusPage({
         </div>
       ) : null}
 
-      {search?.result === "workplan-approved" ? (
+      {search?.result === "workplan-rejected" ? (
+        <div className="mb-4">
+          <Notice tone="warning" title="Rencana dikembalikan untuk perbaikan">
+            Catatan revisi sudah disimpan dan dikirim kembali ke aplikasi bidang. Pengaju dapat memperbaiki draf lalu mengajukannya ulang.
+          </Notice>
+        </div>
+      ) : search?.result === "workplan-approved" ? (
         <div className="mb-4">
           <Notice tone="success" title="Persetujuan tersimpan">
             Rencana kerja telah disetujui. Koordinator bidang dapat memulai pelaksanaan dari aplikasi bidang.
@@ -301,15 +307,37 @@ export default async function ProgramPengurusPage({
                       {workplan.objective ? <p className="mt-2 max-w-3xl whitespace-pre-wrap text-[11px] leading-relaxed text-muted">{workplan.objective}</p> : null}
                     </div>
                     {canApproveWorkplans && workplan.created_by !== identity.userId ? (
-                      <form action={approveFieldWorkplan} className="shrink-0">
-                        <input type="hidden" name="field_key" value={workplan.field_key} />
-                        <input type="hidden" name="workplan_id" value={workplan.id} />
-                        <button type="submit" className="sb-btn sb-btn-primary !h-9 !px-3 text-[11px]">Setujui rencana</button>
-                      </form>
+                      <div className="w-full max-w-[300px] shrink-0 space-y-2">
+                        <form action={approveFieldWorkplan}>
+                          <input type="hidden" name="field_key" value={workplan.field_key} />
+                          <input type="hidden" name="workplan_id" value={workplan.id} />
+                          <button type="submit" className="sb-btn sb-btn-primary !h-9 !w-full !px-3 text-[11px]">Setujui rencana</button>
+                        </form>
+                        <form action={rejectFieldWorkplan} className="space-y-2 rounded-[9px] border border-line bg-paper/60 p-2.5">
+                          <input type="hidden" name="field_key" value={workplan.field_key} />
+                          <input type="hidden" name="workplan_id" value={workplan.id} />
+                          <label htmlFor={`workplan-review-note-${workplan.id}`} className="block text-[10.5px] font-semibold text-ink2">
+                            Catatan perbaikan (wajib bila dikembalikan)
+                          </label>
+                          <textarea
+                            id={`workplan-review-note-${workplan.id}`}
+                            name="review_note"
+                            required
+                            minLength={3}
+                            maxLength={1000}
+                            rows={3}
+                            className="sb-input !h-auto resize-y py-2 text-[11px]"
+                            placeholder="Jelaskan bagian yang perlu diperbaiki dan alasan peninjauan."
+                          />
+                          <button type="submit" className="sb-btn sb-btn-outline !h-8 !w-full !px-3 text-[10.5px]">
+                            Kembalikan untuk perbaikan
+                          </button>
+                        </form>
+                      </div>
                     ) : (
                       <span className="max-w-[230px] text-[10.5px] text-muted2">
                         {canApproveWorkplans
-                          ? "Pembuat rencana tidak dapat menyetujui pengajuannya sendiri."
+                          ? "Pembuat rencana tidak dapat menilai pengajuannya sendiri."
                           : "Menunggu Ketua / Administrator Organisasi"}
                       </span>
                     )}
