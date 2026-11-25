@@ -531,3 +531,58 @@ assert.ok(
 );
 
 process.stdout.write("Finance receivable and payable category contract: PASS\\n");
+
+const memberCommunityActions = read("src/app/actions/member-community.ts");
+const memberCommunityPage = read("src/app/app/(area)/anggota/komunitas/page.tsx");
+const memberCommunityPermissions = read("src/lib/session.ts");
+const memberCommunityMigration = read("db/migrations/0029_member_community_moderated_forum.sql");
+const memberCommunitySeparationMigration = read("db/migrations/0030_member_community_moderation_separation.sql");
+
+assert.ok(
+  [
+    "createMemberCommunityTopic",
+    "createMemberCommunityReply",
+    "reportMemberCommunityContent",
+    "updateOwnCommunityTopic",
+    "withdrawOwnCommunityTopic",
+    "updateOwnCommunityReply",
+    "withdrawOwnCommunityReply",
+    "moderateMemberCommunityTopic",
+    "moderateMemberCommunityReply",
+    "resolveMemberCommunityReport",
+  ].every((name) => memberCommunityActions.includes(`export async function ${name}`)) &&
+  memberCommunityActions.includes('can(identity, "member:community:moderate")') &&
+  memberCommunityActions.includes('requireIdentity("member:self")') &&
+  memberCommunityActions.includes("pg_advisory_xact_lock"),
+  "Community member actions must enforce active-member access, role-based moderation and per-author rate controls.",
+);
+
+assert.ok(
+  memberCommunityPage.includes("Antrean moderasi") &&
+  memberCommunityPage.includes("Laporkan konten") &&
+  memberCommunityPage.includes("Kirim untuk moderasi") &&
+  memberCommunityPage.includes("createMemberCommunityReply") &&
+  memberCommunityPage.includes("author_user_id !== identity.userId") &&
+  memberCommunityPage.includes("updateOwnCommunityTopic") &&
+  memberCommunityPermissions.includes('"member:community:moderate"'),
+  "The community workspace must provide moderated posting, replies, reporting, own-draft controls and a designated secretary moderator permission.",
+);
+
+assert.ok(
+  memberCommunityMigration.includes("status IN ('pending','published','rejected','hidden','withdrawn')") &&
+  memberCommunityMigration.includes("Only a currently active member may create a community topic.") &&
+  memberCommunityMigration.includes("Only an active member may reply to a published community topic.") &&
+  memberCommunityMigration.includes("Community reports are retained for moderation and audit") &&
+  memberCommunityMigration.includes("CREATE TRIGGER member_community_topics_guard") &&
+  memberCommunityMigration.includes("CREATE TRIGGER member_community_reports_guard"),
+  "The community database migration must retain records and enforce active membership, publication and report constraints.",
+);
+
+assert.ok(
+  memberCommunitySeparationMigration.includes("NEW.moderated_by IS DISTINCT FROM OLD.author_user_id") &&
+  (memberCommunitySeparationMigration.split("target_author IS NOT DISTINCT FROM NEW.reporter_user_id").length - 1) === 2 &&
+  memberCommunitySeparationMigration.includes("NEW.reviewed_by = OLD.reporter_user_id"),
+  "Community moderators cannot approve their own content, members cannot self-report, and reporters cannot review their own reports.",
+);
+
+process.stdout.write("Moderated member community contract: PASS\\n");
