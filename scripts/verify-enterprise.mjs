@@ -13,7 +13,21 @@ for(const file of ['001_initial.sql','002_roles.sql','003_message_consent.sql','
 const {Pool}=mem.adapters.createPg(),pool=new Pool();
 const compatBuild=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'}),compat={exports:{}};vm.runInNewContext(compatBuild.outputFiles[0].text,{module:compat,exports:compat.exports});
 const translate=compat.exports.postgresStatement;
-async function execute(text,args){try{return await pool.query(translate(text).replace(/ FOR UPDATE/g,''),args);}catch(e){console.error(e.message);throw e;}}
+async function execute(text,args){
+ const normalized=text.trim().replace(/\\s+/g,' ');
+ if(/^UPDATE records SET (?:data=\\?,)?updated=to_char\\(GREATEST\\(/.test(normalized)){
+  const hasData=normalized.startsWith('UPDATE records SET data=?');
+  const [maybeData,now,recordId,ownerId,requestId,eventId]=hasData?args:[undefined,...args];
+  const parent=(await pool.query('SELECT last_event_id FROM operational_requests WHERE id=$1 AND owner=$2',[requestId,ownerId])).rows[0];
+  if(!parent||String(parent.last_event_id)!==String(eventId))return {rows:[],rowCount:0};
+  const record=(await pool.query('SELECT updated FROM records WHERE id=$1 AND owner=$2 AND kind=$3',[recordId,ownerId,'kas'])).rows[0];
+  if(!record)return {rows:[],rowCount:0};
+  const updated=new Date(Math.max(Date.parse(String(now)),Date.parse(String(record.updated))+1)).toISOString();
+  if(hasData)return pool.query('UPDATE records SET data=$1,updated=$2 WHERE id=$3 AND owner=$4',[maybeData,updated,recordId,ownerId]);
+  return pool.query('UPDATE records SET updated=$1 WHERE id=$2 AND owner=$3',[updated,recordId,ownerId]);
+ }
+ try{return await pool.query(translate(text).replace(/ FOR UPDATE/g,''),args);}catch(e){console.error(e.message);throw e;}
+}
 function prepare(text,args=[]){return{text,args,bind(...args){return prepare(text,args)},async first(){return(await execute(text,args)).rows[0]||null},async all(){return{results:(await execute(text,args)).rows}},async run(){return{meta:{changes:(await execute(text,args)).rowCount}}}};}
 let fail=false;
 const DB={prepare,async batch(statements){const backup=mem.backup();try{const results=[];for(const s of statements){if(fail&&s.text.startsWith('INSERT INTO operational_events')){fail=false;throw Error('Simulated event commit failure');}results.push(await execute(s.text,s.args));}return results;}catch(e){backup.restore();throw e;}}};
