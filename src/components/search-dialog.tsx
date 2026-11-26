@@ -108,31 +108,46 @@ function SearchDialog() {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const [recordGroups, setRecordGroups] = useState<{ group: SearchGroup; hits: SearchHit[] }[]>([]);
+  const [recordState, setRecordState] = useState<{
+    query: string;
+    groups: { group: SearchGroup; hits: SearchHit[] }[];
+    loading: boolean;
+    error: boolean;
+  }>({ query: "", groups: [], loading: false, error: false });
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  const normalizedQuery = q.trim().replace(/\\s+/g, " ").slice(0, 80);
 
   useEffect(() => {
-    const query = q.trim();
-    if (!open || query.length < 2 || !identity.userId) {
-      setRecordGroups([]);
+    if (!open || normalizedQuery.length < 2 || !identity.userId) {
+      setRecordState({ query: normalizedQuery, groups: [], loading: false, error: false });
       return;
     }
 
     const controller = new AbortController();
+    setRecordState({ query: normalizedQuery, groups: [], loading: true, error: false });
     const timeout = window.setTimeout(async () => {
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(normalizedQuery)}`, {
           cache: "no-store",
           headers: { Accept: "application/json" },
           signal: controller.signal,
         });
         if (!response.ok) {
-          setRecordGroups([]);
+          setRecordState({ query: normalizedQuery, groups: [], loading: false, error: true });
           return;
         }
         const payload = await response.json() as { groups?: { group: SearchGroup; hits: SearchHit[] }[] };
-        setRecordGroups(Array.isArray(payload.groups) ? payload.groups : []);
+        setRecordState({
+          query: normalizedQuery,
+          groups: Array.isArray(payload.groups) ? payload.groups : [],
+          loading: false,
+          error: false,
+        });
       } catch {
-        if (!controller.signal.aborted) setRecordGroups([]);
+        if (!controller.signal.aborted) {
+          setRecordState({ query: normalizedQuery, groups: [], loading: false, error: true });
+        }
       }
     }, 180);
 
@@ -140,7 +155,7 @@ function SearchDialog() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [q, open, identity.userId]);
+  }, [normalizedQuery, open, identity.userId]);
 
   const groups = useMemo(() => {
     const navigation = searchAll(q)
@@ -149,8 +164,9 @@ function SearchDialog() {
         hits: group.hits.filter((hit) => canAccessAppHref(identity, hit.href)),
       }))
       .filter((group) => group.hits.length > 0);
-    return [...navigation, ...recordGroups.filter((group) => group.group !== "Menu")];
-  }, [q, identity, recordGroups]);
+    const remoteGroups = recordState.query === normalizedQuery ? recordState.groups : [];
+    return [...navigation, ...remoteGroups.filter((group) => group.group !== "Menu")];
+  }, [q, normalizedQuery, identity, recordState]);
   const flat = useMemo(() => groups.flatMap((g) => g.hits).slice(0, 24), [groups]);
 
   const query = q.trim().toLowerCase();
@@ -164,9 +180,15 @@ function SearchDialog() {
     [query, identity],
   );
 
-  // reset whenever it opens so the field is always ready to type into
+  // Move focus into the dialog and restore it to the invoking control on close.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      previousFocusRef.current?.focus();
+      previousFocusRef.current = null;
+      return;
+    }
+    const active = document.activeElement;
+    previousFocusRef.current = active instanceof HTMLElement ? active : null;
     setQ("");
     setCursor(0);
     const t = window.setTimeout(() => inputRef.current?.focus(), 30);
@@ -188,6 +210,9 @@ function SearchDialog() {
   const shown = apps.slice(0, 4);
   const shortcuts = SHORTCUTS.filter((shortcut) => canAccessAppHref(identity, shortcut.href));
   const hits = flat.slice(0, 12);
+  const isSearching = normalizedQuery.length >= 2 &&
+    (recordState.query !== normalizedQuery || recordState.loading);
+  const searchError = recordState.query === normalizedQuery && recordState.error;
 
   return (
     <div className="no-print fixed inset-0 z-[60]" role="presentation">
@@ -205,13 +230,39 @@ function SearchDialog() {
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Pencarian aplikasi"
+        aria-labelledby="search-dialog-title"
+        aria-describedby="search-dialog-description"
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") return;
+          const panel = panelRef.current;
+          if (!panel) return;
+          const focusable = Array.from(
+            panel.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter((element) => element.getAttribute("aria-hidden") !== "true");
+          if (!focusable.length) {
+            event.preventDefault();
+            inputRef.current?.focus();
+            return;
+          }
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          const active = document.activeElement;
+          if (event.shiftKey && (active === first || !panel.contains(active))) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && (active === last || !panel.contains(active))) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
         className="absolute left-1/2 top-[8vh] w-[min(92vw,780px)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-[#d8e3da] bg-white shadow-[0_40px_90px_-30px_rgba(6,22,12,0.6)] animate-rise"
       >
         <div className="flex items-start justify-between gap-4 px-5 pb-1 pt-4">
           <div className="min-w-0">
-            <h2 className="font-display text-[17px] font-bold leading-tight text-[#0e2a16]">Pencarian</h2>
-            <p className="mt-0.5 text-[11.5px] leading-snug text-muted">
+            <h2 id="search-dialog-title" className="font-display text-[17px] font-bold leading-tight text-[#0e2a16]">Pencarian</h2>
+            <p id="search-dialog-description" className="mt-0.5 text-[11.5px] leading-snug text-muted">
               Cari aplikasi, menu, dan data yang tersedia sesuai hak akses akun Anda.
             </p>
           </div>
@@ -237,13 +288,12 @@ function SearchDialog() {
               placeholder="Cari aplikasi, jurnal, persetujuan, atau menu kerja…"
               aria-label="Cari di seluruh aplikasi"
               autoComplete="off"
-              role="combobox"
-              aria-expanded="true"
               aria-controls="search-dialog-results"
+              aria-describedby="search-dialog-description"
               className="h-[46px] w-full rounded-[12px] border border-[#d8e3da] bg-[#f6f9f5] pl-10 pr-16 text-[13.5px] text-ink placeholder:text-[#5f7359] transition focus:border-[#127e2f] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#127e2f]/15"
               onKeyDown={(e) => {
-                if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, hits.length - 1)); }
-                if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
+                if (e.key === "ArrowDown" && hits.length) { e.preventDefault(); setCursor((c) => Math.min(c + 1, hits.length - 1)); }
+                if (e.key === "ArrowUp" && hits.length) { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
                 if (e.key === "Enter") {
                   e.preventDefault();
                   if (hits[cursor]) go(hits[cursor].href);
@@ -257,7 +307,12 @@ function SearchDialog() {
           </label>
         </div>
 
-        <div id="search-dialog-results" className="max-h-[min(60dvh,520px)] overflow-y-auto border-t border-[#e7eee6]">
+        <div
+          id="search-dialog-results"
+          aria-live="polite"
+          aria-busy={isSearching}
+          className="max-h-[min(60dvh,520px)] overflow-y-auto border-t border-[#e7eee6]"
+        >
           {/* applications first — the same hierarchy the old dialog used */}
           {shown.length > 0 && (
             <section className="px-3.5 pt-3" aria-label="Aplikasi">
@@ -320,8 +375,22 @@ function SearchDialog() {
               })
             ) : (
               <div className="px-4 py-8 text-center">
-                <p className="text-[12.5px] font-semibold text-ink">Tidak ada hasil untuk “{q.trim()}”</p>
-                <p className="mt-1 text-[11px] text-muted2">Coba nama aplikasi, menu, atau tujuan kerja lain.</p>
+                {isSearching ? (
+                  <>
+                    <p className="text-[12.5px] font-semibold text-ink">Mencari data yang dapat diakses…</p>
+                    <p className="mt-1 text-[11px] text-muted2">Hasil akan tampil setelah pencarian selesai.</p>
+                  </>
+                ) : searchError ? (
+                  <>
+                    <p className="text-[12.5px] font-semibold text-ink">Data operasional belum dapat dimuat</p>
+                    <p className="mt-1 text-[11px] text-muted2">Menu yang cocok tetap dapat dibuka. Coba lagi beberapa saat.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[12.5px] font-semibold text-ink">Tidak ada hasil untuk “{q.trim()}”</p>
+                    <p className="mt-1 text-[11px] text-muted2">Coba nama aplikasi, menu, atau tujuan kerja lain.</p>
+                  </>
+                )}
               </div>
             )
           ) : null}
@@ -362,7 +431,7 @@ function SearchDialog() {
               Lihat semua hasil ({countHits(groups)} temuan)
             </Link>
           ) : (
-            <span className="text-[10.5px] text-muted2">Data contoh berlabel</span>
+            <span className="text-[10.5px] text-muted2">Hasil mengikuti hak akses akun</span>
           )}
         </div>
       </div>
