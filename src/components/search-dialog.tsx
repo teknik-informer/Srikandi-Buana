@@ -11,7 +11,7 @@ import { APPS } from "@/config/apps";
 import { canAccessApp, canAccessAppHref } from "@/lib/app-access";
 import type { AppIdentity } from "@/lib/identity";
 import { AppIcon } from "@/components/brand";
-import { searchAll, countHits, type SearchGroup } from "@/lib/search";
+import { searchAll, countHits, type SearchGroup, type SearchHit } from "@/lib/search";
 
 const TONE: Record<SearchGroup, string> = {
   Menu: "bg-[#eef4ff] text-[#1f4f8f]",
@@ -87,7 +87,7 @@ export function SearchButton() {
     <button
       type="button"
       onClick={() => setOpen(true)}
-      aria-label="Cari aplikasi dan menu yang dapat diakses"
+      aria-label="Cari aplikasi, menu, dan data yang dapat diakses"
       aria-haspopup="dialog"
       aria-expanded={open}
       title="Cari · Ctrl/⌘ K"
@@ -108,16 +108,49 @@ function SearchDialog() {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const groups = useMemo(
-    () =>
-      searchAll(q)
-        .map((group) => ({
-          ...group,
-          hits: group.hits.filter((hit) => canAccessAppHref(identity, hit.href)),
-        }))
-        .filter((group) => group.hits.length > 0),
-    [q, identity],
-  );
+  const [recordGroups, setRecordGroups] = useState<{ group: SearchGroup; hits: SearchHit[] }[]>([]);
+
+  useEffect(() => {
+    const query = q.trim();
+    if (!open || query.length < 2 || !identity.userId) {
+      setRecordGroups([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setRecordGroups([]);
+          return;
+        }
+        const payload = await response.json() as { groups?: { group: SearchGroup; hits: SearchHit[] }[] };
+        setRecordGroups(Array.isArray(payload.groups) ? payload.groups : []);
+      } catch {
+        if (!controller.signal.aborted) setRecordGroups([]);
+      }
+    }, 180);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [q, open, identity.userId]);
+
+  const groups = useMemo(() => {
+    const navigation = searchAll(q)
+      .map((group) => ({
+        ...group,
+        hits: group.hits.filter((hit) => canAccessAppHref(identity, hit.href)),
+      }))
+      .filter((group) => group.hits.length > 0);
+    return [...navigation, ...recordGroups.filter((group) => group.group !== "Menu")];
+  }, [q, identity, recordGroups]);
   const flat = useMemo(() => groups.flatMap((g) => g.hits).slice(0, 24), [groups]);
 
   const query = q.trim().toLowerCase();
@@ -179,7 +212,7 @@ function SearchDialog() {
           <div className="min-w-0">
             <h2 className="font-display text-[17px] font-bold leading-tight text-[#0e2a16]">Pencarian</h2>
             <p className="mt-0.5 text-[11.5px] leading-snug text-muted">
-              Cari menu dan aplikasi yang tersedia sesuai hak akses akun Anda.
+              Cari aplikasi, menu, dan data yang tersedia sesuai hak akses akun Anda.
             </p>
           </div>
           <button
