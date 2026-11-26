@@ -105,7 +105,28 @@ await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TEXT')
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});const translate=compat.exports.postgresStatement;
 // pg-mem cannot execute data-modifying CTEs. Only this SQL primitive is emulated;
 // the unmodified activation/reset SQL is separately exercised on the isolated Neon branch.
+let raceNextCas=null;
 async function execute(text,args){
+ if(text.trimStart().startsWith('WITH changed AS (')){
+  const [jsonData,proposedNow,id,ownerId,kind,expectedUpdated]=args;
+  const row=(await pool.query('SELECT id,owner,kind,data,updated FROM records WHERE id=$1',[id])).rows.find(item=>String(item.owner)===String(ownerId)&&String(item.kind)===String(kind));
+  if(!row||String(row.updated)!==String(expectedUpdated))throw Error('Synthetic atomic compare-and-swap conflict');
+  if(kind==='kas'){
+   const locked=(await pool.query('SELECT id FROM operational_requests WHERE owner=$1 AND cash_record_id=$2 LIMIT 1',[ownerId,id])).rows[0];
+   if(locked)throw Error('Synthetic protected cash record conflict');
+  }
+  if(kind==='aset'){
+   const locked=(await pool.query("SELECT id FROM operational_requests WHERE owner=$1 AND asset_id=$2 AND status IN ('approved','in_progress') LIMIT 1",[ownerId,id])).rows[0];
+   if(locked)throw Error('Synthetic protected asset conflict');
+  }
+  const lockArgs=['kas','aset'].includes(kind)?2:0,auditArgs=args.slice(6+lockArgs);
+  const [auditId,auditOwner,action,title,created]=auditArgs;
+  const updated=new Date(Math.max(Date.parse(String(proposedNow)),Date.parse(String(row.updated))+1)).toISOString();
+  const changed=await pool.query('UPDATE records SET data=$1,updated=$2 WHERE id=$3 AND owner=$4 AND kind=$5 AND updated=$6 RETURNING id,updated',[jsonData,updated,id,ownerId,kind,expectedUpdated]);
+  if(!changed.rowCount)throw Error('Synthetic atomic compare-and-swap conflict');
+  await pool.query('INSERT INTO audit(id,owner,action,title,created) VALUES($1,$2,$3,$4,$5)',[auditId,auditOwner,action,title,created]);
+  return {rows:changed.rows,rowCount:changed.rowCount};
+ }
  if(failProfileCommit&&text.startsWith('INSERT INTO access_audit')&&args[3]==='Foto profil diperbarui'){failProfileCommit=false;throw Error('Synthetic commit failure');}
  const normalized=text.trim().replace(/\\s+/g,' ').toLowerCase();
  if(normalized==="update account_invitations set revoked_at=? where id=? and owner=? and consumed_at is null and revoked_at is null"){
@@ -130,7 +151,14 @@ async function execute(text,args){
  await pool.query('UPDATE account_invitations SET consumed_at=$1 WHERE id=$2',[now,id]);return {rows,rowCount:rows.length};
  }try{return await pool.query(translate(text),args)}catch(error){console.error('PG_MEM_QUERY_FAILURE',text,args,error);throw error;}}
 function prepare(text,args=[]){return {text,args,bind(...values){return prepare(text,values)},async first(){return (await execute(text,args)).rows[0]||null},async all(){return {results:(await execute(text,args)).rows}},async run(){return {meta:{changes:(await execute(text,args)).rowCount}}}}}
-const DB={prepare,async batch(statements){const backup=mem.backup();try{const results=[];for(const s of statements)results.push(await execute(s.text,s.args));return results}catch(e){backup.restore();throw e}}};
+const DB={prepare,async batch(statements){
+ if(raceNextCas&&statements[0]?.text.trimStart().startsWith('WITH changed AS (')){
+  const race=raceNextCas;raceNextCas=null;
+  await pool.query('UPDATE records SET data=$1,updated=$2 WHERE id=$3 AND owner=$4',[JSON.stringify(race.data),race.updated,race.id,race.owner]);
+  await pool.query('INSERT INTO audit(id,owner,action,title,created) VALUES($1,$2,$3,$4,$5)',[randomUUID(),race.owner,'Pembaruan bersamaan',race.title||'Penulis lain memenangkan CAS',race.updated]);
+ }
+ const backup=mem.backup();try{const results=[];for(const s of statements)results.push(await execute(s.text,s.args));return results}catch(e){backup.restore();throw e}
+}};
 const storage=new Map(),BUCKET={async put(k,bytes){storage.set(k,bytes)},async get(k){if(storage.has(k))return {body:new Uint8Array(storage.get(k))};const row=(await pool.query('SELECT content FROM file_objects WHERE key=$1',[k])).rows[0];return row?{body:new Uint8Array(row.content)}:null},async delete(k){storage.delete(k)}};
 const cache=new Map(),sentEmails=[];const testEmail='roles-owner-'+randomUUID()+'@example.test';
 function jar(){const values=new Map();return {values,options:null,get(k){return values.has(k)?{value:values.get(k)}:undefined},set(k,v,options){values.set(k,v);this.options=options},delete(k){values.delete(k)}}}
@@ -150,6 +178,24 @@ assert.equal((await recordsAdmin.POST(req('/api/records','POST',{kind:'tindaklan
 assert.equal((await recordsAdmin.PUT(req('/api/records','PUT',{id:deadlineId,kind:'tindaklanjut',data:{...deadlineData,notes:'Missing version'}}))).status,428,'Updates without a record version are rejected before saving');
 assert.equal((await recordsAdmin.PUT(req('/api/records','PUT',{id:deadlineId,kind:'tindaklanjut',expectedUpdated:'1900-01-01T00:00:00.000Z',data:{...deadlineData,notes:'Stale version'}}))).status,409,'Stale record versions are rejected');
 assert.equal((await recordsAdmin.PUT(req('/api/records','PUT',{id:deadlineId,kind:'tindaklanjut',expectedUpdated:now,data:{...deadlineData,notes:'Updated by System Administrator'}}))).status,200,'System administrator can update operational task records with the current version');
+const cashId=randomUUID();
+const cashData={name:'Synthetic CAS cash transaction',date:now.slice(0,10),type:'Pemasukan',amount:125000,fund:'Organisasi',counterAccountId:'test-revenue-account',notes:'Bukti transaksi sintetis'};
+await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(cashId,owner,'kas',JSON.stringify(cashData),now,now).run();
+const ledgerCountBefore=Number((await prepare('SELECT COUNT(*) AS count FROM ledger_entries WHERE owner=?').bind(owner).first()).count);
+const ledgerLineCountBefore=Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines WHERE owner=?').bind(owner).first()).count);
+const auditCountBeforeRace=Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count);
+const winningCashData={...cashData,notes:'Pembaruan penulis lain yang menang'};
+const winningTimestamp=new Date(Date.parse(now)+1000).toISOString();
+raceNextCas={id:cashId,owner,data:winningCashData,updated:winningTimestamp,title:'Synthetic concurrent winner'};
+const losingCashUpdate=await recordsAdmin.PUT(req('/api/records','PUT',{id:cashId,kind:'kas',expectedUpdated:now,data:{...cashData,notes:'Pembaruan yang kalah'} }));
+assert.equal(losingCashUpdate.status,409,'A writer that loses the atomic version race receives HTTP 409');
+const cashAfterRace=await prepare('SELECT data,updated FROM records WHERE id=? AND owner=?').bind(cashId,owner).first();
+assert.equal(JSON.parse(String(cashAfterRace.data)).notes,winningCashData.notes,'The concurrent winner remains authoritative after the losing transaction rolls back');
+assert.equal(String(cashAfterRace.updated),winningTimestamp,'The losing transaction cannot overwrite the winning version');
+assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_entries WHERE owner=?').bind(owner).first()).count),ledgerCountBefore,'A losing cash update creates no ledger journal');
+assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines WHERE owner=?').bind(owner).first()).count),ledgerLineCountBefore,'A losing cash update creates no ledger lines');
+assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count),auditCountBeforeRace+1,'Only the competing winner audit remains; the losing update audit is rolled back');
+
 async function member(name,status='Aktif',verification='Terverifikasi'){const id=randomUUID(),email='member-'+id+'@example.test';await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(id,owner,'anggota',JSON.stringify({name,dusun:'Synthetic address',status,verification,email,phone:'081234567890',notes:'PRIVATE-CANARY',potential:'PRIVATE-POTENTIAL',role:'Anggota'}),now,now).run();return id}
 async function invite(memberId,role='anggota',extra={}){const source=await prepare('SELECT data FROM records WHERE id=? AND owner=?').bind(memberId,owner).first();const email=String(JSON.parse(String(source.data)).email||'');const r=await accountManager.POST(req('/api/accounts','POST',{action:'activate_member',memberId,role,position:role,programIds:role==='koordinator'?['1','5','8']:[],...extra}));const data=await r.json();const sent=sentEmails.pop();if(r.status===200){assert.equal(data.sent,true,'Member activation must be sent by the mailer');assert.equal(data.url,undefined,'API must not expose the private activation URL');assert.equal(sent?.to,email,'Mailer must send to the member email recorded once in the membership workspace');}return {response:r,data:{...data,url:sent?.url},email}}
 async function activate(inv,j=jar(),extra={}){const route=await load('src/app/api/auth/activate/route.ts',j);const t=new URL(inv.data.url).hash.slice('#token='.length);const response=await route.POST(req('/api/auth/activate','POST',{token:t,password,confirmation:password,...extra}));return {response,j,route,t}}
