@@ -117,10 +117,11 @@ export async function POST(request: Request) {
       revenueAccountId,
       now,
     });
-    const issued = await statement.first();
-    if (!issued) {
+    const issuedResult = await statement.first();
+    if (!issuedResult?.invoice_json) {
       return json({ error: "Pesanan tidak lagi memenuhi syarat penerbitan faktur. Muat ulang daftar pesanan." }, 409);
     }
+    const issued = JSON.parse(String(issuedResult.invoice_json)) as Record<string, unknown>;
     return json({
       ok: true,
       id: String(issued.id),
