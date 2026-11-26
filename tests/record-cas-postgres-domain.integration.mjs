@@ -297,6 +297,7 @@ async function raceTwoUpdates(update, label) {
 const protectedRecords = await loadBundle("src/lib/enterprise/protected-records.ts", { stubRepository: true });
 const v14 = await loadBundle("src/lib/workspace-v14-sync.ts", { mappingAlias: true });
 const finance = await loadBundle("src/features/finance/record-posting.ts");
+const agricultureMutations = await loadBundle("src/lib/agriculture/record-mutations.ts");
 
 await runSchemaMigrations();
 
@@ -522,4 +523,171 @@ const assetAudit = await query(
 assert.equal(assetAudit.length, 1, "Only the winning asset source audit may commit.");
 console.log("PASS real PostgreSQL asset domain: one winner, one 409, normalized inventory, member assignment, one immutable movement event, lineage map and source audit.");
 
-console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, protected-records helper, V14 mapper, ledger posting statements, and append-only asset history.");
+
+const agricultureNow = "2026-11-26T00:10:00.000Z";
+const agricultureNext = "2026-11-26T00:10:05.000Z";
+const agricultureCommodityId = randomUUID();
+await runPsql(
+  "INSERT INTO public.agriculture_commodities(id,workspace_owner,code,name,default_unit,status,created_by,created_at,updated_at) VALUES(" +
+  [agricultureCommodityId, owner, "cas-qa-commodity", "Komoditas sintetis CAS", "kg", "active", owner, agricultureNow, agricultureNow].map(sqlLiteral).join(",") +
+  ");"
+);
+
+const parcelId = randomUUID();
+await runPsql(
+  "INSERT INTO public.farm_parcels(id,workspace_owner,member_id,parcel_code,name,area_m2,tenure_type,location_label,status,verification_status,created_by,updated_by,created_at,updated_at) VALUES(" +
+  [parcelId, owner, memberSources.get("Writer A").id, "CAS-PARCEL-001", "Synthetic CAS parcel", 1500, "owned", "Dusun Uji", "active", "pending", owner, owner, agricultureNow, agricultureNow].map(sqlLiteral).join(",") +
+  ");"
+);
+
+const parcelEditOutcomes = await raceTwoUpdates(writer => agricultureMutations.updateFarmParcel(database, {
+  owner,
+  actorId: owner,
+  actorRole: "admin",
+  id: parcelId,
+  expectedUpdated: agricultureNow,
+  memberId: memberSources.get(writer).id,
+  parcelCode: "CAS-PARCEL-" + writer.replace(" ", "-").toUpperCase(),
+  name: "Parcel edited by " + writer,
+  areaM2: writer === "Writer A" ? 1250 : 1300,
+  tenureType: "owned",
+  locationLabel: "Dusun Uji",
+  now: agricultureNext,
+}), "Agriculture parcel edit with versioned source and audit");
+const parcelAfterEdit = await query(
+  "SELECT id,member_id,parcel_code,name,area_m2,updated_at FROM public.farm_parcels WHERE id=" + sqlLiteral(parcelId) +
+  " AND workspace_owner=" + sqlLiteral(owner)
+);
+assert.equal(parcelAfterEdit.length, 1);
+const parcelWinner = parcelAfterEdit[0];
+assert(/Parcel edited by Writer [AB]/.test(parcelWinner.name), "The winning parcel edit must be the only committed payload.");
+assert.notEqual(parcelWinner.updated_at, agricultureNow, "The winning parcel edit must advance the version timestamp.");
+const parcelEditAudits = await query(
+  "SELECT id,details FROM public.agriculture_audit WHERE workspace_owner=" + sqlLiteral(owner) +
+  " AND target_type='parcel' AND target_id=" + sqlLiteral(parcelId) +
+  " AND action='Register lahan diperbarui; verifikasi ulang diperlukan'"
+);
+assert.equal(parcelEditAudits.length, 1, "Only the winning parcel editor may create an audit row.");
+assert.equal(JSON.parse(parcelEditAudits[0].details).memberId, parcelWinner.member_id, "The parcel audit details must match the winning member assignment.");
+console.log("PASS PostgreSQL agriculture parcel edit: one winner, one 409, one version advance, and one matching audit.");
+
+const lifecycleExpectedUpdated = String(parcelWinner.updated_at);
+const lifecycleOutcomes = await raceTwoUpdates(writer => writer === "Writer A"
+  ? agricultureMutations.archiveFarmParcel(database, {
+      owner, actorId: owner, actorRole: "admin", id: parcelId,
+      expectedUpdated: lifecycleExpectedUpdated, reason: "Archive winner in concurrency test", now: "2026-11-26T00:10:06.000Z",
+    })
+  : agricultureMutations.updateFarmParcel(database, {
+      owner, actorId: owner, actorRole: "admin", id: parcelId,
+      expectedUpdated: lifecycleExpectedUpdated, memberId: memberSources.get("Writer B").id,
+      parcelCode: "CAS-PARCEL-REVISED", name: "Parcel revision winner", areaM2: 1400,
+      tenureType: "leased", locationLabel: "Dusun Uji", now: "2026-11-26T00:10:06.000Z",
+    }),
+"Parcels archive versus edit from the same version");
+const parcelAfterLifecycle = await query(
+  "SELECT status,name,updated_at FROM public.farm_parcels WHERE id=" + sqlLiteral(parcelId) +
+  " AND workspace_owner=" + sqlLiteral(owner)
+);
+assert.equal(parcelAfterLifecycle.length, 1);
+assert(
+  parcelAfterLifecycle[0].status === "archived" || parcelAfterLifecycle[0].name === "Parcel revision winner",
+  "Exactly one archive/edit action must determine the final parcel state."
+);
+const lifecycleAuditCount = await query(
+  "SELECT COUNT(*)::int AS count FROM public.agriculture_audit WHERE workspace_owner=" + sqlLiteral(owner) +
+  " AND target_type='parcel' AND target_id=" + sqlLiteral(parcelId)
+);
+assert.equal(lifecycleAuditCount[0].count, 2, "A competing archive/edit pair must append exactly one additional audit, not one per request.");
+console.log("PASS PostgreSQL agriculture parcel lifecycle: archive and edit compete on one version; only the winning mutation and audit commit.");
+
+const verifyParcelId = randomUUID();
+await runPsql(
+  "INSERT INTO public.farm_parcels(id,workspace_owner,member_id,parcel_code,name,area_m2,tenure_type,location_label,status,verification_status,created_by,updated_by,created_at,updated_at) VALUES(" +
+  [verifyParcelId, owner, memberSources.get("Writer A").id, "CAS-VERIFY-PARCEL", "Synthetic verification parcel", 900, "owned", "Dusun Uji", "active", "pending", owner, owner, agricultureNow, agricultureNow].map(sqlLiteral).join(",") +
+  ");"
+);
+const parcelVerifyOutcomes = await raceTwoUpdates(writer => agricultureMutations.setAgricultureVerification(database, {
+  owner,
+  actorId: owner,
+  actorRole: "admin",
+  id: verifyParcelId,
+  expectedUpdated: agricultureNow,
+  targetType: "parcel",
+  nextStatus: writer === "Writer A" ? "verified" : "rejected",
+  reason: writer === "Writer A" ? "Verified by synthetic writer A" : "Rejected by synthetic writer B",
+  now: agricultureNext,
+}), "Agriculture parcel verification");
+const verifyParcelState = await query(
+  "SELECT verification_status,verification_note FROM public.farm_parcels WHERE id=" + sqlLiteral(verifyParcelId)
+);
+assert.equal(verifyParcelState.length, 1);
+assert(
+  verifyParcelState[0].verification_status === "verified" || verifyParcelState[0].verification_status === "rejected",
+  "The winning parcel verification decision must be committed."
+);
+const verifyParcelAudit = await query(
+  "SELECT id,action,reason FROM public.agriculture_audit WHERE target_type='parcel' AND target_id=" + sqlLiteral(verifyParcelId)
+);
+assert.equal(verifyParcelAudit.length, 1, "Exactly one parcel verification audit must commit.");
+assert.equal(verifyParcelAudit[0].action, verifyParcelState[0].verification_status === "verified" ? "Data diverifikasi" : "Data ditolak");
+assert.equal(verifyParcelAudit[0].reason, verifyParcelState[0].verification_note);
+console.log("PASS PostgreSQL agriculture parcel verification: exactly one concurrent decision and audit commit.");
+
+const verifiedParentParcelId = randomUUID();
+await runPsql(
+  "INSERT INTO public.farm_parcels(id,workspace_owner,member_id,parcel_code,name,area_m2,tenure_type,location_label,status,verification_status,verified_by,verified_at,created_by,updated_by,created_at,updated_at) VALUES(" +
+  [verifiedParentParcelId, owner, memberSources.get("Writer A").id, "CAS-PARENT-VERIFIED", "Synthetic verified parent parcel", 2000, "owned", "Dusun Uji", "active", "verified", owner, agricultureNow, owner, owner, agricultureNow, agricultureNow].map(sqlLiteral).join(",") +
+  ");"
+);
+const cycleId = randomUUID();
+await runPsql(
+  "INSERT INTO public.crop_cycles(id,workspace_owner,parcel_id,commodity_id,season_label,planted_area_m2,planting_date,expected_harvest_date,status,verification_status,created_by,updated_by,created_at,updated_at) VALUES(" +
+  [cycleId, owner, verifiedParentParcelId, agricultureCommodityId, "Musim CAS 2026", 1500, "2026-11-01", "2027-02-01", "planted", "pending", owner, owner, agricultureNow, agricultureNow].map(sqlLiteral).join(",") +
+  ");"
+);
+await raceTwoUpdates(writer => agricultureMutations.setAgricultureVerification(database, {
+  owner,
+  actorId: owner,
+  actorRole: "admin",
+  id: cycleId,
+  expectedUpdated: agricultureNow,
+  targetType: "crop_cycle",
+  nextStatus: writer === "Writer A" ? "verified" : "rejected",
+  reason: writer === "Writer A" ? "Verified crop cycle by writer A" : "Rejected crop cycle by writer B",
+  now: agricultureNext,
+}), "Agriculture crop-cycle verification");
+const cycleAudit = await query(
+  "SELECT id FROM public.agriculture_audit WHERE target_type='crop_cycle' AND target_id=" + sqlLiteral(cycleId)
+);
+assert.equal(cycleAudit.length, 1, "Only the winning crop-cycle verification audit may commit.");
+
+const harvestCycleId = randomUUID();
+await runPsql(
+  "INSERT INTO public.crop_cycles(id,workspace_owner,parcel_id,commodity_id,season_label,planted_area_m2,planting_date,expected_harvest_date,status,verification_status,verified_by,verified_at,created_by,updated_by,created_at,updated_at) VALUES(" +
+  [harvestCycleId, owner, verifiedParentParcelId, agricultureCommodityId, "Musim panen CAS 2026", 1200, "2026-10-01", "2026-11-20", "harvesting", "verified", owner, agricultureNow, owner, owner, agricultureNow, agricultureNow].map(sqlLiteral).join(",") +
+  ");"
+);
+const harvestId = randomUUID();
+await runPsql(
+  "INSERT INTO public.harvest_records(id,workspace_owner,crop_cycle_id,harvest_date,quantity,unit_code,notes,verification_status,created_by,updated_by,created_at,updated_at) VALUES(" +
+  [harvestId, owner, harvestCycleId, "2026-11-20", 120, "kg", "Synthetic CAS harvest", "pending", owner, owner, agricultureNow, agricultureNow].map(sqlLiteral).join(",") +
+  ");"
+);
+await raceTwoUpdates(writer => agricultureMutations.setAgricultureVerification(database, {
+  owner,
+  actorId: owner,
+  actorRole: "admin",
+  id: harvestId,
+  expectedUpdated: agricultureNow,
+  targetType: "harvest",
+  nextStatus: writer === "Writer A" ? "verified" : "rejected",
+  reason: writer === "Writer A" ? "Verified harvest by writer A" : "Rejected harvest by writer B",
+  now: agricultureNext,
+}), "Agriculture harvest verification");
+const harvestAudit = await query(
+  "SELECT id FROM public.agriculture_audit WHERE target_type='harvest' AND target_id=" + sqlLiteral(harvestId)
+);
+assert.equal(harvestAudit.length, 1, "Only the winning harvest verification audit may commit.");
+console.log("PASS PostgreSQL agriculture verification: parcel, crop cycle and harvest each enforce one versioned winner and one append-only audit row.");
+
+console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, and agriculture register/verification CAS.");
