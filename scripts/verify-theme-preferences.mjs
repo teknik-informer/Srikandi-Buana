@@ -99,7 +99,7 @@ test("legacy sb-theme preference is migrated to the canonical cookie", () => {
   assert.equal(browser.classes.has("dark"), true);
 });
 
-test("unknown cookie values safely fall back to system mode and the default preset", () => {
+test("unknown cookie values safely fall back to the light mode and Srikandi preset defaults", () => {
   const browser = createBrowser({
     cookie: "theme_mode=neon; theme_preset=unrecognized",
     prefersDark: false,
