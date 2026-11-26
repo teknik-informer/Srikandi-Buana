@@ -14,6 +14,7 @@ export type AppKey =
   | "usaha"
   | "anggota"
   | "pos"
+  | "berkas"
   | "studio"
   | "portal";
 
@@ -134,6 +135,16 @@ export const APPS: AppDef[] = [
     audience: "Kasir & petugas lapangan",
     description: "Kasir touch-first yang terhubung ke Usaha dan Keuangan.",
     icon: "scan",
+    group: "pendukung",
+  },
+  {
+    key: "berkas",
+    name: "Pusat Berkas",
+    short: "Berkas",
+    href: "/app/berkas",
+    audience: "Pengguna dengan izin berkas",
+    description: "Penyimpanan terpusat untuk unggah, unduh, cetak, dan tautan berbagi yang terkontrol.",
+    icon: "archive",
     group: "pendukung",
   },
   {

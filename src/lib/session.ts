@@ -58,24 +58,24 @@ function permissionsFor(roleKey: string, fieldKey: string | null): string[] {
       return ["*"];
     case "secretary":
       return [
-        "secretariat:*", "documents:*", "cms:publish",
+        "secretariat:*", "documents:*", "files:*", "cms:publish",
         "approval:read", "field:read", "organization:read", "finance:read", "membership:activate",
         "member:community:moderate",
       ];
     case "treasurer":
-      return ["finance:*", "approval:read", "organization:read"];
+      return ["finance:*", "files:upload", "files:read", "files:share", "approval:read", "organization:read"];
     case "field_coordinator":
       return fieldKey
-        ? [`field:${fieldKey}:*`, "approval:submit", "finance:request"]
+        ? [`field:${fieldKey}:*`, "files:upload", "files:read", "files:share", "approval:submit", "finance:request"]
         : ["field:read", "approval:submit"];
     case "field_staff":
       return fieldKey
-        ? [`field:${fieldKey}:read`, `field:${fieldKey}:activity:write`]
+        ? [`field:${fieldKey}:read`, `field:${fieldKey}:activity:write`, "files:upload", "files:read", "files:share"]
         : ["field:read"];
     case "cashier":
-      return ["pos:sell", "catalog:read"];
+      return ["pos:sell", "catalog:read", "files:upload", "files:read"];
     case "member":
-      return ["member:self"];
+      return ["member:self", "files:upload", "files:read", "files:share"];
     case "government_viewer":
     case "ngo_viewer":
     case "partner_viewer":

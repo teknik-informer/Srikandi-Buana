@@ -28,6 +28,8 @@ export function canAccessApp(identity: AppIdentity, app: AppKey): boolean {
       return identity.roleKey === "platform_admin" || identity.roleKey === "organization_admin";
     case "portal":
       return can(identity, "portal:read");
+    case "berkas":
+      return can(identity, "files:read");
     default: {
       const exhaustive: never = app;
       return exhaustive;
@@ -43,6 +45,7 @@ export function appKeyForHref(href: string): AppKey {
   if (href.startsWith("/app/keuangan")) return "keuangan";
   if (href.startsWith("/app/anggota")) return "anggota";
   if (href.startsWith("/app/pos")) return "pos";
+  if (href.startsWith("/app/berkas")) return "berkas";
   if (href.startsWith("/app/bidang/organisasi")) return "organisasi";
   if (href.startsWith("/app/bidang/pertanian")) return "pertanian";
   if (href.startsWith("/app/bidang/pelatihan")) return "pelatihan";

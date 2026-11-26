@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Archive, Download, FileCheck2, FilePlus2, FileText, LockKeyhole } from "lucide-react";
+import { Archive, Download, FileCheck2, FilePlus2, FileText, LockKeyhole, Printer } from "lucide-react";
 import {
   Badge,
   Card,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, requireIdentity } from "@/lib/session";
+import { FileUploadField } from "@/components/file-upload-field";
+import { FileShareButton } from "@/components/file-share-button";
 import {
   archiveSecretariatDocument,
   finalizeSecretariatDocument,
@@ -41,6 +43,8 @@ interface DocumentRow {
   status: "draft" | "final" | "arsip";
   description: string | null;
   file_revision: number | null;
+  asset_id: string | null;
+  file_uploaded_by: string | null;
   file_name: string | null;
   mime_type: string | null;
   size_bytes: number | null;
@@ -116,6 +120,8 @@ export default async function DokumenPage({
         document.status,
         document.description,
         latest_file.revision_no AS file_revision,
+        latest_file.asset_id::text AS asset_id,
+        latest_file.uploaded_by::text AS file_uploaded_by,
         latest_file.file_name,
         latest_file.mime_type,
         latest_file.size_bytes,
@@ -132,7 +138,7 @@ export default async function DokumenPage({
         END AS source_reference
       FROM v9.secretariat_documents AS document
       LEFT JOIN LATERAL (
-        SELECT file.revision_no, file.file_name, file.mime_type, file.size_bytes
+        SELECT file.revision_no, file.asset_id, file.uploaded_by, file.file_name, file.mime_type, file.size_bytes
         FROM v9.secretariat_document_files AS file
         WHERE file.document_id = document.id
         ORDER BY file.revision_no DESC
@@ -271,8 +277,7 @@ export default async function DokumenPage({
             </div>
             <div>
               <label htmlFor="document-file" className="mb-1 block text-[11.5px] font-semibold text-ink2">Berkas (opsional)</label>
-              <input id="document-file" name="document_file" type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.pptx" className="sb-input !h-auto py-2 text-[10.5px]" />
-              <p className="mt-1 text-[10px] text-muted2">PDF, JPG, PNG, DOCX, XLSX, PPTX · maksimal 3 MiB.</p>
+              <FileUploadField name="asset_id" label="Berkas (opsional)" required={false} scopeKind="organization" category="document" />
             </div>
             <div className="sm:col-span-2 xl:col-span-3">
               <label htmlFor="document-description" className="mb-1 block text-[11.5px] font-semibold text-ink2">Keterangan (opsional)</label>
@@ -325,6 +330,16 @@ export default async function DokumenPage({
                                   <Download size={12} /> {document.file_name}
                                 </Link>
                                 <div className="text-[10px] text-muted2">Berkas rev {document.file_revision} · {sizeLabel(document.size_bytes)}</div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {(document.mime_type === "application/pdf" || document.mime_type?.startsWith("image/")) ? (
+                                    <Link target="_blank" href={`/api/secretariat/documents/${document.id}/file?disposition=inline`} className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary-700">
+                                      <Printer size={11} /> Buka / cetak
+                                    </Link>
+                                  ) : null}
+                                  {document.asset_id && document.status === "final" && document.visibility === "publik" && can(identity, "files:share") && (document.file_uploaded_by === identity.userId || can(identity, "files:manage")) ? (
+                                    <FileShareButton fileId={document.asset_id} />
+                                  ) : null}
+                                </div>
                               </>
                             ) : null}
                             {document.has_generated_content && document.status !== "arsip" ? (
@@ -366,7 +381,7 @@ export default async function DokumenPage({
 
                               <form action={uploadSecretariatDocumentRevision} className="space-y-1.5">
                                 <input type="hidden" name="document_id" value={document.id} />
-                                <input type="file" name="document_file" required accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.pptx" className="sb-input !h-auto py-1.5 text-[9.5px]" aria-label="Unggah revisi dokumen" />
+                                <FileUploadField name="asset_id" label="Unggah revisi berkas" required scopeKind="organization" category="document" />
                                 <button type="submit" className="sb-btn sb-btn-outline !h-7 !w-full !px-2 text-[10px]">Unggah revisi berkas</button>
                               </form>
                               {document.status === "draft" ? (
@@ -414,9 +429,19 @@ export default async function DokumenPage({
                     </div>
                     <div className="mt-2 space-y-1.5 border-t border-line pt-2">
                       {document.file_name ? (
-                        <Link href={`/api/secretariat/documents/${document.id}/file`} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700">
-                          <Download size={12} /> {document.file_name} · rev {document.file_revision} · {sizeLabel(document.size_bytes)}
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/api/secretariat/documents/${document.id}/file`} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700">
+                            <Download size={12} /> {document.file_name} · rev {document.file_revision} · {sizeLabel(document.size_bytes)}
+                          </Link>
+                          {(document.mime_type === "application/pdf" || document.mime_type?.startsWith("image/")) ? (
+                            <Link target="_blank" href={`/api/secretariat/documents/${document.id}/file?disposition=inline`} className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary-700">
+                              <Printer size={11} /> Buka / cetak
+                            </Link>
+                          ) : null}
+                          {document.asset_id && document.status === "final" && document.visibility === "publik" ? (
+                            <FileShareButton fileId={document.asset_id} />
+                          ) : null}
+                        </div>
                       ) : null}
                       {document.has_generated_content && document.status !== "arsip" ? (
                         <Link href={`/app/sekretariat/dokumen/${document.id}/cetak`} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary-700">
@@ -448,7 +473,7 @@ export default async function DokumenPage({
                         ) : null}
                         <form action={uploadSecretariatDocumentRevision} className="flex flex-wrap gap-2">
                           <input type="hidden" name="document_id" value={document.id} />
-                          <input type="file" name="document_file" required accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.pptx" className="sb-input min-w-0 flex-1 !h-auto py-2 text-[9.5px]" aria-label="Unggah revisi berkas" />
+                          <div className="min-w-0 flex-1"><FileUploadField name="asset_id" label="Berkas revisi" required scopeKind="organization" category="document" /></div>
                           <button type="submit" className="sb-btn sb-btn-outline !h-9 !px-3 text-[10px]">Unggah</button>
                         </form>
                         {document.status === "draft" ? (

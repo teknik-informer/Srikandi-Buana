@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, getIdentity } from "@/lib/session";
+import {
+  attachmentDisposition, fetchCloudinaryAsset, type StoredFileAsset,
+} from "@/lib/cloudinary-files";
 
 interface DocumentRecord {
   organization_id: string;
@@ -9,7 +12,15 @@ interface DocumentRecord {
   file_name: string;
   mime_type: string;
   size_bytes: number;
-  base64: string;
+  base64: string | null;
+  asset_id: string | null;
+  cloudinary_asset_id: string | null;
+  cloudinary_public_id: string | null;
+  cloudinary_resource_type: "image" | "video" | "raw" | null;
+  cloudinary_delivery_type: "authenticated" | null;
+  cloudinary_version: number | null;
+  cloudinary_format: string | null;
+  asset_status: "active" | "revoked" | null;
 }
 
 function missing() {
@@ -64,32 +75,69 @@ export async function GET(
         file.file_name,
         file.mime_type,
         file.size_bytes,
-        encode(file.file_data, 'base64') AS base64
+        CASE WHEN file.file_data IS NOT NULL THEN encode(file.file_data, 'base64') ELSE NULL END AS base64,
+        file.asset_id::text AS asset_id,
+        asset.cloudinary_asset_id,
+        asset.cloudinary_public_id,
+        asset.cloudinary_resource_type,
+        asset.cloudinary_delivery_type,
+        asset.cloudinary_version,
+        asset.cloudinary_format,
+        asset.status AS asset_status
       FROM v9.secretariat_document_files AS file
       INNER JOIN v9.secretariat_documents AS document
         ON document.id = file.document_id
+      LEFT JOIN v9.file_assets AS asset ON asset.id = file.asset_id
       WHERE file.document_id = ${id}
         AND document.status <> 'arsip'
       ORDER BY file.revision_no DESC
       LIMIT 1
     `;
-    const file = rowsFromResult<Pick<DocumentRecord, "file_name" | "mime_type" | "size_bytes" | "base64">>(fileResult)[0];
+    const file = rowsFromResult<Pick<DocumentRecord,
+      "file_name" | "mime_type" | "size_bytes" | "base64" | "asset_id" |
+      "cloudinary_asset_id" | "cloudinary_public_id" | "cloudinary_resource_type" |
+      "cloudinary_delivery_type" | "cloudinary_version" | "cloudinary_format" | "asset_status"
+    >>(fileResult)[0];
     if (!file) return missing();
 
-    const bytes = Buffer.from(file.base64, "base64");
-    const fallbackName = file.file_name.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 120) || "document";
-    const contentDisposition = `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(file.file_name)}`;
+    const inlineRequested = new URL(_request.url).searchParams.get("disposition") === "inline";
+    const inline = inlineRequested && (file.mime_type === "application/pdf" || file.mime_type.startsWith("image/"));
+    const headers = {
+      "Content-Type": file.mime_type,
+      "Content-Length": String(file.size_bytes),
+      "Content-Disposition": attachmentDisposition(file.file_name, inline),
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN",
+      "Cache-Control": "private, no-store",
+    };
 
-    return new NextResponse(bytes, {
-      status: 200,
-      headers: {
-        "Content-Type": file.mime_type,
-        "Content-Length": String(bytes.byteLength),
-        "Content-Disposition": contentDisposition,
-        "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "private, no-store",
-      },
-    });
+    if (file.asset_id && file.asset_status !== "active") return missing();
+    if (file.asset_id && file.cloudinary_asset_id && file.cloudinary_public_id && file.cloudinary_resource_type &&
+        file.cloudinary_delivery_type && file.cloudinary_version) {
+      const upstream = await fetchCloudinaryAsset({
+        id: file.asset_id,
+        organization_id: metadata.organization_id,
+        uploaded_by: null,
+        category: "document",
+        scope_kind: "organization",
+        scope_ref: null,
+        file_name: file.file_name,
+        mime_type: file.mime_type,
+        size_bytes: file.size_bytes,
+        cloudinary_asset_id: file.cloudinary_asset_id,
+        cloudinary_public_id: file.cloudinary_public_id,
+        cloudinary_resource_type: file.cloudinary_resource_type,
+        cloudinary_delivery_type: file.cloudinary_delivery_type,
+        cloudinary_version: file.cloudinary_version,
+        cloudinary_format: file.cloudinary_format,
+        status: "active",
+      });
+      return new NextResponse(upstream.body, { status: 200, headers });
+    }
+
+    if (!file.base64) return missing();
+    const bytes = Buffer.from(file.base64, "base64");
+    return new NextResponse(bytes, { status: 200, headers });
   } catch (error) {
     // Keep database/storage details out of runtime logs and visitor responses.
     console.warn(

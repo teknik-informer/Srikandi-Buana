@@ -1,6 +1,5 @@
 "use server";
 
-import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can, requireIdentity } from "@/lib/session";
@@ -9,26 +8,6 @@ import { getSecretariatTemplate } from "@/lib/secretariat-templates";
 
 const CATEGORIES = ["SK", "Laporan", "SOP", "Surat", "Notulen", "Publikasi"] as const;
 const VISIBILITIES = ["publik", "internal", "terbatas"] as const;
-const MAX_FILE_BYTES = 3 * 1024 * 1024;
-
-const EXTENSION_MIME: Record<string, string> = {
-  ".pdf": "application/pdf",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-};
-
-interface PreparedFile {
-  name: string;
-  mimeType: string;
-  size: number;
-  sha256: string;
-  base64: string;
-}
-
 function validUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -39,55 +18,45 @@ function validDate(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function sanitizeFileName(value: string): string {
-  const leaf = value.replace(/\\/g, "/").split("/").pop() ?? "";
-  return leaf
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/[^\p{L}\p{N} ._()\-]/gu, "_")
-    .trim()
-    .slice(0, 180);
+interface UploadedFileAsset {
+  id: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  sha256: string;
 }
 
-function hasExpectedSignature(bytes: Buffer, mimeType: string): boolean {
-  if (mimeType === "application/pdf") return bytes.subarray(0, 5).toString("ascii") === "%PDF-";
-  if (mimeType === "image/jpeg") return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  if (mimeType === "image/png") return bytes.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
-  if (mimeType.startsWith("application/vnd.openxmlformats-officedocument.")) {
-    return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
-  }
-  return false;
-}
-
-async function prepareFile(value: FormDataEntryValue | null, required: boolean): Promise<PreparedFile | null> {
-  if (!(value instanceof File) || value.size === 0) {
-    if (required) throw new Error("Berkas wajib dipilih.");
+async function resolveUploadedFileAsset(
+  value: FormDataEntryValue | null,
+  identity: Awaited<ReturnType<typeof requireIdentity>>,
+  required: boolean,
+): Promise<UploadedFileAsset | null> {
+  const assetId = String(value ?? "").trim();
+  if (!assetId) {
+    if (required) throw new Error("Unggah berkas ke Cloudinary terlebih dahulu.");
     return null;
   }
+  if (!validUuid(assetId)) throw new Error("Referensi berkas tidak valid.");
 
-  if (value.size > MAX_FILE_BYTES) throw new Error("Ukuran berkas maksimal 3 MiB.");
-  const fileName = sanitizeFileName(value.name);
-  const extension = fileName.toLowerCase().slice(fileName.lastIndexOf("."));
-  const expectedMime = EXTENSION_MIME[extension];
-
-  if (!fileName || !expectedMime) {
-    throw new Error("Format berkas tidak didukung. Gunakan PDF, JPG, PNG, DOCX, XLSX, atau PPTX.");
-  }
-  if (value.type && value.type !== expectedMime) {
-    throw new Error("Tipe berkas tidak sesuai dengan ekstensi nama berkas.");
-  }
-
-  const bytes = Buffer.from(await value.arrayBuffer());
-  if (!hasExpectedSignature(bytes, expectedMime)) {
-    throw new Error("Isi berkas tidak cocok dengan format yang dinyatakan.");
-  }
-
-  return {
-    name: fileName,
-    mimeType: expectedMime,
-    size: bytes.byteLength,
-    sha256: createHash("sha256").update(bytes).digest("hex"),
-    base64: bytes.toString("base64"),
-  };
+  const sql = getV9Sql();
+  const result = await sql`
+    SELECT asset.id::text AS id, asset.file_name, asset.mime_type,
+      asset.size_bytes::int AS size_bytes, asset.sha256
+    FROM v9.file_assets AS asset
+    WHERE asset.id = ${assetId}
+      AND asset.organization_id = ${identity.organizationId}
+      AND asset.uploaded_by = ${identity.userId}
+      AND asset.scope_kind = 'organization'
+      AND asset.status = 'active'
+      AND NOT EXISTS (
+        SELECT 1 FROM v9.secretariat_document_files AS existing
+        WHERE existing.asset_id = asset.id
+      )
+    LIMIT 1
+  `;
+  const asset = rowsFromResult<UploadedFileAsset>(result)[0];
+  if (!asset) throw new Error("Berkas tidak ditemukan, sudah terpakai, atau bukan milik akun ini.");
+  return asset;
 }
 
 function logFailure(area: string, error: unknown): void {
@@ -122,9 +91,9 @@ export async function registerSecretariatDocument(formData: FormData): Promise<v
     redirect("/app/sekretariat/dokumen?result=forbidden");
   }
 
-  let prepared: PreparedFile | null;
+  let uploadedAsset: UploadedFileAsset | null;
   try {
-    prepared = await prepareFile(formData.get("document_file"), false);
+    uploadedAsset = await resolveUploadedFileAsset(formData.get("asset_id"), identity, false);
   } catch (error) {
     redirect(`/app/sekretariat/dokumen?result=file-invalid&message=${encodeURIComponent(error instanceof Error ? error.message : "Berkas tidak valid.")}`);
   }
@@ -155,19 +124,26 @@ export async function registerSecretariatDocument(formData: FormData): Promise<v
       ),
       inserted_file AS (
         INSERT INTO v9.secretariat_document_files (
-          document_id, revision_no, file_name, mime_type, size_bytes, sha256, file_data, uploaded_by
+          document_id, revision_no, file_name, mime_type, size_bytes, sha256,
+          file_data, asset_id, uploaded_by
         )
         SELECT
           inserted_document.id,
           1,
-          ${prepared?.name ?? null},
-          ${prepared?.mimeType ?? null},
-          ${prepared?.size ?? null},
-          ${prepared?.sha256 ?? null},
-          decode(${prepared?.base64 ?? ""}, 'base64'),
+          asset.file_name,
+          asset.mime_type,
+          asset.size_bytes,
+          asset.sha256,
+          NULL,
+          asset.id,
           ${identity.userId}
         FROM inserted_document
-        WHERE ${Boolean(prepared)}
+        INNER JOIN v9.file_assets AS asset
+          ON asset.id = ${uploadedAsset?.id ?? null}
+          AND asset.organization_id = ${identity.organizationId}
+          AND asset.uploaded_by = ${identity.userId}
+          AND asset.status = 'active'
+        WHERE ${Boolean(uploadedAsset)}
         RETURNING id, document_id, revision_no
       ),
       audit AS (
@@ -186,7 +162,7 @@ export async function registerSecretariatDocument(formData: FormData): Promise<v
             'number', inserted_document.number,
             'status', inserted_document.status,
             'visibility', inserted_document.visibility,
-            'file_attached', ${Boolean(prepared)}
+            'file_attached', ${Boolean(uploadedAsset)}
           )
         FROM inserted_document
         LEFT JOIN inserted_file ON true
@@ -289,14 +265,13 @@ export async function uploadSecretariatDocumentRevision(formData: FormData): Pro
   const documentId = String(formData.get("document_id") ?? "").trim();
   if (!validUuid(documentId)) redirect("/app/sekretariat/dokumen?result=invalid");
 
-  let prepared: PreparedFile;
+  let uploadedAsset: UploadedFileAsset | null;
   try {
-    const file = await prepareFile(formData.get("document_file"), true);
-    if (!file) throw new Error("Berkas wajib dipilih.");
-    prepared = file;
+    uploadedAsset = await resolveUploadedFileAsset(formData.get("asset_id"), identity, true);
   } catch (error) {
     redirect(`/app/sekretariat/dokumen?result=file-invalid&message=${encodeURIComponent(error instanceof Error ? error.message : "Berkas tidak valid.")}`);
   }
+  if (!uploadedAsset) redirect("/app/sekretariat/dokumen?result=file-invalid");
 
   let uploaded = false;
   try {
@@ -330,16 +305,18 @@ export async function uploadSecretariatDocumentRevision(formData: FormData): Pro
       ),
       inserted_file AS (
         INSERT INTO v9.secretariat_document_files (
-          document_id, revision_no, file_name, mime_type, size_bytes, sha256, file_data, uploaded_by
+          document_id, revision_no, file_name, mime_type, size_bytes, sha256,
+          file_data, asset_id, uploaded_by
         )
         SELECT
           next_revision.document_id,
           next_revision.revision_no,
-          ${prepared.name},
-          ${prepared.mimeType},
-          ${prepared.size},
-          ${prepared.sha256},
-          decode(${prepared.base64}, 'base64'),
+          ${uploadedAsset.file_name},
+          ${uploadedAsset.mime_type},
+          ${uploadedAsset.size_bytes},
+          ${uploadedAsset.sha256},
+          NULL,
+          ${uploadedAsset.id},
           ${identity.userId}
         FROM next_revision
         RETURNING id, document_id, revision_no
@@ -357,8 +334,8 @@ export async function uploadSecretariatDocumentRevision(formData: FormData): Pro
           jsonb_build_object('reference_no', reset_final.reference_no,
             'status_after_upload', reset_final.status,
             'revision_no', inserted_file.revision_no,
-            'file_name', ${prepared.name},
-            'sha256', ${prepared.sha256})
+            'file_name', ${uploadedAsset.file_name},
+            'sha256', ${uploadedAsset.sha256})
         FROM reset_final
         INNER JOIN inserted_file ON inserted_file.document_id = reset_final.id
         RETURNING id
