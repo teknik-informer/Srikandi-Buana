@@ -15,7 +15,7 @@ function declarations(selector) {
       const separator = declaration.indexOf(":");
       if (separator < 0) continue;
       const key = declaration.slice(0, separator).trim();
-      const value = declaration.slice(separator + 1).trim();
+      const value = declaration.slice(separator + 1).trim().replace(/\\s*!important\\s*$/i, "");
       if (key && value) merged[key] = value;
     }
   }
