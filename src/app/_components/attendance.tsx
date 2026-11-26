@@ -19,6 +19,8 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
   const [eventId, setEventId] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [attendanceExpectedUpdated, setAttendanceExpectedUpdated] = useState<string | null>(null);
+  const [attendanceEventUpdated, setAttendanceEventUpdated] = useState("");
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +41,9 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
     const ids = record?.data.memberIds;
     setSelected(Array.isArray(ids) ? ids.filter((v): v is string => typeof v === "string") : []);
     setNotes(String(record?.data.notes || ""));
-  }, [eventId, record]);
+    setAttendanceExpectedUpdated(record?.updated || null);
+    setAttendanceEventUpdated(event?.updated || "");
+  }, [eventId, record, event?.updated]);
   function changeSelection(ids: string[]) {
     dirty.current = true;
     markFormDirty(form.current);
@@ -48,13 +52,18 @@ export default function Attendance({ rows, onSaved }: { rows: Row[]; onSaved: ()
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!event || pending.current) return;
+    if (!attendanceEventUpdated) {
+      setError("Versi kegiatan belum tersedia. Muat ulang daftar kegiatan sebelum menyimpan.");
+      await onSaved();
+      return;
+    }
     pending.current = true;
     setSaving(true);
     setError("");
     try {
       const { response: r, data: d } = await requestJSON<{ error?: string }>("/api/attendance", {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, memberIds: selected, notes }),
+        body: JSON.stringify({ eventId, eventUpdated: attendanceEventUpdated, expectedUpdated: attendanceExpectedUpdated, memberIds: selected, notes }),
       });
       if (!r.ok) throw Error(r.status === 401
         ? "Sesi masuk telah berakhir. Salin catatan yang diperlukan, lalu masuk kembali."
