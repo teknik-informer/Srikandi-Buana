@@ -154,6 +154,7 @@ assert.equal(activeExternalGrants(legacyOnly.grants, at).length, 0, "Unsupported
 
 const api = readFileSync("src/app/api/agriculture/route.ts", "utf8");
 const agricultureWorkspace = readFileSync("src/app/_components/agriculture-workspace.tsx", "utf8");
+const agricultureMutations = readFileSync("src/lib/agriculture/record-mutations.ts", "utf8");
 const summary = readFileSync("src/lib/external-agriculture-summary.ts", "utf8");
 const portal = readFileSync("src/app/portal-eksternal/page.tsx", "utf8");
 const externalDashboard = readFileSync("src/app/_components/external-audience-dashboard.tsx", "utf8");
@@ -192,6 +193,12 @@ assert(access.includes('user.role === "sekretaris") return secretariatWrite.incl
 assert(api.includes("Master komoditas merupakan register referensi yang dikelola Sekretariat."));
 assert(api.includes("Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis."));
 assert(api.includes('action === "update_parcel"') && api.includes("verification_status='pending'"), "Secretariat edits must return land records to Secretariat re-verification");
+assert(api.includes('const expectedUpdated = typeof raw.expectedUpdated === "string"') && api.includes("}, 428)"), "Every agriculture PATCH must reject missing record versions with HTTP 428");
+assert(api.includes("await updateFarmParcel(db") && api.includes("await archiveFarmParcel(db") && api.includes("await setAgricultureVerification(db"), "All agriculture parcel lifecycle mutations must use the version-guarded helpers");
+assert(agricultureMutations.includes("target.updated_at=?") && (agricultureMutations.match(/FROM changed RETURNING target_id/g) || []).length === 3, "Parcel edit, archive and verification must atomically write their audit only from a successful version-guarded update");
+assert(agricultureMutations.includes("member.data::jsonb->>'status'='Aktif'") && agricultureMutations.includes("member.data::jsonb->>'verification'='Terverifikasi'"), "Land edits must recheck member eligibility at the write boundary");
+assert(agricultureWorkspace.includes("updated_at: string") && agricultureWorkspace.includes("expectedUpdated: editingParcelUpdated") && agricultureWorkspace.includes("expectedUpdated: parcel.updated_at") && agricultureWorkspace.includes("id, expectedUpdated, reason"), "Agriculture UI must send the exact version read for edit, archive and verification");
+assert(api.includes('const canManageLand = user.role === "sekretaris" || user.role === "admin";'), "System Administrator and Secretariat must have consistent parcel mutation permissions");
 assert(api.includes('action === "archive_parcel"') && api.includes("status='archived'"), "Land register archiving must preserve linked history rather than hard-delete");
 assert(agricultureWorkspace.includes('action: "update_parcel"') && agricultureWorkspace.includes('action: "archive_parcel"'), "Secretariat land edit/archive controls must be present");
 
