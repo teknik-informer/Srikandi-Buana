@@ -117,17 +117,7 @@ export function buildSalesInvoiceIssueStatement(
       CROSS JOIN credit_line
       RETURNING id
     )
-    SELECT
-      issued.id,
-      issued.order_id,
-      issued.invoice_number,
-      issued.customer_name,
-      issued.issue_date,
-      issued.due_date,
-      issued.total_amount,
-      issued.paid_total,
-      issued.status,
-      issued.ledger_entry_id
+    SELECT row_to_json(issued)::text AS invoice_json
     FROM issued
     CROSS JOIN debit_line
     CROSS JOIN credit_line
