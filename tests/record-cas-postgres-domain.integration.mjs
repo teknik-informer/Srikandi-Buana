@@ -130,7 +130,7 @@ class PostgresDatabase {
     if (sql.trimStart().startsWith("WITH order_guard AS MATERIALIZED (")) {
       if (this.raceGate) await this.waitAtConcurrentGate();
       const output = await runPsql(
-        "BEGIN ISOLATION LEVEL SERIALIZABLE;\\nSELECT pg_sleep(0.25);\\n" + sql + ";\\nCOMMIT;"
+        "BEGIN ISOLATION LEVEL SERIALIZABLE;\nSELECT pg_sleep(0.25);\n" + sql + ";\\nCOMMIT;"
       );
       return { results: output.split(/\\r?\\n/).filter(Boolean).map(invoice_json => ({ invoice_json })) };
     }
