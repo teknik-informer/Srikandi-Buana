@@ -79,17 +79,17 @@ assert.ok(
   "The full search page must filter destinations to permitted applications.",
 );
 const searchApi = read("src/app/api/search/route.ts");
-assert.ok(
-  searchDialog.includes("canAccessAppHref(identity, hit.href)") &&
-  searchDialog.includes("canAccessApp(identity, app.key)") &&
-  searchDialog.includes("/api/search?q=") &&
-  searchDialog.includes("AbortController"),
-  "The topbar search must combine debounced server results with navigation and filter destinations by identity permissions.",
-);
+const operationalSearch = read("src/lib/operational-search.ts");
 assert.ok(
   searchApi.includes("getIdentity()") &&
-  searchApi.includes("identity.organizationId") &&
-  searchApi.includes("can(identity") &&
+  searchApi.includes("searchOperationalRecords") &&
+  searchApi.includes("Cache-Control") &&
+  searchApi.includes("private, no-store"),
+  "The operational search API must authenticate requests, use the shared search service, and prevent shared caching of private results.",
+);
+assert.ok(
+  operationalSearch.includes("identity.organizationId") &&
+  operationalSearch.includes("can(identity") &&
   [
     "v9.memberships",
     "v9.field_programs",
@@ -97,17 +97,21 @@ assert.ok(
     "v9.agriculture_plots",
     "v9.secretariat_documents",
     "v9.finance_journals",
-  ].every((table) => searchApi.includes(table)) &&
-  !searchApi.includes("localStorage"),
+  ].every((table) => operationalSearch.includes(table)) &&
+  !operationalSearch.includes("localStorage"),
   "Operational search must query V9 records with organization scope and server-side permission checks, never seeded browser state.",
 );
 assert.ok(
-  searchApi.includes("status = 'final'") &&
-  searchApi.includes("visibility = 'publik'") &&
-  searchApi.includes("finance:read") &&
-  searchApi.includes("Cache-Control") &&
-  searchApi.includes("private, no-store"),
-  "Search must limit external documents to final public records, gate finance rows, and prevent shared caching of private results.",
+  operationalSearch.includes("status = 'final'") &&
+  operationalSearch.includes("visibility = 'publik'") &&
+  operationalSearch.includes('can(identity, "finance:read")'),
+  "Operational search must limit external documents to final public records and gate finance rows.",
+);
+assert.ok(
+  searchPage.includes("searchOperationalRecords") &&
+  searchPage.includes("recordsUnavailable") &&
+  !searchPage.includes("Pencarian rekaman belum diaktifkan"),
+  "The full search page must show permission-scoped operational records and a separate unavailable state, not the retired records-disabled notice.",
 );
 assert.ok(
   memberShell.includes("<SearchProvider identity={identity}>") &&
