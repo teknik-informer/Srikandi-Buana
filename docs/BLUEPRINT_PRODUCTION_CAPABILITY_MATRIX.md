@@ -398,3 +398,24 @@ Migration `006_agriculture_domain.sql` mendefinisikan `agriculture_commodities`,
 6. Jalankan Preview dan browser UAT hanya pada exact commit yang benar; status UAT tetap belum dibuktikan dalam audit ini.
 
 Tidak ada perubahan schema, migration, database, data, auth/session, RBAC, environment, domain, billing, atau Production yang dilakukan dalam audit ini.
+
+
+### 12.8 HRM attendance — separate operational lifecycle audit
+
+**Source:** `src/app/api/hrm/attendance/route.ts` pada Production baseline. Ini berbeda dari generic `PUT /api/attendance`.
+
+| Area | Bukti source | Status | Gap yang harus diuji/diperbaiki |
+|---|---|---|---|
+| Session creation | `POST create_session`: role manage (admin/full access, sekretaris, koordinator); program scope; validasi jenis, tanggal, jam, lokasi, peserta aktif/terverifikasi, late threshold; optional geofence | `partial` | Tidak ada expected version pada create (wajar), tetapi perlu duplicate/parallel creation test dan policy untuk lokasi |
+| Member check-in | `POST check_in`: self, QR, location, manual; hanya pada tanggal/jam dan sesi active; member harus terdaftar; status present/late; stable attendance ID mencegah duplicate check-in | `partial` | Perlu test concurrent duplicate, QR replay/expiry, session close race, serta verifikasi bahwa insert + audit atomik |
+| QR | Token acak 32-byte disimpan sebagai SHA-256 digest, terikat session, expiry maksimum 30 menit/akhir sesi; QR hanya dapat dibuat untuk sesi active oleh pengelola berwenang | `partial` | Perlu test token single-use atau kebijakan multi-use yang eksplisit; saat ini token aktif dapat dipakai untuk tiap peserta yang memenuhi syarat sampai expiry |
+| Geofence | Validasi consent eksplisit, rentang koordinat/akurasi, haversine radius + accuracy; hasil menyimpan status verifikasi dan akurasi | `partial` | Data lokasi presensi dan titik geofence merupakan data sensitif; perlu minimisasi, retensi, akses dan penghapusan yang jelas. Tidak boleh diasumsikan sudah lulus PDP hanya karena consent checkbox ada |
+| Manual attendance | `PATCH manual_record`: pengelola program dapat menandai present/late/excused/sick/absent; perubahan yang sudah ada memerlukan expectedUpdated dan alasan, mencatat previousStatus dan audit | `partial` | UPDATE akhir belum memasukkan `updated=expectedUpdated` dalam predicate; pre-read check bukan atomic CAS. Koreksi bersamaan dapat saling menimpa |
+| Session lifecycle | `PATCH session_status`: scheduled → active → closed/cancelled; penutupan membuat absent untuk peserta yang belum memiliki record; audit disimpan | `partial` | expectedUpdated hanya diperiksa sebelum batch; UPDATE akhir tidak mengikat versi. Perlu race test antara check-in dan close agar peserta tidak salah ditandai absent |
+| Member correction | `POST request_correction`: anggota hanya mengajukan untuk record miliknya, status valid dan alasan minimal 10 karakter; pending duplicate diperiksa | `partial` | Duplicate check pre-read bukan unique/atomic claim; dua request paralel berpotensi membuat dua koreksi pending |
+| Review correction | `PATCH review_correction`: reviewer (admin/full access, sekretaris, ketua) memutuskan approved/rejected dengan catatan; approval memperbarui record attendance dan audit | `partial` | Status pending dibaca dahulu lalu UPDATE tanpa predicate `approvalStatus='pending'`/version; concurrent reviewer race dan side-effect consistency belum diuji |
+| Reporting/privacy | GET menyaring sesi sesuai role/program; anggota melihat sesi/record/koreksi sendiri; CSV export untuk data yang terlihat | `partial` | Perlu test export per role, filter scope, formula injection, data pribadi, dan browser UAT. GET memuat daftar record domain yang perlu diuji skala/pagination |
+
+**Test inventory:** pencarian source/test pada baseline tidak menemukan dedicated handler integration suite untuk `attendance_session`, `attendance_record`, `attendance_qr_token`, atau `attendance_correction`. Test attendance yang ditemukan di `scripts/verify-roles.mjs` hanya menguji happy-path generic `PUT /api/attendance`; jangan menganggap itu mencakup HRM lifecycle di atas.
+
+**Kesimpulan:** HRM attendance memiliki workflow lebih kaya daripada generic attendance register, tetapi status tetap `partial`. Temuan CAS di session/manual/correction perlu ditangani sebagai prioritas P1 bersama pengujian concurrency, QR replay, geofence privacy, dan role-scoped export. Belum ada bukti browser UAT atau Production runtime untuk alur ini.
