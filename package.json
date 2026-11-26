@@ -44,6 +44,7 @@
     "test:smart-attendance": "node scripts/verify-smart-attendance.mjs",
     "test:v14-integration": "node scripts/verify-v14-integration.mjs",
     "test:record-cas-postgres": "node tests/record-cas-postgres.integration.mjs",
+    "test:record-cas-postgres-domain": "node tests/record-cas-postgres-domain.integration.mjs",
     "prebuild": "node scripts/verify-roles.mjs"
   },
   "dependencies": {
