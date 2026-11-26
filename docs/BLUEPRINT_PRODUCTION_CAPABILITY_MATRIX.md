@@ -308,3 +308,25 @@ Nama file test di atas hanya inventory. Hasil test harus diperiksa per test case
 
 Pada commit PR #67 `44988d917e4a44202e18e5bc7f415bf069e0e0e6`, dua check bernama `quality` telah berstatus `completed / success`. Check `Vercel Preview Comments` juga completed/success, tetapi komentar Vercel yang muncul mengarah ke project `srikandi-buana-v9`; ini **bukan** bukti Preview Production dan bukan browser UAT Production. PR tetap Draft dan belum di-merge.
 
+
+### 12.5 Concurrency/CAS review — PR #63 exact head, 26 Nov
+
+**Ref yang diperiksa:** PR #63 head `bafb2d8b51803df834d9dc4d994072eba34864ee`. Ini audit atas kandidat perubahan, bukan klaim bahwa perubahan tersebut sudah masuk Production.
+
+| Jalur | Bukti source | Temuan | Acceptance criteria yang belum terpenuhi |
+|---|---|---|---|
+| Generic record update | `src/app/api/records/route.ts` | Handler membaca `updated`, membandingkan `expectedUpdated`, lalu batch akhir menjalankan UPDATE dengan `WHERE id=? AND owner=?`; kondisi UPDATE tidak lagi mensyaratkan `updated=expectedUpdated`. Audit dan normalized/ledger statements ikut dalam batch yang sama. | Conditional CAS harus terjadi pada write boundary. Dua request dengan versi awal sama tidak boleh sama-sama sukses. |
+| Database batch | `src/lib/runtime.ts` | Neon adapter menggunakan `sql.transaction(..., { isolationLevel: 'Serializable' })`. Ini transaction boundary, bukan pengganti predicate CAS eksplisit. | Uji perilaku aktual pada concurrent handler requests dan retry/serialization failure. |
+| Protected cash/asset update | `src/lib/enterprise/protected-records.ts` | CTE mengondisikan UPDATE pada expected version dan menulis audit dari `changed`; helper menjalankan `db.batch([write,...normalizedWrites])`, lalu baru memeriksa hasil CTE. | Semua normalized/ledger/asset effects harus SQL-conditional pada CAS success atau dieksekusi dalam transaction control yang membatalkan semuanya ketika CAS kalah. |
+| Automated tests | `scripts/verify-roles.mjs` | Tes memeriksa missing version → 428, stale pre-read version → 409, dan current version → 200. Tidak ditemukan concurrent handler race test untuk dua request dengan versi awal identik. | Test nyata: tepat satu 200 dan satu 409; assert source, audit, normalized tables, ledger/asset effects dan rollback dari request yang kalah. |
+
+**Status:** `partial` untuk version precondition; `not verified` untuk atomic CAS/concurrent side-effect safety. Jangan menandai update lifecycle sebagai `verified-working` sebelum concurrency test di atas lulus.
+
+**Required implementation sequence:**
+1. Tentukan satu pola transaction-safe CAS yang didukung oleh Neon driver dan adapter aktual; jangan mengandalkan SELECT precheck.
+2. Jadikan source write, audit, normalized V14 writes, ledger/asset side effects satu all-or-nothing unit. Semua dependent writes wajib bersyarat pada row CAS yang berhasil.
+3. Kembalikan 409 bila versi kalah; jangan meninggalkan audit atau efek samping parsial.
+4. Tambahkan concurrent integration test pada handler nyata, bukan hanya unit test helper.
+5. Jalankan full CI pada exact implementation SHA; Preview/UAT dicatat terpisah.
+
+Reviewer handoff: [Issue #65 — atomic record CAS](https://github.com/teknik-informer/Srikandi-Buana/issues/65). Tidak ada perubahan Production, migration, data, auth/session, RBAC, environment, domain, atau billing yang diotorisasi oleh audit ini.
