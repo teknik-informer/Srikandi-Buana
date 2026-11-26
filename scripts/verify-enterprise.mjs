@@ -49,4 +49,37 @@ const uploaded=await proof.POST(new Request('https://test.local/api/operations/p
 assert.equal((await proof.GET(req('GET',null,'/api/operations/proof?id='+current.id))).status,200);user=principal('admin',owner);assert.equal((await proof.GET(req('GET',null,'/api/operations/proof?id='+current.id))).status,404,'Other users\' draft proof remains private');user=principal('anggota');assert.equal((await action('submit')).status,200);user=principal('admin',owner);assert.equal((await proof.GET(req('GET',null,'/api/operations/proof?id='+current.id))).status,200,'System administrator can inspect proof for a submitted workspace request');
 for(const role of ['admin','ketua','sekretaris','bendahara','koordinator','anggota']){const p=principal(role);assert(!domain.operationActions(p,{...current,status:'submitted'}).includes('approve'),'No self approval '+role);assert(!domain.operationActions(p,{...current,status:'approved'}).includes('fulfill'),'No self fulfillment '+role);}
 const events=(await pool.query('SELECT version FROM operational_events WHERE request_id=$1 ORDER BY version',[current.id])).rows;assert.deepEqual(events.map(e=>e.version),[1,2,3]);
-console.log('PASS enterprise real handlers: authentication, origin/account guard, draft/proof privacy, workspace isolation, six-role self-approval restriction, state transitions, stale version, idempotent creation, required expense proof, transactional audit rollback. Asset/cash native SQL verified separately on isolated Neon.');
+
+// A fulfilled expense must retain its unique cash-record link through reopen.
+// Reopening only restores the workflow status; it must not make the already
+// posted cash expense reusable by another operational request.
+const cashRecordId=randomUUID(),cashFileId=randomUUID();
+await prepare('INSERT INTO files(id,owner,name,mime,size,created) VALUES(?,?,?,?,?,?)').bind(cashFileId,owner,'cash-proof.pdf','application/pdf',20,now).run();
+await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(cashRecordId,owner,'kas',JSON.stringify({name:'Synthetic expense receipt',date:'2026-11-26',type:'Pengeluaran',amount:50000,fund:'Organisasi',attachmentId:cashFileId}),now,now).run();
+user=principal('ketua',owner);assert.equal((await action('approve')).status,200,'The Chair approves the expense request');
+user=principal('bendahara',owner);assert.equal((await action('fulfill',{cashRecordId})).status,200,'Treasury fulfills the approved expense using the matching cash record');
+assert.equal(current.cash_record_id,cashRecordId,'The fulfilled request records its unique cash-record link');
+assert.equal(current.status,'completed');
+assert.equal((await action('reopen')).status,200,'Treasury can reopen a fulfilled expense for further review');
+assert.equal(current.status,'approved');
+assert.equal(current.cash_record_id,cashRecordId,'Reopening must retain the cash link and must not release an already-posted expense');
+const reopenedDetailResponse=await route.GET(req('GET',null,'/api/operations?id='+current.id));
+assert.equal(reopenedDetailResponse.status,200);
+const reopenedDetail=await reopenedDetailResponse.json();
+assert(reopenedDetail.cash.some(entry=>entry.id===cashRecordId),'The linked cash receipt must remain visible to the same request after reopen');
+assert.equal((await action('fulfill',{cashRecordId})).status,200,'The reopened request can be fulfilled again only against its original linked cash record');
+assert.equal(current.cash_record_id,cashRecordId);
+assert.equal(current.status,'completed');
+assert.equal((await pool.query('SELECT COUNT(*) AS count FROM operational_requests WHERE owner=$1 AND cash_record_id=$2',[owner,cashRecordId])).rows[0].count,1,'The cash record must remain linked to exactly one operational request');
+
+user=principal('anggota');current=await create({...input,category:'expense',amount:50000});
+const secondProofForm=new FormData();secondProofForm.append('id',current.id);secondProofForm.append('accountId',account);secondProofForm.append('version',String(current.version));secondProofForm.append('file',new File([Buffer.from('%PDF-1.4\\nSecond synthetic proof')],'second-proof.pdf',{type:'application/pdf'}));
+const secondProof=await proof.POST(new Request('https://test.local/api/operations/proof',{method:'POST',headers:{origin:'https://test.local'},body:secondProofForm}));assert.equal(secondProof.status,200,await secondProof.clone().text());current=(await secondProof.json()).item;
+assert.equal((await action('submit')).status,200);
+user=principal('ketua',owner);assert.equal((await action('approve')).status,200);
+user=principal('bendahara',owner);const duplicateCashFulfillment=await action('fulfill',{cashRecordId});assert.equal(duplicateCashFulfillment.status,409,'A cash record already linked to another request must not fulfil a second expense');
+const duplicateOperation=(await prepare('SELECT status,cash_record_id FROM operational_requests WHERE id=? AND owner=?').bind(current.id,owner).first());
+assert.equal(duplicateOperation.status,'approved','Failed duplicate cash fulfillment must leave the second request approved');
+assert.equal(duplicateOperation.cash_record_id,null,'Failed duplicate cash fulfillment must not attach the already-used cash record');
+assert.equal((await pool.query('SELECT COUNT(*) AS count FROM operational_requests WHERE owner=$1 AND cash_record_id=$2',[owner,cashRecordId])).rows[0].count,1,'A second request must never release or steal the first request cash link');
+console.log('PASS enterprise real handlers: authentication, origin/account guard, draft/proof privacy, workspace isolation, six-role self-approval restriction, versioned state transitions, required expense proof, audit rollback, and one-to-one cash realization retention across reopen/retry.');
