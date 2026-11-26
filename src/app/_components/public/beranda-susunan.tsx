@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import {
   ArrowRight,
@@ -47,18 +45,13 @@ type Site = {
   intro: string;
 };
 
-type Section =
-  | { jenis: "panel" }
-  | { jenis: "modul" }
-  | { jenis: "angka"; angka: Array<{ nilai: string; label: string }> }
-  | { jenis: "program" }
-  | { jenis: "pita" };
+type SectionKey = "panel" | "modul";
 
 type Props = {
   site: Site;
   heroImage: string;
-  children: Partial<Record<Section["jenis"], ReactNode>>;
-  urutan?: Section["jenis"][];
+  sections: Partial<Record<SectionKey, ReactNode>>;
+  urutan?: SectionKey[];
 };
 
 const KEMAMPUAN = [
@@ -66,7 +59,7 @@ const KEMAMPUAN = [
   { icon: Users, atas: "Data", bawah: "Anggota" },
   { icon: CalendarCheck, atas: "Agenda", bawah: "Kegiatan" },
   { icon: Wallet, atas: "Kas &", bawah: "Keuangan" },
-  { icon: Sprout, atas: "Lahan &", bawah: "Panen" },
+  { icon: Sprout, atas: "Lahan &", bawah: "Pertanian" },
   { icon: ShieldCheck, atas: "Peran &", bawah: "Kewenangan" },
 ];
 
@@ -76,7 +69,7 @@ const MODUL = [
   { icon: Wallet, judul: "Keuangan", teks: "Kas, jurnal, dan laporan yang bisa ditelusuri." },
   { icon: Sprout, judul: "Produksi & lahan", teks: "Petak, panen, dan mutu tercatat per siklus." },
   { icon: FileBarChart, judul: "Laporan", teks: "Ringkasan untuk pengurus, siap dijadikan dasar keputusan." },
-  { icon: GraduationCap, judul: "Pemberdayaan", teks: "Pelatihan dan peningkatan kapasitas anggota." },
+  { icon: Handshake, judul: "Kemitraan", teks: "Pencatatan komunikasi dan status kerja sama." },
 ];
 
 const JALUR = [
@@ -85,15 +78,15 @@ const JALUR = [
   { icon: MessageCircle, judul: "Kemitraan", teks: "Ajukan kerja sama dan dukungan program.", href: "/kontak?topik=Kemitraan" },
 ];
 
-const URUTAN_BAWAAN: Section["jenis"][] = ["panel", "modul", "angka", "program", "pita"];
+const URUTAN_BAWAAN: SectionKey[] = ["panel", "modul"];
 
-export default function BerandaSusunan({ site, heroImage, children, urutan }: Props) {
+export default function BerandaSusunan({ site, heroImage, sections, urutan }: Props) {
   const garis = site.heroTitle.split("\n").map((l) => l.trim()).filter(Boolean);
   const barisUtama = garis.slice(0, -1);
   const barisEmas = garis.length > 1 ? garis[garis.length - 1] : "";
 
   return (
-    <>
+    <div className="public-srikandi-home">
       {/* ── 1. HERO ─────────────────────────────────────────────────────── */}
       <section className="relative isolate overflow-hidden bg-emerald-950">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -183,14 +176,30 @@ export default function BerandaSusunan({ site, heroImage, children, urutan }: Pr
         </div>
       </section>
 
-      {/* ── Seksi lanjutan, hanya yang isinya tersedia ───────────────────── */}
+      {/* ── Profil organisasi: konten mengikuti pengaturan situs ──────────── */}
+      <section className="py-14 sm:py-16">
+        <div className="mx-auto grid w-[calc(100%-2.5rem)] max-w-[1240px] gap-6 sm:w-[calc(100%-4rem)] lg:grid-cols-2 lg:gap-16">
+          <div>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-800">Profil organisasi</p>
+            <h2 className="!text-[28px] font-normal !leading-[1.15] !tracking-[-1px] text-emerald-950 sm:!text-[34px]">
+              Berbasis di desa.<br />Berfokus pada <span className="font-serif italic text-emerald-800">perempuan tani.</span>
+            </h2>
+          </div>
+          <div>
+            <p className="!text-[14px] !leading-[1.9] !text-stone-600">{site.intro}</p>
+            <Link className="mt-4 inline-flex items-center gap-2 text-[12px] font-semibold text-emerald-800" href="/profil">
+              Tentang Srikandi Buana <ArrowUpRight size={16} aria-hidden />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Seksi lanjutan diisi dari data halaman; tidak membuat angka semu ─ */}
       {(urutan ?? URUTAN_BAWAAN).map((jenis) => {
-        const isi = children[jenis];
+        const isi = sections[jenis];
         if (!isi) return null;
         if (jenis === "panel") return <PanelKerja key={jenis}>{isi}</PanelKerja>;
-        if (jenis === "modul") return <KisiModul key={jenis}>{isi}</KisiModul>;
-        if (jenis === "angka") return <BandAngka key={jenis}>{isi}</BandAngka>;
-        return null;
+        return <KisiModul key={jenis}>{isi}</KisiModul>;
       })}
 
       {/* ── 7. JALUR PENGUNJUNG ─────────────────────────────────────────── */}
@@ -227,7 +236,7 @@ export default function BerandaSusunan({ site, heroImage, children, urutan }: Pr
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
 
@@ -243,12 +252,12 @@ function PanelKerja({ children }: { children: ReactNode }) {
               Satu layar, semua urusan
             </p>
             <h2 className="!text-[28px] font-normal !leading-[1.15] !tracking-[-1px] text-emerald-950 sm:!text-[34px]">
-              Kelola organisasi lebih mudah &amp; efisien
+              Satu ruang kerja untuk organisasi
             </h2>
           </div>
           <p className="max-w-[46ch] text-[13px] leading-relaxed text-stone-500">
-            Ringkasan anggota, lahan, kas, program, dan agenda bertemu di satu layar kerja —
-            responsif di desktop, tablet, dan ponsel.
+            Data anggota, lahan, kas, program, dan kegiatan dikelola dalam satu ruang kerja —
+            dengan akses sesuai peran masing-masing.
           </p>
         </div>
         {children}
@@ -267,7 +276,7 @@ function KisiModul({ children }: { children: ReactNode }) {
             Yang dikerjakan kelompok
           </p>
           <h2 className="!text-[28px] font-normal !leading-[1.15] !tracking-[-1px] text-emerald-950 sm:!text-[34px]">
-            Enam urusan harian, <span className="font-serif italic text-emerald-800">satu tempat.</span>
+            Enam urusan organisasi, <span className="font-serif italic text-emerald-800">satu ruang kerja.</span>
           </h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -290,12 +299,3 @@ function KisiModul({ children }: { children: ReactNode }) {
   );
 }
 
-function BandAngka({ children }: { children: ReactNode }) {
-  return (
-    <section className="bg-emerald-950 py-14 text-white">
-      <div className="mx-auto w-[calc(100%-2.5rem)] max-w-[1240px] sm:w-[calc(100%-4rem)]">
-        {children}
-      </div>
-    </section>
-  );
-}
