@@ -54,7 +54,7 @@ export async function saveAttendanceRecord(
     "RETURNING id",
     ")",
     "SELECT CASE",
-    "WHEN EXISTS(SELECT 1 FROM changed) AND EXISTS(SELECT 1 FROM audit_written) THEN 1",
+    "WHEN EXISTS(SELECT 1 FROM changed) AND EXISTS(SELECT 1 FROM audit_written) THEN '1'",
     "ELSE (1 / CASE WHEN EXISTS(SELECT 1 FROM changed) AND EXISTS(SELECT 1 FROM audit_written) THEN 1 ELSE 0 END)::text",
     "END AS saved",
   ].join("\n");
