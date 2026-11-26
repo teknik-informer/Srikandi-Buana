@@ -200,7 +200,7 @@ assert(agricultureMutations.includes("member.data::jsonb->>'status'='Aktif'") &&
 assert(agricultureWorkspace.includes("updated_at: string") && agricultureWorkspace.includes("expectedUpdated: editingParcelUpdated") && agricultureWorkspace.includes("expectedUpdated: parcel.updated_at") && agricultureWorkspace.includes("id, expectedUpdated, reason"), "Agriculture UI must send the exact version read for edit, archive and verification");
 assert(api.includes("h.created_at,h.updated_at,c.season_label"), "Harvest rows must expose updated_at so the verification control can submit its version");
 assert(api.includes('const canManageLand = user.role === "sekretaris" || user.role === "admin";'), "System Administrator and Secretariat must have consistent parcel mutation permissions");
-assert(api.includes('action === "archive_parcel"') && api.includes("status='archived'"), "Land register archiving must preserve linked history rather than hard-delete");
+assert(api.includes('action === "archive_parcel"') && agricultureMutations.includes("status=\'archived\'"), "Land register archiving must preserve linked history rather than hard-delete");
 assert(agricultureWorkspace.includes('action: "update_parcel"') && agricultureWorkspace.includes('action: "archive_parcel"'), "Secretariat land edit/archive controls must be present");
 
 console.log("PASS agriculture: migration constraints, workspace/member isolation, commodity and unit integrity, verified hierarchy, coordinator assignment, Secretariat verification, scoped external grants, and privacy thresholds.");
