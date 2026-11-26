@@ -164,7 +164,7 @@ assert.ok(
   "Quick create forms must use the existing V9 server actions and must not write to the browser demo store.",
 );
 assert.ok(
-  quickCreatePanel.includes("bukan aktivasi anggota") &&
+  quickCreatePanel.includes("pengajuan minat bergabung") &&
   quickCreatePanel.includes("bukan membuat anggota aktif") &&
   quickCreatePanel.includes('<form action={createFieldActivity}>') &&
   quickCreatePanel.includes('<form action={registerSecretariatLetter}>') &&
