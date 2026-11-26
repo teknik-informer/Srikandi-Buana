@@ -102,10 +102,10 @@ export async function savePublicSiteSettings(
   try {
     const sql = getV9Sql();
     const result = await sql
-      \`WITH existing AS MATERIALIZED (
+      `WITH existing AS MATERIALIZED (
          SELECT setting_value
          FROM v9.system_settings
-         WHERE organization_id = \${identity.organizationId}
+         WHERE organization_id = ${identity.organizationId}
            AND setting_key = 'public_site'
          LIMIT 1
        ),
@@ -114,11 +114,11 @@ export async function savePublicSiteSettings(
            organization_id, setting_key, setting_value, visibility, updated_by, updated_at
          )
          VALUES (
-           \${identity.organizationId},
+           ${identity.organizationId},
            'public_site',
-           \${JSON.stringify(settings)}::jsonb,
+           ${JSON.stringify(settings)}::jsonb,
            'public',
-           \${identity.userId},
+           ${identity.userId},
            now()
          )
          ON CONFLICT (organization_id, setting_key)
@@ -135,7 +135,7 @@ export async function savePublicSiteSettings(
          )
          SELECT
            saved.organization_id,
-           \${identity.userId},
+           ${identity.userId},
            'public_site.settings.updated',
            'system_setting',
            'public_site',
@@ -147,7 +147,7 @@ export async function savePublicSiteSettings(
        )
        SELECT saved.id::text AS id
        FROM saved
-       INNER JOIN audit ON true\`;
+       INNER JOIN audit ON true`;
     if (!rowsFromResult<{ id: string }>(result).length) {
       return { ok: false, message: "Pengaturan belum tersimpan. Muat ulang dan coba kembali." };
     }

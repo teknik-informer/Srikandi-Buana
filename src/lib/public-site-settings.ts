@@ -13,7 +13,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
   try {
     const sql = getV9Sql();
     const result = await sql
-      \`SELECT setting_value
+      `SELECT setting_value
        FROM v9.system_settings
        WHERE organization_id = (
          SELECT id FROM v9.organizations
@@ -22,7 +22,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
        )
          AND setting_key = 'public_site'
          AND visibility = 'public'
-       LIMIT 1\`;
+       LIMIT 1`;
     const row = rowsFromResult<SettingsRow>(result)[0];
     return row ? normalizePublicSiteSettings(row.setting_value) : DEFAULT_PUBLIC_SITE_SETTINGS;
   } catch (reason) {
