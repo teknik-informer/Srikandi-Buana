@@ -12,7 +12,7 @@ function blockFor(selector) {
 
 function parseTokens(block, selector) {
   const tokens = Object.fromEntries(
-    [...block.matchAll(/--([a-z-]+):\s*(oklch\([^;]+\));/g)]
+    [...block.matchAll(/--([a-z0-9-]+):\s*(oklch\([^;]+\));/g)]
       .map((match) => [match[1], match[2]]),
   );
   assert.ok(Object.keys(tokens).length > 20, "Theme token extraction failed for " + selector);
@@ -117,7 +117,7 @@ for (const [mode, selector] of [
   ["dark", '.dark:root[data-theme-preset="srikandi"]'],
 ]) {
   const tokens = parseTokens(blockFor(selector), selector);
-  console.log("\\nSrikandi " + mode + " palette");
+  console.log("\nSrikandi " + mode + " palette");
   for (const pair of pairDefinitions) {
     const foreground = tokens[pair.foreground];
     const background = tokens[pair.background];
@@ -139,4 +139,4 @@ for (const [mode, selector] of [
 }
 
 assert.equal(failed, 0, failed + " theme contrast pair(s) failed.");
-console.log("\\nPASS: all Srikandi light/dark text, control, focus, sidebar and chart contrast pairs meet their configured WCAG thresholds.");
+console.log("\nPASS: all Srikandi light/dark text, control, focus, sidebar and chart contrast pairs meet their configured WCAG thresholds.");
