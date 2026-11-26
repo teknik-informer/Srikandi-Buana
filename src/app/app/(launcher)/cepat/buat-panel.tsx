@@ -36,6 +36,7 @@ import { Btn, Field, Select, TextArea, TextInput } from "@/components/act";
 import { Notice } from "@/components/ui";
 import { FIELDS } from "@/config/fields";
 import { useStore } from "@/lib/store";
+import type { Actor } from "@/lib/reducer";
 import type { Activity, LandPlot, Letter, Member, Program, Task } from "@/data/types";
 
 type Kind = "anggota" | "lahan" | "agenda" | "surat" | "program" | "tugas";
@@ -60,7 +61,7 @@ const KARTU: Kartu[] = [
 const HARI_INI = () => new Date().toISOString().slice(0, 10);
 
 export function BuatCepatPanel({ awal }: { awal?: Kind }) {
-  const { state, exec, shared, sharedNote } = useStore();
+  const { state, exec, actor, shared, sharedNote } = useStore();
   const [aktif, setAktif] = useState<Kind | null>(awal ?? null);
   const [hasil, setHasil] = useState<{ ok: boolean; pesan: string; href?: string } | null>(null);
   const [galat, setGalat] = useState<string | null>(null);
@@ -160,12 +161,12 @@ export function BuatCepatPanel({ awal }: { awal?: Kind }) {
             </div>
           ) : null}
 
-          {aktif === "anggota" ? <FormAnggota onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} /> : null}
-          {aktif === "lahan" ? <FormLahan onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} /> : null}
-          {aktif === "agenda" ? <FormAgenda onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} program={state.programs} /> : null}
-          {aktif === "surat" ? <FormSurat onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} /> : null}
-          {aktif === "program" ? <FormProgram onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} /> : null}
-          {aktif === "tugas" ? <FormTugas onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} anggota={state.members} /> : null}
+          {aktif === "anggota" ? <FormAnggota onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} actor={actor} /> : null}
+          {aktif === "lahan" ? <FormLahan onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} actor={actor} /> : null}
+          {aktif === "agenda" ? <FormAgenda onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} program={state.programs} actor={actor} /> : null}
+          {aktif === "surat" ? <FormSurat onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} actor={actor} /> : null}
+          {aktif === "program" ? <FormProgram onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} actor={actor} /> : null}
+          {aktif === "tugas" ? <FormTugas onBeres={beres} onGalat={setGalat} busy={busy} setBusy={setBusy} exec={exec} anggota={state.members} actor={actor} /> : null}
         </div>
       ) : null}
     </div>
@@ -214,6 +215,7 @@ interface FormProps {
   busy: boolean;
   setBusy: (v: boolean) => void;
   exec: ReturnType<typeof useStore>["exec"];
+  actor: Actor;
 }
 
 function Baris({ children }: { children: React.ReactNode }) {
@@ -231,7 +233,7 @@ function Kaki({ busy, label, onBatal }: { busy: boolean; label: string; onBatal:
 
 /* ── anggota ──────────────────────────────────────────────────────── */
 
-function FormAnggota({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
+function FormAnggota({ onBeres, onGalat, busy, setBusy, exec, actor }: FormProps) {
   const [f, setF] = useState({ name: "", role: "Anggota", field: "", village: "Ngadimulyo", phone: "" });
 
   function kirim(e: React.FormEvent) {
@@ -243,7 +245,7 @@ function FormAnggota({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
       name: f.name, role: f.role, scope: f.field ? "bidang" : "organisasi",
       field: f.field || undefined, village: f.village, status: "menunggu", phone: f.phone,
     };
-    const r = exec({ type: "member.create", member, actor: { name: "Sekretariat", role: "sekretariat" } });
+    const r = exec({ type: "member.create", member, actor });
     setBusy(false);
     if (!r.ok) return onGalat(r.message);
     onBeres(r.message || `Anggota ${f.name} didaftarkan.`, r.href ?? "/app/sekretariat/anggota");
@@ -283,7 +285,7 @@ function FormAnggota({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
 
 /* ── lahan ────────────────────────────────────────────────────────── */
 
-function FormLahan({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
+function FormLahan({ onBeres, onGalat, busy, setBusy, exec, actor }: FormProps) {
   const [f, setF] = useState({
     owner: "", commodity: "", areaHa: "", village: "Ngadimulyo",
     status: "persiapan" as LandPlot["status"], notes: "",
@@ -301,7 +303,7 @@ function FormLahan({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
       owner: f.owner, commodity: f.commodity, areaHa: luas, village: f.village,
       status: f.status, plantedAt: HARI_INI(), lastVisit: "", notes: f.notes,
     };
-    const r = exec({ type: "land.create", row, actor: { name: "Sekretariat", role: "sekretariat" } });
+    const r = exec({ type: "land.create", row, actor });
     setBusy(false);
     if (!r.ok) return onGalat(r.message);
     onBeres(r.message, r.href ?? "/app/sekretariat/lahan");
@@ -342,7 +344,7 @@ function FormLahan({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
 
 /* ── agenda ───────────────────────────────────────────────────────── */
 
-function FormAgenda({ onBeres, onGalat, busy, setBusy, exec, program }: FormProps & { program: Program[] }) {
+function FormAgenda({ onBeres, onGalat, busy, setBusy, exec, actor, program }: FormProps & { program: Program[] }) {
   const [f, setF] = useState({
     name: "", date: HARI_INI(), time: "09.00–11.00", location: "Balai pertemuan",
     bidang: FIELDS[0]?.slug ?? "organisasi", programCode: "",
@@ -359,7 +361,7 @@ function FormAgenda({ onBeres, onGalat, busy, setBusy, exec, program }: FormProp
       time: f.time, location: f.location, participants: 0, status: "terjadwal",
       openToPublic: false, person: "Sekretariat",
     };
-    const r = exec({ type: "activity.create", activity, actor: { name: "Sekretariat", role: "sekretariat" } });
+    const r = exec({ type: "activity.create", activity, actor });
     setBusy(false);
     if (!r.ok) return onGalat(r.message);
     onBeres(r.message, r.href ?? "/app/sekretariat/agenda");
@@ -399,7 +401,7 @@ function FormAgenda({ onBeres, onGalat, busy, setBusy, exec, program }: FormProp
 
 /* ── surat ────────────────────────────────────────────────────────── */
 
-function FormSurat({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
+function FormSurat({ onBeres, onGalat, busy, setBusy, exec, actor }: FormProps) {
   const [f, setF] = useState({ direction: "masuk" as Letter["direction"], subject: "", counterpart: "", number: "", assignee: "" });
 
   function kirim(e: React.FormEvent) {
@@ -411,7 +413,7 @@ function FormSurat({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
     const r = exec({
       type: "letter.register", direction: f.direction, subject: f.subject,
       counterpart: f.counterpart, number: f.number, assignee: f.assignee || "Sekretariat",
-      actor: { name: "Sekretariat", role: "sekretariat" },
+      actor,
     });
     setBusy(false);
     if (!r.ok) return onGalat(r.message);
@@ -447,7 +449,7 @@ function FormSurat({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
 
 /* ── program ──────────────────────────────────────────────────────── */
 
-function FormProgram({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
+function FormProgram({ onBeres, onGalat, busy, setBusy, exec, actor }: FormProps) {
   const [f, setF] = useState({
     name: "", bidang: FIELDS[0]?.slug ?? "organisasi", objective: "",
     period: "Nov 2026 – Okt 2027", budget: "", status: "perencanaan" as Program["status"],
@@ -464,7 +466,7 @@ function FormProgram({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
       name: f.name, bidang: f.bidang, objective: f.objective, period: f.period,
       status: f.status, progress: 0, budget: anggaran, spent: 0, indicators: [], published: false,
     };
-    const r = exec({ type: "program.create", program, actor: { name: "Pengurus", role: "pengurus" } });
+    const r = exec({ type: "program.create", program, actor });
     setBusy(false);
     if (!r.ok) return onGalat(r.message);
     onBeres(r.message, r.href ?? "/app/pengurus/program");
@@ -508,7 +510,7 @@ function FormProgram({ onBeres, onGalat, busy, setBusy, exec }: FormProps) {
 
 /* ── tugas ────────────────────────────────────────────────────────── */
 
-function FormTugas({ onBeres, onGalat, busy, setBusy, exec, anggota }: FormProps & { anggota: Member[] }) {
+function FormTugas({ onBeres, onGalat, busy, setBusy, exec, actor, anggota }: FormProps & { anggota: Member[] }) {
   const [f, setF] = useState({
     title: "", bidang: FIELDS[0]?.slug ?? "organisasi", assignee: "",
     due: HARI_INI(), priority: "sedang" as Task["priority"],
@@ -523,7 +525,7 @@ function FormTugas({ onBeres, onGalat, busy, setBusy, exec, anggota }: FormProps
     const r = exec({
       type: "task.create", title: f.title, bidang: f.bidang,
       assignee: f.assignee || "Pengurus", due: f.due, priority: f.priority,
-      actor: { name: "Pengurus", role: "pengurus" },
+      actor,
     });
     setBusy(false);
     if (!r.ok) return onGalat(r.message);
