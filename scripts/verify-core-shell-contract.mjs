@@ -78,10 +78,36 @@ assert.ok(
   searchPage.includes("SEARCH_PLACES") && searchPage.includes("canAccessAppHref"),
   "The full search page must filter destinations to permitted applications.",
 );
+const searchApi = read("src/app/api/search/route.ts");
 assert.ok(
   searchDialog.includes("canAccessAppHref(identity, hit.href)") &&
-  searchDialog.includes("canAccessApp(identity, app.key)"),
-  "The topbar search must filter both destinations and application results by identity permissions.",
+  searchDialog.includes("canAccessApp(identity, app.key)") &&
+  searchDialog.includes("/api/search?q=") &&
+  searchDialog.includes("AbortController"),
+  "The topbar search must combine debounced server results with navigation and filter destinations by identity permissions.",
+);
+assert.ok(
+  searchApi.includes("getIdentity()") &&
+  searchApi.includes("identity.organizationId") &&
+  searchApi.includes("can(identity") &&
+  [
+    "v9.memberships",
+    "v9.field_programs",
+    "v9.business_products",
+    "v9.agriculture_plots",
+    "v9.secretariat_documents",
+    "v9.finance_journals",
+  ].every((table) => searchApi.includes(table)) &&
+  !searchApi.includes("localStorage"),
+  "Operational search must query V9 records with organization scope and server-side permission checks, never seeded browser state.",
+);
+assert.ok(
+  searchApi.includes("status = 'final'") &&
+  searchApi.includes("visibility = 'publik'") &&
+  searchApi.includes("finance:read") &&
+  searchApi.includes("Cache-Control") &&
+  searchApi.includes("private, no-store"),
+  "Search must limit external documents to final public records, gate finance rows, and prevent shared caching of private results.",
 );
 assert.ok(
   memberShell.includes("<SearchProvider identity={identity}>") &&
@@ -116,12 +142,35 @@ assert.ok(
   quickLinks.includes("canAccessApp(identity"),
   "Field quick links must be derived from enabled organization registry rows and current permissions.",
 );
+const quickCreatePanel = read("src/app/app/(launcher)/cepat/buat-panel.tsx");
 assert.ok(
-  quickLinks.includes("pembayaran dan settlement belum aktif") &&
-  !quickLinks.includes("Pengajuan anggaran") &&
-  !quickLinks.includes("Catatan panen") &&
-  !quickLinks.includes("Penerimaan kas"),
-  "Quick links must describe the POS draft boundary and must not advertise unfinished financial/agriculture actions as live forms.",
+  quickLinks.includes("<BuatCepatPanel") &&
+  quickLinks.includes("can(identity") &&
+  quickLinks.includes("field_key") &&
+  quickLinks.includes("is_enabled = true"),
+  "Quick create options must be derived on the server from enabled organization fields and current identity permissions.",
+);
+assert.ok(
+  !quickCreatePanel.includes("useStore(") &&
+  !quickCreatePanel.includes("localStorage") &&
+  [
+    "submitJoinInterest",
+    "createAgriculturePlot",
+    "createFieldActivity",
+    "registerSecretariatLetter",
+    "createFieldProgram",
+    "createFieldTask",
+  ].every((action) => quickCreatePanel.includes(action)),
+  "Quick create forms must use the existing V9 server actions and must not write to the browser demo store.",
+);
+assert.ok(
+  quickCreatePanel.includes("bukan aktivasi anggota") &&
+  quickCreatePanel.includes("bukan membuat anggota aktif") &&
+  quickCreatePanel.includes('<form action={createFieldActivity}>') &&
+  quickCreatePanel.includes('<form action={registerSecretariatLetter}>') &&
+  quickCreatePanel.includes('<form action={createFieldProgram}>') &&
+  quickCreatePanel.includes('<form action={createFieldTask}>'),
+  "Quick create must preserve the membership-interest review boundary and submit agenda, letter, program and task forms through their authoritative server actions.",
 );
 
 
