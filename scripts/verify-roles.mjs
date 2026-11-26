@@ -210,7 +210,8 @@ assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines W
 assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count),auditCountBeforeRace+1,'Only the competing winner audit remains; the losing update audit is rolled back');
 const concurrentCashId=randomUUID();
 await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(concurrentCashId,owner,'kas',JSON.stringify(cashData),now,now).run();
-const concurrentAuditBefore=Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count);
+const concurrentRecordAuditBefore=Number((await prepare("SELECT COUNT(*) AS count FROM audit WHERE owner=? AND action='Diperbarui'").bind(owner).first()).count);
+const concurrentLedgerAuditBefore=Number((await prepare("SELECT COUNT(*) AS count FROM audit WHERE owner=? AND action='Buku Kas diposting ke Buku Besar'").bind(owner).first()).count);
 const concurrentLedgerBefore=Number((await prepare('SELECT COUNT(*) AS count FROM ledger_entries WHERE owner=?').bind(owner).first()).count);
 const concurrentLinesBefore=Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines WHERE owner=?').bind(owner).first()).count);
 let releaseConcurrentGate;
@@ -224,7 +225,8 @@ assert.deepEqual(concurrentStatuses,[200,409],'Two concurrent handler requests u
 const concurrentWinner=await prepare('SELECT data,updated FROM records WHERE id=? AND owner=?').bind(concurrentCashId,owner).first();
 assert(['Concurrent writer A','Concurrent writer B'].includes(JSON.parse(String(concurrentWinner.data)).notes),'The committed source is exactly one concurrent winner');
 assert.notEqual(String(concurrentWinner.updated),now,'The winning request advances the source version');
-assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count),concurrentAuditBefore+1,'Exactly one audit snapshot is committed for the two concurrent requests');
+assert.equal(Number((await prepare("SELECT COUNT(*) AS count FROM audit WHERE owner=? AND action='Diperbarui'").bind(owner).first()).count),concurrentRecordAuditBefore+1,'Exactly one source-record audit snapshot is committed for the two concurrent requests');
+assert.equal(Number((await prepare("SELECT COUNT(*) AS count FROM audit WHERE owner=? AND action='Buku Kas diposting ke Buku Besar'").bind(owner).first()).count),concurrentLedgerAuditBefore+1,'Exactly one ledger-posting audit is committed by the winning cash update');
 assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_entries WHERE owner=?').bind(owner).first()).count),concurrentLedgerBefore+1,'Exactly one ledger journal is created for the concurrent cash updates');
 assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines WHERE owner=?').bind(owner).first()).count),concurrentLinesBefore+2,'Only the winning cash update contributes its balanced two-line journal');
 
