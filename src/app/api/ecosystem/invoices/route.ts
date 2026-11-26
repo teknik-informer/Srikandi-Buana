@@ -87,11 +87,17 @@ export async function POST(request: Request) {
     }
 
     const order = await context.db.prepare(
-      "SELECT id,status FROM commerce_orders WHERE id=? AND owner=?",
+      "SELECT id,status,total,created FROM commerce_orders WHERE id=? AND owner=?",
     ).bind(body.orderId, context.user.userId).first();
     if (!order) return json({ error: "Pesanan tidak ditemukan dalam organisasi ini." }, 404);
     if (order.status !== "completed") {
       return json({ error: "Faktur hanya dapat diterbitkan setelah pesanan berstatus selesai." }, 409);
+    }
+    if (!Number.isSafeInteger(Number(order.total)) || Number(order.total) <= 0) {
+      return json({ error: "Pesanan bernilai nol tidak memerlukan faktur piutang." }, 409);
+    }
+    if (body.issueDate < String(order.created).slice(0, 10)) {
+      return json({ error: "Tanggal terbit faktur tidak boleh mendahului tanggal pesanan." }, 400);
     }
 
     const now = new Date().toISOString();
