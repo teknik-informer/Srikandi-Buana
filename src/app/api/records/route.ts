@@ -76,8 +76,8 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
    const ledgerWrites=body.kind==="kas" ? await buildCashLedgerPostingStatements(c.db!,{
     owner:c.user!.userId,actorId:c.user!.accountId,sourceId:String(id),data,now,
    }) : [];
-   await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),body.kind+": "+String(data.name||""),[...normalizedWrites,...ledgerWrites]);
-   return json({ok:true,id});
+   const updated=await updateProtectedRecord(c.user!.userId,id,body.kind,data,String(old.updated),body.kind+": "+String(data.name||""),[...normalizedWrites,...ledgerWrites]);
+   return json({ok:true,id,updated});
   }
  }
  if(body.kind==="tindaklanjut"){
@@ -181,8 +181,15 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
  const ledgerWrites=body.kind==="kas" ? await buildCashLedgerPostingStatements(c.db!,{
   owner:c.user!.userId,actorId:c.user!.accountId,sourceId:String(id),data,now,
  }) : [];
+ if(edit){
+  const updated=await updateProtectedRecord(
+   c.user!.userId,String(id),body.kind,data,String(body.expectedUpdated),
+   `${body.kind}: ${data.name}`,[...normalizedWrites,...ledgerWrites],auditAction,
+  );
+  return json({ok:true,id,updated});
+ }
  await c.db!.batch([
-  edit?c.db!.prepare("UPDATE records SET data=?,updated=? WHERE id=? AND owner=?").bind(JSON.stringify(data),now,id,c.user!.userId):c.db!.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)").bind(id,c.user!.userId,body.kind,JSON.stringify(data),now,now),
+  c.db!.prepare("INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)").bind(id,c.user!.userId,body.kind,JSON.stringify(data),now,now),
   c.db!.prepare("INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),c.user!.userId,auditAction,`${body.kind}: ${data.name}`,now),
   ...normalizedWrites,...ledgerWrites,
  ]);
