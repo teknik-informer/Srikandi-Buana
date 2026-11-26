@@ -56,13 +56,13 @@
 --------------------------------------------------------------------------- */
 :root[data-theme-preset="srikandi"] .public-site {
   --pub-cream: #fdf3d2;
-  --pub-paper: #f8fafe;
+  --pub-paper: #fafaf9;
   --pub-ink: #0f1a2b;
-  --pub-green: #127e2f;
+  --pub-green: #064e3b;
   --pub-gold: #b8860b;
   --pub-line: #e6ebf3;
   --pub-muted: #5c6a7d;
-  background: #f8fafe;
+  background: #fafaf9;
   color: #0f1a2b;
 }
 
@@ -89,12 +89,12 @@
 }
 
 :root[data-theme-preset="srikandi"] .public-site .pub-button {
-  background: #127e2f;
+  background: #064e3b;
   color: #ffffff;
 }
 
 :root[data-theme-preset="srikandi"] .public-site .pub-button:hover {
-  background: #0d5f22;
+  background: #065f46;
   color: #ffffff;
 }
 
@@ -111,8 +111,13 @@
 /* Blok penutup hijau tua: dipakai juga sebagai latar kutipan dan ajakan. */
 :root[data-theme-preset="srikandi"] .public-site .pub-cta,
 :root[data-theme-preset="srikandi"] .public-site .pub-quote {
-  background: #1e4e1f;
-  color: #e3f5e8;
+  background: #064e3b;
+  color: #ecfdf5;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-quote {
+  background: #ecfdf5;
+  color: #064e3b;
 }
 
 :root[data-theme-preset="srikandi"] .public-site .pub-cta .pub-kicker,
@@ -121,7 +126,7 @@
 }
 
 :root[data-theme-preset="srikandi"] .public-site .pub-quote blockquote {
-  color: #f3faf5;
+  color: #064e3b;
 }
 
 :root[data-theme-preset="srikandi"] .public-site .pub-back-top {
@@ -134,11 +139,11 @@
 :root[data-theme-preset="srikandi"] .public-site .pub-kicker,
 :root[data-theme-preset="srikandi"] .public-site .pub-kicker > span,
 :root[data-theme-preset="srikandi"] .public-site .pub-faq-item summary > svg {
-  color: #b8860b !important;
+  color: #065f46 !important;
 }
 
 :root[data-theme-preset="srikandi"] .public-site .pub-kicker > span {
-  background: #b8860b !important;
+  background: #065f46 !important;
 }
 
 /* Token shadcn yang dipakai baki pencarian dan bilah galeri ikut dipetakan,

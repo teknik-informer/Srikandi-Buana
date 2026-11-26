@@ -6,13 +6,62 @@ import {ProgramCards,PublicationCards,PublicCTA} from "../_components/public/sha
 import {getSiteSettings} from "@/lib/site-settings";
 import {settingImage} from "@/lib/settings-config";
 import {getPublications,getProgramProgress} from "@/lib/public-content";
+import BerandaSusunan from "../_components/public/beranda-susunan";
 export const dynamic="force-dynamic";
 export const metadata=pageMetadata("/");
 export default async function Home(){const [feed,site,progress]=await Promise.all([getPublications(),getSiteSettings(),getProgramProgress()]);return <><PageSchema path="/"/>
-<section className="pub-hero premium-hero"><img className="premium-hero-image" src={settingImage(site.heroFileId,"/images/pertanian-premium-v1.webp")} alt={site.heroCredit} width={1536} height={1024} fetchPriority="high"/><div className="premium-hero-shade"/><div className="pub-hero-copy"><p className="pub-kicker"><span/>KELOMPOK WANITA TANI SRIKANDI BUANA</p><h1>{site.heroTitle.split("\n").filter(Boolean).map((line,i,arr)=><span key={i}>{i===arr.length-1?<em>{line}</em>:line}{i<arr.length-1&&<br/>}</span>)}</h1><p>{site.heroSubtitle}</p><div className="pub-hero-actions"><Link className="pub-button" href="/program">Program kerja <ArrowUpRight size={17}/></Link><Link className="pub-text-link" href="/profil">Profil organisasi <ArrowRight size={16}/></Link><Link className="pub-text-link" href="/produk">Jelajahi produk <ArrowUpRight size={16}/></Link></div><div className="premium-hero-bottom"><span><MapPin size={14}/> Ngadimulyo, Kedu, Temanggung</span><span>PERTANIAN · PEMBERDAYAAN · KEMANDIRIAN</span></div></div><small className="premium-image-credit">{site.heroCredit}</small></section>
-<section className="institutional-access pub-container" aria-label="Layanan dan akses utama">{[{icon:Users,label:'Keanggotaan',text:'Sampaikan minat bergabung dengan kelompok.',href:'/kontak?topik=Keanggotaan'},{icon:Handshake,label:'Kemitraan',text:'Ajukan kerja sama dan dukungan program.',href:'/kontak?topik=Kemitraan'},{icon:CalendarDays,label:'Informasi kegiatan',text:'Agenda dan publikasi resmi kelompok.',href:'/kegiatan'}].map(item=><Link href={item.href} key={item.label}><item.icon size={24}/><span><strong>{item.label}</strong><small>{item.text}</small></span><ArrowUpRight size={18}/></Link>)}</section>
-<section className="pub-section pub-container pub-intro-grid"><div><p className="pub-kicker">PROFIL ORGANISASI</p><h2>Berbasis di desa.<br/>Berfokus pada <em>perempuan tani.</em></h2></div><div><p className="pub-lead">{site.intro}</p><Link className="pub-text-link" href="/profil">Tentang Srikandi Buana <ArrowUpRight size={17}/></Link></div></section>
+<BerandaSusunan
+  site={{
+    heroTitle: site.heroTitle,
+    heroSubtitle: site.heroSubtitle,
+    heroCredit: site.heroCredit,
+    intro: site.intro,
+  }}
+  heroImage={settingImage(site.heroFileId,"/images/pertanian-premium-v1.webp")}
+  urutan={["panel","modul"]}
+>
+  {/* Panel "satu layar" — gambar kerja kelompok, isi organisasi. */}
+  {<div className="grid items-center gap-8 lg:grid-cols-[1.25fr_1fr]">
+    <div className="relative overflow-hidden rounded-[16px] border border-stone-200 bg-emerald-50">
+      <img src={settingImage(site.heroFileId,"/images/pertanian-premium-v1.webp")} alt="" aria-hidden width={900} height={620} loading="lazy" className="h-auto w-full object-cover"/>
+    </div>
+    <div>
+      <ul className="space-y-3">
+        {[
+          ["Akses cepat di desktop, tablet & ponsel","Satu tata letak, tiga ukuran layar — tanpa aplikasi tambahan."],
+          ["Keamanan data dan peran yang jelas","Kewenangan menentukan apa yang terlihat dan dapat diubah."],
+          ["Jejak kerja yang bisa ditelusuri","Setiap pencatatan menyimpan siapa, kapan, dan apa yang berubah."],
+        ].map(([judul,catatan]) => (
+          <li key={judul} className="flex items-start gap-3 rounded-[14px] border border-stone-200 bg-white p-4">
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-800" aria-hidden/>
+            <span>
+              <span className="block text-[13px] font-semibold text-emerald-950">{judul}</span>
+              <span className="mt-1 block text-[12px] leading-relaxed text-stone-500">{catatan}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-6">
+        <Link href="/program" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-emerald-900 px-6 py-3 text-[13px] font-bold text-white transition hover:bg-emerald-800">
+          Lihat program kerja <ArrowRight size={16}/>
+        </Link>
+      </div>
+    </div>
+  </div>}
+  {/* Modul dan tautan informasi organisasi. */}
+  {<div className="mt-8 grid gap-4 sm:grid-cols-3">
+    {[{icon:Files,judul:"Dokumen organisasi",teks:"Informasi kelembagaan dan dokumen acuan.",href:"/dokumen"},
+      {icon:Leaf,judul:"Galeri kegiatan",teks:"Dokumentasi yang dipublikasikan kelompok.",href:"/galeri"},
+      {icon:BookOpen,judul:"Informasi keanggotaan",teks:"Pertanyaan umum dan layanan komunikasi.",href:"/faq"}].map(item=>
+      <Link key={item.judul} href={item.href} className="group flex items-start gap-3 rounded-[14px] border border-stone-200 bg-white p-5 transition hover:border-emerald-500">
+        <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><item.icon size={19} strokeWidth={1.9} aria-hidden/></span>
+        <span className="flex-1"><strong className="block text-[13.5px] font-semibold text-emerald-950">{item.judul}</strong><small className="mt-1 block text-[12px] leading-relaxed text-stone-500">{item.teks}</small></span>
+        <ArrowUpRight size={17} className="mt-1 shrink-0 text-stone-400 transition group-hover:text-emerald-800" aria-hidden/>
+      </Link>)}
+  </div>}
+</BerandaSusunan>
+
+{/* Seksi yang tetap memakai komponen produksi apa adanya. */}
 <section className="pub-section pub-soft"><div className="pub-container"><div className="pub-section-heading"><div><p className="pub-kicker">PROGRAM KERJA</p><h2>Prioritas organisasi.<br/><em>Pengembangan anggota.</em></h2></div><div><p>Sembilan prioritas mencakup tata kelola kelompok, kebutuhan anggota, keterampilan pertanian, literasi keuangan, dan pengembangan usaha.</p><Link className="pub-text-link" href="/program">Lihat seluruh program <ArrowUpRight size={17}/></Link></div></div><ProgramCards limit={3} progress={progress}/></div></section>
-<section className="pub-section pub-container"><div className="pub-section-heading"><div><p className="pub-kicker">BIDANG PENGEMBANGAN</p><h2>Pertanian dan<br/><em>pemberdayaan perempuan.</em></h2></div><Link className="pub-text-link" href="/visi-misi">Visi & misi <ArrowUpRight size={17}/></Link></div><div className="pub-directions">{[{icon:Users,title:'Organisasi & keanggotaan',text:'Tata kelola, administrasi kelompok, musyawarah, dan partisipasi anggota.'},{icon:Sprout,title:'Pertanian & produksi',text:'Keterampilan budidaya, pengelolaan kebun, dan pengembangan potensi komoditas.'},{icon:BookOpen,title:'Pemberdayaan & pelatihan',text:'Kepemimpinan perempuan, literasi keuangan, dan peningkatan kapasitas anggota.'},{icon:Handshake,title:'Usaha & kemitraan',text:'Pemetaan peluang usaha, kesiapan kelompok, dan penjajakan kerja sama.'}].map((s,i)=><article key={s.title}><span className="pub-direction-number">0{i+1}</span><s.icon size={27}/><h3>{s.title}</h3><p>{s.text}</p></article>)}</div></section>
 {feed.items.length>0&&<section className="pub-section pub-soft"><div className="pub-container"><div className="pub-section-heading"><div><p className="pub-kicker">PUBLIKASI KELOMPOK</p><h2>Kabar &<br/><em>kegiatan terbaru.</em></h2></div><Link className="pub-text-link" href="/kabar">Semua publikasi <ArrowUpRight size={17}/></Link></div><PublicationCards items={feed.items.slice(0,3)}/></div></section>}
-<section className="pub-section pub-container institutional-information"><div><p className="pub-kicker">INFORMASI ORGANISASI</p><h2>Akses informasi<br/><em>Srikandi Buana.</em></h2></div><div>{[{icon:Files,title:'Dokumen organisasi',text:'Informasi kelembagaan dan dokumen acuan.',href:'/dokumen'},{icon:Leaf,title:'Galeri kegiatan',text:'Dokumentasi yang dipublikasikan kelompok.',href:'/galeri'},{icon:BookOpen,title:'Informasi keanggotaan',text:'Pertanyaan umum dan layanan komunikasi.',href:'/faq'}].map(item=><Link href={item.href} key={item.title}><item.icon size={23}/><span><strong>{item.title}</strong><small>{item.text}</small></span><ArrowUpRight size={17}/></Link>)}</div></section><PublicCTA/></>}
+<PublicCTA/></>}
