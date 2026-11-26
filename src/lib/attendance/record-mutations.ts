@@ -1,8 +1,6 @@
 import type { NeonDatabase, PreparedStatement } from "@/lib/runtime";
 
-type AttendanceRow = Record<string, unknown>;
 type AttendanceDatabase = Pick<NeonDatabase, "prepare" | "batch">;
-type BoundAttendanceQuery = { first(): Promise<AttendanceRow | null> };
 
 export class AttendanceMutationError extends Error {
   constructor(message: string, public status = 409) {
