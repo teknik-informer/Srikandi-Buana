@@ -146,7 +146,9 @@ class PostgresDatabase {
       // reaching the same-version UPDATE predicate.
       script += "SELECT pg_sleep(0.25);\n";
       const first = bindSql(statements[0].text, statements[0].values);
-      script += "SELECT COALESCE(json_agg(row_to_json(q)), '[]'::json)::text FROM (" + first + ") AS q;\n";
+      // PostgreSQL requires data-modifying CTEs to be the top-level statement.
+      // Its single scalar RETURNING row is the only row-producing statement in this batch.
+      script += first + ";\n";
     } else if (statements.length) {
       script += bindSql(statements[0].text, statements[0].values) + ";\n";
     }
@@ -156,7 +158,8 @@ class PostgresDatabase {
     script += "COMMIT;";
 
     const output = await runPsql(script);
-    const rows = isCas ? parseRows(output) : [];
+    const scalar = output.split(/\r?\n/).filter(Boolean).at(-1) || "";
+    const rows = isCas && scalar ? [{ updated: scalar }] : [];
     return statements.map((_, index) => ({
       rows: index === 0 ? rows : [],
       rowCount: index === 0 ? rows.length : 0,
