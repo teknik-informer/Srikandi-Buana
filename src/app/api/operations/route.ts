@@ -31,7 +31,7 @@ export async function GET(request:Request){
    const asset=item.asset_id?await findAsset(user.userId,item.asset_id):null;
    let cash:unknown[]=[];
    if(item.status==='approved'&&isFinancial(item.category)&&operationActions(user,item).includes('fulfill')){
-    const rows=await db.prepare("SELECT c.id,c.data FROM records c JOIN files f ON f.id=(c.data::jsonb->>'attachmentId') AND f.owner=c.owner AND f.deleted_at IS NULL WHERE c.owner=? AND c.kind='kas' AND c.data::jsonb->>'type'='Pengeluaran' AND c.data::jsonb->>'amount'=? AND c.data::jsonb->>'fund'=? AND NOT EXISTS(SELECT 1 FROM operational_requests r WHERE r.owner=? AND r.cash_record_id=c.id) ORDER BY c.created DESC LIMIT 200").bind(user.userId,String(item.amount),item.fund,user.userId).all();
+    const rows=await db.prepare("SELECT c.id,c.data FROM records c JOIN files f ON f.id=(c.data::jsonb->>'attachmentId') AND f.owner=c.owner AND f.deleted_at IS NULL WHERE c.owner=? AND c.kind='kas' AND c.data::jsonb->>'type'='Pengeluaran' AND c.data::jsonb->>'amount'=? AND c.data::jsonb->>'fund'=? AND NOT EXISTS(SELECT 1 FROM operational_requests r WHERE r.owner=? AND r.cash_record_id=c.id AND r.id<>?) ORDER BY c.created DESC LIMIT 200").bind(user.userId,String(item.amount),item.fund,user.userId,item.id).all();
     cash=rows.results.flatMap(row=>{try{const d=JSON.parse(String(row.data));return d.type==='Pengeluaran'&&Number(d.amount)===item.amount&&d.fund===item.fund&&d.attachmentId?[{id:String(row.id),name:String(d.name),date:String(d.date),amount:Number(d.amount),fund:String(d.fund)}]:[];}catch{return [];}});
    }
    return json({item,actions:operationActions(user,item),history:history.results,cash,asset:asset?{name:String(asset.data.name),condition:String(asset.data.condition)}:null});
@@ -84,6 +84,7 @@ export async function PATCH(request:Request){
  if(action==='fulfill'){
   if(isFinancial(item.category)){
    const cashId=String(raw.cashRecordId||'');if(!cashId)throw new OperationError('Pilih transaksi pengeluaran dengan nominal, pos dana, dan bukti yang sesuai.');
+   if(item.cash_record_id&&item.cash_record_id!==cashId)throw new OperationError('Pengajuan ini sudah terhubung ke transaksi kas sebelumnya. Gunakan transaksi yang sama atau selesaikan koreksi melalui prosedur akuntansi.',409);
    const condition="EXISTS(SELECT 1 FROM records c JOIN files f ON f.id=(c.data::jsonb->>'attachmentId') AND f.owner=c.owner AND f.deleted_at IS NULL WHERE c.id=? AND c.owner=? AND c.kind='kas' AND c.data::jsonb->>'type'='Pengeluaran' AND c.data::jsonb->>'amount'=? AND c.data::jsonb->>'fund'=?)";
    return json({ok:true,item:await updateOperation(user,item,{status:'completed',cash_record_id:cashId},action,note,{condition,conditionArgs:[cashId,user.userId,String(item.amount),item.fund],cashTouch:cashId})});
   }return json({ok:true,item:await updateOperation(user,item,{status:item.category==='asset_loan'?'in_progress':'completed'},action,note)});
@@ -94,7 +95,7 @@ export async function PATCH(request:Request){
   if(asset.data.condition!=='Baik'&&condition==='Baik')throw new OperationError('Aset tercatat perlu perawatan atau rusak. Catat pengembalian dengan kondisi tersebut; pulihkan kondisi melalui Inventaris setelah seluruh pinjaman selesai.');
   return json({ok:true,item:await updateOperation(user,item,{status:'completed'},action,note+' · Kondisi: '+condition,{assetTouch:{id:asset.id,expectedUpdated:asset.updated,data:{...asset.data,condition}}})});
  }
- if(action==='reopen')return json({ok:true,item:await updateOperation(user,item,{status:'approved',cash_record_id:null},action,note)});
+ if(action==='reopen')return json({ok:true,item:await updateOperation(user,item,{status:'approved'},action,note)});
  throw new OperationError('Tindakan tidak tersedia.');
  }catch(error){return failure(error);}
 }
