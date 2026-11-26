@@ -81,14 +81,15 @@ test("early bootstrap applies a valid dark mode and Srikandi preset", () => {
   assert.equal(browser.root.style.colorScheme, "dark");
 });
 
-test("system mode follows the operating-system color preference without reload", () => {
-  const browser = createBrowser({ cookie: "theme_mode=system; theme_preset=default", prefersDark: true });
-  assert.equal(browser.classes.has("dark"), true);
-  assert.equal(browser.listeners.size, 1);
-  browser.media.matches = false;
-  for (const listener of browser.listeners) listener();
-  assert.equal(browser.classes.has("dark"), false);
-  assert.equal(browser.root.style.colorScheme, "light");
+test("pre-hydration system mode resolves the current operating-system color preference", () => {
+  const darkSystem = createBrowser({ cookie: "theme_mode=system; theme_preset=default", prefersDark: true });
+  assert.equal(darkSystem.classes.has("dark"), true);
+  assert.equal(darkSystem.root.style.colorScheme, "dark");
+
+  const lightSystem = createBrowser({ cookie: "theme_mode=system; theme_preset=default", prefersDark: false });
+  assert.equal(lightSystem.classes.has("dark"), false);
+  assert.equal(lightSystem.root.style.colorScheme, "light");
+  assert.equal(darkSystem.listeners.size, 0, "The pre-hydration script must not retain a stale system listener.");
 });
 
 test("legacy sb-theme preference is migrated to the canonical cookie", () => {
@@ -118,6 +119,7 @@ test("bootstrap still renders when browser storage is blocked", () => {
 test("preset picker is an explicit accessible radio menu, not a right-click gesture", () => {
   assert.match(controlSource, /DropdownMenuRadioGroup/);
   assert.match(controlSource, /DropdownMenuRadioItem/);
+  assert.match(controlSource, /media.addEventListener\("change", apply\)/);
   assert.ok(controlSource.includes("Pilih gaya tampilan. Saat ini"));
   assert.doesNotMatch(controlSource, /onContextMenu/);
   assert.match(controlSource, /writeCookie\("theme_preset", nextPreset\)/);
