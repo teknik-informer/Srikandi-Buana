@@ -130,7 +130,9 @@ test("bootstrap is loaded before hydration and preset registry matches its allow
 
   const bootPresets = bootSource.match(/var validPresets = \[([^\]]+)\]/)?.[1]
     ?.match(/"([^"]+)"/g)?.map((value) => value.slice(1, -1));
-  const registeredPresets = [...themeConfig.matchAll(/value: "([^"]+)"/g)]
+  const presetBlock = themeConfig.split("export const THEME_PRESET_OPTIONS = [")[1]
+    ?.split("] as const;")[0] ?? "";
+  const registeredPresets = [...presetBlock.matchAll(/value: "([^"]+)"/g)]
     .map((match) => match[1]);
   assert.deepEqual(bootPresets, registeredPresets);
 });
