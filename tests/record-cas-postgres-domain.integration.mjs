@@ -132,7 +132,7 @@ class PostgresDatabase {
       const output = await runPsql(
         "BEGIN ISOLATION LEVEL READ COMMITTED;\nSELECT pg_sleep(0.25);\n" + sql + ";\nCOMMIT;"
       );
-      const rows = output.split(/\\r?\\n/).filter(Boolean).map(target_id => ({ target_id }));
+      const rows = output.split(/\r?\n/).filter(Boolean).map(target_id => ({ target_id }));
       return { results: rows };
     }
     const output = await runPsql(
