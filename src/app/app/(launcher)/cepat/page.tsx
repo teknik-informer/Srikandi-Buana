@@ -1,121 +1,148 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, CardHeader, EmptyState, PageHeader, Notice } from "@/components/ui";
+import { PageHeader, Notice } from "@/components/ui";
+import { BuatCepatPanel, type QuickCreateField, type QuickCreateOption } from "./buat-panel";
 import { getIdentity, can } from "@/lib/session";
 import { canAccessApp } from "@/lib/app-access";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 
-export const metadata: Metadata = { title: "Pintasan Kerja" };
+export const metadata: Metadata = { title: "Buat Cepat" };
 
-interface QuickLink {
-  label: string;
-  href: string;
-  note: string;
-  group: string;
-}
-
-interface FieldShortcutRow {
+interface FieldRow {
   field_key: string;
   name: string;
   short_name: string;
-  route: string;
   is_enabled: boolean;
 }
 
+const FIELD_KEYS = ["organisasi", "pertanian", "pelatihan", "usaha"] as const;
+type FieldKey = typeof FIELD_KEYS[number];
 
-export default async function CepatPage() {
+const LABELS: Record<FieldKey, string> = {
+  organisasi: "Organisasi & Keanggotaan",
+  pertanian: "Pertanian & Produksi",
+  pelatihan: "Pemberdayaan & Pelatihan",
+  usaha: "Usaha & Kemitraan",
+};
+
+export default async function CepatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ buat?: string }>;
+}) {
   const identity = await getIdentity();
   if (!identity) redirect("/masuk");
 
   const canReadOrganization = can(identity, "organization:read");
-  const fieldScope = identity.field && can(identity, "field:" + identity.field + ":read")
+  const fieldScope = identity.field && can(identity, `field:${identity.field}:read`)
     ? identity.field
     : null;
-  let fieldRows: FieldShortcutRow[] = [];
-  let fieldRegistryUnavailable = false;
 
+  let fieldRows: FieldRow[] = [];
+  let registryUnavailable = false;
   if (canReadOrganization || fieldScope) {
     try {
       const sql = getV9Sql();
-      fieldRows = rowsFromResult<FieldShortcutRow>(await sql`
-        SELECT field_key, name, short_name, route, is_enabled
+      fieldRows = rowsFromResult<FieldRow>(await sql`
+        SELECT field_key, name, short_name, is_enabled
         FROM v9.field_applications
         WHERE organization_id = ${identity.organizationId}
           AND is_enabled = true
           AND (${canReadOrganization} = true OR field_key = ${fieldScope})
         ORDER BY display_order, name
-      `);
-    } catch (reason) {
-      fieldRegistryUnavailable = true;
-      console.warn("[launcher-quick-links] Field registry unavailable", reason instanceof Error ? reason.name : "UnknownError");
+      `).filter((row) => FIELD_KEYS.includes(row.field_key as FieldKey));
+    } catch (error) {
+      registryUnavailable = true;
+      console.warn(
+        "[quick-create] Field registry unavailable",
+        error instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "UnknownError",
+      );
     }
   }
 
-  const knownFieldKeys = new Set(["organisasi", "pertanian", "pelatihan", "usaha"]);
-  const fieldLinks = fieldRows.filter((field) =>
-    knownFieldKeys.has(field.field_key) &&
-    canAccessApp(identity, field.field_key as "organisasi" | "pertanian" | "pelatihan" | "usaha"),
-  );
+  const fields: QuickCreateField[] = fieldRows
+    .filter((field) => canAccessApp(identity, field.field_key as FieldKey))
+    .map((field) => ({
+      slug: field.field_key,
+      label: field.short_name || field.name || LABELS[field.field_key as FieldKey],
+      canActivity: can(identity, `field:${field.field_key}:activity:write`),
+      canProgram: can(identity, `field:${field.field_key}:program:write`),
+      canTask: can(identity, `field:${field.field_key}:task:write`),
+    }));
 
-  const actions: QuickLink[] = [
-    ...(can(identity, "organization:tasks:write")
-      ? [{ label: "Tugas organisasi", href: "/app/pengurus/tugas", note: "Buat dan kelola penugasan organisasi", group: "Pengurus" }]
-      : []),
-    ...(can(identity, "secretariat:read")
-      ? [
-          { label: "Register surat", href: "/app/sekretariat/surat", note: "Akses pencatatan surat masuk dan keluar", group: "Sekretariat" },
-          { label: "Agenda & rapat", href: "/app/sekretariat/rapat", note: "Akses register rapat dan agenda", group: "Sekretariat" },
-        ]
-      : []),
-    ...(can(identity, "finance:read")
-      ? [{ label: "Jurnal keuangan", href: "/app/keuangan/jurnal", note: "Tinjau jurnal dan proses sesuai kewenangan", group: "Keuangan" }]
-      : []),
-    ...(can(identity, "pos:sell")
-      ? [{ label: "Pesanan draf POS", href: "/app/pos", note: "Membuat pesanan draf; pembayaran dan settlement belum aktif", group: "Usaha" }]
-      : []),
-    ...fieldLinks.map((field) => ({
-      label: field.short_name || field.name,
-      href: field.route?.startsWith("/app/bidang/") ? field.route : "/app/bidang/" + field.field_key,
-      note: "Buka aplikasi bidang terdaftar sesuai lingkup akun",
-      group: "Bidang",
-    })),
-  ];
+  const options: QuickCreateOption[] = [];
+  if (canReadOrganization || can(identity, "field:organisasi:review")) {
+    options.push({
+      kind: "anggota",
+      label: "Pengajuan anggota",
+      description: "Catat minat bergabung untuk ditinjau; bukan aktivasi anggota atau akun login.",
+    });
+  }
+  if (
+    fieldRows.some((field) => field.field_key === "pertanian") &&
+    can(identity, "field:pertanian:manage") &&
+    can(identity, "field:pertanian:data:write")
+  ) {
+    options.push({
+      kind: "lahan",
+      label: "Petak lahan",
+      description: "Catat petak garapan, pemilik, komoditas, dan luas secara terstruktur.",
+    });
+  }
+  if (fields.some((field) => field.canActivity)) {
+    options.push({
+      kind: "agenda",
+      label: "Agenda kegiatan",
+      description: "Jadwalkan kegiatan bidang; catatan masuk ke kalender dan data bidang.",
+    });
+  }
+  if (can(identity, "secretariat:letters:write")) {
+    options.push({
+      kind: "surat",
+      label: "Registrasi surat",
+      description: "Catat surat masuk atau keluar; nomor registrasi internal dibuat sistem.",
+    });
+  }
+  if (fields.some((field) => field.canProgram)) {
+    options.push({
+      kind: "program",
+      label: "Program kerja",
+      description: "Catat program, tujuan, periode, dan usulan anggaran pada bidang terkait.",
+    });
+  }
+  if (fields.some((field) => field.canTask)) {
+    options.push({
+      kind: "tugas",
+      label: "Tugas",
+      description: "Tugaskan pekerjaan dengan penanggung jawab, tenggat, dan prioritas.",
+    });
+  }
+
+  const requested = (await searchParams).buat;
+  const initialKind = options.some((option) => option.kind === requested)
+    ? requested as QuickCreateOption["kind"]
+    : undefined;
 
   return (
     <div className="pb-10">
       <PageHeader
         eyebrow="Workspace"
-        title="Pintasan kerja"
-        description="Akses cepat ke modul yang dapat dibuka akun Anda. Pencatatan, validasi, dan persetujuan tetap dilakukan di modul pemilik data."
+        title="Buat"
+        description="Pilih catatan yang akan dibuat. Setiap formulir menyimpan ke data organisasi melalui layanan server dan mengikuti hak akses akun Anda."
       />
-      {actions.length ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {actions.map((action) => (
-            <Link key={action.href} href={action.href} className="sb-card group p-4 transition hover:-translate-y-0.5 hover:border-primary-300">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted2">{action.group}</div>
-              <div className="mt-1 text-[13px] font-semibold text-ink group-hover:text-primary-800">{action.label}</div>
-              <div className="mt-0.5 text-[11px] leading-relaxed text-muted">{action.note}</div>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <Card className="p-6">
-          <EmptyState title="Belum ada pintasan yang tersedia" body="Aplikasi dan tindakan akan muncul setelah hak akses diberikan oleh pengelola organisasi." />
-        </Card>
-      )}
-      {fieldRegistryUnavailable ? (
-        <div className="mt-4">
+      {registryUnavailable ? (
+        <div className="mb-4">
           <Notice tone="warning" title="Registry bidang belum dapat dimuat">
-            Pintasan bidang disembunyikan sampai layanan registry dapat dihubungi.
+            Formulir bidang disembunyikan sementara. Coba muat ulang setelah layanan data tersedia.
           </Notice>
         </div>
       ) : null}
-      <div className="mt-4">
-        <Notice tone="info" title="Tetap mengikuti aturan modul">
-          Pintasan tidak melewati pemeriksaan kewenangan, validasi, atau persetujuan. Status transaksi final hanya muncul setelah proses pada modul asal berhasil disimpan.
+      <div className="mb-4">
+        <Notice tone="info" title="Data tersimpan pada sumber resmi">
+          Pencatatan bidang, sekretariat, dan pengajuan anggota disimpan pada database organisasi. Pengajuan anggota tetap menunggu proses verifikasi dan tidak otomatis menjadi akun aktif.
         </Notice>
       </div>
+      <BuatCepatPanel options={options} fields={fields} initialKind={initialKind} />
     </div>
   );
 }
