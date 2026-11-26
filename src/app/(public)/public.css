@@ -60,7 +60,7 @@
   --pub-ink: #0f1a2b;
   --pub-green: #064e3b;
   --pub-gold: #b8860b;
-  --pub-line: #e6ebf3;
+  --pub-line: #8392a6;
   --pub-muted: #5c6a7d;
   background: #fafaf9;
   color: #0f1a2b;
@@ -105,7 +105,7 @@
 
 :root[data-theme-preset="srikandi"] .public-site .pub-button.outline {
   color: #127e2f;
-  border-color: #cbd4e2;
+  border-color: #8392a6;
 }
 
 /* Ajakan berwarna hutan; kutipan memakai permukaan lembut agar berbeda hierarki. */
@@ -151,10 +151,12 @@
 :root[data-theme-preset="srikandi"] .public-site {
   --primary: oklch(0.5191 0.1477 146.85);
   --foreground: oklch(0.2168 0.0373 258.84);
-  --border: oklch(0.9386 0.0121 259.82);
+  --border: #8392a6;
   --muted: oklch(0.9663 0.0074 260.73);
   --muted-foreground: oklch(0.5239 0.0306 257.07);
   --secondary: oklch(0.9663 0.0074 260.73);
+  --input: #8392a6;
+  --ring: #065f46;
 }
 
 /* Mode gelap: V9.2 tidak punya palet gelap, jadi ini turunan — hijau dan emas
@@ -165,16 +167,18 @@
   --pub-ink: #e6f0e9;
   --pub-green: #22a34a;
   --pub-gold: #f0b429;
-  --pub-line: #26372c;
+  --pub-line: #607466;
   --pub-muted: #a7bbae;
   background: #0d1a12;
   color: #e6f0e9;
   --primary: oklch(0.6288 0.1674 148.50);
   --foreground: oklch(0.9474 0.0116 153.67);
-  --border: oklch(0.3181 0.0297 155.95);
+  --border: #607466;
   --muted: oklch(0.2720 0.0275 154.99);
   --muted-foreground: oklch(0.7476 0.0288 157.15);
   --secondary: oklch(0.2720 0.0275 154.99);
+  --input: #607466;
+  --ring: #8bd6a1;
 }
 
 .dark:root[data-theme-preset="srikandi"] .public-site p {
