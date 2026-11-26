@@ -75,7 +75,7 @@ const footerGroups: SiteFooterGroup[] = [
 
 export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
   schemaVersion: 1,
-  identity: { siteName: ORG.shortName, tagline: ORG.tagline, logoUrl: "/brand/wordmark-on-dark.png", creditName: ORG.shortName, creditLine: "" },
+  identity: { siteName: ORG.shortName, tagline: ORG.tagline, logoUrl: "/brand/wordmark-alpha.png", creditName: ORG.shortName, creditLine: "" },
   hero: {
     eyebrow: "Kelompok Wanita Tani", title: ORG.shortName, subtitle: "Bersama, Berkarya, Berdaya",
     description: "Ruang kerja bersama untuk mengelola organisasi, memperkuat kegiatan pertanian, dan mengembangkan kapasitas anggota secara bertahap.",

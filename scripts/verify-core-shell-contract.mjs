@@ -910,3 +910,45 @@ assert.ok(
   "Public menus, dashboards and internal business labels must use Produk / Persediaan language rather than legacy Katalog labels.",
 );
 process.stdout.write("Public contact, portal and product terminology contract: PASS\\n");
+
+const memberNavigationShell = read("src/components/member-shell.tsx");
+const memberAreaLayout = read("src/app/app/(area)/anggota/layout.tsx");
+const posLayout = read("src/app/app/(area)/pos/layout.tsx");
+const posPage = read("src/app/app/(area)/pos/page.tsx");
+const businessOrderComposer = read("src/components/business-order-composer.tsx");
+const studioHome = read("src/app/studio/page.tsx");
+const studioApplications = read("src/app/studio/aplikasi/page.tsx");
+const fieldNavigation = read("src/config/field-nav.ts");
+const fieldTemplates = read("src/components/studio/field-templates.tsx");
+assert.ok(
+  memberAreaLayout.includes("getPublicSiteSettings()") &&
+  memberAreaLayout.includes("showPublicProducts={settings.features.productCatalogue}") &&
+  memberAreaLayout.includes("showPublicActivities={settings.features.activities}") &&
+  memberNavigationShell.includes("showPublicProducts") &&
+  memberNavigationShell.includes('label: "Produk"') &&
+  !memberNavigationShell.includes("Katalog produk"),
+  "Member navigation must hide disabled public product/activity links and use neutral product wording.",
+);
+assert.ok(
+  posLayout.includes("Produk & Pesanan") &&
+  posPage.includes("Produk Usaha") &&
+  posPage.includes("daftar produk") &&
+  !/Katalog/i.test(posLayout + posPage) &&
+  businessOrderComposer.includes("daftar produk aktif") &&
+  !/Katalog/i.test(businessOrderComposer),
+  "The cashier/POS surface must use product wording and keep its data-source status explicit.",
+);
+assert.ok(
+  studioHome.includes('status: "Daftar modul"') &&
+  studioHome.includes('status: "Daftar dashboard"') &&
+  studioApplications.includes("Daftar rute aplikasi inti") &&
+  !/Katalog route|daftar demo/i.test(studioApplications) &&
+  fieldNavigation.includes('label: "Produk"') &&
+  fieldTemplates.includes('modules: ["Produk", "Kasir", "Riwayat", "Sinkronisasi"]'),
+  "Studio, field navigation and POS templates must not show legacy catalog labels.",
+);
+assert.ok(
+  siteSettingsSchema.includes('logoUrl: "/brand/wordmark-alpha.png"'),
+  "Website settings must use the normal transparent wordmark as the default for the light header.",
+);
+process.stdout.write("Member, POS and dashboard terminology contract: PASS\\n");

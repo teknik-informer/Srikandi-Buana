@@ -131,7 +131,7 @@ export default async function ProfilPage() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <Notice tone="info" title="Sejarah organisasi">
-              Riwayat pembentukan, tonggak kegiatan, dan dokumentasi kelembagaan belum disimpan sebagai catatan publik terstruktur. Halaman ini tidak menampilkan tahun atau peristiwa dari data contoh.
+              Riwayat pembentukan, tonggak kegiatan, dan dokumentasi kelembagaan akan diperbarui setelah catatan serta dokumentasi resmi disetujui untuk publikasi.
             </Notice>
             <Notice tone="warning" title="Struktur pengurus">
               Nama pengurus, masa jabatan, nomor/tanggal keputusan, dan penugasan personal tidak ditampilkan pada halaman ini sampai ada data pengangkatan yang sah dan cakupan publikasinya disetujui.

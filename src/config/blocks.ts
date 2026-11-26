@@ -155,7 +155,7 @@ export const PAGE_COMPOSITIONS: Record<string, { block: BlockKey; note: string }
     { block: "stat-strip", note: "Angka keanggotaan" },
   ],
   "/produk": [
-    { block: "product-grid", note: "Katalog publik" },
+    { block: "product-grid", note: "Produk publik" },
     { block: "cta-join", note: "Ajakan pesan" },
   ],
 };

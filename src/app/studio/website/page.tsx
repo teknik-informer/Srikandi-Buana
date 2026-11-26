@@ -35,7 +35,7 @@ export default async function WebsiteStudio() {
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <Card className="p-4">
           <div className="text-[12px] font-semibold text-ink">Kontrol fitur publik</div>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted">Fitur publik dapat ditampilkan atau disembunyikan tanpa menghapus data operasional. Pengelolaan produk, transaksi, dan persediaan internal tidak ikut dimatikan oleh sakelar katalog publik.</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted">Fitur publik dapat ditampilkan atau disembunyikan tanpa menghapus data operasional. Pengelolaan produk, transaksi, dan persediaan internal tidak ikut dimatikan oleh sakelar Produk publik.</p>
         </Card>
         <Card className="p-4">
           <div className="text-[12px] font-semibold text-ink">Batas keamanan</div>

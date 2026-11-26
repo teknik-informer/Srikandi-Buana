@@ -138,7 +138,7 @@ export const APP_IDENTITY: Record<string, AppIdentity> = {
     eyebrow: "FLD-USA · Bidang Usaha & Kemitraan",
     title: "Bidang Usaha & Kemitraan",
     lead:
-      "Katalog, HPP, stok, pesanan, mitra, dan kanal penjualan. Harga jual dan biaya dihitung dari data produk yang terdaftar.",
+      "Produk, HPP, persediaan, pesanan, mitra, dan kanal penjualan. Harga jual dan biaya dihitung dari data produk yang terdaftar.",
     quote: { text: "Perempuan tani. Penggerak kemandirian.", source: "Tagline organisasi" },
     image: "/images/rumah-jemur.jpg",
     imageAlt: "Dua anggota Srikandi Buana menjemur biji kopi di rumah jemur",

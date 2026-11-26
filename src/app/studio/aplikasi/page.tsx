@@ -60,13 +60,13 @@ export default async function AplikasiStudio() {
       <PageHeader
         eyebrow="Application Studio"
         title="Registry aplikasi bidang"
-        description="Status aplikasi bidang berasal dari registry organisasi. Katalog route inti dikelola pada source code; membuat instance, menggandakan template, dan mengubah menu belum tersedia sebagai operasi tersimpan."
+        description="Status aplikasi bidang berasal dari registry organisasi. Daftar rute aplikasi inti dikelola melalui rilis kode; pembuatan instance, penggandaan template, dan perubahan menu belum tersedia sebagai operasi tersimpan."
         actions={<Link href="/studio/organisasi" className="sb-btn sb-btn-outline">Organization Studio <ArrowRight size={13} /></Link>}
       />
 
       {unavailable ? (
         <Notice tone="danger" title="Registry aplikasi belum dapat dimuat">
-          Data aplikasi tidak diganti dengan template atau daftar demo.
+          Data aplikasi hanya ditampilkan dari registry organisasi yang tersimpan.
         </Notice>
       ) : null}
 

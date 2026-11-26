@@ -24,14 +24,14 @@ const BUILDERS = [
     name: "Data & Form Builder",
     href: "/studio/data",
     description: "Akses modul operasional domain. Form Builder generik belum memiliki registry dan penyimpanan jawaban.",
-    status: "Katalog modul",
+    status: "Daftar modul",
     icon: <Database size={16} />,
   },
   {
     name: "Dashboard Studio",
     href: "/studio/dashboard",
     description: "Tautan dashboard operasional yang berjalan. Susunan widget dinamis belum tersimpan.",
-    status: "Katalog dashboard",
+    status: "Daftar dashboard",
     icon: <Blocks size={16} />,
   },
   {

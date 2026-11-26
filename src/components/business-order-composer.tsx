@@ -123,7 +123,7 @@ export function BusinessOrderComposer({
         <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
           <div>
             <div className="text-[11px] font-semibold text-ink2">Item pesanan</div>
-            <div className="text-[9.5px] text-muted2">Harga diambil dari katalog aktif saat pesanan dibuat.</div>
+            <div className="text-[9.5px] text-muted2">Harga diambil dari daftar produk aktif saat pesanan dibuat.</div>
           </div>
           <button type="button" onClick={addLine} disabled={lines.length >= 20 || !products.length} className="sb-btn sb-btn-outline !h-8 !px-2.5 text-[9.5px]">
             <Plus size={12} /> Tambah item

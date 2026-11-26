@@ -4,7 +4,7 @@ const TEMPLATES = [
   { name: "Template Aplikasi Bidang", modules: ["Dashboard", "Rencana", "Program", "Tugas", "Data Operasional", "Formulir", "Dokumen", "Anggaran", "Laporan"], status: "dipakai" },
   { name: "Template Sekretariat", modules: ["Surat", "Notulen", "Agenda", "Dokumen"], status: "dipakai" },
   { name: "Template Portal Anggota", modules: ["Profil", "Agenda", "Tugas", "Komunitas"], status: "dipakai" },
-  { name: "Template POS", modules: ["Katalog", "Kasir", "Riwayat", "Sinkronisasi"], status: "dipakai" },
+  { name: "Template POS", modules: ["Produk", "Kasir", "Riwayat", "Sinkronisasi"], status: "dipakai" },
 ];
 
 export function FieldTemplates() {

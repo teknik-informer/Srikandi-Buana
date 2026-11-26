@@ -7,7 +7,7 @@ export default async function PosLayout({ children }: { children: React.ReactNod
   const canViewFinance = can(identity, "finance:read");
   const items = [
     { label: "Kasir", href: "/app/pos" },
-    ...(canViewBusiness ? [{ label: "Katalog & Pesanan", href: "/app/bidang/usaha/data" }] : []),
+    ...(canViewBusiness ? [{ label: "Produk & Pesanan", href: "/app/bidang/usaha/data" }] : []),
     ...(canViewFinance ? [{ label: "Jurnal terkait", href: "/app/keuangan/jurnal" }] : []),
   ];
   const shortcuts = [

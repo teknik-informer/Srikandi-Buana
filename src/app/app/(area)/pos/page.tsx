@@ -311,7 +311,7 @@ export default async function PosPage({
           recentOrders.length + " pesanan kasir terbaru",
         ]}
         actions={canViewBusinessWorkspace ? [
-          { href: "/app/bidang/usaha/data", label: "Katalog Usaha" },
+          { href: "/app/bidang/usaha/data", label: "Produk Usaha" },
           { href: "/app/bidang/usaha/persediaan", label: "Persediaan" },
         ] : []}
       />
@@ -336,8 +336,8 @@ export default async function PosPage({
       {unavailable ? (
         <div className="mt-3">
           <Notice tone="danger" title="Data POS belum dapat dimuat">
-            Koneksi ke katalog dan register pesanan sedang tidak tersedia. Form transaksi dinonaktifkan
-            agar data kosong akibat gangguan tidak dianggap sebagai katalog yang benar-benar kosong.
+            Koneksi ke daftar produk dan register pesanan sedang tidak tersedia. Form transaksi dinonaktifkan
+            agar gangguan sumber data tidak dianggap sebagai daftar produk yang benar-benar kosong.
           </Notice>
         </div>
       ) : null}
@@ -361,7 +361,7 @@ export default async function PosPage({
             <div className="px-5 py-9">
               <EmptyState
                 title={!customers.length ? "Belum ada pelanggan aktif" : "Belum ada produk aktif"}
-                body="Pengurus Bidang Usaha perlu menyiapkan register pelanggan dan katalog produk sebelum kasir dapat membuat pesanan."
+                body="Pengurus Bidang Usaha perlu menyiapkan register pelanggan dan daftar produk sebelum kasir dapat membuat pesanan."
               />
             </div>
           ) : !canCreate ? (

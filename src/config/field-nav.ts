@@ -13,7 +13,7 @@ const SECTIONS: { key: string; label: string; group: string }[] = [
   { key: "tugas", label: "Tugas & Kolaborasi", group: "Tugas & Tim" },
   { key: "tim", label: "Manajemen Tim", group: "Tugas & Tim" },
   { key: "data", label: "Data Operasional", group: "Data Operasional" },
-  { key: "katalog", label: "Katalog Produk", group: "Produk & Persediaan" },
+  { key: "katalog", label: "Produk", group: "Produk & Persediaan" },
   { key: "persediaan", label: "Gudang & Persediaan", group: "Produk & Persediaan" },
   { key: "pesanan", label: "Pelanggan & Pesanan", group: "Penjualan" },
   { key: "formulir", label: "Formulir & Pendataan", group: "Formulir" },
