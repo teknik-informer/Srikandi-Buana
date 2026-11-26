@@ -109,10 +109,12 @@ export default function ThemeControl() {
   useEffect(() => {
     if (!initialized) return;
 
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => applyMode(mode);
     apply();
 
+    if (mode !== "system" || typeof window.matchMedia !== "function") return;
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
     if (typeof media.addEventListener === "function") {
       media.addEventListener("change", apply);
       return () => media.removeEventListener("change", apply);
