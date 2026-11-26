@@ -109,8 +109,8 @@ let raceNextCas=null;
 let concurrentCasGate=null;
 let dbBatchTail=Promise.resolve();
 async function execute(text,args){
- if(text.trimStart().startsWith('WITH changed AS (')&&text.includes("SELECT ?,?,'kehadiran',?,?,?")){
-  const [id,ownerId,jsonData,created,proposedUpdated,expectedUpdated,checkId,checkOwner,checkExpected,eventId,eventOwner,eventExpected,conflictExpected,auditId,auditOwner,title,auditCreated]=args;
+ if(text.trimStart().startsWith('WITH event_guard AS MATERIALIZED (')&&text.includes("SELECT ?,?,'kehadiran',?,?,?")){
+  const [eventId,eventOwner,eventExpected,id,ownerId,jsonData,created,proposedUpdated,expectedUpdated,checkId,checkOwner,checkExpected,conflictExpected,auditId,auditOwner,title,auditCreated]=args;
   const event=(await pool.query("SELECT id,owner,kind,updated FROM records WHERE id=$1",[eventId])).rows.find(row=>String(row.owner)===String(eventOwner)&&String(row.kind)==='kegiatan');
   if(!event||String(event.updated)!==String(eventExpected))throw Error('Synthetic attendance event version conflict');
   const collision=(await pool.query("SELECT id,owner,kind,updated,created FROM records WHERE id=$1",[id])).rows[0];
@@ -128,6 +128,9 @@ async function execute(text,args){
   }
   await pool.query("INSERT INTO audit(id,owner,action,title,created) VALUES($1,$2,'Diperbarui',$3,$4)",[auditId,auditOwner,title,auditCreated]);
   return {rows:[{saved:1}],rowCount:1};
+ }
+ if(text.trimStart().startsWith('WITH event_guard AS MATERIALIZED (')){
+  throw Error('Unsupported synthetic atomic mutation');
  }
  if(text.trimStart().startsWith('WITH changed AS (')){
   const [jsonData,proposedNow,id,ownerId,kind,expectedUpdated]=args;
@@ -174,7 +177,7 @@ async function execute(text,args){
  }try{return await pool.query(translate(text),args)}catch(error){console.error('PG_MEM_QUERY_FAILURE',text,args,error);throw error;}}
 function prepare(text,args=[]){return {text,args,bind(...values){return prepare(text,values)},async first(){return (await execute(text,args)).rows[0]||null},async all(){return {results:(await execute(text,args)).rows}},async run(){return {meta:{changes:(await execute(text,args)).rowCount}}}}}
 const DB={prepare,async batch(statements){
- const isCas=statements[0]?.text.trimStart().startsWith('WITH changed AS (');
+ const isCas=statements[0]?.text.trimStart().startsWith('WITH event_guard AS MATERIALIZED (')||statements[0]?.text.trimStart().startsWith('WITH changed AS (');
  if(isCas&&concurrentCasGate){
   const gate=concurrentCasGate;gate.arrivals++;
   if(gate.arrivals===2){concurrentCasGate=null;gate.release();}
