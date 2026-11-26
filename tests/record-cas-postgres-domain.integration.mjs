@@ -860,4 +860,49 @@ assert.equal(attendanceLineage.length, 1, "The attendance record must keep its n
 assert.equal(attendanceLineage[0].migration_status, "transformed");
 console.log("PASS PostgreSQL attendance normalization: clearing the member selection removes only its own stale V14 rows and preserves lineage.");
 
+const attendanceAfterClear = await query(
+  "SELECT data,updated FROM public.records WHERE id=" + sqlLiteral(attendanceRecordId) +
+  " AND owner=" + sqlLiteral(owner) + " AND kind='kehadiran'"
+);
+assert.equal(attendanceAfterClear.length, 1);
+await runPsql(
+  "UPDATE public.records SET updated=" + sqlLiteral("2026-11-26T00:20:05.000Z") +
+  " WHERE id=" + sqlLiteral(attendanceEventId) + " AND owner=" + sqlLiteral(owner) + " AND kind='kegiatan';"
+);
+const staleEventOutcome = await resultOf(attendanceMutations.saveAttendanceRecord(database, {
+  owner,
+  actorId: owner,
+  eventId: attendanceEventId,
+  eventUpdated: attendanceNow,
+  attendanceRecordId,
+  expectedUpdated: String(attendanceAfterClear[0].updated),
+  data: {
+    eventId: attendanceEventId,
+    name: attendanceEventData.name,
+    memberIds: [],
+    memberNames: [],
+    notes: "Attempt after source activity changed",
+  },
+  eventName: attendanceEventData.name,
+  now: "2026-11-26T00:20:06.000Z",
+}, await v14.buildV14AttendanceSyncStatements(database, {
+  owner,
+  actorId: owner,
+  attendanceRecordId,
+  eventId: attendanceEventId,
+  memberStatuses: {},
+  externalParticipants: [],
+  now: "2026-11-26T00:20:06.000Z",
+})), "Attendance save after source activity changed");
+assert.equal(staleEventOutcome.success, false);
+assert.equal(staleEventOutcome.status, 409, "A stale activity version must reject attendance writes at the transaction boundary.");
+const attendanceAfterStaleEvent = await query(
+  "SELECT data,updated FROM public.records WHERE id=" + sqlLiteral(attendanceRecordId) +
+  " AND owner=" + sqlLiteral(owner) + " AND kind='kehadiran'"
+);
+assert.deepEqual(attendanceAfterStaleEvent, attendanceAfterClear, "A stale source activity must not alter the attendance source record.");
+assert.equal(await attendanceAuditCount(), 3, "A stale source activity must not append attendance audit rows.");
+console.log("PASS PostgreSQL attendance activity guard: event version is checked under row lock and stale source updates cannot change the register or audit.");
+
+
 console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, and agriculture register/verification CAS, attendance version CAS and V14 reconciliation.");
