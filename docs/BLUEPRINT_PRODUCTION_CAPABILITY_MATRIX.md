@@ -330,3 +330,27 @@ Pada commit PR #67 `44988d917e4a44202e18e5bc7f415bf069e0e0e6`, dua check bernama
 5. Jalankan full CI pada exact implementation SHA; Preview/UAT dicatat terpisah.
 
 Reviewer handoff: [Issue #65 — atomic record CAS](https://github.com/teknik-informer/Srikandi-Buana/issues/65). Tidak ada perubahan Production, migration, data, auth/session, RBAC, environment, domain, atau billing yang diotorisasi oleh audit ini.
+### 12.6 Member identity, account activation and access recovery — Production baseline
+
+**Source yang diperiksa:** `src/app/api/accounts/route.ts`, `src/app/api/auth/activate/route.ts`, `src/app/api/account/route.ts`, `src/lib/auth.ts`, `src/lib/permissions.ts`, `scripts/verify-roles.mjs`, migration `021_member_self_service_identity.sql` dan `022_member_email_backfill.sql`.
+
+| Tahap | Bukti source | Penilaian | Batas bukti / gap |
+|---|---|---|---|
+| Pengelolaan undangan | `POST /api/accounts` membatasi role admin/ketua, memeriksa anggota owner-scoped, status Aktif dan Terverifikasi, validasi email/nomor, menolak akun duplikat, menyimpan hash token dan mencabut undangan lama yang belum dipakai. Email gagal kirim menyebabkan undangan dicabut. | `partial` dengan alur konkret | Perlu race test untuk dua undangan bersamaan dan verifikasi email delivery pada runtime/Preview yang tepat. |
+| Aktivasi akun | `POST /api/auth/activate` memakai token hash, expiry, rate limit, same-origin, cek owner/member dan status keanggotaan. CTE mengklaim undangan sekali pakai dan membuat akun dalam satu statement; unique constraint tetap harus dibuktikan pada schema/test. | `partial` dengan guard kuat | Audit event aktivasi dan pembuatan session dilakukan setelah statement aktivasi; perlu memastikan kegagalan audit/session tidak membuat UI menyatakan aktivasi gagal tanpa jalur pemulihan yang jelas. |
+| Principal/session | `src/lib/auth.ts` memvalidasi session, akun enabled, workspace owner admin, role, serta status aktif/terverifikasi anggota; session disimpan dalam bentuk token hash dan cookie HttpOnly/Secure di production. | `partial` | Perlu audit expiry/revocation/logout, cookie lifecycle dan browser UAT lintas perangkat. |
+| Perubahan profil/password | `PATCH /api/account` memakai same-origin, account binding untuk profile, rate limit; perubahan password mencabut sesi lama dan membuat sesi baru. | `partial` | Update profil/settings dan audit perlu diuji untuk kegagalan parsial; update profil menggunakan batch tanpa CAS/version field. |
+| RBAC dan privacy roster | `GET/POST/PATCH /api/accounts` membatasi role; roster ketua menyembunyikan nomor/email dan data privat; penetapan/administrasi role Ketua dibatasi. | `partial` | Audit seluruh endpoint, ekspor, unduhan dan object-level scope; test matrix harus diperluas di luar skenario yang ada. |
+
+### 12.6.1 Test evidence dan batas interpretasi
+
+`scripts/verify-roles.mjs` memuat skenario handler untuk aktivasi satu kali, token salah/expired/revoked/replaced, tautan reset, session revocation, owner/member linkage, role matrix, masking data pribadi, serta batas kewenangan Ketua/Sekretaris/Bendahara/Koordinator. Ini merupakan bukti automated test untuk source yang diuji, tetapi test harness menggunakan database fixture/adapter terisolasi; bukan koneksi ke database Production, bukan pengujian email live, dan bukan browser UAT.
+
+### 12.6.2 Temuan yang harus ditindaklanjuti
+
+1. **Audit activation atomicity:** akun/undangan diklaim dan akun dibuat dalam satu CTE statement; tetapi penulisan `access_audit` untuk aktivasi/reset dan `createSession()` dilakukan setelah statement tersebut. Uji kegagalan audit/session dan tetapkan perilaku pemulihan yang eksplisit. Untuk alur change-email, audit ditulis di CTE yang sama dengan perubahan email.
+2. **Profile concurrency:** perubahan display name memakai upsert pada `settings` tanpa expected version/CAS. Evaluasi apakah konflik update antar-tab perlu dicegah dan tambahkan versioning jika relevan.
+3. **Invitation race/idempotency:** tambahkan test dua permintaan undangan paralel untuk anggota yang sama, dua aktivasi token paralel, serta retry email delivery. Hasil harus satu akun, satu undangan aktif yang sah, tanpa token ganda yang masih dapat dipakai.
+4. **Operational proof:** jalankan browser UAT untuk aktivasi email, login pertama, reset password, perubahan email, logout/revocation dan akses role; catat exact Preview commit dan hasilnya. Jangan menganggap automated fixture test sebagai bukti UAT.
+
+**Status keseluruhan member identity:** `partial` — fondasi proteksi dan alur aktivasi nyata telah ditemukan serta memiliki automated test, tetapi lifecycle audit, concurrency, kegagalan parsial, dan browser UAT belum seluruhnya dibuktikan.
