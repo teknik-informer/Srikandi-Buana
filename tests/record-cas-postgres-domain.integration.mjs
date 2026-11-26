@@ -97,11 +97,7 @@ class PostgresPrepared {
     return new PostgresPrepared(this.database, this.text, values);
   }
   async all() {
-    const sql = bindSql(this.text, this.values);
-    const rows = await runPsql(
-      "SELECT COALESCE(json_agg(row_to_json(q)), '[]'::json)::text FROM (" + sql + ") AS q;"
-    );
-    return { results: parseRows(rows) };
+    return this.database.execute(this);
   }
   async first() {
     return (await this.all()).results[0] || null;
@@ -119,6 +115,31 @@ class PostgresDatabase {
   prepare(text) {
     return new PostgresPrepared(this, text);
   }
+  async waitAtConcurrentGate() {
+    const gate = this.raceGate;
+    if (!gate) return;
+    gate.arrivals += 1;
+    if (gate.arrivals === gate.expectedArrivals) {
+      this.raceGate = null;
+      gate.release();
+    }
+    await gate.promise;
+  }
+  async execute(statement) {
+    const sql = bindSql(statement.text, statement.values);
+    if (sql.trimStart().startsWith("WITH changed AS (")) {
+      if (this.raceGate) await this.waitAtConcurrentGate();
+      const output = await runPsql(
+        "BEGIN ISOLATION LEVEL READ COMMITTED;\nSELECT pg_sleep(0.25);\n" + sql + ";\nCOMMIT;"
+      );
+      const rows = output.split(/\\r?\\n/).filter(Boolean).map(target_id => ({ target_id }));
+      return { results: rows };
+    }
+    const output = await runPsql(
+      "SELECT COALESCE(json_agg(row_to_json(q)), '[]'::json)::text FROM (" + sql + ") AS q;"
+    );
+    return { results: parseRows(output) };
+  }
   armConcurrentGate(expectedArrivals = 2) {
     let release;
     this.raceGate = {
@@ -130,15 +151,7 @@ class PostgresDatabase {
   }
   async batch(statements) {
     const isCas = statements[0]?.text.trimStart().startsWith("WITH changed AS (");
-    if (isCas && this.raceGate) {
-      const gate = this.raceGate;
-      gate.arrivals += 1;
-      if (gate.arrivals === gate.expectedArrivals) {
-        this.raceGate = null;
-        gate.release();
-      }
-      await gate.promise;
-    }
+    if (isCas && this.raceGate) await this.waitAtConcurrentGate();
 
     let script = "BEGIN ISOLATION LEVEL SERIALIZABLE;\n";
     if (isCas) {
