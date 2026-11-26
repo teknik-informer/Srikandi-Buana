@@ -1,16 +1,30 @@
 /**
- * SEARCH — one local index, shared by the topbar box and the /app/cari page.
+ * SEARCH — indeks pencarian bersama untuk kotak topbar dan halaman /app/cari.
  *
- * The demo has no backend, so search runs against the same seed data every
- * screen reads. Honest limits: it searches what this workspace can see,
- * matching words, not fuzzy synonyms. Results carry the route they open so a
- * hit always lands somewhere real.
+ * RIWAYAT PERBAIKAN
+ * -----------------
+ * Versi sebelumnya membangun indeks SEKALI saat modul dievaluasi, dari
+ * konstanta benih (`data/organization.ts`, `data/operations.ts`, `data/content.ts`).
+ * Akibatnya anggota yang baru ditambahkan, produk yang baru dibuat, atau surat
+ * yang baru diregistrasi tidak pernah muncul di pencarian — pencarian
+ * menjanjikan "seluruh workspace", yang diberikannya hanya data awal.
+ *
+ * Sekarang `collect(state)` menerima dokumen bersama sebagai sumber. Pemanggil
+ * (dialog pencarian) menyalurkan `useStore().state`, sehingga hasil pencarian
+ * mengikuti apa yang benar-benar tersimpan. `SEARCH_INDEX` tetap ada sebagai
+ * cadangan untuk pemakaian non-React, tetapi tidak lagi dipakai dialog.
+ *
+ * Batas yang jujur: pencarian mencocokkan kata, bukan sinonim samar. Setiap
+ * hasil membawa rute yang bisa dibuka, jadi tidak ada hasil yang buntu.
  */
 import { MEMBERS, DOCUMENTS } from "@/data/organization";
 import { APPS } from "@/config/apps";
 import { PROGRAMS, PRODUCTS, LANDS } from "@/data/operations";
 import { NEWS } from "@/data/content";
 import { JOURNALS } from "@/data/finance";
+import type {
+  Member, DocumentRow, Program, Product, LandPlot, JournalEntry, Letter,
+} from "@/data/types";
 
 export type SearchGroup =
   | "Menu"
@@ -54,8 +68,29 @@ const PLACES: { label: string; meta: string; href: string; words: string }[] = [
   { label: "Studio Pengelola", meta: "Platform · konfigurasi", href: "/studio", words: "studio pengelola konfigurasi website tema" },
 ];
 
-function collect(): SearchHit[] {
+/**
+ * Sumber data pencarian: bagian dokumen bersama yang diindeks.
+ * Memakai tipe asli supaya tidak ada bayangan tipe yang menyimpang dari data.
+ */
+export interface SearchSource {
+  members?: Member[];
+  documents?: DocumentRow[];
+  programs?: Program[];
+  products?: Product[];
+  lands?: LandPlot[];
+  journals?: JournalEntry[];
+  letters?: Letter[];
+}
+
+function collect(state?: SearchSource | null): SearchHit[] {
   const rows: SearchHit[] = [];
+  // Sumber data: dokumen bersama bila tersedia, benih bila belum.
+  const MEMBERS_SRC = state?.members ?? MEMBERS;
+  const DOCUMENTS_SRC = state?.documents ?? DOCUMENTS;
+  const PROGRAMS_SRC = state?.programs ?? PROGRAMS;
+  const PRODUCTS_SRC = state?.products ?? PRODUCTS;
+  const LANDS_SRC = state?.lands ?? LANDS;
+  const JOURNALS_SRC = state?.journals ?? JOURNALS;
   for (const a of APPS) {
     rows.push({
       group: "Menu",
@@ -74,7 +109,7 @@ function collect(): SearchHit[] {
       hay: `${p.label} ${p.meta} ${p.words}`.toLowerCase(),
     });
   }
-  for (const m of MEMBERS) {
+  for (const m of MEMBERS_SRC) {
     rows.push({
       group: "Anggota",
       label: m.name,
@@ -83,7 +118,7 @@ function collect(): SearchHit[] {
       hay: `${m.name} ${m.role} ${m.scope} ${m.id} ${m.village}`.toLowerCase(),
     });
   }
-  for (const d of DOCUMENTS) {
+  for (const d of DOCUMENTS_SRC) {
     rows.push({
       group: "Dokumen",
       label: d.title,
@@ -92,7 +127,7 @@ function collect(): SearchHit[] {
       hay: `${d.title} ${d.number} ${d.category} ${d.owner}`.toLowerCase(),
     });
   }
-  for (const p of PROGRAMS) {
+  for (const p of PROGRAMS_SRC) {
     rows.push({
       group: "Program",
       label: p.name,
@@ -101,7 +136,7 @@ function collect(): SearchHit[] {
       hay: `${p.name} ${p.code} ${p.objective}`.toLowerCase(),
     });
   }
-  for (const p of PRODUCTS) {
+  for (const p of PRODUCTS_SRC) {
     rows.push({
       group: "Produk",
       label: p.name,
@@ -110,7 +145,7 @@ function collect(): SearchHit[] {
       hay: `${p.name} ${p.category} ${p.producer} ${p.unit}`.toLowerCase(),
     });
   }
-  for (const l of LANDS) {
+  for (const l of LANDS_SRC) {
     rows.push({
       group: "Lahan",
       label: `${l.id} — ${l.commodity}`,
@@ -128,7 +163,19 @@ function collect(): SearchHit[] {
       hay: `${n.title} ${n.excerpt ?? ""}`.toLowerCase(),
     });
   }
-  for (const j of JOURNALS) {
+  // Surat masuk/keluar — dulu tidak ada di pencarian sama sekali padahal
+  // sekretariat meregistrasinya setiap hari.
+  const LETTERS_SRC = state?.letters ?? [];
+  for (const l of LETTERS_SRC) {
+    rows.push({
+      group: "Dokumen",
+      label: `${l.number} — ${l.subject}`,
+      meta: `${l.direction === "masuk" ? "Surat masuk" : "Surat keluar"} · ${l.counterpart}`,
+      href: "/app/sekretariat/surat",
+      hay: `${l.number} ${l.subject} ${l.counterpart}`.toLowerCase(),
+    });
+  }
+  for (const j of JOURNALS_SRC) {
     rows.push({
       group: "Jurnal",
       label: j.description,
@@ -140,26 +187,8 @@ function collect(): SearchHit[] {
   return rows;
 }
 
-/**
- * Indeks pencarian.
- *
- * MENGAPA MASIH STATIS
- * --------------------
- * `collect()` membaca konstanta data (anggota, program, produk, jurnal, lahan,
- * kabar) yang dimuat saat modul dievaluasi. Versi dinamis — membaca dokumen
- * bersama supaya hasil pencarian mengikuti data yang benar-benar tersimpan —
- * belum dikerjakan; itu menuntut indeks dibangun di server dan dikirim sebagai
- * hasil pencarian, bukan sebagai konstanta modul.
- *
- * Yang sudah pasti: dokumen bersama adalah sumber kebenaran untuk halaman
- * publik dan seluruh layar kerja (lihat `lib/state-store.ts`). Pencarian di
- * sini masih memakai benih awal. Ini keterbatasan yang disengaja dan diketahui,
- * bukan klaim bahwa pencarian sudah hidup.
- */
+/** Indeks dari benih awal — cadangan bila tidak ada dokumen bersama. */
 export const SEARCH_INDEX = collect();
-
-/** Apakah indeks ini mencerminkan dokumen bersama? Selalu false untuk sekarang. */
-export const SEARCH_INDEX_IS_LIVE = false;
 
 /** Score: exact prefix > word prefix > substring. Stable, no fuzzy magic. */
 function score(hit: SearchHit, term: string) {
@@ -171,10 +200,22 @@ function score(hit: SearchHit, term: string) {
   return 0;
 }
 
-export function searchAll(query: string, limitPerGroup = 6): { group: SearchGroup; hits: SearchHit[] }[] {
+/**
+ * Cari di seluruh workspace.
+ *
+ * `state` adalah dokumen bersama dari `useStore()`. Bila diberikan, indeks
+ * dibangun dari data yang benar-benar tersimpan — bukan dari benih. Bila tidak,
+ * dipakai `SEARCH_INDEX` supaya pemakaian non-React tetap jalan.
+ */
+export function searchAll(
+  query: string,
+  limitPerGroup = 6,
+  state?: SearchSource | null,
+): { group: SearchGroup; hits: SearchHit[] }[] {
   const term = query.trim().toLowerCase();
   if (term.length < 2) return [];
-  const scored = SEARCH_INDEX.map((h) => ({ h, s: score(h, term) }))
+  const indeks = state ? collect(state) : SEARCH_INDEX;
+  const scored = indeks.map((h) => ({ h, s: score(h, term) }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s || a.h.label.localeCompare(b.h.label));
 

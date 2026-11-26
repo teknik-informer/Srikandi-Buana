@@ -10,6 +10,7 @@ import { ArrowUpRight, CornerDownLeft, Search, X } from "lucide-react";
 import { APPS } from "@/config/apps";
 import { AppIcon } from "@/components/brand";
 import { searchAll, countHits, type SearchGroup } from "@/lib/search";
+import { useStore } from "@/lib/store";
 
 const TONE: Record<SearchGroup, string> = {
   Menu: "bg-[#eef4ff] text-[#1f4f8f]",
@@ -106,7 +107,25 @@ function SearchDialog() {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const groups = useMemo(() => searchAll(q), [q]);
+  // Pencarian membaca dokumen bersama lewat store. Sebelumnya indeks dibangun
+  // sekali dari data benih, sehingga anggota/produk/surat yang baru dibuat
+  // tidak pernah muncul.
+  const { state, ready } = useStore();
+  const groups = useMemo(
+    () =>
+      searchAll(q, 6, ready
+        ? {
+            members: state.members,
+            documents: state.documents,
+            programs: state.programs,
+            products: state.products,
+            lands: state.lands,
+            journals: state.journals,
+            letters: state.letters,
+          }
+        : null),
+    [q, ready, state.members, state.documents, state.programs, state.products, state.lands, state.journals, state.letters],
+  );
   const flat = useMemo(() => groups.flatMap((g) => g.hits).slice(0, 24), [groups]);
 
   const query = q.trim().toLowerCase();
