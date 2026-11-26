@@ -9,7 +9,8 @@ function declarations(selector) {
   // Match the exact requested selector inside each comma-separated selector list.
   const blocks = css.matchAll(/([^{}]+)\{([^{}]*)\}/g);
   for (const match of blocks) {
-    const selectors = match[1].trim().split(",").map((item) => item.trim());
+    const selectorText = match[1].replace(/\/\*[\s\S]*?\*\//g, "").trim();
+    const selectors = selectorText.split(",").map((item) => item.trim());
     if (!selectors.includes(selector)) continue;
     for (const declaration of match[2].split(";")) {
       const separator = declaration.indexOf(":");
