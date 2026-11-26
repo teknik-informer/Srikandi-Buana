@@ -42,11 +42,20 @@ export async function PUT(req: Request) {
     if (!Object.prototype.hasOwnProperty.call(raw, "expectedUpdated")) {
       return json({ error: "Versi daftar hadir wajib disertakan. Muat ulang kegiatan sebelum menyimpan." }, 428);
     }
-    if (raw.expectedUpdated !== null && (typeof raw.expectedUpdated !== "string" || !raw.expectedUpdated.trim())) {
+    if (
+      raw.expectedUpdated !== null &&
+      (typeof raw.expectedUpdated !== "string" ||
+        !raw.expectedUpdated.trim() ||
+        raw.expectedUpdated.length > 80 ||
+        !Number.isFinite(Date.parse(raw.expectedUpdated)))
+    ) {
       return json({ error: "Versi daftar hadir tidak valid. Muat ulang sebelum menyimpan." }, 400);
     }
     if (typeof raw.eventUpdated !== "string" || !raw.eventUpdated.trim()) {
       return json({ error: "Versi kegiatan tidak tersedia. Muat ulang daftar kegiatan sebelum menyimpan." }, 428);
+    }
+    if (raw.eventUpdated.length > 80 || !Number.isFinite(Date.parse(raw.eventUpdated))) {
+      return json({ error: "Versi kegiatan tidak valid. Muat ulang daftar kegiatan sebelum menyimpan." }, 400);
     }
 
     const db = env.DB;
