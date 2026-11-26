@@ -60,7 +60,7 @@
   --pub-ink: #0f1a2b;
   --pub-green: #064e3b;
   --pub-gold: #b8860b;
-  --pub-line: #e6ebf3;
+  --pub-line: #8392a6;
   --pub-muted: #5c6a7d;
   background: #fafaf9;
   color: #0f1a2b;
@@ -105,12 +105,11 @@
 
 :root[data-theme-preset="srikandi"] .public-site .pub-button.outline {
   color: #127e2f;
-  border-color: #cbd4e2;
+  border-color: #8392a6;
 }
 
-/* Blok penutup hijau tua: dipakai juga sebagai latar kutipan dan ajakan. */
-:root[data-theme-preset="srikandi"] .public-site .pub-cta,
-:root[data-theme-preset="srikandi"] .public-site .pub-quote {
+/* Ajakan berwarna hutan; kutipan memakai permukaan lembut agar berbeda hierarki. */
+:root[data-theme-preset="srikandi"] .public-site .pub-cta {
   background: #064e3b;
   color: #ecfdf5;
 }
@@ -135,7 +134,7 @@
   color: #fdf3d2;
 }
 
-/* V9.2 memakai emas untuk aksen kecil: penanda bagian, ikon panah FAQ. */
+/* Aksen bagian dan ikon FAQ memakai hijau tua agar teks kecil tetap kontras. */
 :root[data-theme-preset="srikandi"] .public-site .pub-kicker,
 :root[data-theme-preset="srikandi"] .public-site .pub-kicker > span,
 :root[data-theme-preset="srikandi"] .public-site .pub-faq-item summary > svg {
@@ -152,10 +151,12 @@
 :root[data-theme-preset="srikandi"] .public-site {
   --primary: oklch(0.5191 0.1477 146.85);
   --foreground: oklch(0.2168 0.0373 258.84);
-  --border: oklch(0.9386 0.0121 259.82);
+  --border: #8392a6;
   --muted: oklch(0.9663 0.0074 260.73);
   --muted-foreground: oklch(0.5239 0.0306 257.07);
   --secondary: oklch(0.9663 0.0074 260.73);
+  --input: #8392a6;
+  --ring: #065f46;
 }
 
 /* Mode gelap: V9.2 tidak punya palet gelap, jadi ini turunan — hijau dan emas
@@ -166,16 +167,18 @@
   --pub-ink: #e6f0e9;
   --pub-green: #22a34a;
   --pub-gold: #f0b429;
-  --pub-line: #26372c;
+  --pub-line: #607466;
   --pub-muted: #a7bbae;
   background: #0d1a12;
   color: #e6f0e9;
   --primary: oklch(0.6288 0.1674 148.50);
   --foreground: oklch(0.9474 0.0116 153.67);
-  --border: oklch(0.3181 0.0297 155.95);
+  --border: #607466;
   --muted: oklch(0.2720 0.0275 154.99);
   --muted-foreground: oklch(0.7476 0.0288 157.15);
   --secondary: oklch(0.2720 0.0275 154.99);
+  --input: #607466;
+  --ring: #8bd6a1;
 }
 
 .dark:root[data-theme-preset="srikandi"] .public-site p {
@@ -195,7 +198,7 @@
 .dark:root[data-theme-preset="srikandi"] .public-site .public-header,
 .dark:root[data-theme-preset="srikandi"] .public-site .public-footer {
   background: #131f17;
-  border-color: #26372c;
+  border-color: #607466;
 }
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-button {
@@ -215,10 +218,14 @@
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-button.outline {
   color: #7fd99a;
-  border-color: #26372c;
+  border-color: #607466;
 }
 
-.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta {
+  background: #08130c;
+  color: #cfe3d6;
+}
+
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-quote {
   background: #08130c;
   color: #cfe3d6;
@@ -235,7 +242,7 @@
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-back-top {
   background: #22a34a;
-  border-color: #0d1a12;
+  border-color: #8bd6a1;
   color: #05230f;
 }
 
@@ -247,4 +254,41 @@
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span {
   background: #f0b429 !important;
+}
+
+/* Dark-mode surfaces for the new public landing composition. These rules are
+   deliberately scoped to the landing component, not shared dashboard pages. */
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-white {
+  background-color: #131f17 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-stone-50 {
+  background-color: #0d1a12 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-emerald-50 {
+  background-color: #1b3022 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .border-stone-200 {
+  border-color: #34483a !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-emerald-950 {
+  color: #e6f0e9 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-emerald-800,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-emerald-700 {
+  color: #8bd6a1 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-stone-500,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-stone-600 {
+  color: #a7bbae !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-emerald-900 {
+  background-color: #1d6a3e !important;
+  color: #ffffff !important;
 }
