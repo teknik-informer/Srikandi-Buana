@@ -46,3 +46,200 @@
 .public-social-links>.social-unconfigured{color:var(--color-stone-500);background:var(--color-stone-100)}
 
 .pub-cta .site-wordmark{width:132px}.pub-cta .site-brand{flex-shrink:0}.pub-news-art .site-wordmark{width:180px}.public-mega-feature .site-wordmark,.dark .public-mega-feature .site-wordmark{display:block;width:180px;height:auto;max-width:100%;object-fit:contain;filter:none!important;-webkit-filter:none!important;opacity:1!important;transform:none!important;text-shadow:none;image-rendering:auto}
+
+/* ---------------------------------------------------------------------------
+   Palet publik · Srikandi
+   Dipasang setelah theme-boot menetapkan data-theme-preset="srikandi".
+   Lingkupnya hanya .public-site: panel /dashboard tidak tersentuh, dan preset
+   lain tetap memakai palet emerald yang sudah ada.
+   Hanya nilai yang memang sudah dipakai di berkas ini yang diganti.
+--------------------------------------------------------------------------- */
+:root[data-theme-preset="srikandi"] .public-site {
+  --pub-cream: #fdf3d2;
+  --pub-paper: #f8fafe;
+  --pub-ink: #0f1a2b;
+  --pub-green: #127e2f;
+  --pub-gold: #b8860b;
+  --pub-line: #e6ebf3;
+  --pub-muted: #5c6a7d;
+  background: #f8fafe;
+  color: #0f1a2b;
+}
+
+:root[data-theme-preset="srikandi"] .public-site p {
+  color: #5c6a7d;
+}
+
+/* Kepala situs: garis atas memakai hijau tua, bukan hijau terang, agar teks
+   kecil di dalamnya tetap terbaca. */
+:root[data-theme-preset="srikandi"] .public-site .public-topline {
+  background: #1e4e1f;
+  color: #e3f5e8;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .public-brand > span {
+  background: #127e2f;
+  color: #fdf3d2;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .public-header,
+:root[data-theme-preset="srikandi"] .public-site .public-footer {
+  background: #ffffff;
+  border-color: #e6ebf3;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button {
+  background: #127e2f;
+  color: #ffffff;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button:hover {
+  background: #0d5f22;
+  color: #ffffff;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button.cream {
+  background: #fdf3d2;
+  color: #127e2f;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button.outline {
+  color: #127e2f;
+  border-color: #cbd4e2;
+}
+
+/* Blok penutup hijau tua: dipakai juga sebagai latar kutipan dan ajakan. */
+:root[data-theme-preset="srikandi"] .public-site .pub-cta,
+:root[data-theme-preset="srikandi"] .public-site .pub-quote {
+  background: #1e4e1f;
+  color: #e3f5e8;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-cta .pub-kicker,
+:root[data-theme-preset="srikandi"] .public-site .pub-cta p:not(.pub-kicker) {
+  color: #cfe3d6;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-quote blockquote {
+  color: #f3faf5;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-back-top {
+  background: #127e2f;
+  border-color: #1e4e1f;
+  color: #fdf3d2;
+}
+
+/* V9.2 memakai emas untuk aksen kecil: penanda bagian, ikon panah FAQ. */
+:root[data-theme-preset="srikandi"] .public-site .pub-kicker,
+:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span,
+:root[data-theme-preset="srikandi"] .public-site .pub-faq-item summary > svg {
+  color: #b8860b !important;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span {
+  background: #b8860b !important;
+}
+
+/* Token shadcn yang dipakai baki pencarian dan bilah galeri ikut dipetakan,
+   supaya satu-satunya bagian publik yang memakai token aplikasi tidak
+   tertinggal pada palet lama. */
+:root[data-theme-preset="srikandi"] .public-site {
+  --primary: oklch(0.5191 0.1477 146.85);
+  --foreground: oklch(0.2168 0.0373 258.84);
+  --border: oklch(0.9386 0.0121 259.82);
+  --muted: oklch(0.9663 0.0074 260.73);
+  --muted-foreground: oklch(0.5239 0.0306 257.07);
+  --secondary: oklch(0.9663 0.0074 260.73);
+}
+
+/* Mode gelap: V9.2 tidak punya palet gelap, jadi ini turunan — hijau dan emas
+   V9.2 ditempatkan di atas netral hutan, sama seperti preset panel. */
+.dark:root[data-theme-preset="srikandi"] .public-site {
+  --pub-cream: #3d2f14;
+  --pub-paper: #0d1a12;
+  --pub-ink: #e6f0e9;
+  --pub-green: #22a34a;
+  --pub-gold: #f0b429;
+  --pub-line: #26372c;
+  --pub-muted: #a7bbae;
+  background: #0d1a12;
+  color: #e6f0e9;
+  --primary: oklch(0.6288 0.1674 148.50);
+  --foreground: oklch(0.9474 0.0116 153.67);
+  --border: oklch(0.3181 0.0297 155.95);
+  --muted: oklch(0.2720 0.0275 154.99);
+  --muted-foreground: oklch(0.7476 0.0288 157.15);
+  --secondary: oklch(0.2720 0.0275 154.99);
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site p {
+  color: #a7bbae;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-topline {
+  background: #08130c;
+  color: #cfe3d6;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-brand > span {
+  background: #22a34a;
+  color: #05230f;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-header,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-footer {
+  background: #131f17;
+  border-color: #26372c;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button {
+  background: #22a34a;
+  color: #05230f;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button:hover {
+  background: #2bb857;
+  color: #05230f;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button.cream {
+  background: #3d2f14;
+  color: #f7e2ac;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button.outline {
+  color: #7fd99a;
+  border-color: #26372c;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-quote {
+  background: #08130c;
+  color: #cfe3d6;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta .pub-kicker,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta p:not(.pub-kicker) {
+  color: #a7bbae;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-quote blockquote {
+  color: #e6f0e9;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-back-top {
+  background: #22a34a;
+  border-color: #0d1a12;
+  color: #05230f;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-kicker,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-faq-item summary > svg {
+  color: #f0b429 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span {
+  background: #f0b429 !important;
+}

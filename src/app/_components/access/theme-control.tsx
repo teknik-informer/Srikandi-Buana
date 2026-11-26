@@ -43,16 +43,22 @@ function writeCookie(name: string, value: string) {
 
 export default function ThemeControl() {
   const [mode, setMode] = useState<Mode>("system");
-  const [preset, setPreset] = useState<ThemePreset>("default");
+  const [preset, setPreset] = useState<ThemePreset>("srikandi");
   useEffect(() => {
+    /* Skrip boot sudah memasang atribut sebelum hidrasi. Membacanya kembali di
+       sini — alih-alih menebak bawaan — membuat tombol menampilkan gaya yang
+       benar-benar sedang berlaku, termasuk bawaan baru. */
+    const dariDom = document.documentElement.getAttribute(presetAttribute);
+    if (dariDom && (THEME_PRESET_VALUES as readonly string[]).includes(dariDom)) {
+      setPreset(dariDom as ThemePreset);
+    }
+    const modeDom = document.documentElement.getAttribute("data-theme-mode");
     try {
       const stored = localStorage.getItem("sb-theme");
       if (stored && modes.includes(stored as Mode)) setMode(stored as Mode);
+      else if (modeDom && modes.includes(modeDom as Mode)) setMode(modeDom as Mode);
+      else if (document.documentElement.classList.contains("dark")) setMode("dark");
     } catch {}
-    const savedPreset = readCookie(presetCookie);
-    if (savedPreset && (THEME_PRESET_VALUES as readonly string[]).includes(savedPreset)) {
-      setPreset(savedPreset as ThemePreset);
-    }
   }, []);
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -65,11 +71,7 @@ export default function ThemeControl() {
 
   /* Preset hanya dipasang bila bukan default — atribut default sudah dipegang :root. */
   useEffect(() => {
-    if (preset === "default") {
-      document.documentElement.removeAttribute(presetAttribute);
-    } else {
-      document.documentElement.setAttribute(presetAttribute, preset);
-    }
+    document.documentElement.setAttribute(presetAttribute, preset);
   }, [preset]);
 
   const next = modes[(modes.indexOf(mode) + 1) % modes.length];
@@ -87,6 +89,10 @@ export default function ThemeControl() {
         try {
           localStorage.setItem("sb-theme", next);
         } catch {}
+        /* Cookie yang sama dibaca theme-boot sebelum hidrasi; atribut data-theme-mode
+           juga dipasang supaya perilakunya sama dengan preset. */
+        document.documentElement.setAttribute("data-theme-mode", next);
+        writeCookie("theme_mode", next);
       }}
       onContextMenu={(event) => {
         event.preventDefault();

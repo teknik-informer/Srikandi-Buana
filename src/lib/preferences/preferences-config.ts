@@ -62,7 +62,10 @@ export const PREFERENCE_REGISTRY = {
 
   theme_preset: definePreference({
     values: THEME_PRESET_VALUES,
-    defaultValue: "default",
+    /* Palet Srikandi jadi bawaan situs. Pengunjung yang pernah memilih gaya
+       lain tetap memakai pilihannya sendiri, karena cookie lebih diutamakan
+       daripada nilai bawaan ini. */
+    defaultValue: "srikandi",
     persistence: "client-cookie",
     attribute: "data-theme-preset",
   }),
