@@ -27,17 +27,19 @@ export async function saveAttendanceRecord(
 ) {
   const auditId = crypto.randomUUID();
   const sql = [
-    "WITH changed AS (",
+    "WITH event_guard AS MATERIALIZED (",
+    "SELECT event.id FROM records AS event",
+    "WHERE event.id=? AND event.owner=? AND event.kind='kegiatan' AND event.updated=?",
+    "FOR UPDATE",
+    "),",
+    "changed AS (",
     "INSERT INTO records(id,owner,kind,data,created,updated)",
     "SELECT ?,?,'kehadiran',?,?,?",
     "WHERE (CAST(? AS TEXT) IS NULL OR EXISTS (",
     "  SELECT 1 FROM records AS current",
     "  WHERE current.id=? AND current.owner=? AND current.kind='kehadiran' AND current.updated=?",
     "))",
-    "AND EXISTS (",
-    "  SELECT 1 FROM records AS event",
-    "  WHERE event.id=? AND event.owner=? AND event.kind='kegiatan' AND event.updated=?",
-    ")",
+    "AND EXISTS (SELECT 1 FROM event_guard)",
     "ON CONFLICT(id) DO UPDATE SET",
     "data=EXCLUDED.data,",
     "updated=" + updatedTimestamp,
@@ -58,6 +60,9 @@ export async function saveAttendanceRecord(
   ].join("\n");
 
   const statement = db.prepare(sql).bind(
+    input.eventId,
+    input.owner,
+    input.eventUpdated,
     input.attendanceRecordId,
     input.owner,
     JSON.stringify(input.data),
@@ -67,9 +72,6 @@ export async function saveAttendanceRecord(
     input.attendanceRecordId,
     input.owner,
     input.expectedUpdated,
-    input.eventId,
-    input.owner,
-    input.eventUpdated,
     input.expectedUpdated,
     auditId,
     input.owner,
