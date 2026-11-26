@@ -118,7 +118,7 @@ test("bootstrap still renders when browser storage is blocked", () => {
 test("preset picker is an explicit accessible radio menu, not a right-click gesture", () => {
   assert.match(controlSource, /DropdownMenuRadioGroup/);
   assert.match(controlSource, /DropdownMenuRadioItem/);
-  assert.match(controlSource, /aria-label=\{\`Pilih gaya tampilan/);
+  assert.ok(controlSource.includes("Pilih gaya tampilan. Saat ini"));
   assert.doesNotMatch(controlSource, /onContextMenu/);
   assert.match(controlSource, /writeCookie\("theme_preset", nextPreset\)/);
   assert.match(controlSource, /writeCookie\("theme_mode", nextMode\)/);
