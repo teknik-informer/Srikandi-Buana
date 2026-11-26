@@ -39,6 +39,10 @@ jobs:
         run: npm run test:record-cas-postgres
         env:
           PG_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/srikandi_cas_test
+      - name: Atomic CAS application-domain PostgreSQL integration tests
+        run: npm run test:record-cas-postgres-domain
+        env:
+          PG_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/srikandi_cas_test
       - name: Production dependency security gate
         run: npm audit --omit=dev --audit-level=low
       - name: Full dependency security gate
