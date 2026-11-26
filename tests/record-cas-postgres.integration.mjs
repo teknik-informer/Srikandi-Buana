@@ -84,7 +84,7 @@ function bindSql(template, values) {
   return output;
 }
 
-const templateMatch = protectedSource.match(/const sql=`([\\s\\S]*?)`;(?:\\s*)const write=/);
+const templateMatch = protectedSource.match(/const sql=`([\s\S]*?)`;\s*const write=/);
 assert(templateMatch, "Could not extract the current production CAS statement.");
 const productionCasTemplate = templateMatch[1];
 const schema = "cas_" + randomUUID().replace(/-/g, "");
