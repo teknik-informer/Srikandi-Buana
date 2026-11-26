@@ -354,3 +354,47 @@ Reviewer handoff: [Issue #65 — atomic record CAS](https://github.com/teknik-in
 4. **Operational proof:** jalankan browser UAT untuk aktivasi email, login pertama, reset password, perubahan email, logout/revocation dan akses role; catat exact Preview commit dan hasilnya. Jangan menganggap automated fixture test sebagai bukti UAT.
 
 **Status keseluruhan member identity:** `partial` — fondasi proteksi dan alur aktivasi nyata telah ditemukan serta memiliki automated test, tetapi lifecycle audit, concurrency, kegagalan parsial, dan browser UAT belum seluruhnya dibuktikan.
+
+### 12.7 Agriculture and attendance lifecycle audit — Production baseline
+
+**Ref yang diperiksa:** Production baseline `1c498abdfac8169432db62c91d0c96fb48072039`. Source: `src/app/api/agriculture/route.ts`, `src/app/api/attendance/route.ts`, `src/lib/external-agriculture-summary.ts`, `migrations/006_agriculture_domain.sql`, `scripts/verify-agriculture.mjs`, `scripts/verify-roles.mjs`.
+
+#### Agriculture — capability evidence
+
+| Submodul/operasi | Bukti yang ditemukan | Status | Gap/risiko yang belum ditutup |
+|---|---|---|---|
+| Komoditas | Create master komoditas; normalisasi slug; validasi satuan; unique code per workspace; audit event dalam batch | `partial` | Tidak ditemukan pada route ini operasi update/archive master komoditas; perlu pastikan apakah memang dikelola di tempat lain atau belum tersedia |
+| Register lahan | Create/update/archive; hanya anggota aktif dan terverifikasi; kode unik per workspace; validasi luas dan tenure; perubahan data mengembalikan verifikasi ke pending; archive mempertahankan relasi/histori | `partial` | Tidak ada geometri/polygon/GPS/geotag pada schema/handler yang diperiksa; koordinat dan validasi batas lahan belum terbukti |
+| Siklus tanam | Create dengan lahan dan komoditas aktif dalam workspace sama; luas tanam dibatasi luas lahan; tanggal tanam/perkiraan panen divalidasi | `partial` | Tidak ditemukan operasi edit/status lifecycle siklus tanam pada handler yang diperiksa; status domain ada di schema tetapi transisi operasional belum dibuktikan |
+| Panen | Create berdasarkan siklus yang tersedia dan bukan gagal; satuan diturunkan dari komoditas; kuantitas/tanggal divalidasi | `partial` | Tidak ditemukan operasi edit/koreksi/void panen pada handler yang diperiksa; kontrol tanggal panen terhadap tanggal tanam dan multi-harvest/lot belum terbukti |
+| Verifikasi berjenjang | Sekretariat/admin memverifikasi atau menolak lahan, siklus, panen; alasan penolakan wajib; siklus mensyaratkan lahan verified; panen mensyaratkan lahan dan siklus verified | `partial` | Perlu uji transisi berulang, perubahan parent setelah child verified, race antar-verifikator, dan atomicity update + audit |
+| External agriculture projection | Hanya grant sesuai scope; anggota minimal 5 dan kontribusi lahan/panen minimal 3 anggota untuk mengungkap agregat; hanya data verified; tanpa PII/koordinat presisi | `partial` | Perlu test query integration dan UAT per grant/audience; threshold harus ditinjau sebagai konfigurasi/policy bila organisasi/mitra menghendaki angka lain |
+| Audit trail | `agriculture_audit` mencatat actor/role/action/target/reason/details; dibatasi untuk Sekretariat/admin pada GET | `partial` | Perlu bukti immutable access, before/after diff, correlation ID, dan uji atomic failure agar audit tidak terpisah dari mutasi |
+
+#### Agriculture — schema dan automated-test evidence
+
+Migration `006_agriculture_domain.sql` mendefinisikan `agriculture_commodities`, `farm_parcels`, `crop_cycles`, `harvest_records`, dan `agriculture_audit`. Foreign key composite mengikat anggota, lahan, komoditas, siklus, dan panen ke workspace yang sama; terdapat constraint status, satuan, luas, kuantitas, tanggal, dan unique code.
+
+`scripts/verify-agriculture.mjs` menjalankan migration pada `pg-mem` fixture dan memeriksa constraint relasi lintas workspace/jenis record, unit, duplicate commodity, serta beberapa policy dan source assertions. Ini **bukan** integration test yang memanggil handler POST/PATCH terhadap database, bukan test concurrency, bukan live DB, dan bukan browser UAT. Karena itu status keseluruhan Agriculture tetap `partial`, bukan `verified-working`.
+
+#### Attendance — handler and evidence
+
+| Operasi | Bukti source | Status | Gap/risiko |
+|---|---|---|---|
+| Simpan daftar hadir | `PUT /api/attendance` memerlukan login, modul HRM aktif, role sekretaris/admin, same-origin, DB tersedia; validasi event kegiatan owner-scoped, deduplikasi memberIds, validasi anggota dalam workspace; menulis `records.kind='kehadiran'`, audit, dan normalized V14 attendance statements melalui `db.batch` | `partial` | Satu endpoint PUT; tidak terlihat expectedUpdated/CAS, sehingga dua petugas dapat saling menimpa data kehadiran tanpa konflik versi yang eksplisit |
+| Status peserta | Handler generic menetapkan semua `memberStatuses` menjadi `Hadir penuh` dan `externalParticipants: []` | `partial` | Belum ada bukti status izin/sakit/alpa/terlambat/parsial, peserta nonanggota, check-in timestamp, atau bukti koreksi per peserta melalui endpoint ini |
+| Audit dan sinkronisasi | Batch menyertakan audit record dan `buildV14AttendanceSyncStatements` | `partial` | Perlu uji rollback jika salah satu normalized write gagal; perlu pastikan batch adapter benar-benar all-or-nothing pada runtime yang dipakai |
+| Automated test | `scripts/verify-roles.mjs` memiliki skenario sukses PUT attendance untuk Sekretaris dengan satu member fixture | `partial` | Belum ditemukan test handler attendance untuk role terlarang, event lintas workspace, member lintas workspace, duplicate IDs, invalid payload/size, concurrency, rollback, atau sinkronisasi seluruh status |
+| HRM attendance terpisah | `src/app/api/hrm/attendance/route.ts` adalah handler berbeda | `unknown` untuk lifecycle lengkap | Jangan menyamakan route ini dengan generic register; perlu audit GET/POST/PUT/DELETE dan relasi sesi/presensi tersendiri |
+
+**Kesimpulan audit tahap ini:** Agriculture mempunyai schema relasional dan lifecycle create/verify/archive yang nyata, tetapi belum mencakup bukti seluruh operasi lapangan dan belum memiliki handler integration/concurrency test yang cukup. Generic attendance hanya membuktikan penyimpanan daftar anggota hadir penuh untuk satu event, bukan presensi lengkap. Kedua aplikasi tetap `partial`.
+
+**Prioritas tindak lanjut P1:**
+1. Tambahkan handler-level integration tests untuk seluruh Agriculture POST/PATCH actions, role matrix, tenant isolation, validation, transition order, duplicate/concurrent verification, serta rollback audit.
+2. Tambahkan expected version/CAS pada update lahan dan status verifikasi; audit harus ikut hanya jika mutasi berhasil.
+3. Tetapkan secara eksplisit apakah geometri/geotag dibutuhkan; jangan menambahkan pengumpulan koordinat sebelum dasar tujuan, izin, dan akses ditetapkan.
+4. Lengkapi lifecycle attendance: status kehadiran per anggota, koreksi dengan alasan, version conflict, event/member scope, normalized sync dan rollback test.
+5. Audit HRM attendance route secara terpisah sebelum menyatakan fitur presensi selesai.
+6. Jalankan Preview dan browser UAT hanya pada exact commit yang benar; status UAT tetap belum dibuktikan dalam audit ini.
+
+Tidak ada perubahan schema, migration, database, data, auth/session, RBAC, environment, domain, billing, atau Production yang dilakukan dalam audit ini.
