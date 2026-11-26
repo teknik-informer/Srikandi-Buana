@@ -46,3 +46,158 @@
 .public-social-links>.social-unconfigured{color:var(--color-stone-500);background:var(--color-stone-100)}
 
 .pub-cta .site-wordmark{width:132px}.pub-cta .site-brand{flex-shrink:0}.pub-news-art .site-wordmark{width:180px}.public-mega-feature .site-wordmark,.dark .public-mega-feature .site-wordmark{display:block;width:180px;height:auto;max-width:100%;object-fit:contain;filter:none!important;-webkit-filter:none!important;opacity:1!important;transform:none!important;text-shadow:none;image-rendering:auto}
+
+/* ---------------------------------------------------------------------------
+   Palet publik · Srikandi
+   Aktif setelah theme-boot memasang data-theme-preset="srikandi" (kini bawaan).
+   Lingkup .public-site saja: panel /dashboard tidak tersentuh, dan pengunjung
+   yang memilih gaya lain tidak terpengaruh.
+   Warna diambil dari kosakata produksi sendiri — emerald tua dan kertas stone
+   hangat — bukan hijau terang #127e2f, dan emas hanya untuk aksen garis.
+   Setiap pasangan teks di bawah sudah diukur (lihat catatan di akhir).
+--------------------------------------------------------------------------- */
+:root[data-theme-preset="srikandi"] .public-site {
+  --pub-cream: #fef3c7;
+  --pub-paper: #fafaf9;
+  --pub-ink: #022c22;
+  --pub-green: #064e3b;
+  --pub-gold: #a16207;
+  --pub-line: #e7e5e4;
+  --pub-muted: #57534e;
+  background: #fafaf9;
+  color: #022c22;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .public-topline {
+  background: #064e3b;
+  color: #d1fae5;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .public-brand > span {
+  background: #064e3b;
+  color: #fef3c7;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .public-header,
+:root[data-theme-preset="srikandi"] .public-site .public-footer {
+  background: #ffffff;
+  border-color: #e7e5e4;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button,
+:root[data-theme-preset="srikandi"] .public-site .pub-back-top {
+  background: #064e3b;
+  color: #ffffff;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button:hover {
+  background: #065f46;
+  color: #ffffff;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button.cream {
+  background: #fef3c7;
+  color: #064e3b;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-button.outline {
+  color: #064e3b;
+  border-color: #e7e5e4;
+}
+
+/* Kutipan tetap lembut, bukan blok hijau pekat. Ajakan tetap hijau tua. */
+:root[data-theme-preset="srikandi"] .public-site .pub-quote {
+  background: #ecfdf5;
+  color: #064e3b;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-quote blockquote {
+  color: #064e3b;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-cta {
+  background: #064e3b;
+  color: #ecfdf5;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-cta .pub-kicker,
+:root[data-theme-preset="srikandi"] .public-site .pub-cta p:not(.pub-kicker) {
+  color: #d1fae5;
+}
+
+/* Emas hanya pada penanda kecil dan ikon, tidak pernah pada teks isi. */
+:root[data-theme-preset="srikandi"] .public-site .pub-kicker,
+:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span,
+:root[data-theme-preset="srikandi"] .public-site .pub-faq-item summary > svg {
+  color: #065f46 !important;
+}
+
+:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span {
+  background: #065f46 !important;
+}
+
+:root[data-theme-preset="srikandi"] .public-site :is(.pub-vision, .pub-hero-seal) svg {
+  color: #a16207;
+}
+
+/* Token aplikasi yang dipakai baki pencarian dan bilah galeri. */
+:root[data-theme-preset="srikandi"] .public-site {
+  --primary: oklch(0.3958 0.0985 168.79);
+  --foreground: oklch(0.2168 0.0373 258.84);
+  --border: oklch(0.9386 0.0121 259.82);
+  --muted: oklch(0.9663 0.0074 260.73);
+  --muted-foreground: oklch(0.5239 0.0306 257.07);
+  --secondary: oklch(0.9663 0.0074 260.73);
+}
+
+/* Mode gelap: turunan, sebab V9.2 tidak punya palet gelap. */
+.dark:root[data-theme-preset="srikandi"] .public-site {
+  --pub-cream: #422006;
+  --pub-paper: #0c1a14;
+  --pub-ink: #ecfdf5;
+  --pub-green: #34d399;
+  --pub-gold: #fbbf24;
+  --pub-line: #1f2f28;
+  --pub-muted: #a8bfb4;
+  background: #0c1a14;
+  color: #ecfdf5;
+  --primary: oklch(0.7686 0.1403 160.03);
+  --foreground: oklch(0.9686 0.0141 155.83);
+  --border: oklch(0.3126 0.0216 160.81);
+  --muted: oklch(0.2531 0.0188 161.64);
+  --muted-foreground: oklch(0.7526 0.0247 158.87);
+  --secondary: oklch(0.2531 0.0188 161.64);
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-header,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-footer {
+  background: #0f2219;
+  border-color: #1f2f28;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-topline {
+  background: #06110c;
+  color: #d1fae5;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button {
+  background: #34d399;
+  color: #052e1b;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-quote {
+  background: #0f2219;
+  color: #ecfdf5;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta {
+  background: #06110c;
+  color: #ecfdf5;
+}
+
+/* Kontras terukur (WCAG), 13 pasangan, terendah 7.30, semua ≥ AA:
+   putih/#064e3b 9.72 · #065f46/#fafaf9 7.36 · #57534e/#fafaf9 7.30
+   #064e3b/#ecfdf5 9.23 · #d1fae5/#064e3b 8.57 · #064e3b/#fef3c7 8.73
+   #a8bfb4/#0c1a14 9.18 · #ecfdf5/#0c1a14 16.99 · #052e1b/#34d399 7.73
+   Skrip: scripts/verify-theme-contrast.mjs hanya memeriksa preset panel;
+   angka di atas diukur terpisah untuk lingkup .public-site. */

@@ -46,7 +46,9 @@
   }
 
   var preset = readCookie("theme_preset");
-  if (validPresets.indexOf(preset) === -1) preset = "default";
+  // Bawaan situs: palet Srikandi. Cookie tetap menang bila pengunjung
+  // pernah memilih gaya lain.
+  if (validPresets.indexOf(preset) === -1) preset = "srikandi";
 
   root.setAttribute("data-theme-mode", mode);
   root.setAttribute("data-theme-preset", preset);
