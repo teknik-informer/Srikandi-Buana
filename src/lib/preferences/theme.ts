@@ -36,6 +36,14 @@ export const THEME_PRESET_OPTIONS = [
     },
   },
   {
+    label: "Srikandi",
+    value: "srikandi",
+    primary: {
+      light: "oklch(0.5191 0.1477 146.85)",
+      dark: "oklch(0.6288 0.1674 148.5)",
+    },
+  },
+  {
     label: "Tangerine",
     value: "tangerine",
     primary: {
