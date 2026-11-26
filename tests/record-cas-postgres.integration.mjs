@@ -14,7 +14,7 @@ assert(runtimeSource.includes("isolationLevel:'Serializable'"), "The production 
 
 function runPsql(sql) {
   return new Promise((resolve, reject) => {
-    const child = spawn("psql", [databaseUrl, "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1"], {
+    const child = spawn("psql", ["-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1", databaseUrl], {
       env: { ...process.env, PGSSLMODE: process.env.PGSSLMODE || "disable" },
       stdio: ["pipe", "pipe", "pipe"],
     });
