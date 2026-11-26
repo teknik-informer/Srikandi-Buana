@@ -82,4 +82,10 @@ const duplicateOperation=(await prepare('SELECT status,cash_record_id FROM opera
 assert.equal(duplicateOperation.status,'approved','Failed duplicate cash fulfillment must leave the second request approved');
 assert.equal(duplicateOperation.cash_record_id,null,'Failed duplicate cash fulfillment must not attach the already-used cash record');
 assert.equal((await pool.query('SELECT COUNT(*) AS count FROM operational_requests WHERE owner=$1 AND cash_record_id=$2',[owner,cashRecordId])).rows[0].count,1,'A second request must never release or steal the first request cash link');
+const operationsApiSource=readFileSync('src/app/api/operations/route.ts','utf8');
+const operationsWorkspaceSource=readFileSync('src/app/_components/enterprise-workspace.tsx','utf8');
+assert(operationsApiSource.includes("r.id<>?"),'An already-linked cash record may be listed only to its own reopened request, never another request');
+assert(operationsApiSource.includes("item.cash_record_id&&item.cash_record_id!==cashId"),'A reopened request cannot replace its posted cash link with a different transaction');
+assert(operationsApiSource.includes("updateOperation(user,item,{status:'approved'},action,note)"),'Reopening a fulfilled financial request must retain its cash_record_id');
+assert(operationsWorkspaceSource.includes("setCashId(String(d.item.cash_record_id||''))"),'The UI must preselect the retained cash transaction when reloading an operation detail');
 console.log('PASS enterprise real handlers: authentication, origin/account guard, draft/proof privacy, workspace isolation, six-role self-approval restriction, versioned state transitions, required expense proof, audit rollback, and one-to-one cash realization retention across reopen/retry.');
