@@ -347,7 +347,11 @@ await runPsql(
 );
 
 const cashOutcome = await raceTwoUpdates(async writer => {
-  const nextData = { ...cashData, notes: writer + " won the source update" };
+  const nextData = {
+    ...cashData,
+    name: cashData.name + " · " + writer,
+    notes: writer + " won the source update",
+  };
   const ledgerWrites = await finance.buildCashLedgerPostingStatements(database, {
     owner,
     actorId: owner,
@@ -365,11 +369,13 @@ const cashState = await query(
   "SELECT data,updated FROM public.records WHERE id=" + sqlLiteral(cashId) + " AND owner=" + sqlLiteral(owner)
 );
 assert.equal(cashState.length, 1);
-assert(/Writer [AB] won the source update/.test(JSON.parse(cashState[0].data).notes), "The winning cash source payload must be committed.");
+const cashWinnerData = JSON.parse(cashState[0].data);
+assert(/Writer [AB] won the source update/.test(cashWinnerData.notes), "The winning cash source payload must be committed.");
 const cashJournal = await query(
-  "SELECT id FROM public.ledger_entries WHERE owner=" + sqlLiteral(owner) + " AND reference=" + sqlLiteral("KAS-" + cashId)
+  "SELECT id,memo FROM public.ledger_entries WHERE owner=" + sqlLiteral(owner) + " AND reference=" + sqlLiteral("KAS-" + cashId)
 );
 assert.equal(cashJournal.length, 1, "Exactly one journal must be posted for the winning cash update.");
+assert(cashJournal[0].memo.includes(cashWinnerData.name), "The posted journal memo must belong to the winning writer, not the losing request.");
 const cashLines = await query(
   "SELECT id,debit,credit FROM public.ledger_lines WHERE owner=" + sqlLiteral(owner) +
   " AND entry_id=" + sqlLiteral(cashJournal[0].id)
@@ -383,10 +389,11 @@ const cashSourceAudit = await query(
 );
 assert.equal(cashSourceAudit.length, 1, "Only the winning cash source audit may commit.");
 const cashPostingAudit = await query(
-  "SELECT id FROM public.audit WHERE owner=" + sqlLiteral(owner) +
+  "SELECT id,title FROM public.audit WHERE owner=" + sqlLiteral(owner) +
   " AND action='Buku Kas diposting ke Buku Besar' AND title LIKE " + sqlLiteral("KAS-" + cashId + "%")
 );
 assert.equal(cashPostingAudit.length, 1, "Only the winning ledger-posting audit may commit.");
+assert(cashPostingAudit[0].title.includes(cashWinnerData.name), "The posting audit must identify the winning payload only.");
 console.log("PASS real PostgreSQL cash handler primitive: one winner, one 409, one source audit, one posting audit, one balanced two-line journal.");
 
 const assetId = randomUUID();
@@ -447,19 +454,31 @@ const inventory = await query(
   " AND source_legacy_asset_id=" + sqlLiteral(assetId)
 );
 assert.equal(inventory.length, 1, "Exactly one normalized V14 inventory item must be committed.");
+const assetWinnerData = JSON.parse(assetState[0].data);
+assert(/Writer [AB] issued the asset/.test(assetWinnerData.notes), "The winning asset source payload must be committed.");
 const assignments = await query(
-  "SELECT id,assignment_status FROM workspace_v14.member_asset_assignments WHERE id=" +
+  "SELECT id,assignment_status,purpose FROM workspace_v14.member_asset_assignments WHERE id=" +
   sqlLiteral("v14:asset-assignment:" + assetId) + " AND organization_id=" + sqlLiteral(organizationId)
 );
 assert.equal(assignments.length, 1, "Exactly one member-asset assignment must be committed.");
 assert.equal(assignments[0].assignment_status, "issued");
+assert.equal(assignments[0].purpose, assetWinnerData.notes, "The assignment purpose must match the winning writer, never the loser.");
 const assetEvents = await query(
-  "SELECT id,event_type,to_status FROM workspace_v14.member_asset_movement_events WHERE assignment_id=" +
+  "SELECT id,event_type,to_status,notes FROM workspace_v14.member_asset_movement_events WHERE assignment_id=" +
   sqlLiteral(assignments[0].id) + " AND organization_id=" + sqlLiteral(organizationId)
 );
 assert.equal(assetEvents.length, 1, "Only the winning asset update may append its V14 movement event.");
 assert.equal(assetEvents[0].event_type, "issued");
 assert.equal(assetEvents[0].to_status, "Dipinjam");
+assert.equal(assetEvents[0].notes, assetWinnerData.notes, "Append-only movement evidence must correspond to the winning writer.");
+const immutableEventRejected = await runPsql(
+  "UPDATE workspace_v14.member_asset_movement_events SET notes='unauthorized mutation' WHERE id=" + sqlLiteral(assetEvents[0].id) + ";"
+).then(() => false, () => true);
+assert.equal(immutableEventRejected, true, "The production append-only trigger must reject updates to movement history.");
+const preservedEvent = await query(
+  "SELECT notes FROM workspace_v14.member_asset_movement_events WHERE id=" + sqlLiteral(assetEvents[0].id)
+);
+assert.equal(preservedEvent[0].notes, assetWinnerData.notes, "Rejected mutation must not alter the committed movement event.");
 const assetMap = await query(
   "SELECT id,migration_status FROM workspace_v14.legacy_record_map WHERE organization_id=" +
   sqlLiteral(organizationId) + " AND source_schema='public' AND source_table='records' AND source_id=" + sqlLiteral(assetId)
