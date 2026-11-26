@@ -127,7 +127,7 @@ class PostgresDatabase {
   }
   async execute(statement) {
     const sql = bindSql(statement.text, statement.values);
-    if (sql.trimStart().startsWith("WITH changed AS (")) {
+    if (sql.trimStart().startsWith("WITH event_guard AS MATERIALIZED (") || sql.trimStart().startsWith("WITH changed AS (")) {
       if (this.raceGate) await this.waitAtConcurrentGate();
       const output = await runPsql(
         "BEGIN ISOLATION LEVEL READ COMMITTED;\nSELECT pg_sleep(0.25);\n" + sql + ";\nCOMMIT;"
@@ -150,7 +150,7 @@ class PostgresDatabase {
     };
   }
   async batch(statements) {
-    const isCas = statements[0]?.text.trimStart().startsWith("WITH changed AS (");
+    const isCas = statements[0]?.text.trimStart().startsWith("WITH event_guard AS MATERIALIZED (") || statements[0]?.text.trimStart().startsWith("WITH changed AS (");
     if (isCas && this.raceGate) await this.waitAtConcurrentGate();
 
     let script = "BEGIN ISOLATION LEVEL SERIALIZABLE;\n";
