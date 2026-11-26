@@ -330,6 +330,29 @@ Pada commit PR #67 `44988d917e4a44202e18e5bc7f415bf069e0e0e6`, dua check bernama
 5. Jalankan full CI pada exact implementation SHA; Preview/UAT dicatat terpisah.
 
 Reviewer handoff: [Issue #65 — atomic record CAS](https://github.com/teknik-informer/Srikandi-Buana/issues/65). Tidak ada perubahan Production, migration, data, auth/session, RBAC, environment, domain, atau billing yang diotorisasi oleh audit ini.
+### 12.5.1 Implementation follow-up — PR #63 exact head, 26 Nov 2026
+
+**Ref yang diperiksa:** PR #63 head `d058bcbfb6d446d0dd881fe72b4b00b85f4b0c72` pada branch non-Production `fix/record-version-required`. Perubahan ini adalah kandidat perbaikan; belum masuk Production.
+
+| Area | Perubahan pada branch | Bukti |
+|---|---|---|
+| Generic record edits | Semua edit diarahkan ke helper atomic CAS; kondisi UPDATE final memuat `id + owner + kind + updated=expectedUpdated`. | `src/app/api/records/route.ts` |
+| Audit | Audit ditulis dari CTE yang bergantung pada baris `changed`; CAS gagal mengaktifkan SQL guard error di dalam transaksi. | `src/lib/enterprise/protected-records.ts` |
+| Side effects | Normalized V14 dan ledger/asset statements tetap dalam Neon `sql.transaction(... isolationLevel: 'Serializable')` yang sama. SQL guard membuat transaction gagal sebelum statements turunan dapat commit bila CAS tidak berhasil. | `src/lib/runtime.ts`, `src/lib/enterprise/protected-records.ts` |
+| Kas/aset | Predicate CAS mempertahankan owner/kind/version serta proteksi relasi pengajuan operasional untuk kas/aset. | `src/lib/enterprise/protected-records.ts` |
+| Konflik | Missing version tetap 428; versi kalah tetap 409. Fixture menyisipkan competing update sesudah pre-read dan sebelum CAS. | `scripts/verify-roles.mjs` |
+
+**Test evidence:** GitHub Actions [run 45767432331](https://github.com/teknik-informer/Srikandi-Buana/actions/runs/45767432331) completed `success` pada exact SHA `d058bcbfb6d446d0dd881fe72b4b00b85f4b0c72`. Security gates, typecheck, regression tests dan Next.js build lulus. Fixture pg-mem memverifikasi request kas yang kalah menerima 409, versi pemenang tetap, tidak ada ledger entry/line dari request kalah, dan audit request kalah rollback.
+
+**Batas bukti wajib dipertahankan:**
+- Fixture mensimulasikan interleaving pada handler aktual, tetapi bukan dua request simultan ke PostgreSQL/Neon sungguhan. Acceptance test database nyata masih wajib.
+- Test sampel ini memverifikasi journal/ledger side effects. Pemeriksaan lengkap normalized V14 dan asset history harus ditambahkan pada integration test PostgreSQL/Neon terisolasi.
+- Vercel Preview belum tersedia karena batas harian `api-deployments-free-per-day`; Preview/browser UAT tidak dilakukan.
+
+**Status:** `implemented-on-isolated-branch / exact-head-CI-passed / PostgreSQL-concurrency-not-yet-verified / not-in-Production`. PR #63 tetap Draft/Hold dan Issue #65 tetap terbuka sampai integration test PostgreSQL/Neon serta acceptance side effects lengkap lulus.
+
+Tidak ada perubahan Production, schema/migration, data anggota, auth/session, RBAC, environment, domain atau billing.
+
 ### 12.6 Member identity, account activation and access recovery — Production baseline
 
 **Source yang diperiksa:** `src/app/api/accounts/route.ts`, `src/app/api/auth/activate/route.ts`, `src/app/api/account/route.ts`, `src/lib/auth.ts`, `src/lib/permissions.ts`, `scripts/verify-roles.mjs`, migration `021_member_self_service_identity.sql` dan `022_member_email_backfill.sql`.
