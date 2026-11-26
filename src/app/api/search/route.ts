@@ -117,7 +117,9 @@ export async function GET(request: Request) {
             ${href} AS href
           FROM v9.business_products
           WHERE organization_id = ${identity.organizationId}
-            AND publication_status <> 'archived'
+            AND (${can(identity, "organization:read") || can(identity, "field:usaha:read")} = true
+              OR (status = 'active' AND publication_status = 'published'))
+            AND status <> 'archived'
             AND (product_name ILIKE ${pattern} OR sku ILIKE ${pattern} OR reference_no ILIKE ${pattern})
           ORDER BY updated_at DESC, product_name
           LIMIT 6
