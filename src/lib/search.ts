@@ -140,7 +140,26 @@ function collect(): SearchHit[] {
   return rows;
 }
 
+/**
+ * Indeks pencarian.
+ *
+ * MENGAPA MASIH STATIS
+ * --------------------
+ * `collect()` membaca konstanta data (anggota, program, produk, jurnal, lahan,
+ * kabar) yang dimuat saat modul dievaluasi. Versi dinamis — membaca dokumen
+ * bersama supaya hasil pencarian mengikuti data yang benar-benar tersimpan —
+ * belum dikerjakan; itu menuntut indeks dibangun di server dan dikirim sebagai
+ * hasil pencarian, bukan sebagai konstanta modul.
+ *
+ * Yang sudah pasti: dokumen bersama adalah sumber kebenaran untuk halaman
+ * publik dan seluruh layar kerja (lihat `lib/state-store.ts`). Pencarian di
+ * sini masih memakai benih awal. Ini keterbatasan yang disengaja dan diketahui,
+ * bukan klaim bahwa pencarian sudah hidup.
+ */
 export const SEARCH_INDEX = collect();
+
+/** Apakah indeks ini mencerminkan dokumen bersama? Selalu false untuk sekarang. */
+export const SEARCH_INDEX_IS_LIVE = false;
 
 /** Score: exact prefix > word prefix > substring. Stable, no fuzzy magic. */
 function score(hit: SearchHit, term: string) {
