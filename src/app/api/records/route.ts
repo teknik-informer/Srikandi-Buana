@@ -57,7 +57,8 @@ async function save(req:Request,edit:boolean){try{const c=await context(req,true
   const oldData=JSON.parse(String(old.data)) as Data;
   previousRecordData=oldData;
   const oldRecord={id:String(old.id),kind:body.kind,data:oldData};const nextRecord={id:String(old.id),kind:body.kind,data};if(!canWriteRecord(c.user!,oldRecord)&&!canReviewFollowup(c.user!,oldRecord,nextRecord)&&!canPublishRecord(c.user!,oldRecord,nextRecord))return json({error:'Perubahan ini bukan kewenangan akun atau domain Anda.'},403);
-  if(body.expectedUpdated&&old.updated!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
+  if(typeof body.expectedUpdated!=="string"||!body.expectedUpdated.trim())return json({error:"Versi catatan tidak tersedia. Muat ulang data sebelum menyimpan perubahan."},428);
+  if(String(old.updated)!==body.expectedUpdated)return json({error:"Catatan sudah berubah di sesi lain. Muat ulang sebelum menyimpan."},409);
   if(body.kind==="tindaklanjut"){
    previousTaskData=oldData;
    if(c.user!.role!=="sekretaris"&&c.user!.role!=="admin"){
