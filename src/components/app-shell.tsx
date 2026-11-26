@@ -160,8 +160,15 @@ export function AppShell({
               search button that opens the search dialog (also ⌘K), then the
               bell and the person. The bar itself stays clean. */}
           <div className="ml-auto flex items-center gap-1.5">
-            <Link href="/app/cepat" className="hidden items-center gap-1 rounded-full bg-[#7ddc93] px-3.5 py-2 text-[12px] font-bold text-[#0e2a16] shadow-[0_6px_16px_-8px_rgba(0,0,0,0.5)] transition hover:bg-[#9ae8ac] sm:inline-flex">
-              <Plus size={14} /> Buat
+            {/* Dulu tautan ini berakhir di daftar tautan — tidak ada isian, tidak
+                ada hasil. Sekarang ia membuka formulir anggota langsung, dan
+                halaman tujuan tetap menjadi papan "Buat" untuk lima jenis lain. */}
+            <Link
+              href="/app/cepat?buat=anggota"
+              title="Catat anggota, petak lahan, agenda, surat, program, atau tugas"
+              className="hidden items-center gap-1 rounded-full bg-[#7ddc93] px-3.5 py-2 text-[12px] font-bold text-[#0e2a16] shadow-[0_6px_16px_-8px_rgba(0,0,0,0.5)] transition hover:bg-[#9ae8ac] sm:inline-flex"
+            >
+              <Plus size={14} /> Catat
             </Link>
 
             <SearchButton />
