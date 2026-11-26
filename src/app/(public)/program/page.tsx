@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { orgSummary } from "@/lib/org-summary";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 import { DataStamp } from "@/components/data-stamp";
 import { FIELDS } from "@/config/fields";
 import { formatDateID } from "@/lib/format";
@@ -30,6 +31,19 @@ export default async function ProgramPage({ searchParams }: { searchParams: Prom
 async function ProgramList({ searchParams }: { searchParams: Promise<{ bidang?: string }> }) {
   const { bidang } = await searchParams;
   const ringkas = await orgSummary();
+  const halaman = await halamanPublik("/program");
+  const judul = teksDari(
+    halaman.blocks,
+    "program-list",
+    "headline",
+    "Apa yang sedang kami kerjakan, dan sejauh mana.",
+  );
+  const pembuka = teksDari(
+    halaman.blocks,
+    "program-list",
+    "subheadline",
+    "Halaman ini menampilkan proyeksi publik dari program operasional yang telah disetujui. Angka capaian diperbarui dari aplikasi bidang; rincian transaksi keuangan tetap internal.",
+  );
   const { shared, updatedBy, updatedAt } = ringkas;
   const visible = ringkas.programs.filter((p) => p.published).filter((p) => !bidang || p.bidang === bidang);
 
@@ -37,13 +51,11 @@ async function ProgramList({ searchParams }: { searchParams: Promise<{ bidang?: 
     <div className="sb-shell py-12">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Program 2026</div>
+        {/* Judul & pembuka dari Website Studio. */}
         <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">
-          Apa yang sedang kami kerjakan, dan sejauh mana.
+          {judul}
         </h1>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink2">
-          Halaman ini menampilkan proyeksi publik dari program operasional yang telah disetujui.
-          Angka capaian diperbarui dari aplikasi bidang; rincian transaksi keuangan tetap internal.
-        </p>
+        <p className="mt-3 text-[14px] leading-relaxed text-ink2">{pembuka}</p>
       </div>
 
       <nav className="mt-7 flex flex-wrap gap-2">

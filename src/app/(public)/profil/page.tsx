@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ORG } from "@/config/org";
 import { FIELDS } from "@/config/fields";
 import { orgSummary } from "@/lib/org-summary";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 import { FieldMark } from "@/components/brand";
 import { Card, CardHeader, Badge, Notice } from "@/components/ui";
 
@@ -24,14 +25,17 @@ const MILESTONES = [
 export default async function ProfilPage() {
   // Susunan pengurus dibaca dari buku induk bersama, bukan konstanta.
   const { members: MEMBERS } = await orgSummary();
+  const halaman = await halamanPublik("/profil");
+  const judul = teksDari(halaman.blocks, "rich-text", "headline", "Sepuluh tahun merawat lahan dan kepercayaan.");
   const pengurus = MEMBERS.filter((m) => ["Ketua", "Sekretaris", "Bendahara"].includes(m.role));
 
   return (
     <div className="sb-shell py-12">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Profil organisasi</div>
+        {/* Judul dari Website Studio (tab Halaman → Profil). */}
         <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[42px]">
-          Sepuluh tahun merawat lahan dan kepercayaan.
+          {judul}
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-ink2">
           {ORG.legalName} adalah kelompok perempuan tani di {ORG.village}, {ORG.district},{" "}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ORG } from "@/config/org";
 import { Card, CardHeader, Notice } from "@/components/ui";
 import { Mail, MapPin, Clock, MessageCircle } from "lucide-react";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 export const metadata: Metadata = {
   title: "Kontak",
@@ -9,15 +10,17 @@ export const metadata: Metadata = {
 };
 
 export default async function KontakPage({ searchParams }: { searchParams: Promise<{ tujuan?: string }> }) {
+  const _hp = await halamanPublik("/kontak");
+  const judul = teksDari(_hp.blocks, "rich-text", "headline", "Bicara langsung dengan sekretariat.");
+  const pembuka = teksDari(_hp.blocks, "rich-text", "subheadline", "Untuk pertanyaan umum, kemitraan, atau permintaan informasi institusional.");
+
   const { tujuan } = await searchParams;
 
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Kontak</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Bicara langsung dengan sekretariat.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Untuk pertanyaan umum, kemitraan, atau permintaan informasi institusional.
-      </p>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
+      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">{pembuka}</p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>

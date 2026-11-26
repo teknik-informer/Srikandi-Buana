@@ -2,23 +2,25 @@ import type { Metadata } from "next";
 import { ORG } from "@/config/org";
 import { JoinForm } from "@/components/join-form";
 import { Card, CardHeader, Notice } from "@/components/ui";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 export const metadata: Metadata = {
   title: "Minat Bergabung",
   description: "Formulir minat bergabung dengan KWT Srikandi Buana. Pendaftaran minat diproses oleh Bidang Organisasi & Keanggotaan.",
 };
 
-export default function GabungPage() {
+export default async function GabungPage() {
+  const _hp = await halamanPublik("/gabung");
+  const judul = teksDari(_hp.blocks, "rich-text", "headline", "Satu formulir, satu tindak lanjut yang jelas.");
+  const pembuka = teksDari(_hp.blocks, "rich-text", "subheadline", "Formulir ini mencatat minat, bukan keanggotaan resmi. Bidang Organisasi & Keanggotaan akan menghubungi Anda dalam 5 hari kerja untuk verifikasi.");
+
   return (
     <div className="sb-shell py-12">
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <div className="sb-label mb-2">Minat bergabung</div>
-          <h1 className="font-display text-[32px] leading-tight font-semibold text-ink sm:text-[38px]">Satu formulir, satu tindak lanjut yang jelas.</h1>
-          <p className="mt-3 max-w-xl text-[13.5px] leading-relaxed text-ink2">
-            Formulir ini mencatat minat, bukan keanggotaan resmi. Bidang Organisasi &amp; Keanggotaan
-            akan menghubungi Anda dalam 5 hari kerja untuk verifikasi.
-          </p>
+          <h1 className="font-display text-[32px] leading-tight font-semibold text-ink sm:text-[38px]">{judul}</h1>
+          <p className="mt-3 max-w-xl text-[13.5px] leading-relaxed text-ink2">{pembuka}</p>
 
           <div className="mt-6">
             <JoinForm />

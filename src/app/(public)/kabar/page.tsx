@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { NEWS } from "@/data/content";
 import { formatDateID } from "@/lib/format";
 import { Badge, Card } from "@/components/ui";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 export const metadata: Metadata = {
   title: "Kabar & Artikel",
@@ -11,6 +12,16 @@ export const metadata: Metadata = {
 
 export default async function KabarPage({ searchParams }: { searchParams: Promise<{ jenis?: string }> }) {
   const { jenis } = await searchParams;
+
+  // Judul & pembuka dari Website Studio.
+  const halaman = await halamanPublik("/kabar");
+  const judul = teksDari(halaman.blocks, "news-list", "headline", "Kabar & artikel");
+  const pembuka = teksDari(
+    halaman.blocks,
+    "news-list",
+    "subheadline",
+    "Catatan dari lapangan, pengumuman organisasi, dan tulisan pendek tentang kerja tani.",
+  );
   const published = NEWS.filter((n) => n.status === "published").filter((n) => !jenis || n.kind === jenis);
   const [lead, ...rest] = published;
 
@@ -19,10 +30,9 @@ export default async function KabarPage({ searchParams }: { searchParams: Promis
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="sb-label mb-2">Informasi</div>
-          <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Kabar &amp; artikel</h1>
-          <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-            Catatan dari lapangan, pengumuman organisasi, dan tulisan pendek tentang kerja tani.
-          </p>
+          {/* Judul & pembuka dari Website Studio, bukan teks tetap. */}
+          <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
+          <p className="mt-2 max-w-2xl text-[13.5px] text-muted">{pembuka}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/kabar" className={`sb-chip ${!jenis ? "!border-primary-600 !bg-primary-50 !text-primary-800" : ""}`}>Semua</Link>

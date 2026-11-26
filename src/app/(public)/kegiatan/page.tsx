@@ -4,6 +4,7 @@ import { orgSummary } from "@/lib/org-summary";
 import { DataStamp } from "@/components/data-stamp";
 import { formatDateFull, relativeID } from "@/lib/format";
 import { Badge, Card, StatusBadge } from "@/components/ui";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 export const metadata: Metadata = {
   title: "Agenda Kegiatan",
@@ -18,6 +19,10 @@ const BIDANG_LABEL: Record<string, string> = {
 };
 
 export default async function KegiatanPage({ searchParams }: { searchParams: Promise<{ bidang?: string }> }) {
+  const _hp = await halamanPublik("/kegiatan");
+  const judul = teksDari(_hp.blocks, "rich-text", "headline", "Kegiatan yang bisa diikuti.");
+  const pembuka = teksDari(_hp.blocks, "rich-text", "subheadline", "Kegiatan bertanda terbuka untuk umum dapat diikuti warga. Kegiatan internal hanya untuk anggota dan tim bidang.");
+
   // Agenda dari dokumen bersama: kegiatan yang dicatat pengurus tampil di sini.
   const { activities: ACTIVITIES, shared, updatedBy, updatedAt } = await orgSummary();
   const { bidang } = await searchParams;
@@ -27,11 +32,8 @@ export default async function KegiatanPage({ searchParams }: { searchParams: Pro
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Agenda</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Kegiatan yang bisa diikuti.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Kegiatan bertanda <Badge tone="info">Terbuka untuk umum</Badge> dapat diikuti warga. Kegiatan internal
-        hanya untuk anggota dan tim bidang.
-      </p>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
+      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">{pembuka}</p>
 
       <div className="mt-6 flex flex-wrap gap-2">
         <Link href="/kegiatan" className={`sb-chip ${!bidang ? "!border-primary-600 !bg-primary-50 !text-primary-800" : ""}`}>Semua</Link>

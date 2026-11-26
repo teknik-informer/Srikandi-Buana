@@ -3,21 +3,23 @@ import type { Metadata } from "next";
 import { Card, CardHeader, Notice, Badge } from "@/components/ui";
 import { DEMO_ACCOUNTS } from "@/lib/session";
 import { BLUEPRINT_VERSION } from "@/config/org";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 export const metadata: Metadata = {
   title: "Pusat Bantuan",
   description: "Panduan pengguna per peran untuk lingkungan demo Srikandi Buana V9.1.",
 };
 
-export default function BantuanPage() {
+export default async function BantuanPage() {
+  const _hp = await halamanPublik("/bantuan");
+  const judul = teksDari(_hp.blocks, "rich-text", "headline", "Panduan per peran.");
+  const pembuka = teksDari(_hp.blocks, "rich-text", "subheadline", "Lingkungan demo blueprint 9.2. Akun demo di bawah dapat dipakai untuk menelusuri aplikasi sesuai peran dan cakupan aksesnya.");
+
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Pusat bantuan</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Panduan per peran.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Lingkungan demo blueprint {BLUEPRINT_VERSION}. Akun demo di bawah dapat dipakai untuk
-        menelusuri aplikasi sesuai peran dan cakupan aksesnya.
-      </p>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
+      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">{pembuka}</p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>

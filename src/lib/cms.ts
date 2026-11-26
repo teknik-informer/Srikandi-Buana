@@ -3,76 +3,46 @@
 /**
  * CMS — satu sumber kebenaran untuk isi halaman publik yang dapat disunting.
  *
- * MASALAH YANG DIPERBAIKI
- * -----------------------
- * Sebelum modul ini ada, judul hero, sub-judul, teks ajakan, dan susunan block
- * setiap halaman tertulis langsung di `src/app/(public)/page.tsx` dan
- * halaman-halaman lain. Website Studio hanya *menampilkan* susunan block dari
- * konstanta `PAGE_COMPOSITIONS` dan tidak dapat mengubahnya. Akibatnya Studio
- * adalah katalog baca-saja: tombol panah nonaktif, tidak ada kontrol edit, dan
- * setiap perubahan di studio tidak pernah muncul di situs publik.
+ * RIWAYAT PERBAIKAN
+ * -----------------
+ * Versi pertama modul ini menyimpan suntingan ke `localStorage`. Akibatnya
+ * suntingan hanya berlaku di peramban yang menyunting: pengunjung lain, dan
+ * perangkat lain, tetap melihat teks lama. Studio tampak berfungsi tetapi tidak
+ * pernah mengubah apa pun yang dilihat orang.
+ *
+ * Sejak revisi ini, halaman publik yang disunting disimpan di dokumen bersama
+ * `v9.app_state` lewat aksi `cms.save`, sehingga:
+ *
+ *   - suntingan terlihat oleh SEMUA pengunjung di SEMUA perangkat;
+ *   - setiap penyimpanan tercatat di jejak audit dengan nama penyunting;
+ *   - dua penyunting pada halaman berbeda tidak saling menimpa (aksi per
+ *     halaman, bukan tulis-utuh).
  *
  * STRUKTUR
  * --------
- * - `CMS_PAGES`  — halaman yang dapat disunting, mengikuti `STUDIO_PAGES`.
- * - `PAGE_BLOCKS` — block per halaman, dengan field yang benar-benar dirender.
- * - Penyimpanan memakai localStorage (pola yang sama dengan `site-settings.ts`),
- *   dan menyiarkan perubahan lewat CustomEvent supaya pratinjau langsung ikut.
+ * - `defaultPages()` — susunan awal, mencerminkan situs apa adanya. Dipakai
+ *   selama organisasi belum pernah menyunting halaman tersebut.
+ * - `useCmsPages()` — halaman efektif: hasil suntingan bila ada, default bila
+ *   belum. Membaca dari store, bukan dari peramban.
+ * - `field()` / `limitOf()` — pembaca nilai dengan fallback, dipakai halaman
+ *   publik.
  *
- * BATAS YANG JUJUR
- * ----------------
- * Ini persistensi peramban, bukan basis data bersama. Artinya suntingan hanya
- * berlaku di perangkat yang menyunting sampai integrasi Neon mengambil alih
- * (lihat audit integrasi: migrasi store operasional masih menjadi gerbang
- * rilis). Studio menyatakannya terang-terangan di antarmuka, bukan menyembunyi-
- * nyembunyikannya.
+ * CATATAN HIDRASI
+ * ---------------
+ * Halaman publik sebagian dirender di server. Server tidak dapat membaca store
+ * klien, jadi ia memakai default — HTML awal selalu deterministik. Setelah
+ * mount, nilai bersama menggantikannya. Karena default dan nilai tersimpan
+ * berbentuk sama, tidak ada kedipan tata letak: hanya teks yang berganti bila
+ * organisasi pernah menyuntingnya.
  */
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import type { BlockKey } from "@/config/blocks";
+import { usePublicContent } from "@/lib/public-content";
+import type { CmsBlock, CmsBlockFields, CmsPage } from "@/lib/reducer";
 
-/* ─────────────────────────── tipe ─────────────────────────── */
-
-/** Field yang dapat disunting pada sebuah block. Semua opsional. */
-export interface BlockFields {
-  /** Judul utama block (h1 pada hero, judul section pada block lain). */
-  headline?: string;
-  /** Kalimat pendukung di bawah judul. */
-  subheadline?: string;
-  /** Label kecil di atas judul. */
-  eyebrow?: string;
-  /** Teks tombol utama. */
-  ctaPrimary?: string;
-  /** Teks tombol kedua. */
-  ctaSecondary?: string;
-  /** Tautan tombol utama. */
-  hrefPrimary?: string;
-  /** Tautan tombol kedua. */
-  hrefSecondary?: string;
-  /** Catatan kecil di bawah block, dipakai block bertipe data. */
-  note?: string;
-  /** Jumlah baris yang ditampilkan (block daftar). */
-  limit?: string;
-}
-
-export interface CmsBlock {
-  /** Kunci unik dalam satu halaman — dipakai untuk pengurutan & penghapusan. */
-  uid: string;
-  block: BlockKey;
-  /** Field yang dirender. Kosongkan untuk memakai default block. */
-  fields: BlockFields;
-}
-
-export type PageStatus = "published" | "review" | "draft";
-
-export interface CmsPage {
-  path: string;
-  title: string;
-  status: PageStatus;
-  /** Block dalam urutan tampil. */
-  blocks: CmsBlock[];
-  updatedAt: string;
-  updatedBy: string;
-}
+export type { CmsBlock, CmsPage };
+export type BlockFields = CmsBlockFields;
+export type PageStatus = CmsPage["status"];
 
 /* ─────────────────────────── skema field per block ───────────────────────────
  * Dideklarasikan di sini (bukan di config/blocks.ts) karena ini yang menentukan
@@ -81,7 +51,7 @@ export interface CmsPage {
  * oleh halaman publik.
  */
 export interface FieldSpec {
-  key: keyof BlockFields;
+  key: keyof CmsBlockFields;
   label: string;
   hint?: string;
   type: "text" | "textarea" | "url";
@@ -153,12 +123,16 @@ export const EDITABLE_FIELDS: Record<BlockKey, FieldSpec[]> = {
   ],
 };
 
-/* ─────────────────────────── default ─────────────────────────── */
+/* ─────────────────────────── susunan awal ─────────────────────────── */
 
 let uidSeq = 0;
-export function newUid(): string {
+function nextUid(prefix: string) {
   uidSeq += 1;
-  return `b${Date.now().toString(36)}${uidSeq.toString(36)}`;
+  return `${prefix}${Date.now().toString(36)}${uidSeq.toString(36)}`;
+}
+
+export function newUid(): string {
+  return nextUid("b");
 }
 
 /** Susunan awal setiap halaman — mencerminkan kondisi situs saat ini. */
@@ -289,89 +263,235 @@ export function defaultPages(): CmsPage[] {
         { uid: "mitra-cta", block: "cta-join", fields: { headline: "Ajukan kemitraan" } },
       ],
     },
+    /* ── halaman pendukung ──────────────────────────────────────────────
+     * Sebelumnya sembilan halaman ini tidak ada di CMS sama sekali: judul dan
+     * pembukanya tertulis di JSX, sehingga tidak bisa diubah pengurus tanpa
+     * developer. Block-nya `rich-text` karena yang disunting memang teks
+     * pembuka — isi terperinci tetap dari data masing-masing halaman.
+     */
+    {
+      path: "/bantuan",
+      title: "Bantuan & Panduan",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "bantuan-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Panduan per peran.",
+            subheadline:
+              "Setiap peran punya jalan pintas sendiri. Halaman ini menjelaskan apa yang bisa dilakukan Ketua, Sekretaris, Bendahara, dan anggota.",
+          },
+        },
+      ],
+    },
+    {
+      path: "/dokumen",
+      title: "Dokumen Publik",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "dokumen-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Dokumen publik.",
+            subheadline: "Arsip yang boleh dibaca siapa pun: anggaran dasar, laporan kegiatan, dan kesepakatan mitra.",
+          },
+        },
+        { uid: "dokumen-list", block: "doc-list", fields: { headline: "Daftar dokumen", limit: "6" } },
+      ],
+    },
+    {
+      path: "/faq",
+      title: "Pertanyaan Umum",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "faq-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Pertanyaan yang sering diajukan.",
+            subheadline: "Jawaban singkat soal keanggotaan, produk, dan cara kerja kelompok.",
+          },
+        },
+      ],
+    },
+    {
+      path: "/gabung",
+      title: "Gabung Anggota",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "gabung-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Satu formulir, satu tindak lanjut yang jelas.",
+            subheadline:
+              "Sampaikan minat Anda. Sekretariat akan menghubungi untuk verifikasi keanggotaan sebelum data Anda masuk buku induk.",
+          },
+        },
+      ],
+    },
+    {
+      path: "/galeri",
+      title: "Galeri",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "galeri-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Potret dari lapangan.",
+            subheadline: "Dokumentasi kegiatan, panen, dan pelatihan anggota.",
+          },
+        },
+        { uid: "galeri-strip", block: "gallery-strip", fields: { headline: "Foto terbaru", limit: "8" } },
+      ],
+    },
+    {
+      path: "/kegiatan",
+      title: "Kegiatan",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "kegiatan-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Kegiatan yang bisa diikuti.",
+            subheadline: "Agenda terbuka untuk anggota dan masyarakat sekitar.",
+          },
+        },
+      ],
+    },
+    {
+      path: "/kontak",
+      title: "Kontak",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "kontak-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Bicara langsung dengan sekretariat.",
+            subheadline: "Jam layanan, alamat, dan kanal komunikasi resmi kelompok.",
+          },
+        },
+        { uid: "kontak-panel", block: "contact-panel", fields: {} },
+      ],
+    },
+    {
+      path: "/pelatihan",
+      title: "Pelatihan",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Sekretariat",
+      blocks: [
+        {
+          uid: "pelatihan-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Kelas yang dibuka untuk anggota.",
+            subheadline: "Jadwal, kuota, dan materi pelatihan yang sedang berjalan.",
+          },
+        },
+      ],
+    },
+    {
+      path: "/produk/pemesanan",
+      title: "Cara Pemesanan",
+      status: "published",
+      updatedAt: "2026-11-20 10:00",
+      updatedBy: "Bidang Usaha",
+      blocks: [
+        {
+          uid: "pesan-rich",
+          block: "rich-text",
+          fields: {
+            headline: "Empat langkah, tanpa akun.",
+            subheadline: "Pilih produk, konfirmasi ketersediaan, sepakati pengiriman, lalu selesaikan pembayaran.",
+          },
+        },
+      ],
+    },
   ];
 }
 
-/* ─────────────────────────── penyimpanan ─────────────────────────── */
+/** Halaman yang dapat disunting di Website Studio, berurutan. */
+export const CMS_PAGES: { path: string; title: string }[] = defaultPages().map((p) => ({
+  path: p.path,
+  title: p.title,
+}));
 
-const KEY = "sb_cms_pages_v1";
+/* ─────────────────────────── penggabungan ─────────────────────────── */
 
-export function loadPages(): CmsPage[] {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return defaultPages();
-    const parsed = JSON.parse(raw) as CmsPage[];
-    if (!Array.isArray(parsed) || !parsed.length) return defaultPages();
-    // Gabungkan dengan default supaya halaman/block baru dari kode tetap muncul.
-    return defaultPages().map((base) => {
-      const stored = parsed.find((p) => p.path === base.path);
-      return stored ? { ...base, ...stored } : base;
-    });
-  } catch {
-    return defaultPages();
-  }
-}
-
-export function savePages(pages: CmsPage[]) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(pages));
-    window.dispatchEvent(new CustomEvent("sb:cms-pages", { detail: pages }));
-  } catch {
-    /* mode privat: perubahan tetap berlaku untuk sesi studio ini */
-  }
-}
-
-/** Apakah ada suntingan tersimpan yang berbeda dari default. */
-export function hasStoredPages(): boolean {
-  try {
-    return !!localStorage.getItem(KEY);
-  } catch {
-    return false;
-  }
-}
-
-export function resetPages() {
-  try {
-    localStorage.removeItem(KEY);
-    window.dispatchEvent(new CustomEvent("sb:cms-pages", { detail: null }));
-  } catch {
-    /* diabaikan */
-  }
+/**
+ * Gabungkan susunan default dengan hasil suntingan.
+ *
+ * Default tetap menjadi kerangka: block yang ditambahkan di kode baru muncul
+ * untuk organisasi yang sudah pernah menyunting, tanpa menghapus suntingan
+ * mereka. Suntingan menimpa per halaman, bukan menggantikan seluruh koleksi.
+ */
+export function mergePages(stored: CmsPage[] | undefined | null): CmsPage[] {
+  const basis = defaultPages();
+  if (!Array.isArray(stored) || !stored.length) return basis;
+  return basis.map((base) => {
+    const found = stored.find((p) => p.path === base.path);
+    if (!found) return base;
+    return {
+      ...base,
+      ...found,
+      // Block hasil suntingan dipakai apa adanya; bila kosong, pakai default.
+      blocks: Array.isArray(found.blocks) && found.blocks.length ? found.blocks : base.blocks,
+    };
+  });
 }
 
 /* ─────────────────────────── pembacaan oleh halaman publik ─────────────────────────── */
 
 /**
- * Mengembalikan block sebuah halaman. Di server (sebelum mount) mengembalikan
- * susunan default supaya HTML awal tetap deterministik dan tidak ada
- * ketidakcocokan hidrasi; setelah mount nilai tersimpan menggantikannya.
+ * Halaman efektif dari dokumen bersama.
+ *
+ * Mengembalikan susunan default selama store belum siap (server render), lalu
+ * nilai bersama setelah mount. Ini menjaga HTML awal deterministik.
  */
+export function useCmsPages(): CmsPage[] {
+  const { cmsPages, ready } = usePublicContent();
+  return useMemo(() => (ready ? mergePages(cmsPages) : defaultPages()), [ready, cmsPages]);
+}
+
+/** Satu halaman berdasarkan path. */
 export function useCmsPage(path: string): CmsPage {
-  const [page, setPage] = useState<CmsPage>(() => {
-    const base = defaultPages().find((p) => p.path === path);
-    return base ?? { path, title: path, status: "draft", blocks: [], updatedAt: "", updatedBy: "" };
-  });
-
-  useEffect(() => {
-    const read = () => {
-      const found = loadPages().find((p) => p.path === path);
-      if (found) setPage(found);
-    };
-    read();
-    const onUpdate = () => read();
-    window.addEventListener("sb:cms-pages", onUpdate);
-    window.addEventListener("storage", onUpdate);
-    return () => {
-      window.removeEventListener("sb:cms-pages", onUpdate);
-      window.removeEventListener("storage", onUpdate);
-    };
-  }, [path]);
-
-  return page;
+  const pages = useCmsPages();
+  return useMemo(() => {
+    return (
+      pages.find((p) => p.path === path) ?? {
+        path,
+        title: path,
+        status: "draft" as const,
+        blocks: [],
+        updatedAt: "",
+        updatedBy: "",
+      }
+    );
+  }, [pages, path]);
 }
 
 /** Ambil field sebuah block dengan fallback ke nilai default. */
-export function field<T extends keyof BlockFields>(
+export function field<T extends keyof CmsBlockFields>(
   blocks: CmsBlock[],
   block: BlockKey,
   key: T,
@@ -388,4 +508,12 @@ export function limitOf(blocks: CmsBlock[], block: BlockKey, fallback: number, m
   const n = Number.parseInt(raw, 10);
   if (!Number.isFinite(n) || n < 1) return fallback;
   return Math.min(n, max);
+}
+
+/**
+ * Apakah halaman ini pernah disunting organisasi.
+ * Dipakai studio untuk menampilkan badge "belum disunting" vs "tersimpan".
+ */
+export function isEdited(stored: CmsPage[] | undefined | null, path: string): boolean {
+  return Array.isArray(stored) && stored.some((p) => p.path === path);
 }

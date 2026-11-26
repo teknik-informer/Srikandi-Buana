@@ -4,6 +4,7 @@ import { orgSummary } from "@/lib/org-summary";
 import { DataStamp } from "@/components/data-stamp";
 import { formatDateID, relativeID } from "@/lib/format";
 import { Badge, Card, Progress } from "@/components/ui";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 // Jadwal pelatihan dikelola pengurus (training.create/update/status), jadi
 // halaman publik tidak boleh dibekukan saat build.
@@ -15,6 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function PelatihanPage() {
+  const _hp = await halamanPublik("/pelatihan");
+  const judul = teksDari(_hp.blocks, "rich-text", "headline", "Kelas yang dibuka untuk anggota.");
+  const pembuka = teksDari(_hp.blocks, "rich-text", "subheadline", "Jadwal terbuka Sekolah Tani Perempuan. Pendaftaran anggota melalui portal anggota; warga umum melalui formulir minat bergabung.");
+
   const { trainings, shared, updatedBy, updatedAt } = await orgSummary();
   const open = trainings.filter((t) => t.status !== "selesai");
   const done = trainings.filter((t) => t.status === "selesai");
@@ -22,11 +27,8 @@ export default async function PelatihanPage() {
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Pemberdayaan &amp; Pelatihan</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Kelas yang dibuka untuk anggota.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Jadwal terbuka Sekolah Tani Perempuan. Pendaftaran anggota melalui portal anggota; warga umum
-        melalui formulir minat bergabung.
-      </p>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
+      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">{pembuka}</p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {open.map((t) => (

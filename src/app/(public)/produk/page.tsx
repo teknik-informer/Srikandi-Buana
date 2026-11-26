@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { orgSummary } from "@/lib/org-summary";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 import { DataStamp } from "@/components/data-stamp";
 import { formatIDR } from "@/lib/format";
 import { Badge, Card, Notice } from "@/components/ui";
@@ -15,6 +16,16 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
   // Katalog publik membaca dokumen bersama yang sama dengan layar pengurus,
   // bukan konstanta statis — supaya tidak pernah ada dua kebenaran.
   const { products, shared, updatedBy, updatedAt } = await orgSummary();
+
+  // Judul & kalimat pembuka dari Website Studio (tab Halaman).
+  const halaman = await halamanPublik("/produk");
+  const judul = teksDari(halaman.blocks, "product-grid", "headline", "Produk yang punya nama pembuatnya.");
+  const pembuka = teksDari(
+    halaman.blocks,
+    "product-grid",
+    "subheadline",
+    "Hanya produk berstatus terpublikasi yang tampil. Data stok dan HPP internal tidak dibuka ke publik — persediaan yang ditampilkan adalah proyeksi ketersediaan yang diizinkan.",
+  );
   const published = products.filter((p) => p.published);
   const categories = [...new Set(published.map((p) => p.category))];
   const visible = oleh === "anggota" ? published : published;
@@ -23,13 +34,13 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
     <div className="sb-shell py-12">
       <div className="max-w-3xl">
         <div className="sb-label mb-2">Katalog publik</div>
+        {/* Judul dan pembuka dibaca dari Website Studio. Sebelumnya tertulis
+            tetap di sini, sehingga tab "Halaman" menyunting nilai yang tidak
+            pernah dipakai halaman ini. */}
         <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">
-          Produk yang punya nama pembuatnya.
+          {judul}
         </h1>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink2">
-          Hanya produk berstatus terpublikasi yang tampil. Data stok dan HPP internal tidak dibuka
-          ke publik — persediaan yang ditampilkan adalah proyeksi ketersediaan yang diizinkan.
-        </p>
+        <p className="mt-3 text-[14px] leading-relaxed text-ink2">{pembuka}</p>
       </div>
 
       {lihat === "kategori" ? (

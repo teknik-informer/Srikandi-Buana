@@ -2,21 +2,23 @@ import type { Metadata } from "next";
 import { GALLERY } from "@/data/content";
 import { formatDateID } from "@/lib/format";
 import { Card } from "@/components/ui";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 export const metadata: Metadata = {
   title: "Galeri",
   description: "Potret kegiatan dan lapangan dari KWT Srikandi Buana.",
 };
 
-export default function GaleriPage() {
+export default async function GaleriPage() {
+  const _hp = await halamanPublik("/galeri");
+  const judul = teksDari(_hp.blocks, "rich-text", "headline", "Potret dari lapangan.");
+  const pembuka = teksDari(_hp.blocks, "rich-text", "subheadline", "Foto ditampilkan hanya dengan persetujuan publikasi anggota. Tidak ada foto yang menyertakan data pribadi sensitif.");
+
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Galeri</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Potret dari lapangan.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Foto ditampilkan hanya dengan persetujuan publikasi anggota. Tidak ada foto yang menyertakan
-        data pribadi sensitif.
-      </p>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
+      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">{pembuka}</p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {GALLERY.map((g, i) => (

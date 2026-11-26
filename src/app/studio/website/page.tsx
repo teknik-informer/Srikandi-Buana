@@ -1,63 +1,16 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { STUDIO_PAGES, MENU_DRAFT } from "@/data/content";
+import { MENU_DRAFT } from "@/data/content";
+
 import { BLOCK_REGISTRY, PAGE_COMPOSITIONS } from "@/config/blocks";
 import { MEGA_MENU } from "@/config/navigation";
 import { Badge, Card, CardHeader, Notice, PageHeader, StatCard } from "@/components/ui";
 import { SiteSettingsPanel } from "./site-settings-panel";
 import { StudioTabs } from "./studio-tabs";
-import { PageEditor } from "./page-editor";
+import { HalamanPanel } from "./halaman-panel";
 import { ProductCrud } from "@/components/master-crud";
 
 export const metadata: Metadata = { title: "Website Studio" };
-
-/* ════════════════════════════════════════════════════════════════════════
- * PANEL 1 — HALAMAN (daftar + komposisi)
- * ════════════════════════════════════════════════════════════════════════ */
-function HalamanPanel({ activePath }: { activePath: string }) {
-  return (
-    <div className="grid gap-4 lg:grid-cols-[210px_minmax(0,1fr)]">
-      <Card className="h-fit">
-        <CardHeader title="Halaman situs" subtitle={`${STUDIO_PAGES.length} halaman`} />
-        <nav className="p-1.5" aria-label="Daftar halaman">
-          {STUDIO_PAGES.map((p) => {
-            const isActive = activePath === p.path;
-            return (
-              <Link
-                key={p.path}
-                href={`/studio/website?halaman=${encodeURIComponent(p.path)}`}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex items-center justify-between gap-2 rounded-[7px] px-2.5 py-2 text-[11.5px] transition ${
-                  isActive ? "bg-primary text-primary-50" : "text-ink2 hover:bg-surface2"
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{p.title}</span>
-                  <span className={`font-mono text-[10px] ${isActive ? "text-primary-200" : "text-muted2"}`}>
-                    {p.path}
-                  </span>
-                </span>
-                <span
-                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                    p.status === "published" ? "bg-[var(--sb-success)]" : "bg-[var(--sb-warning)]"
-                  }`}
-                  title={p.status === "published" ? "Terbit" : "Dalam tinjauan"}
-                />
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t border-line px-2.5 py-2 text-[10px] leading-relaxed text-muted2">
-          Pilih halaman untuk menyunting susunan block-nya.
-        </div>
-      </Card>
-
-      <div className="min-w-0">
-        <PageEditor activePath={activePath} />
-      </div>
-    </div>
-  );
-}
 
 /* ════════════════════════════════════════════════════════════════════════
  * PANEL 2 — BLOCK (katalog referensi)
@@ -210,7 +163,9 @@ export default async function WebsiteStudio({
 
       <StudioTabs
         badges={{
-          halaman: String(STUDIO_PAGES.length),
+          // Jumlah halaman adalah konstanta susunan default. Angka per-halaman
+          // yang sebenarnya (blok, waktu sunting) tampil di panel Halaman.
+          halaman: "6",
           block: String(BLOCK_REGISTRY.length),
           menu: String(MEGA_MENU.length),
         }}

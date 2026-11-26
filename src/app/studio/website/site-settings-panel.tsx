@@ -24,7 +24,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ExternalLink, ImagePlus, RotateCcw, Save, Trash2, TriangleAlert } from "lucide-react";
 import { Badge, Card, CardHeader } from "@/components/ui";
 import { useStore, SOCIAL_LABEL, type SiteSettings, type SocialKey } from "@/lib/store";
-import { loadSiteSettings, saveSiteSettings } from "@/lib/site-settings";
 import { SOCIAL_ICON } from "@/components/public-shell";
 import { FIELDS } from "@/config/fields";
 import { FieldMark } from "@/components/brand";
@@ -90,10 +89,11 @@ export function SiteSettingsPanel() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Ikuti nilai bersama bila pengurus lain menyunting dari perangkat lain.
   useEffect(() => {
-    setDraft(loadSiteSettings());
+    setDraft(saved);
     setDirty(false);
-  }, []);
+  }, [saved]);
 
   const patch = (p: Partial<Omit<SiteSettings, "social">>) => {
     setDraft((d) => ({ ...d, ...p }));
@@ -116,13 +116,12 @@ export function SiteSettingsPanel() {
     // perubahan "instagram" pada setiap penyimpanan.
     const r = exec({ type: "site.update", patch: draft, actor });
     if (!r.ok) return;
-    saveSiteSettings(draft);
     setDirty(false);
     setSavedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
   };
 
   const reset = () => {
-    setDraft(loadSiteSettings());
+    setDraft(saved);
     setDirty(false);
     setUploadError(null);
     setSavedAt(null);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { orgSummary } from "@/lib/org-summary";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 import { DataStamp } from "@/components/data-stamp";
 import { formatDateID } from "@/lib/format";
 import { Badge, Card, CardHeader, Notice } from "@/components/ui";
@@ -26,10 +27,12 @@ export default async function KemitraanPage() {
   // Pengurus bisa menambah/mengubah mitra (partner.create/update/delete),
   // jadi daftar ini harus berasal dari dokumen bersama — bukan konstanta.
   const { partners: PARTNERS, shared, updatedBy, updatedAt } = await orgSummary();
+  const halaman = await halamanPublik("/kemitraan");
+  const judul = teksDari(halaman.blocks, "rich-text", "headline", "Tumbuh bersama, dengan perjanjian yang jelas.");
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Kemitraan</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Tumbuh bersama, dengan perjanjian yang jelas.</h1>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
       <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
         Setiap kerja sama dicatat pada database mitra dengan milestone, dokumen, dan batas data
         sharing yang disepakati.

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { DOCUMENTS } from "@/data/organization";
 import { formatDateID } from "@/lib/format";
 import { Badge, Card, CardHeader, Notice } from "@/components/ui";
+import { halamanPublik, teksDari } from "@/lib/public-cms-server";
 
 export const metadata: Metadata = {
   title: "Dokumen Publik",
@@ -10,6 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function DokumenPage({ searchParams }: { searchParams: Promise<{ kategori?: string }> }) {
+  const _hp = await halamanPublik("/dokumen");
+  const judul = teksDari(_hp.blocks, "rich-text", "headline", "Dokumen publik.");
+  const pembuka = teksDari(_hp.blocks, "rich-text", "subheadline", "Hanya dokumen yang telah disetujui untuk dipublikasikan. Dokumen internal dan terbatas tidak ditampilkan di sini.");
+
   const { kategori } = await searchParams;
   const publicDocs = DOCUMENTS.filter((d) => d.visibility === "publik" || d.category === "Laporan").filter(
     (d) => !kategori || d.category.toLowerCase() === kategori,
@@ -18,11 +23,8 @@ export default async function DokumenPage({ searchParams }: { searchParams: Prom
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Transparansi</div>
-      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Dokumen publik.</h1>
-      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Hanya dokumen yang telah disetujui untuk dipublikasikan. Dokumen internal dan terbatas tidak
-        ditampilkan di sini.
-      </p>
+      <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">{judul}</h1>
+      <p className="mt-2 max-w-2xl text-[13.5px] text-muted">{pembuka}</p>
 
       <div className="mt-6 flex flex-wrap gap-2">
         <Link href="/dokumen" className={`sb-chip ${!kategori ? "!border-primary-600 !bg-primary-50 !text-primary-800" : ""}`}>Semua</Link>

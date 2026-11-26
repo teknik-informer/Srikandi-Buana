@@ -32,6 +32,7 @@ import { LETTERS as SEED_LETTERS, NOTICES as SEED_NOTICES, APPROVALS as SEED_APP
 import { MEETINGS as SEED_MEETINGS } from "@/data/organization";
 import { TASKS as SEED_TASKS, PRODUCTS as SEED_PRODUCTS, PROGRAMS as SEED_PROGRAMS, TRAININGS as SEED_TRAININGS, INVENTORY as SEED_INVENTORY, LANDS as SEED_LANDS, PARTNERS as SEED_PARTNERS, ACTIVITIES as SEED_ACTIVITIES } from "@/data/operations";
 import { COA as COA_CLIENT } from "@/data/coa";
+import type { BlockKey } from "@/config/blocks";
 import type { JournalEntry, JournalLine, Letter, Notice, Approval, Task, Product, BankStatementRow, InventoryItem, DocumentRow, LandPlot, Partner, Member, Activity, Program, Meeting, Training, MeetingAttendance } from "@/data/types";
 
 export const STORE_VERSION = 7;
@@ -82,6 +83,50 @@ export interface SiteSettings {
   social: { key: SocialKey; href: string; on: boolean }[];
 }
 
+/**
+ * Isi halaman publik yang dapat disunting dari Website Studio.
+ *
+ * MASALAH YANG DIPERBAIKI
+ * -----------------------
+ * Sebelum ini `src/lib/cms.ts` menyimpan suntingan halaman ke `localStorage`.
+ * Akibatnya suntingan hanya berlaku di peramban yang menyunting: pengunjung
+ * lain, dan perangkat lain, tetap melihat teks lama. Studio tampak berfungsi
+ * tetapi tidak pernah mengubah apa pun yang dilihat orang.
+ *
+ * Bentuk data di sini sengaja identik dengan yang dipakai `cms.ts` supaya
+ * penyunting yang sudah ada tidak perlu ditulis ulang — hanya tempat
+ * simpannya yang berpindah, dari peramban ke `v9.app_state`.
+ */
+export interface CmsBlockFields {
+  headline?: string;
+  subheadline?: string;
+  eyebrow?: string;
+  ctaPrimary?: string;
+  ctaSecondary?: string;
+  hrefPrimary?: string;
+  hrefSecondary?: string;
+  note?: string;
+  limit?: string;
+}
+
+export interface CmsBlock {
+  uid: string;
+  /** Kunci block pada registry `config/blocks.ts`. */
+  block: BlockKey;
+  fields: CmsBlockFields;
+}
+
+export type CmsPageStatus = "published" | "review" | "draft";
+
+export interface CmsPage {
+  path: string;
+  title: string;
+  status: CmsPageStatus;
+  blocks: CmsBlock[];
+  updatedAt: string;
+  updatedBy: string;
+}
+
 export type SocialKey = "instagram" | "youtube" | "facebook" | "whatsapp" | "tiktok" | "email";
 
 export const SOCIAL_LABEL: Record<SocialKey, string> = {
@@ -113,6 +158,12 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 
 export interface State {
   site: SiteSettings;
+  /**
+   * Halaman publik sebagaimana disunting dari Website Studio. Disimpan di
+   * dokumen bersama supaya suntingan terlihat oleh semua pengunjung di semua
+   * perangkat — bukan hanya di peramban yang menyunting.
+   */
+  cmsPages: CmsPage[];
   /**
    * Anggota kini bagian dari state, bukan konstanta statis. Tanpa ini buku
    * induk hanya bisa dibaca; dengan ini sekretariat benar-benar mengelola
@@ -192,6 +243,9 @@ export { DEMO_DAY };
 export function seedState(): State {
   return {
     site: { ...DEFAULT_SITE_SETTINGS, social: DEFAULT_SITE_SETTINGS.social.map((x) => ({ ...x })) },
+    // Kosong berarti "belum pernah disunting": halaman memakai susunan default
+    // dari `lib/cms.ts`. Begitu disunting sekali, isinya menimpa default.
+    cmsPages: [],
     members: SEED_MEMBERS.map((m) => ({ ...m, interests: [...m.interests] })),
     activities: SEED_ACTIVITIES.map((a) => ({ ...a })),
     journals: SEED_JOURNALS.map((j) => ({ ...j })),
@@ -260,6 +314,20 @@ export type Action =
   | { type: "profile.update"; name: string; village: string; phone: string; interests: string[]; actor: Actor }
   | { type: "site.update"; patch: Partial<Omit<SiteSettings, "social">>; actor: Actor }
   | { type: "site.social"; key: SocialKey; href?: string; on?: boolean; actor: Actor }
+  /**
+   * Simpan satu halaman publik hasil suntingan Website Studio.
+   *
+   * Mengapa per-halaman, bukan seluruh koleksi: dua penyunting yang membuka
+   * halaman berbeda tidak boleh saling menimpa. Server menerapkan aksi ini di
+   * atas dokumen terbaru, jadi hanya halaman yang disebut yang berubah.
+   */
+  | {
+      type: "cms.save";
+      page: CmsPage;
+      actor: Actor;
+    }
+  /** Kembalikan satu halaman ke susunan default dari kode. */
+  | { type: "cms.reset"; path: string; actor: Actor }
   | { type: "program.publish"; code: string; actor: Actor }
   | { type: "bank.reconcile"; id: string; journalId: string; actor: Actor }
   | { type: "budget.request"; budgetId: string; amount: number; note: string; actor: Actor }
@@ -1446,6 +1514,59 @@ export function applyAction(state: State, action: Action): { state: State; resul
         }),
       };
       return ok(next, "Tautan sosial diperbarui.");
+    }
+
+    /* ---------------- halaman publik (CMS) ---------------- */
+
+    case "cms.save": {
+      const halaman = action.page;
+      if (!halaman || !halaman.path) {
+        return fail("Halaman tidak dikenali.");
+      }
+      const sebelumnya = (state.cmsPages ?? []).find((p) => p.path === halaman.path);
+      const daftar = (state.cmsPages ?? []).filter((p) => p.path !== halaman.path);
+
+      // Stempel waktu & penyunting selalu diisi server-side agar jejak audit
+      // dan tanggal di halaman publik tidak bergantung pada jam perangkat.
+      const tersimpan: CmsPage = {
+        ...halaman,
+        updatedAt: stamp(),
+        updatedBy: action.actor.name,
+      };
+
+      const next: State = {
+        ...state,
+        seq: state.seq + 1,
+        cmsPages: [...daftar, tersimpan],
+        audit: addAudit(state, {
+          actor: action.actor.name,
+          actorRole: action.actor.role,
+          action: sebelumnya ? "Menyunting halaman publik" : "Menyusun halaman publik",
+          detail: `${tersimpan.title} (${tersimpan.path}) — ${tersimpan.blocks.length} block`,
+          app: "sistem",
+          href: "/studio/website#halaman",
+        }),
+      };
+      return ok(next, `Halaman ${tersimpan.title} tersimpan untuk semua pengunjung.`);
+    }
+
+    case "cms.reset": {
+      const sebelumnya = (state.cmsPages ?? []).find((p) => p.path === action.path);
+      if (!sebelumnya) return fail("Halaman ini memang belum pernah disunting.");
+      const next: State = {
+        ...state,
+        seq: state.seq + 1,
+        cmsPages: (state.cmsPages ?? []).filter((p) => p.path !== action.path),
+        audit: addAudit(state, {
+          actor: action.actor.name,
+          actorRole: action.actor.role,
+          action: "Mengembalikan halaman ke susunan awal",
+          detail: sebelumnya.title,
+          app: "sistem",
+          href: "/studio/website#halaman",
+        }),
+      };
+      return ok(next, "Halaman dikembalikan ke susunan awal.");
     }
 
     /* ---------------- member profile ---------------- */

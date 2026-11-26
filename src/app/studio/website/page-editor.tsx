@@ -20,9 +20,10 @@ import {
 import { Badge, Card, CardHeader, Notice } from "@/components/ui";
 import { BLOCK_REGISTRY, type BlockKey } from "@/config/blocks";
 import {
-  EDITABLE_FIELDS, defaultPages, limitOf, loadPages, newUid, savePages,
+  EDITABLE_FIELDS, defaultPages, limitOf, mergePages, newUid, isEdited,
   type CmsBlock, type CmsPage, type PageStatus,
 } from "@/lib/cms";
+import { useStore } from "@/lib/store";
 
 const input =
   "mt-1 w-full rounded-[8px] border border-line bg-white px-2.5 py-1.5 text-[12.5px] text-ink outline-none transition placeholder:text-muted2 focus:border-primary focus:ring-2 focus:ring-primary/15";
@@ -166,17 +167,28 @@ function BlockPreview({ b }: { b: CmsBlock }) {
 /* ══════════════════════ editor ══════════════════════ */
 
 export function PageEditor({ activePath }: { activePath: string }) {
-  const [pages, setPages] = useState<CmsPage[]>(() => defaultPages());
-  const [dirty, setDirty] = useState(false);
+  const { state, exec, actor, ready } = useStore();
+  /**
+   * Halaman efektif: susunan default yang ditimpa suntingan bersama.
+   *
+   * `dirty` menandai ada perubahan yang belum disimpan. Selama belum disimpan,
+   * `pages` adalah salinan kerja lokal; setelah tersimpan, nilainya kembali
+   * mengikuti dokumen bersama.
+   */
+  const bersama = useMemo(() => mergePages(state.cmsPages), [state.cmsPages]);
+  const [draf, setDraf] = useState<CmsPage[] | null>(null);
+  const pages = draf ?? bersama;
+  const setPages = (updater: CmsPage[] | ((prev: CmsPage[]) => CmsPage[])) => {
+    setDraf((prev) => {
+      const basis = prev ?? bersama;
+      return typeof updater === "function" ? updater(basis) : updater;
+    });
+  };
+  const dirty = draf !== null;
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [adding, setAdding] = useState<BlockKey | "">("");
   const [expanded, setExpanded] = useState<string | null>(null);
-
-  // Muat dari penyimpanan sekali di klien.
-  useState(() => {
-    if (typeof window !== "undefined") setPages(loadPages());
-    return null;
-  });
+  const [pesan, setPesan] = useState<string | null>(null);
 
   const page = useMemo(
     () => pages.find((p) => p.path === activePath) ?? pages[0],
@@ -185,8 +197,8 @@ export function PageEditor({ activePath }: { activePath: string }) {
 
   const mutate = (fn: (p: CmsPage) => CmsPage) => {
     setPages((all) => all.map((p) => (p.path === page.path ? fn(p) : p)));
-    setDirty(true);
     setSavedAt(null);
+    setPesan(null);
   };
 
   const setField = (uid: string, key: string, value: string) =>
@@ -218,36 +230,33 @@ export function PageEditor({ activePath }: { activePath: string }) {
     setAdding("");
   };
 
+  /**
+   * Simpan satu halaman ke dokumen bersama.
+   *
+   * Hanya halaman yang sedang dibuka yang dikirim. Dua penyunting pada halaman
+   * berbeda tidak saling menimpa karena server menerapkan aksi ini pada
+   * dokumen terbaru, bukan mengganti seluruh koleksi.
+   */
   const save = () => {
-    const stamped: CmsPage[] = pages.map((p) =>
-      p.path === page.path
-        ? {
-            ...p,
-            updatedAt: new Date().toLocaleString("id-ID", {
-              year: "numeric", month: "2-digit", day: "2-digit",
-              hour: "2-digit", minute: "2-digit",
-            }),
-            updatedBy: "Studio",
-          }
-        : p,
-    );
-    setPages(stamped);
-    savePages(stamped);
-    setDirty(false);
+    const r = exec({ type: "cms.save", page, actor });
+    setPesan(r.ok ? (r.message ?? "Tersimpan.") : (r.message ?? "Gagal menyimpan."));
+    if (!r.ok) return;
+    // Dokumen bersama kini memuat suntingan ini; buang salinan kerja lokal.
+    setDraf(null);
     setSavedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
   };
 
   const discard = () => {
-    setPages(loadPages());
-    setDirty(false);
+    setDraf(null);
     setSavedAt(null);
+    setPesan(null);
   };
 
-  const resetAll = () => {
-    if (!confirm("Kembalikan semua halaman ke susunan awal? Suntingan di perangkat ini akan hilang.")) return;
-    setPages(defaultPages());
-    savePages(defaultPages());
-    setDirty(false);
+  const resetHalaman = () => {
+    if (!confirm(`Kembalikan "${page.title}" ke susunan awal? Suntingan tersimpan akan dihapus untuk semua pengunjung.`)) return;
+    const r = exec({ type: "cms.reset", path: page.path, actor });
+    setPesan(r.ok ? (r.message ?? "Dikembalikan.") : (r.message ?? "Gagal mengembalikan."));
+    if (r.ok) setDraf(null);
   };
 
   if (!page) return null;
@@ -478,11 +487,11 @@ export function PageEditor({ activePath }: { activePath: string }) {
             </button>
             <button
               type="button"
-              onClick={resetAll}
+              onClick={resetHalaman}
               className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-[var(--sb-danger)] hover:underline"
             >
               <X size={12} aria-hidden />
-              Kembalikan semua halaman
+              Kembalikan halaman ini
             </button>
           </div>
         </Card>

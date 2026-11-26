@@ -1,69 +1,55 @@
 "use client";
 
 /**
- * Bridge between the store and the public footer.
+ * Pengaturan situs untuk footer publik.
  *
- * The footer has to be right on first paint (it is server-rendered), so it
- * starts from DEFAULT_SITE_SETTINGS and upgrades itself from the store once the
- * client has hydrated — exactly the way the rest of the demo avoids hydration
- * mismatches: no localStorage and no Date during render, only after mount.
+ * RIWAYAT PERBAIKAN
+ * -----------------
+ * Versi sebelumnya membaca `localStorage` (`sb_site_settings_v1`). Panel studio
+ * menulis ke sana, jadi pengaturan hanya berubah di peramban yang menyunting —
+ * sekaligus menduplikasi sumber data, karena `site.update` di reducer SUDAH
+ * menulis `site` ke dokumen bersama. Dua tempat menyimpan hal yang sama, dan
+ * yang dibaca publik adalah yang salah.
+ *
+ * Sekarang footer membaca `state.site` dari dokumen bersama. Satu sumber,
+ * satu kebenaran: yang disimpan pengurus terlihat semua pengunjung.
+ *
+ * CATATAN HIDRASI
+ * ---------------
+ * Footer dirender di server. Server memakai `DEFAULT_SITE_SETTINGS` (HTML awal
+ * deterministik), lalu setelah mount nilai bersama mengambil alih. Bila
+ * organisasi belum pernah menyunting, keduanya identik sehingga tidak ada
+ * kedipan.
  */
-import { useEffect, useState } from "react";
-import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/store";
+import { useMemo } from "react";
+import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/reducer";
+import { usePublicContent } from "@/lib/public-content";
 
-const KEY = "sb_site_settings_v1";
+export type { SiteSettings };
 
-/** What the studio writes: the same shape, no reducer needed on the public side. */
-export function saveSiteSettings(next: SiteSettings) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-    // let the footer (and any other listener) repaint without a reload
-    window.dispatchEvent(new CustomEvent("sb:site-settings", { detail: next }));
-  } catch {
-    /* private mode: the change still applies to this session's studio */
-  }
-}
-
-export function loadSiteSettings(): SiteSettings {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return DEFAULT_SITE_SETTINGS;
-    const parsed = JSON.parse(raw) as Partial<SiteSettings>;
+/** Nilai efektif: pengaturan bersama bila ada, default bila belum. */
+export function useSiteSettings(): SiteSettings {
+  const { site: sharedSite, ready } = usePublicContent();
+  return useMemo(() => {
+    const site = ready ? sharedSite : undefined;
+    if (!site) return DEFAULT_SITE_SETTINGS;
+    // Pastikan bentuknya utuh walau dokumen lama tidak punya sebagian field.
     return {
       ...DEFAULT_SITE_SETTINGS,
-      ...parsed,
-      social: Array.isArray(parsed.social) && parsed.social.length
+      ...site,
+      social: Array.isArray(site.social) && site.social.length
         ? DEFAULT_SITE_SETTINGS.social.map((base) => ({
             ...base,
-            ...(parsed.social!.find((s) => s.key === base.key) ?? {}),
+            ...(site.social.find((s) => s.key === base.key) ?? {}),
           }))
         : DEFAULT_SITE_SETTINGS.social,
     };
-  } catch {
-    return DEFAULT_SITE_SETTINGS;
-  }
+  }, [ready, sharedSite]);
 }
 
-/** Footer-side subscription. Returns defaults on the server, live values after mount. */
-export function useSiteSettings(): SiteSettings {
-  const [site, setSite] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
-
-  useEffect(() => {
-    setSite(loadSiteSettings());
-    const onUpdate = (e: Event) => {
-      const detail = (e as CustomEvent<SiteSettings>).detail;
-      setSite(detail ?? loadSiteSettings());
-    };
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === KEY) setSite(loadSiteSettings());
-    };
-    window.addEventListener("sb:site-settings", onUpdate as EventListener);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener("sb:site-settings", onUpdate as EventListener);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
-
-  return site;
+/** Nilai awal untuk formulir studio sebelum pengguna mengubah apa pun. */
+export function loadSiteSettings(): SiteSettings {
+  return DEFAULT_SITE_SETTINGS;
 }
+
+export { DEFAULT_SITE_SETTINGS };
