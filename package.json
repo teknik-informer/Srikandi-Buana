@@ -44,7 +44,8 @@
     "test:smart-attendance": "node scripts/verify-smart-attendance.mjs",
     "test:v14-integration": "node scripts/verify-v14-integration.mjs",
     "test:theme": "node scripts/verify-theme-preferences.mjs",
-    "test:theme-contrast": "node scripts/verify-theme-contrast.mjs"
+    "test:theme-contrast": "node scripts/verify-theme-contrast.mjs",
+    "prebuild": "node scripts/verify-theme-contrast.mjs && node scripts/verify-theme-preferences.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
