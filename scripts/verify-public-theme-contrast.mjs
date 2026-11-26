@@ -3,15 +3,11 @@ import fs from "node:fs";
 
 const css = fs.readFileSync("src/app/(public)/public.css", "utf8");
 
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function declarations(selector) {
   const merged = {};
   // CSS commonly groups several selectors into one declaration block.
   // Match the exact requested selector inside each comma-separated selector list.
-  const blocks = css.matchAll(/([^{}]+)\\{([^{}]*)\\}/g);
+  const blocks = css.matchAll(/([^{}]+)\{([^{}]*)\}/g);
   for (const match of blocks) {
     const selectors = match[1].trim().split(",").map((item) => item.trim());
     if (!selectors.includes(selector)) continue;
@@ -19,7 +15,7 @@ function declarations(selector) {
       const separator = declaration.indexOf(":");
       if (separator < 0) continue;
       const key = declaration.slice(0, separator).trim();
-      const value = declaration.slice(separator + 1).trim().replace(/\\s*!important\\s*$/i, "");
+      const value = declaration.slice(separator + 1).trim().replace(/\s*!important\s*$/i, "");
       if (key && value) merged[key] = value;
     }
   }
