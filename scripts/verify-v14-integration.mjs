@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const records = readFileSync("src/app/api/records/route.ts", "utf8");
 const attendance = readFileSync("src/app/api/attendance/route.ts", "utf8");
+const attendanceMutations = readFileSync("src/lib/attendance/record-mutations.ts", "utf8");
 const protectedRecords = readFileSync("src/lib/enterprise/protected-records.ts", "utf8");
 const sync = readFileSync("src/lib/workspace-v14-sync.ts", "utf8");
 const mapping = readFileSync("src/features/workspace-v14/legacy-mapping.mjs", "utf8");
@@ -14,7 +15,11 @@ assert(records.includes("...normalizedWrites,...ledgerWrites"), "Legacy record a
 assert(records.includes("previousData:previousRecordData"), "Updates must pass the previous record state to the v14 mapper");
 assert(records.includes("updateProtectedRecord") && records.includes("[...normalizedWrites,...ledgerWrites]"), "Protected asset/cash writes must remain atomic with normalized writes");
 assert(attendance.includes("buildV14AttendanceSyncStatements"), "Legacy attendance API must import the normalized attendance adapter");
-assert(attendance.includes("...normalizedAttendance"), "Legacy attendance and normalized attendance must share one database batch");
+assert(attendance.includes("saveAttendanceRecord(db") && attendance.includes("}, normalizedAttendance)"), "Legacy attendance and normalized attendance must be committed through the atomic version-checked batch");
+assert(attendance.includes("expectedUpdated") && attendance.includes("eventUpdated"), "Attendance API must require both register and source activity versions");
+assert(attendanceMutations.includes("WITH event_guard AS MATERIALIZED") && attendanceMutations.includes("FOR UPDATE"), "Attendance write must lock the source activity at the transaction boundary");
+assert(attendanceMutations.includes("AND records.updated IS NOT DISTINCT FROM CAST(? AS TEXT)") && attendanceMutations.includes("audit_written"), "Attendance update must compare the existing version and write audit only from the winning mutation");
+assert(sync.includes("v14:attendance-member") && sync.includes("participant_type='member'") && sync.includes("participant_type='external'"), "V14 attendance reconciliation must be scoped to the legacy attendance register prefixes");
 assert(protectedRecords.includes("normalizedWrites:PreparedStatement[]=[]") && protectedRecords.includes("db.batch([write,...normalizedWrites])"), "Protected record updates must commit the audit and normalized statements atomically");
 assert(sync.includes("to_regclass('workspace_v14.organizations')") && sync.includes("if (!schema?.relation || !schema?.lineage) return []"), "Adapter must guard against a missing v14 schema");
 assert(sync.includes("source_owner_user_id=?") && sync.includes("return statementForMapping"), "Adapter must resolve organization ownership before writing");

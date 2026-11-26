@@ -408,6 +408,23 @@ export async function buildV14AttendanceSyncStatements(
     const activityId = String(activity.id);
     const statements: PreparedStatement[] = [];
 
+    const memberPrefix = stableId("v14:attendance-member", input.attendanceRecordId) + ":";
+    const externalPrefix = stableId("v14:attendance-external", input.attendanceRecordId) + ":";
+
+    // Replace only rows owned by this legacy attendance record; do not remove
+    // participants belonging to the separate HRM attendance-session workflow.
+    statements.push(db.prepare(`
+      DELETE FROM workspace_v14.activity_attendance
+      WHERE organization_id=? AND activity_id=? AND participant_type='member'
+        AND left(id,length(?))=?
+    `).bind(organizationId, activityId, memberPrefix, memberPrefix));
+
+    statements.push(db.prepare(`
+      DELETE FROM workspace_v14.activity_attendance
+      WHERE organization_id=? AND activity_id=? AND participant_type='external'
+        AND left(id,length(?))=?
+    `).bind(organizationId, activityId, externalPrefix, externalPrefix));
+
     for (const [memberRecordId, status] of Object.entries(input.memberStatuses)) {
       const member = await db.prepare(
         "SELECT id FROM workspace_v14.member_profiles WHERE organization_id=? AND source_legacy_record_id=?",
@@ -435,11 +452,7 @@ export async function buildV14AttendanceSyncStatements(
       ));
     }
 
-    // External participants are a roster attached to this legacy attendance record.
-    // Replacing only the external rows for this activity keeps one canonical list.
-    if (input.externalParticipants.length > 0) statements.push(db.prepare(
-      "DELETE FROM workspace_v14.activity_attendance WHERE organization_id=? AND activity_id=? AND participant_type='external'",
-    ).bind(organizationId, activityId));
+    // External participant rows for this legacy attendance record were removed above.
 
     input.externalParticipants.forEach((person, index) => {
       statements.push(db.prepare(`
