@@ -6,6 +6,7 @@ import {balancedLines} from '@/features/finance/validation.mjs';
 import {ensureDefaultLedgerAccounts} from '@/features/finance/record-posting';
 import {textField} from '@/features/shared/validation.mjs';
 import {csvRows} from '@/lib/ecosystem/csv.mjs';
+import {findExistingJournalRequest,JournalRequestConflictError} from '@/features/finance/journal-idempotency';
 export const dynamic='force-dynamic';
 const canRead=(role:string)=>['admin','ketua','sekretaris','bendahara'].includes(role),canWrite=(role:string)=>role==='admin'||role==='bendahara';
 export async function GET(request:Request){const c=await required(request);if(c.error)return c.error;if(!isModuleAvailableForUser(c.user,'accounting'))return json({error:'Aplikasi Accounting sedang dinonaktifkan atau diblokir untuk akun ini.'},403);if(!canRead(c.user.role))return json({error:'Akses akuntansi dibatasi.'},403);
@@ -43,9 +44,26 @@ export async function POST(request:Request){const c=await required(request,true)
  const id=crypto.randomUUID();await c.db.prepare('INSERT INTO ledger_accounts(id,owner,code,name,category,created) VALUES(?,?,?,?,?,?)').bind(id,c.user.userId,code,name,category,now).run();return json({ok:true,id},201);
  }
  if(b.action!=='journal'||!textField(b.memo,500)||typeof b.postedDate!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(b.postedDate)||Number.isNaN(Date.parse(b.postedDate))||new Date(b.postedDate).toISOString().slice(0,10)!==b.postedDate||!balancedLines(b.lines))return json({error:'Jurnal harus memiliki tanggal valid dan jumlah debit sama dengan kredit.'},400);
- const lines=b.lines as Array<{accountId:string;debit:number;credit:number}>;const ids=[...new Set(lines.map(l=>l.accountId))];const rows=await c.db.prepare('SELECT id FROM ledger_accounts WHERE owner=? AND active=TRUE AND id IN ('+ids.map(()=>'?').join(',')+')').bind(c.user.userId,...ids).all();if(ids.length<2||rows.results.length!==ids.length)return json({error:'Pilih akun aktif dalam organisasi ini.'},400);
- const id=crypto.randomUUID(),reference=typeof b.reference==='string'&&b.reference.trim()?b.reference.trim().slice(0,80):id;
- const statements=[c.db.prepare('INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(?,?,?,?,?,?,?)').bind(id,c.user.userId,c.user.accountId,b.postedDate,String(b.memo).trim(),reference,now),...lines.map(l=>c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,id,l.accountId,l.debit,l.credit)),c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Jurnal diposting',reference,now)];
- await c.db.batch(statements);return json({ok:true,id},201);
- }catch(e){return e instanceof RequestBodyError?json({error:e.message},e.status):errorReply(e)}
+ const lines=b.lines as Array<{accountId:string;debit:number;credit:number}>;
+ if(b.reference!==undefined&&(typeof b.reference!=='string'||!b.reference.trim()||b.reference.trim().length>80))return json({error:'Referensi permintaan jurnal tidak valid.'},400);
+ const requestReference=typeof b.reference==='string'?b.reference.trim():'';
+ const memo=String(b.memo).trim();
+ if(requestReference){
+  const existingId=await findExistingJournalRequest(c.db,{owner:c.user.userId,reference:requestReference,postedDate:b.postedDate,memo,lines});
+  if(existingId)return json({ok:true,id:existingId,reused:true});
+ }
+ const ids=[...new Set(lines.map(l=>l.accountId))];const rows=await c.db.prepare('SELECT id FROM ledger_accounts WHERE owner=? AND active=TRUE AND id IN ('+ids.map(()=>'?').join(',')+')').bind(c.user.userId,...ids).all();if(ids.length<2||rows.results.length!==ids.length)return json({error:'Pilih akun aktif dalam organisasi ini.'},400);
+ const id=crypto.randomUUID(),reference=requestReference||id;
+ const statements=[c.db.prepare('INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(?,?,?,?,?,?,?)').bind(id,c.user.userId,c.user.accountId,b.postedDate,memo,reference,now),...lines.map(l=>c.db.prepare('INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,id,l.accountId,l.debit,l.credit)),c.db.prepare('INSERT INTO audit(id,owner,action,title,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),c.user.userId,'Jurnal diposting',reference,now)];
+ try{
+  await c.db.batch(statements);
+ }catch(error){
+  if(requestReference){
+   const existingId=await findExistingJournalRequest(c.db,{owner:c.user.userId,reference:requestReference,postedDate:b.postedDate,memo,lines});
+   if(existingId)return json({ok:true,id:existingId,reused:true});
+  }
+  throw error;
+ }
+ return json({ok:true,id},201);
+ }catch(e){if(e instanceof RequestBodyError)return json({error:e.message},e.status);if(e instanceof JournalRequestConflictError)return json({error:e.message},409);return errorReply(e)}
 }

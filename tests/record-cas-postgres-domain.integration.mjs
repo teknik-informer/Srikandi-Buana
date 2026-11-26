@@ -297,6 +297,7 @@ async function raceTwoUpdates(update, label) {
 const protectedRecords = await loadBundle("src/lib/enterprise/protected-records.ts", { stubRepository: true });
 const v14 = await loadBundle("src/lib/workspace-v14-sync.ts", { mappingAlias: true });
 const finance = await loadBundle("src/features/finance/record-posting.ts");
+const journalIdempotency = await loadBundle("src/features/finance/journal-idempotency.ts");
 const agricultureMutations = await loadBundle("src/lib/agriculture/record-mutations.ts");
 const attendanceMutations = await loadBundle("src/lib/attendance/record-mutations.ts");
 
@@ -905,4 +906,104 @@ assert.equal(await attendanceAuditCount(), 3, "A stale source activity must not 
 console.log("PASS PostgreSQL attendance activity guard: event version is checked under row lock and stale source updates cannot change the register or audit.");
 
 
-console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, and agriculture register/verification CAS, attendance version CAS and V14 reconciliation.");
+
+const cashAccount = accounts.find(account => String(account.code) === "110001");
+assert(cashAccount?.id, "The actual default chart must expose the organisation cash account.");
+
+const journalReference = "UI-CAS-" + randomUUID();
+const journalDate = "2026-11-26";
+const journalMemo = "Synthetic journal retry idempotency";
+const journalAmount = 245000;
+const journalLines = [
+  { accountId: String(cashAccount.id), debit: journalAmount, credit: 0 },
+  { accountId: String(revenueAccount.id), debit: 0, credit: journalAmount },
+];
+const journalRequest = {
+  owner,
+  reference: journalReference,
+  postedDate: journalDate,
+  memo: journalMemo,
+  lines: journalLines,
+};
+
+// Two requests may both complete their optimistic lookup before either has
+// inserted. The database's unique (owner, reference) constraint is the final
+// authority; the losing transaction must roll back its entry, lines and audit.
+const preflight = await Promise.all([
+  journalIdempotency.findExistingJournalRequest(database, journalRequest),
+  journalIdempotency.findExistingJournalRequest(database, journalRequest),
+]);
+assert.deepEqual(preflight, [null, null], "The same uncommitted journal request must not be mistaken for an existing posting.");
+
+const journalWriters = ["Writer A", "Writer B"].map(() => {
+  const entryId = randomUUID();
+  const lineOne = randomUUID();
+  const lineTwo = randomUUID();
+  const auditId = randomUUID();
+  return runPsql([
+    "BEGIN ISOLATION LEVEL SERIALIZABLE;",
+    "SELECT pg_sleep(0.25);",
+    "INSERT INTO ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(" +
+      [entryId, owner, owner, journalDate, journalMemo, journalReference, now].map(sqlLiteral).join(",") + ");",
+    "INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(" +
+      [lineOne, owner, entryId, cashAccount.id, journalAmount, 0].map(sqlLiteral).join(",") + ");",
+    "INSERT INTO ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(" +
+      [lineTwo, owner, entryId, revenueAccount.id, 0, journalAmount].map(sqlLiteral).join(",") + ");",
+    "INSERT INTO audit(id,owner,action,title,created) VALUES(" +
+      [auditId, owner, "Jurnal diposting", journalReference, now].map(sqlLiteral).join(",") + ");",
+    "COMMIT;",
+  ].join("\n"));
+});
+const journalRace = await Promise.allSettled(journalWriters);
+assert.equal(journalRace.filter(result => result.status === "fulfilled").length, 1,
+  "Concurrent posts with the same idempotency reference must produce exactly one committed journal.");
+assert.equal(journalRace.filter(result => result.status === "rejected").length, 1,
+  "The database uniqueness guard must roll back the losing journal transaction.");
+
+const committedJournal = await query(
+  "SELECT id,posted_date,memo FROM public.ledger_entries WHERE owner=" + sqlLiteral(owner) +
+  " AND reference=" + sqlLiteral(journalReference)
+);
+assert.equal(committedJournal.length, 1, "Exactly one journal header may exist for a single retry reference.");
+const committedJournalId = String(committedJournal[0].id);
+const committedLines = await query(
+  "SELECT account_id,debit,credit FROM public.ledger_lines WHERE owner=" + sqlLiteral(owner) +
+  " AND entry_id=" + sqlLiteral(committedJournalId)
+);
+assert.equal(committedLines.length, 2, "The committed journal must retain its two balanced lines.");
+
+const replayedJournalId = await journalIdempotency.findExistingJournalRequest(database, {
+  ...journalRequest,
+  lines: [...journalLines].reverse(),
+});
+assert.equal(replayedJournalId, committedJournalId,
+  "An identical retry must return the committed journal ID, regardless of line order.");
+const conflictingJournal = await resultOf(
+  journalIdempotency.findExistingJournalRequest(database, {
+    ...journalRequest,
+    memo: journalMemo + " changed",
+  }),
+  "Same journal reference with a changed memo",
+);
+assert.equal(conflictingJournal.success, false);
+assert.equal(conflictingJournal.status, 409,
+  "A reused journal reference with a different payload must be rejected as HTTP-equivalent 409.");
+const journalHeaderCount = await query(
+  "SELECT COUNT(*)::int AS count FROM public.ledger_entries WHERE owner=" + sqlLiteral(owner) +
+  " AND reference=" + sqlLiteral(journalReference)
+);
+const journalLineCount = await query(
+  "SELECT COUNT(*)::int AS count FROM public.ledger_lines WHERE owner=" + sqlLiteral(owner) +
+  " AND entry_id=" + sqlLiteral(committedJournalId)
+);
+const journalAuditCount = await query(
+  "SELECT COUNT(*)::int AS count FROM public.audit WHERE owner=" + sqlLiteral(owner) +
+  " AND title=" + sqlLiteral(journalReference)
+);
+assert.equal(journalHeaderCount[0].count, 1);
+assert.equal(journalLineCount[0].count, 2);
+assert.equal(journalAuditCount[0].count, 1,
+  "The losing duplicate transaction must not leave a second audit row.");
+console.log("PASS PostgreSQL journal idempotency: same-reference concurrent posts commit once, identical retry reuses the ID, changed payload returns 409, and header/lines/audit remain singular.");
+
+console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, and agriculture register/verification CAS, attendance version CAS, V14 reconciliation, and journal retry idempotency.");
