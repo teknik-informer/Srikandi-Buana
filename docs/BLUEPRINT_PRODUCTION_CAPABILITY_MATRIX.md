@@ -469,3 +469,21 @@ Tidak ada perubahan schema, migration, database, data, auth/session, RBAC, envir
 **Status:** legacy asset loan/operations `partial`; normalized v14 custody history `catalog-only` on this audit. The migration alone does not prove that records are migrated, that the migration is applied in Production, or that event-writing API/UI exists. No handler writing `workspace_v14.member_asset_movement_events` was identified in the reviewed API inventory.
 
 **P1:** test parallel asset reservations and return vs another reservation using real PostgreSQL; ensure asset quantity/state and operational event commit together; provide movement source/event APIs and audit screens before claiming normalized custody is live; preserve distinction between group-owned inventory and member-owned assets.
+
+
+### 12.11 Reporting, monitoring and approval packages — Production baseline audit
+
+**Source:** `src/app/api/report-packages/route.ts`, `src/app/api/report-packages/export/route.ts`, `src/lib/enterprise-reporting.ts`, `src/lib/enterprise-monitoring.ts`, `src/lib/enterprise-analytics.ts`, migrations `009_report_packages.sql` and `010_report_package_source_scope.sql`, test `tests/ecosystem-monitoring-reports.test.mjs`.
+
+| Capability | Evidence | Status | Gap |
+|---|---|---|---|
+| Role-scoped reporting groups | Six domains (operasional, keanggotaan, administrasi, keuangan, usaha, publikasi); access depends on role and enabled source modules; coordinator limited to assigned program IDs; member only sees own permitted records | `partial` | Existing tests exercise pure selection/aggregation helpers, not every API response/CSV/export with a real session and database |
+| Snapshot generation | POST captures visible source rows, source manifest with ID/kind/updated/source hash, source scope (all or program IDs), snapshot hash SHA-256; creates versioned draft and supersedes prior active version | `partial` | Need PostgreSQL integration test for concurrent version allocation and source changes between extraction, package creation, verification and approval |
+| Verification and final approval | Verify/approve/reject uses conditional status transitions; creator cannot verify/approve own package; verifier cannot be final approver; approval checks source rows unchanged and checks for new in-scope source records missing from manifest | `partial` | Need real DB race tests for simultaneous verify/approve/reject and source mutation during approval; test snapshot hash recomputation and complete source scope edge cases |
+| Immutable report evidence | Migration protects snapshot, source manifest, hash and package identity; event history append-only; new package supersedes prior package rather than overwriting evidence | `partial` | Migration source and tests exist, but live Production migration application and trigger enforcement have not been checked |
+| Export | CSV neutralizes formula-leading text; print HTML escapes content; export only approved package; chair receives minimized snapshot fields and masked member/attendance details | `partial` | Need handler-level tests for role-specific redaction, CSV formula injection, XSS, export headers and expired/disabled source modules |
+| BI / monitoring | Helper tests show role-scoped aggregation, program scope, finance withheld from member, identity minimization for chair/admin, operational blockers and program evaluation | `partial` | Helper tests do not prove API integration, query performance, pagination/freshness or accuracy against production-sized records |
+
+**Test interpretation:** `tests/ecosystem-monitoring-reports.test.mjs` exercises pure domain/helper functions for role filtering, reporting selection, monitoring, program evaluation and meeting priorities. It does not invoke report package POST/PATCH/GET/export handlers or run migrations/triggers against PostgreSQL.
+
+**Conclusion:** Reporting/monitoring has meaningful application logic and a robust report-package design, but remains `partial` pending handler-level DB tests, exact migration verification, export/privacy UAT and source-change/concurrency tests. No Production runtime or browser UAT is claimed.
