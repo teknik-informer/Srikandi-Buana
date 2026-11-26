@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import {
-  CalendarPlus, CheckCircle2, ClipboardList, MailPlus, Sprout, Target,
+  CalendarPlus, ClipboardList, MailPlus, Sprout, Target,
   UserPlus, X, type LucideIcon,
 } from "lucide-react";
 import { submitJoinInterest, type JoinState } from "@/app/actions/forms";
@@ -42,7 +42,7 @@ const ICONS: Record<Kind, LucideIcon> = {
 };
 
 const INITIAL_JOIN: JoinState = { ok: false, message: "" };
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = (() => { const date = new Date(); date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); return date.toISOString().slice(0, 10); })();
 
 function inputClass() {
   return "mt-1.5 h-10 w-full rounded-lg border border-line bg-white px-3 text-[13px] text-ink outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15 disabled:opacity-60";
@@ -50,11 +50,13 @@ function inputClass() {
 function textAreaClass() {
   return "mt-1.5 min-h-[88px] w-full rounded-lg border border-line bg-white px-3 py-2.5 text-[13px] text-ink outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15 disabled:opacity-60";
 }
-function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
-  return <label className="block text-[11.5px] font-semibold text-ink2">{children}{required ? <span className="ml-1 text-red-600">*</span> : null}</label>;
-}
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return <div><Label required={required}>{label}</Label>{children}</div>;
+  return (
+    <label className="block text-[11.5px] font-semibold text-ink2">
+      <span>{label}{required ? <span className="ml-1 text-red-600">*</span> : null}</span>
+      <div>{children}</div>
+    </label>
+  );
 }
 function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-3 sm:grid-cols-2">{children}</div>;
