@@ -1,100 +1,189 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Palette, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { THEME_PRESET_VALUES, type ThemePreset } from "@/lib/preferences/theme";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  THEME_PRESET_OPTIONS,
+  THEME_PRESET_VALUES,
+  type ThemePreset,
+} from "@/lib/preferences/theme";
 
 type Mode = "light" | "dark" | "system";
-const modes: Mode[] = ["light", "dark", "system"],
-  labels = { light: "terang", dark: "gelap", system: "otomatis" };
-
-/*
- * Nama atribut dan cookie disalin, bukan diimpor dari preferences-config.
- * Mengimpor berkas itu menarik lib/fonts/registry, yang memuat "geist/font/*"
- * — paket yang tidak ada di dependensi proyek ini. Rantai itu tidak pernah
- * dibangun sebelumnya karena tidak ada yang mengimpornya dari klien, jadi
- * impor pertama akan mematahkan build. Nilai di bawah harus tetap sama
- * dengan PREFERENCE_REGISTRY.theme_preset bila kelak disatukan.
- */
-const presetAttribute = "data-theme-preset";
-const presetCookie = "theme_preset";
-const presetLabels: Record<string, string> = {
-  default: "Default",
-  brutalist: "Brutalist",
-  "soft-pop": "Soft Pop",
-  tangerine: "Tangerine",
-  srikandi: "Srikandi",
+const modes: readonly Mode[] = ["light", "dark", "system"];
+const labels: Record<Mode, string> = {
+  light: "terang",
+  dark: "gelap",
+  system: "otomatis",
 };
 
-function readCookie(name: string) {
+function readCookie(name: string): string | null {
   try {
-    const match = document.cookie.split("; ").find((c) => c.startsWith(name + "="));
-    return match ? decodeURIComponent(match.split("=")[1]) : null;
+    const prefix = name + "=";
+    const entry = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(prefix));
+    return entry ? decodeURIComponent(entry.slice(prefix.length)) : null;
   } catch {
     return null;
   }
 }
 
-function writeCookie(name: string, value: string) {
+function writeCookie(name: string, value: string): void {
   try {
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
-  } catch {}
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
+  } catch {
+    // The visible session preference still applies when cookies are unavailable.
+  }
+}
+
+function applyMode(mode: Mode): void {
+  const root = document.documentElement;
+  const prefersDark =
+    mode === "system" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = mode === "dark" || prefersDark;
+
+  root.setAttribute("data-theme-mode", mode);
+  root.classList.toggle("dark", isDark);
+  root.style.colorScheme = isDark ? "dark" : "light";
+}
+
+function readMode(): Mode {
+  const fromRoot = document.documentElement.getAttribute("data-theme-mode");
+  if (modes.includes(fromRoot as Mode)) return fromRoot as Mode;
+
+  const fromCookie = readCookie("theme_mode");
+  if (modes.includes(fromCookie as Mode)) return fromCookie as Mode;
+
+  // Migrate the legacy key once; all new writes use the canonical cookie.
+  try {
+    const legacy = window.localStorage.getItem("sb-theme");
+    if (modes.includes(legacy as Mode)) {
+      writeCookie("theme_mode", legacy as Mode);
+      return legacy as Mode;
+    }
+  } catch {
+    // Private browsing and storage-disabled contexts use the safe default.
+  }
+
+  return "system";
+}
+
+function readPreset(): ThemePreset {
+  const fromRoot = document.documentElement.getAttribute("data-theme-preset");
+  if ((THEME_PRESET_VALUES as readonly string[]).includes(fromRoot ?? "")) {
+    return fromRoot as ThemePreset;
+  }
+
+  const fromCookie = readCookie("theme_preset");
+  if ((THEME_PRESET_VALUES as readonly string[]).includes(fromCookie ?? "")) {
+    return fromCookie as ThemePreset;
+  }
+
+  return "default";
 }
 
 export default function ThemeControl() {
   const [mode, setMode] = useState<Mode>("system");
   const [preset, setPreset] = useState<ThemePreset>("default");
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("sb-theme");
-      if (stored && modes.includes(stored as Mode)) setMode(stored as Mode);
-    } catch {}
-    const savedPreset = readCookie(presetCookie);
-    if (savedPreset && (THEME_PRESET_VALUES as readonly string[]).includes(savedPreset)) {
-      setPreset(savedPreset as ThemePreset);
-    }
+    setMode(readMode());
+    setPreset(readPreset());
+    setInitialized(true);
   }, []);
+
   useEffect(() => {
+    if (!initialized) return;
+
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () =>
-      document.documentElement.classList.toggle("dark", mode === "dark" || (mode === "system" && media.matches));
+    const apply = () => applyMode(mode);
     apply();
-    media.addEventListener("change", apply);
-    return () => media.removeEventListener("change", apply);
-  }, [mode]);
 
-  /* Preset hanya dipasang bila bukan default — atribut default sudah dipegang :root. */
-  useEffect(() => {
-    if (preset === "default") {
-      document.documentElement.removeAttribute(presetAttribute);
-    } else {
-      document.documentElement.setAttribute(presetAttribute, preset);
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", apply);
+      return () => media.removeEventListener("change", apply);
     }
-  }, [preset]);
 
-  const next = modes[(modes.indexOf(mode) + 1) % modes.length];
-  const nextPreset = THEME_PRESET_VALUES[(THEME_PRESET_VALUES.indexOf(preset) + 1) % THEME_PRESET_VALUES.length];
+    media.addListener(apply);
+    return () => media.removeListener(apply);
+  }, [initialized, mode]);
+
+  useEffect(() => {
+    if (!initialized) return;
+    document.documentElement.setAttribute("data-theme-preset", preset);
+  }, [initialized, preset]);
+
+  const nextMode = modes[(modes.indexOf(mode) + 1) % modes.length];
+  const currentPreset =
+    THEME_PRESET_OPTIONS.find((option) => option.value === preset) ??
+    THEME_PRESET_OPTIONS[0];
+
+  function changeMode(): void {
+    setMode(nextMode);
+    writeCookie("theme_mode", nextMode);
+    applyMode(nextMode);
+  }
+
+  function changePreset(value: string): void {
+    if (!(THEME_PRESET_VALUES as readonly string[]).includes(value)) return;
+    const nextPreset = value as ThemePreset;
+    setPreset(nextPreset);
+    writeCookie("theme_preset", nextPreset);
+    document.documentElement.setAttribute("data-theme-preset", nextPreset);
+  }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="workspace-icon-button"
-      aria-label={"Tema " + labels[mode] + ", gaya " + presetLabels[preset] + ". Ganti ke " + labels[next]}
-      title={"Tema " + labels[mode] + " · gaya " + presetLabels[preset] + " (klik kanan: ganti gaya)"}
-      onClick={() => {
-        setMode(next);
-        try {
-          localStorage.setItem("sb-theme", next);
-        } catch {}
-      }}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        setPreset(nextPreset);
-        writeCookie(presetCookie, nextPreset);
-      }}
-    >
-      {mode === "system" ? <Monitor /> : mode === "dark" ? <Moon /> : <Sun />}
-    </Button>
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="workspace-icon-button"
+        aria-label={`Tema ${labels[mode]}. Ganti ke ${labels[nextMode]}`}
+        title={`Tema ${labels[mode]} · klik untuk beralih ke ${labels[nextMode]}`}
+        onClick={changeMode}
+      >
+        {mode === "system" ? <Monitor /> : mode === "dark" ? <Moon /> : <Sun />}
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="workspace-icon-button"
+            aria-label={`Pilih gaya tampilan. Saat ini ${currentPreset.label}`}
+            title={`Gaya tampilan: ${currentPreset.label}`}
+          >
+            <Palette />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" sideOffset={8} className="w-44">
+          <DropdownMenuLabel>Gaya tampilan</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={preset} onValueChange={changePreset}>
+            {THEME_PRESET_OPTIONS.map((option) => (
+              <DropdownMenuRadioItem key={option.value} value={option.value}>
+                {option.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }
