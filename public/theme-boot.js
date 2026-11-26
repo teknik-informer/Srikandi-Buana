@@ -63,12 +63,5 @@
 
   applyMode();
 
-  if (mode === "system" && typeof window.matchMedia === "function") {
-    var media = window.matchMedia("(prefers-color-scheme: dark)");
-    if (typeof media.addEventListener === "function") {
-      media.addEventListener("change", applyMode);
-    } else if (typeof media.addListener === "function") {
-      media.addListener(applyMode);
-    }
-  }
+  // The hydrated ThemeControl owns ongoing system-preference subscriptions.
 })();
