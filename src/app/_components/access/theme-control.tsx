@@ -2,14 +2,21 @@
 import { useEffect, useState } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { applyPreference } from "@/lib/preferences/preference-runtime";
 import { THEME_PRESET_VALUES, type ThemePreset } from "@/lib/preferences/theme";
 
 type Mode = "light" | "dark" | "system";
 const modes: Mode[] = ["light", "dark", "system"],
   labels = { light: "terang", dark: "gelap", system: "otomatis" };
 
-/* Cookie yang dibaca theme-boot sebelum hidrasi; harus sama dengan PREFERENCE_REGISTRY.theme_preset */
+/*
+ * Nama atribut dan cookie disalin, bukan diimpor dari preferences-config.
+ * Mengimpor berkas itu menarik lib/fonts/registry, yang memuat "geist/font/*"
+ * — paket yang tidak ada di dependensi proyek ini. Rantai itu tidak pernah
+ * dibangun sebelumnya karena tidak ada yang mengimpornya dari klien, jadi
+ * impor pertama akan mematahkan build. Nilai di bawah harus tetap sama
+ * dengan PREFERENCE_REGISTRY.theme_preset bila kelak disatukan.
+ */
+const presetAttribute = "data-theme-preset";
 const presetCookie = "theme_preset";
 const presetLabels: Record<string, string> = {
   default: "Default",
@@ -59,9 +66,9 @@ export default function ThemeControl() {
   /* Preset hanya dipasang bila bukan default — atribut default sudah dipegang :root. */
   useEffect(() => {
     if (preset === "default") {
-      document.documentElement.removeAttribute("data-theme-preset");
+      document.documentElement.removeAttribute(presetAttribute);
     } else {
-      applyPreference("theme_preset", preset);
+      document.documentElement.setAttribute(presetAttribute, preset);
     }
   }, [preset]);
 
