@@ -127,6 +127,13 @@ class PostgresDatabase {
   }
   async execute(statement) {
     const sql = bindSql(statement.text, statement.values);
+    if (sql.trimStart().startsWith("WITH order_guard AS MATERIALIZED (")) {
+      if (this.raceGate) await this.waitAtConcurrentGate();
+      const output = await runPsql(
+        "BEGIN ISOLATION LEVEL SERIALIZABLE;\\nSELECT pg_sleep(0.25);\\n" + sql + ";\\nCOMMIT;"
+      );
+      return { results: output.split(/\\r?\\n/).filter(Boolean).map(invoice_json => ({ invoice_json })) };
+    }
     if (sql.trimStart().startsWith("WITH event_guard AS MATERIALIZED (") || sql.trimStart().startsWith("WITH changed AS (")) {
       if (this.raceGate) await this.waitAtConcurrentGate();
       const output = await runPsql(
@@ -151,7 +158,8 @@ class PostgresDatabase {
   }
   async batch(statements) {
     const isCas = statements[0]?.text.trimStart().startsWith("WITH event_guard AS MATERIALIZED (") || statements[0]?.text.trimStart().startsWith("WITH changed AS (");
-    if (isCas && this.raceGate) await this.waitAtConcurrentGate();
+    const isReceiptBatch = statements.some(statement => statement.text.includes("INSERT INTO commerce_sales_invoice_receipts"));
+    if ((isCas || isReceiptBatch) && this.raceGate) await this.waitAtConcurrentGate();
 
     let script = "BEGIN ISOLATION LEVEL SERIALIZABLE;\n";
     if (isCas) {
@@ -299,6 +307,7 @@ const v14 = await loadBundle("src/lib/workspace-v14-sync.ts", { mappingAlias: tr
 const finance = await loadBundle("src/features/finance/record-posting.ts");
 const agricultureMutations = await loadBundle("src/lib/agriculture/record-mutations.ts");
 const attendanceMutations = await loadBundle("src/lib/attendance/record-mutations.ts");
+const salesInvoices = await loadBundle("src/features/commerce/sales-invoices.ts");
 
 await runSchemaMigrations();
 
