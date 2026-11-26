@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import {
   CalendarPlus, ClipboardList, MailPlus, Sprout, Target,
   UserPlus, X, type LucideIcon,
@@ -62,10 +63,25 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-3 sm:grid-cols-2">{children}</div>;
 }
 function Footer({ children = "Simpan", cancel }: { children?: React.ReactNode; cancel: () => void }) {
+  const { pending } = useFormStatus();
   return (
     <div className="mt-4 flex items-center justify-end gap-2 border-t border-line pt-3">
-      <button type="button" onClick={cancel} className="inline-flex h-9 items-center rounded-lg px-3 text-[12px] font-semibold text-muted transition hover:bg-muted/50">Batal</button>
-      <button type="submit" className="inline-flex h-9 items-center justify-center rounded-lg bg-primary-700 px-4 text-[12px] font-semibold text-white shadow-sm transition hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500/30"> {children} </button>
+      <button
+        type="button"
+        onClick={cancel}
+        disabled={pending}
+        className="inline-flex h-9 items-center rounded-lg px-3 text-[12px] font-semibold text-muted transition hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Batal
+      </button>
+      <button
+        type="submit"
+        disabled={pending}
+        aria-live="polite"
+        className="inline-flex h-9 items-center justify-center rounded-lg bg-primary-700 px-4 text-[12px] font-semibold text-white shadow-sm transition hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:cursor-wait disabled:opacity-60"
+      >
+        {pending ? "Menyimpan…" : children}
+      </button>
     </div>
   );
 }
@@ -161,7 +177,7 @@ export function BuatCepatPanel({ options, fields, initialKind }: Props) {
               </label>
               <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden"/>
               <div className="mt-4 flex justify-end">
-                <button type="submit" disabled={joinPending} className="inline-flex h-9 items-center rounded-lg bg-primary-700 px-4 text-[12px] font-semibold text-white disabled:opacity-60">{joinPending ? "Menyimpan…" : "Kirim pengajuan"}</button>
+                <button type="submit" disabled={joinPending} aria-live="polite" className="inline-flex h-9 items-center rounded-lg bg-primary-700 px-4 text-[12px] font-semibold text-white disabled:cursor-wait disabled:opacity-60">{joinPending ? "Mengirim…" : "Kirim pengajuan"}</button>
               </div>
             </form>
           ) : null}
