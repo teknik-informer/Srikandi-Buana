@@ -248,3 +248,63 @@ Versi 0.1 belum mengklaim selesai. Arena/reviewer harus melengkapi:
 6. Daftar gap dengan prioritas P0/P1/P2, dependency, risiko, acceptance criteria, dan PR implementasi yang direncanakan.
 
 **Reviewer acceptance:** dokumen baru dapat dinaikkan ke versi final bila tidak ada submodul yang disamarkan sebagai selesai hanya karena route/kartu tersedia, seluruh status dapat ditelusuri ke source/test evidence, dan backlog delivery memiliki acceptance criteria terukur.
+
+
+## 12. Lampiran bukti route/API dan test inventory — baseline 26 Nov
+
+Lampiran ini mempersempit beberapa temuan dari daftar area menjadi handler yang benar-benar ditemukan pada commit baseline. Keberadaan handler tetap **bukan** bukti seluruh operasi pada domain sudah lengkap.
+
+### 12.1 Route dan batas akses yang teramati
+
+| Kemampuan | Handler yang diperiksa | Operasi/bukti source yang terlihat | Batas yang belum boleh diasumsikan |
+|---|---|---|---|
+| Agriculture | `src/app/api/agriculture/route.ts` (322 baris) | Auth user, module availability, principal/role, validasi unit dan tenure; handler domain tersedia | Perlu inventaris metode HTTP, tabel/kolom, semua transisi, tests, dan browser UAT |
+| Attendance register | `src/app/api/attendance/route.ts` | PUT; membatasi sekretaris/admin, validasi event dan member dalam owner yang sama, menulis record `kehadiran`, audit dan V14 attendance statements dalam batch | Belum membuktikan koreksi/approval, concurrency guard, seluruh status kehadiran, dan UAT |
+| HRM attendance | `src/app/api/hrm/attendance/route.ts` (393 baris) | Handler khusus HRM; definisi tipe sesi dan status presensi, auth dan module guard | Perlu petakan GET/POST/PUT/DELETE dan tiap state transition; jangan disamakan dengan register attendance generic |
+| Commerce orders | `src/app/api/ecosystem/orders/route.ts` | GET dengan pembatasan pembacaan berdasarkan role/buyer; POST memvalidasi productId dan clientRequestId, rate limit, memeriksa request id yang telah ada | Perlu verifikasi seluruh POST transaction, stock reservation, status lifecycle, pembayaran, cancel/return, serta race/idempotency test |
+| Commerce products | `src/app/api/ecosystem/products/route.ts` | GET katalog publik atau daftar manage sesuai role/module; owner-scoped product list | Perlu audit POST/PATCH/DELETE, unique SKU, publish lifecycle, stock integrity dan UAT |
+| Finance ledger | `src/app/api/ecosystem/ledger/route.ts` | Role read dan write dipisah; module guard; balanced journal validation; CSV export | Perlu audit POST/reversal, database constraints, period lock, atomicity, reconciliation dan test concurrency |
+| Platform modules | `src/app/api/platform/modules/route.ts` | Handler terpisah; node runtime; no-store/referrer policy; JSON request parser | Perlu audit admin guard, reason, persisted grants, audit event dan negative tests |
+| Report packages | `src/app/api/report-packages/route.ts` | Report group registry; permission helpers `canReadKindForRole`, `canReadRecord`, `visibleRecord`; module guard | Perlu petakan draft/review/approve/export lifecycle, sumber tiap group, evidence lineage dan privacy tests |
+| External portal identity | `src/app/api/external-portal/me/route.ts` | External auth dan active grant filtering sebelum mengembalikan account/grants | Endpoint identitas ini bukan bukti portal report/data endpoints seluruhnya aman; audit setiap endpoint dan file download terpisah |
+
+### 12.2 Schema/migration inventory yang relevan
+
+| Domain | Migration/file yang ditemukan | Catatan audit |
+|---|---|---|
+| Initial identity/roles | `001_initial.sql`, `002_roles.sql` | Periksa constraint, ownership dan migrasi historis sebelum perubahan identity |
+| Audit/database integrity | `007_database_integrity_and_audit.sql` | Constraint/audit baseline ada; perlu verifikasi tiap writer menggunakan mekanisme konsisten |
+| Organization/workspace v14 | `008_workspace_v14_core.sql`, `013_multi_officer_positions.sql`, `021_member_self_service_identity.sql`, `022_member_email_backfill.sql` | Relasi dan identity berkembang melalui migrasi terpisah; perlu map entity dan compatibility writer |
+| External access/reporting | `005_external_access.sql`, `009_report_packages.sql`, `010_report_package_source_scope.sql` | Grant dan report package schema ada; perlu uji expiry/revoke/scope serta publikasi |
+| Agriculture | `006_agriculture_domain.sql` | Domain schema tersedia; perlu map semua tabel ke route dan UI |
+| Commerce/inventory | `005_ecosystem_foundation.sql`, `012_sales_invoices_and_receipts.sql`, `014_supplier_bills.sql`, `015_procurement_workflow.sql`, `016_purchase_three_way_match.sql`, `017_inventory_stock_ledger.sql`, `018_inventory_transfers_stocktakes.sql`, `019_inventory_document_lifecycle.sql` | Banyak fondasi transaksi tersedia; tidak berarti seluruh layar, workflow dan test lulus |
+| Finance/banking | `006_order_receipts_and_journal_corrections.sql`, `010_member_impact_finance.sql`, `013_bank_reconciliation.sql` | Perlu audit balanced posting, reversal, bank matching, closing dan report consistency |
+| Platform module access | `020_platform_module_access.sql` | Registry/grants perlu diuji dengan role, disabled module, cross-owner, audit dan revocation |
+
+**Peringatan nomor migrasi:** repository memiliki beberapa file dengan prefix nomor yang sama (misalnya `005_*`, `006_*`, `008_*`, `009_*`, `010_*`, `011_*`, `012_*`, `013_*`). Jangan menyimpulkan urutan eksekusi hanya dari nama file; gunakan migration runner/manifest aktual dan audit applied migration ledger. Jangan menjalankan atau menyusun ulang migration dari dokumen ini.
+
+### 12.3 Test inventory yang ditemukan
+
+Direktori `tests/` pada baseline memuat antara lain:
+
+- `ecosystem-security.test.mjs`
+- `ecosystem-validation.test.mjs`
+- `ecosystem-v12-audit-writes.test.mjs`
+- `ecosystem-v12-deployment-safety.test.mjs`
+- `ecosystem-v12-domain-boundaries.test.mjs`
+- `ecosystem-v12-ledger-integrity.test.mjs`
+- `ecosystem-v12-pillars.test.mjs`
+- `ecosystem-v12` lainnya untuk dashboard, media consent, monitoring/reporting, dan workspace layout
+- `enterprise-analytics.test.mjs`
+- `platform-application-registry.test.mjs`
+- `platform-core-module-center.test.mjs`
+- `platform-module-access.test.mjs`
+- `integration-security.mjs`
+- `migration-audit.test.mjs`
+
+Nama file test di atas hanya inventory. Hasil test harus diperiksa per test case dan exact commit; keberadaan file tidak membuktikan seluruh operasi teruji. Secara khusus, belum ada bukti dari inventory ini saja bahwa attendance lifecycle, agriculture lifecycle, report publication, member verification, dan CAS concurrency sudah memiliki integration tests lengkap.
+
+### 12.4 PR #67 — hasil CI dokumentasi
+
+Pada commit PR #67 `44988d917e4a44202e18e5bc7f415bf069e0e0e6`, dua check bernama `quality` telah berstatus `completed / success`. Check `Vercel Preview Comments` juga completed/success, tetapi komentar Vercel yang muncul mengarah ke project `srikandi-buana-v9`; ini **bukan** bukti Preview Production dan bukan browser UAT Production. PR tetap Draft dan belum di-merge.
+
