@@ -7,6 +7,10 @@ import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {hashPassword} from '../src/lib/password.mjs';
 const require=createRequire(import.meta.url);
+const loginFormSource=readFileSync('src/app/masuk/login-form.tsx','utf8');
+assert.match(loginFormSource, /<form\\b(?=[^>]*\\bmethod="post")/, 'login form must fail closed with POST when client hydration is unavailable');
+assert.match(loginFormSource, /fetch\\("\\/api\\/auth\\/login",\\s*\\{\\s*method:\\s*"POST"/, 'hydrated login must submit credentials to the JSON login API using POST');
+
 const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const compat={exports:{}};vm.runInNewContext(transform.outputFiles[0].text,{module:compat,exports:compat.exports});
 const db=newDb();db.public.registerFunction({name:'jsonb_typeof',args:[DataType.jsonb],returns:DataType.text,implementation:v=>Array.isArray(v)?'array':typeof v});db.public.none(readFileSync('migrations/001_initial.sql','utf8'));db.public.none(readFileSync('migrations/002_roles.sql','utf8'));const {Pool}=db.adapters.createPg(),pool=new Pool();
 function prepare(text,args=[]){const query=()=>pool.query(compat.exports.postgresStatement(text),args).catch(error=>{console.error(error.message);throw error});return {bind(...values){return prepare(text,values)},async first(){return (await query()).rows[0]||null},async all(){return {results:(await query()).rows}},async run(){return {meta:{changes:(await query()).rowCount}}}}}
