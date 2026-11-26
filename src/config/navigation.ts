@@ -161,7 +161,7 @@ export const MEGA_MENU: MenuSection[] = [
             icon: "store",
           },
           {
-            label: "Katalog produk anggota",
+            label: "Produk anggota",
             href: "/produk",
             desc: "Kopi, madu, gula aren, dan olahan kebun",
             icon: "bag",
@@ -372,7 +372,7 @@ export const FOOTER_MENU = [
   {
     heading: "Produk",
     items: [
-      { label: "Katalog", href: "/produk" },
+      { label: "Produk", href: "/produk" },
       { label: "Pemesanan", href: "/produk/pemesanan" },
       { label: "Kemitraan", href: "/kemitraan" },
       { label: "Kontak", href: "/kontak" },

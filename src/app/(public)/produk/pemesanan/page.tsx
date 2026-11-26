@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ORG } from "@/config/org";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
+
 import { Card, CardHeader, Notice } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -9,13 +11,15 @@ export const metadata: Metadata = {
 };
 
 const STEPS = [
-  { n: "01", t: "Pilih produk", d: "Buka katalog publik dan catat nama serta kemasan produk yang diinginkan." },
-  { n: "02", t: "Hubungi kanal resmi", d: `Kirim pesan ke ${ORG.email} atau WhatsApp resmi organisasi. Sebutkan jumlah dan alamat kirim.` },
+  { n: "01", t: "Pilih produk", d: "Buka halaman produk dan catat nama serta kemasan produk yang diinginkan." },
+  { n: "02", t: "Hubungi kanal resmi", d: `Hubungi pengelola melalui kanal resmi. Sebutkan jumlah dan alamat kirim.` },
   { n: "03", t: "Konfirmasi ketersediaan", d: "Bidang Usaha & Kemitraan mengonfirmasi ketersediaan dan total biaya, termasuk pengiriman." },
   { n: "04", t: "Pembayaran & pengiriman", d: "Pembayaran hanya melalui rekening resmi organisasi. Bukti pembayaran disimpan oleh sekretariat." },
 ];
 
-export default function PemesananPage() {
+export default async function PemesananPage() {
+  const settings = await getPublicSiteSettings();
+  if (!settings.features.productCatalogue) notFound();
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Informasi pemesanan</div>
@@ -47,7 +51,7 @@ export default function PemesananPage() {
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/produk" className="sb-btn sb-btn-primary">Kembali ke katalog</Link>
+        <Link href="/produk" className="sb-btn sb-btn-primary">Kembali ke daftar produk</Link>
         <Link href="/kontak" className="sb-btn sb-btn-outline">Hubungi kami</Link>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { MapPin, FileText, UserPlus } from "lucide-react";
 import { Card, CardHeader, EmptyState, Notice, PageHeader } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
@@ -23,6 +24,7 @@ export default async function KontakPage({
 }: {
   searchParams: Promise<{ tujuan?: string }>;
 }) {
+  const siteSettings = await getPublicSiteSettings();
   const { tujuan } = await searchParams;
   const inquiryLabel =
     tujuan === "kemitraan" ? "pembicaraan kemitraan" :
@@ -62,7 +64,7 @@ export default async function KontakPage({
       <PageHeader
         eyebrow="Kontak"
         title="Informasi sekretariat"
-        description="Informasi yang ditampilkan dibatasi pada data alamat organisasi yang benar-benar tercatat. Kanal komunikasi resmi belum dipublikasikan melalui registry."
+        description="Informasi kontak yang ditampilkan telah dimasukkan dan disetujui melalui pengaturan situs organisasi."
       />
 
       {organization ? (
@@ -71,11 +73,21 @@ export default async function KontakPage({
             <CardHeader title="Alamat organisasi" action={<MapPin size={16} className="text-muted2" />} />
             <div className="px-5 py-4">
               <div className="text-[13px] font-semibold text-ink">{organization.legal_name}</div>
-              {organization.address ? (
-                <p className="mt-2 text-[12.5px] leading-relaxed text-ink2">{organization.address}</p>
+              {siteSettings.contact.address || organization.address ? (
+                <p className="mt-2 text-[12.5px] leading-relaxed text-ink2">{siteSettings.contact.address || organization.address}</p>
               ) : (
                 <EmptyState title="Alamat belum dicatat" body="Alamat sekretariat belum tersedia pada registry organisasi." />
               )}
+            </div>
+          </Card>
+          <Card>
+            <CardHeader title="Kanal komunikasi" />
+            <div className="space-y-2 px-5 py-4 text-[12px] text-ink2">
+              {siteSettings.contact.email ? <p><a className="font-semibold text-primary-700 hover:underline" href={`mailto:${siteSettings.contact.email}`}>{siteSettings.contact.email}</a></p> : null}
+              {siteSettings.contact.phone ? <p>{siteSettings.contact.phone}</p> : null}
+              {siteSettings.contact.whatsapp ? <p><a className="font-semibold text-primary-700 hover:underline" href={`https://wa.me/${siteSettings.contact.whatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">WhatsApp: {siteSettings.contact.whatsapp}</a></p> : null}
+              {siteSettings.contact.officeHours ? <p>Jam layanan: {siteSettings.contact.officeHours}</p> : null}
+              {!siteSettings.contact.email && !siteSettings.contact.phone && !siteSettings.contact.whatsapp && !siteSettings.contact.officeHours ? <p className="text-muted">Kanal komunikasi resmi belum dipublikasikan.</p> : null}
             </div>
           </Card>
           <Card>
@@ -88,12 +100,12 @@ export default async function KontakPage({
               <div className="border-t border-line pt-3">
                 <div className="font-semibold text-ink">Minat bergabung</div>
                 <p className="mt-1 text-muted">Gunakan formulir minat bergabung. Pengajuan bukan keanggotaan resmi sampai diverifikasi pengurus.</p>
-                <Link href="/gabung" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">Formulir minat <UserPlus size={12} /></Link>
+                {siteSettings.features.membershipInterest ? <Link href="/gabung" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">Formulir minat <UserPlus size={12} /></Link> : null}
               </div>
               <div className="border-t border-line pt-3">
                 <div className="font-semibold text-ink">Dokumen</div>
                 <p className="mt-1 text-muted">Dokumen yang sudah final dan diklasifikasikan publik tersedia pada arsip publik.</p>
-                <Link href="/dokumen" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">Dokumen publik <FileText size={12} /></Link>
+                {siteSettings.features.documents ? <Link href="/dokumen" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700">Dokumen publik <FileText size={12} /></Link> : null}
               </div>
             </div>
           </Card>
@@ -103,8 +115,8 @@ export default async function KontakPage({
       )}
 
       <div className="mt-5">
-        <Notice tone="warning" title="Kanal resmi belum tercatat">
-          Email, nomor telepon/WhatsApp, jam layanan, dan titik koordinat belum tersedia pada registry terstruktur. Informasi placeholder tidak ditampilkan sebagai kanal resmi.
+        <Notice tone="info" title="Permintaan informasi">
+          Untuk pertanyaan atau permintaan dokumen, gunakan tujuan informasi pada halaman ini. Sekretariat meninjau setiap permintaan sesuai kewenangannya.
         </Notice>
       </div>
     </div>

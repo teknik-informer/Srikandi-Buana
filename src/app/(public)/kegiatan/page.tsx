@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { CalendarDays, MapPin } from "lucide-react";
 import { Badge, Card, EmptyState, Notice } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
@@ -36,6 +38,8 @@ export default async function KegiatanPage({
 }: {
   searchParams: Promise<{ bidang?: string }>;
 }) {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.activities) notFound();
   const { bidang } = await searchParams;
   const selectedField = ["organisasi", "pertanian", "pelatihan", "usaha"].includes(bidang ?? "")
     ? (bidang ?? "")

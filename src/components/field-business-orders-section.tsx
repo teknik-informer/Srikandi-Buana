@@ -454,7 +454,7 @@ export async function FieldBusinessOrdersSection({
             ))}
           </div>
         ) : (
-          <div className="px-5 py-10"><EmptyState title="Belum ada pesanan" body="Catat pelanggan, lalu buat pesanan dengan item dari katalog produk aktif." /></div>
+          <div className="px-5 py-10"><EmptyState title="Belum ada pesanan" body="Catat pelanggan, lalu buat pesanan dengan item dari daftar produk aktif." /></div>
         )}
       </Card>
 

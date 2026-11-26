@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { ArrowRight, Handshake, ShieldCheck } from "lucide-react";
 import { Card, CardHeader, EmptyState, Notice, PageHeader } from "@/components/ui";
 
@@ -16,7 +18,9 @@ const discussionAreas = [
   ["Riset dan pembelajaran", "Kegiatan kolaborasi dengan perlindungan data anggota dan persetujuan publikasi."],
 ];
 
-export default function KemitraanPage() {
+export default async function KemitraanPage() {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.partnerships) notFound();
   return (
     <div className="sb-shell py-12">
       <PageHeader

@@ -139,7 +139,7 @@ export const FIELDS: FieldDef[] = [
     name: "Bidang Usaha & Kemitraan",
     shortName: "Usaha & Kemitraan",
     mandate:
-      "Mengembangkan kegiatan ekonomi dan mengelola hubungan usaha/mitra: pemetaan produk, produsen, HPP, harga, katalog, stok, pesanan, pelanggan, penjualan, promosi, peluang pasar, database mitra, komunikasi, proposal, perjanjian, dan milestone kerja sama.",
+      "Mengembangkan kegiatan ekonomi dan mengelola hubungan usaha/mitra: pemetaan produk, produsen, HPP, harga, daftar produk, stok, pesanan, pelanggan, penjualan, promosi, peluang pasar, database mitra, komunikasi, proposal, perjanjian, dan milestone kerja sama.",
     decision: {
       kind: "Struktur kerja organisasi (dasar keputusan resmi)",
       number: "Belum tercatat",
@@ -157,7 +157,7 @@ export const FIELDS: FieldDef[] = [
       "Pemetaan produk & potensi usaha",
       "Produsen",
       "HPP & harga",
-      "Katalog",
+      "Produk",
       "Stok",
       "Pesanan",
       "Pelanggan",

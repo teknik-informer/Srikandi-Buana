@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import Link from "next/link";
 import { JoinForm } from "@/components/join-form";
 import { Card, CardHeader, Notice } from "@/components/ui";
@@ -8,7 +10,9 @@ export const metadata: Metadata = {
   description: "Formulir minat bergabung dengan KWT Srikandi Buana. Pendaftaran minat diproses oleh Bidang Organisasi & Keanggotaan.",
 };
 
-export default function GabungPage() {
+export default async function GabungPage() {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.membershipInterest) notFound();
   return (
     <div className="sb-shell py-12">
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">

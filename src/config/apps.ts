@@ -111,7 +111,7 @@ export const APPS: AppDef[] = [
     short: "Usaha",
     href: "/app/bidang/usaha",
     audience: "Bidang Usaha & Kemitraan",
-    description: "Katalog, stok, pesanan, mitra, dan kerja sama usaha.",
+    description: "Produk, persediaan, pesanan, mitra, dan kerja sama usaha.",
     icon: "store",
     group: "bidang",
     badge: "Bidang",

@@ -268,7 +268,7 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
       : field.slug === "pelatihan"
         ? [{ label: "Data pelatihan dan peserta", href: "/app/bidang/pelatihan/data" }]
         : [
-            { label: "Katalog produk", href: "/app/bidang/usaha/katalog" },
+            { label: "Produk & persediaan", href: "/app/bidang/usaha/katalog" },
             { label: "Pelanggan dan pesanan", href: "/app/bidang/usaha/pesanan" },
             { label: "Gudang dan persediaan", href: "/app/bidang/usaha/persediaan" },
           ];

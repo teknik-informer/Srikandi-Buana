@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { Download, FileCheck2, FileText } from "lucide-react";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { loadPublicData } from "@/lib/public-data";
@@ -47,6 +49,8 @@ export default async function DokumenPage({
 }: {
   searchParams: Promise<{ kategori?: string }>;
 }) {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.documents) notFound();
   const { kategori } = await searchParams;
   const selectedCategory = categories.some((item) => item.value === kategori) ? (kategori ?? "") : "";
   const loaded = await loadPublicData(

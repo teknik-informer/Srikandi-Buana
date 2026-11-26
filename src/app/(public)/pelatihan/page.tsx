@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { CalendarDays, MapPin, UsersRound } from "lucide-react";
 import { Badge, Card, CardHeader, EmptyState, Notice, Progress } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
@@ -36,6 +38,8 @@ function timeLabel(start: string | null, end: string | null): string | null {
 }
 
 export default async function PelatihanPage() {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.training) notFound();
   const loaded = await loadPublicData(
     "training",
     async () => {

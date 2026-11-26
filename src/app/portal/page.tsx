@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { Building2, ShieldCheck } from "lucide-react";
 import { Card, CardHeader, EmptyState, Notice, PageHeader, Badge } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
@@ -20,6 +22,8 @@ export default async function PortalEksternal() {
     "ngo_viewer",
     "partner_viewer",
   ]);
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.externalPortal) notFound();
 
   let organization: OrganizationLabel | null = null;
   let organizationUnavailable = false;

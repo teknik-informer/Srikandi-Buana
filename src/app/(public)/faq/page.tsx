@@ -4,7 +4,7 @@ import { Card } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "Informasi dasar keanggotaan, produk publik, data dan layanan Srikandi Buana.",
+  description: "Informasi dasar keanggotaan, program, data, dan layanan Srikandi Buana.",
 };
 
 const FAQ_ITEMS = [
@@ -18,7 +18,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "Bagaimana cara melihat produk yang tersedia?",
-    answer: "Katalog publik hanya menampilkan produk yang sudah diaktifkan dan disetujui untuk publikasi. Harga, ketersediaan, dan cara pemesanan perlu dikonfirmasi melalui pengelola usaha.",
+    answer: "Halaman produk hanya menampilkan produk yang sudah diaktifkan dan disetujui untuk publikasi. Harga, ketersediaan, dan cara pemesanan perlu dikonfirmasi melalui pengelola usaha.",
   },
   {
     question: "Apakah pembayaran pesanan dapat dilakukan di website?",

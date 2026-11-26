@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { ArrowRight, ClipboardList } from "lucide-react";
 import { Card, EmptyState, Notice, PageHeader } from "@/components/ui";
 
@@ -8,7 +10,9 @@ export const metadata: Metadata = {
   description: "Informasi program organisasi Srikandi Buana yang telah disahkan untuk publikasi.",
 };
 
-export default function ProgramPage() {
+export default async function ProgramPage() {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.programs) notFound();
   return (
     <div className="sb-shell py-12">
       <PageHeader

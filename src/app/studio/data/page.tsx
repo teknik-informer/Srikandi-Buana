@@ -9,7 +9,7 @@ const operationalModules = [
   { label: "Buku Induk Anggota", description: "Data keanggotaan aktif dan status verifikasi", href: "/app/bidang/organisasi/data" },
   { label: "Data Pertanian & Produksi", description: "Lahan, komoditas, kegiatan lapangan dan produksi", href: "/app/bidang/pertanian/data" },
   { label: "Pelatihan & Peserta", description: "Sesi, pendaftaran dan pelaksanaan pelatihan", href: "/app/bidang/pelatihan/data" },
-  { label: "Katalog & Persediaan", description: "Produk, gudang dan mutasi stok", href: "/app/bidang/usaha/katalog" },
+  { label: "Produk & Persediaan", description: "Produk, gudang dan mutasi stok", href: "/app/bidang/usaha/katalog" },
   { label: "Pelanggan & Pesanan", description: "Register pelanggan dan pesanan usaha", href: "/app/bidang/usaha/pesanan" },
   { label: "Surat & Arsip", description: "Register surat dan dokumen Sekretariat", href: "/app/sekretariat/surat" },
   { label: "Jurnal Keuangan", description: "Pencatatan akuntansi melalui jurnal berpasangan", href: "/app/keuangan/jurnal" },

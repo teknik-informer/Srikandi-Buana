@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { ArrowLeft, Package, Store } from "lucide-react";
 import { Badge, Card, EmptyState, Notice } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
@@ -68,12 +69,16 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.productCatalogue) notFound();
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.productCatalogue) return { title: "Informasi tidak tersedia" };
   const { slug } = await params;
   const lookup = await findPublishedProduct(slug);
   if (lookup.unavailable) {
     return {
       title: "Informasi produk sementara tidak tersedia",
-      description: "Katalog produk Srikandi Buana sedang mengalami gangguan layanan data.",
+      description: "Produk Srikandi Buana sedang mengalami gangguan layanan data.",
     };
   }
   const product = lookup.data;
@@ -134,7 +139,7 @@ export default async function ProductDetail({
   return (
     <div className="sb-shell py-10">
       <nav className="mb-5 flex items-center gap-2 text-[12px] text-muted">
-        <Link href="/produk" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Katalog</Link>
+        <Link href="/produk" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Daftar produk</Link>
         <span>/</span>
         <span className="text-ink2">{product.product_name}</span>
       </nav>
@@ -166,7 +171,7 @@ export default async function ProductDetail({
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/kontak?tujuan=produk" className="sb-btn sb-btn-primary">Hubungi Sekretariat</Link>
-            <Link href="/produk" className="sb-btn sb-btn-outline">Kembali ke katalog</Link>
+            <Link href="/produk" className="sb-btn sb-btn-outline">Kembali ke daftar produk</Link>
           </div>
           <dl className="mt-7 grid grid-cols-2 gap-3 border-t border-line pt-5 text-[12px]">
             <div><dt className="text-muted">Kategori</dt><dd className="font-semibold text-ink2">{product.category_label ?? "Produk anggota"}</dd></div>

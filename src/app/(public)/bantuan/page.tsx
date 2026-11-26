@@ -1,21 +1,32 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Card, CardHeader, Notice } from "@/components/ui";
-import { BLUEPRINT_VERSION } from "@/config/org";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
+import { isSitePathEnabled } from "@/lib/site-settings-schema";
 
 export const metadata: Metadata = {
   title: "Pusat Bantuan",
-  description: "Panduan akses dan penggunaan platform Srikandi Buana V9.1.",
+  description: "Panduan akses dan penggunaan situs serta ruang kerja Srikandi Buana.",
 };
 
-export default function BantuanPage() {
+export default async function BantuanPage() {
+  const siteSettings = await getPublicSiteSettings();
+  const sitemapLinks = [
+    ["Beranda", "/"], ["Profil", "/profil"], ["Program", "/program"],
+    ["Pelatihan", "/pelatihan"], ["Kegiatan", "/kegiatan"], ["Kabar", "/kabar"],
+    ["Galeri", "/galeri"], ["Produk", "/produk"], ["Pemesanan", "/produk/pemesanan"],
+    ["Kemitraan", "/kemitraan"], ["Dokumen", "/dokumen"], ["FAQ", "/faq"],
+    ["Kontak", "/kontak"], ["Minat bergabung", "/gabung"], ["Portal mitra", "/portal"],
+    ["Masuk", "/masuk"],
+  ].filter((entry) => isSitePathEnabled(entry[1], siteSettings));
+
   return (
     <div className="sb-shell py-12">
       <div className="sb-label mb-2">Pusat bantuan</div>
       <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">Panduan per peran.</h1>
       <p className="mt-2 max-w-2xl text-[13.5px] text-muted">
-        Platform V9.1 menggunakan akun yang diberikan pengurus. Menu dan cakupan akses ditentukan
-        oleh penugasan aktif pada organisasi. Versi rancangan: {BLUEPRINT_VERSION}.
+        Gunakan akun yang diberikan setelah verifikasi dan penetapan penugasan. Menu serta cakupan
+        akses mengikuti peran dan lingkup akun pada organisasi.
       </p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -37,34 +48,30 @@ export default function BantuanPage() {
               <li><Link href="/app/keuangan" className="font-semibold text-primary-700 hover:underline">Keuangan</Link> — COA, jurnal, kas/bank, laporan.</li>
               <li><Link href="/app/bidang/pertanian" className="font-semibold text-primary-700 hover:underline">Bidang Pertanian</Link> — lahan, panen, kunjungan.</li>
               <li><Link href="/app/bidang/pelatihan" className="font-semibold text-primary-700 hover:underline">Bidang Pelatihan</Link> — kelas, peserta, asesmen.</li>
-              <li><Link href="/app/bidang/usaha" className="font-semibold text-primary-700 hover:underline">Bidang Usaha</Link> — katalog, pesanan, mitra.</li>
+              <li><Link href="/app/bidang/usaha" className="font-semibold text-primary-700 hover:underline">Bidang Usaha</Link> — produk, persediaan, pesanan, mitra.</li>
               <li><Link href="/app/bidang/organisasi" className="font-semibold text-primary-700 hover:underline">Bidang Organisasi</Link> — anggota, usulan, partisipasi.</li>
               <li><Link href="/app/anggota" className="font-semibold text-primary-700 hover:underline">Portal Anggota</Link> — profil, agenda, tugas.</li>
               <li><Link href="/app/pos" className="font-semibold text-primary-700 hover:underline">POS</Link> — kasir dan transaksi lapangan.</li>
               <li><Link href="/studio" className="font-semibold text-primary-700 hover:underline">Studio Pengelola</Link> — website, aplikasi, tema.</li>
             </ul>
           </Card>
-          <Notice tone="info" title="Status pengembangan">
-            Formulir minat bergabung telah menggunakan penyimpanan database V9. Beberapa modul ruang
-            kerja masih dalam migrasi dari penyimpanan peramban ke database bersama; data sampel
-            belum boleh diperlakukan sebagai catatan organisasi resmi.
+          <Notice tone="info" title="Pengelolaan informasi">
+            Informasi pada website ditampilkan sesuai klasifikasi publikasi. Data operasional internal
+            dikelola melalui aplikasi organisasi dan hanya tersedia bagi akun dengan kewenangan yang sesuai.
           </Notice>
         </div>
       </div>
 
-      {/* ── Kebijakan situs — tujuan tautan mega menu Layanan ─────────────
-          Halaman ini yang memiliki topik kebijakan; setiap anchor di bawah
-          memuat pernyataan yang benar untuk lingkungan demo ini, bukan teks
-          legal rekaan. */}
+      {/* Kebijakan penggunaan situs dan penanganan informasi. */}
       <div className="mt-10 grid gap-4 md:grid-cols-2">
         <Card className="relative">
           <div id="syarat" className="pointer-events-none absolute -top-px h-px w-px scroll-mt-24" aria-hidden />
           <div className="px-5 pt-4">
             <h2 className="font-display text-[16px] font-semibold text-ink">Syarat &amp; ketentuan</h2>
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink2">
-              Situs dan aplikasi ini adalah lingkungan demonstrasi. Seluruh angka, nama, dan
-              dokumen adalah contoh berlabel; tidak ada transaksi, pembayaran, atau keputusan
-              organisasi yang sah yang dihasilkan dari sini.
+              Gunakan situs untuk mengakses informasi yang telah disediakan dan mengikuti
+              ketentuan publikasi organisasi. Pengajuan melalui formulir dan tindakan pada
+              ruang kerja diproses menurut alur serta kewenangan yang berlaku.
             </p>
           </div>
           <div id="privasi" className="pointer-events-none absolute -top-px h-px w-px scroll-mt-24" aria-hidden />
@@ -81,18 +88,17 @@ export default function BantuanPage() {
           <div className="mt-4 border-t border-line px-5 py-4">
             <h2 className="font-display text-[16px] font-semibold text-ink">Cookie &amp; penyimpanan</h2>
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink2">
-              Sesi masuk memakai cookie HttpOnly selama delapan jam dan dicabut ketika pengguna
-              keluar. Beberapa modul ruang kerja masih menggunakan
-              <span className="font-mono text-[11.5px]"> localStorage </span>
-              peramban selama proses migrasi; data di sana bukan sumber data lintas perangkat.
+              Sesi masuk memakai cookie HttpOnly dengan masa berlaku terbatas dan dicabut ketika
+              pengguna keluar. Pengaturan situs disimpan pada basis data organisasi agar perubahan
+              yang disahkan berlaku konsisten bagi pengunjung.
             </p>
           </div>
           <div id="publikasi" className="pointer-events-none absolute -top-px h-px w-px scroll-mt-24" aria-hidden />
           <div className="mt-4 border-t border-line px-5 py-4">
             <h2 className="font-display text-[16px] font-semibold text-ink">Publikasi &amp; hak cipta</h2>
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink2">
-              Foto dan ilustrasi dipakai untuk keperluan demonstrasi. Kredit, izin penggunaan, dan
-              koreksi konten diatur melalui <Link href="/kontak?tujuan=informasi" className="font-semibold text-primary-700 hover:underline">permintaan informasi</Link>.
+              Foto dan ilustrasi hanya dipublikasikan setelah izin penggunaan, kredit, dan
+              keterangan materi sesuai dicatat. Permintaan koreksi konten dapat diajukan melalui <Link href="/kontak?tujuan=informasi" className="font-semibold text-primary-700 hover:underline">permintaan informasi</Link>.
             </p>
           </div>
         </Card>
@@ -120,14 +126,7 @@ export default function BantuanPage() {
             <div className="mt-4 border-t border-line px-5 py-4">
               <h2 className="font-display text-[16px] font-semibold text-ink">Peta situs</h2>
               <ul className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1 text-[12.5px] text-ink2">
-                {[
-                  ["Beranda", "/"], ["Profil", "/profil"], ["Program", "/program"],
-                  ["Pelatihan", "/pelatihan"], ["Kegiatan", "/kegiatan"], ["Kabar", "/kabar"],
-                  ["Galeri", "/galeri"], ["Katalog produk", "/produk"], ["Pemesanan", "/produk/pemesanan"],
-                  ["Kemitraan", "/kemitraan"], ["Dokumen", "/dokumen"], ["FAQ", "/faq"],
-                  ["Kontak", "/kontak"], ["Minat bergabung", "/gabung"], ["Portal mitra", "/portal"],
-                  ["Masuk", "/masuk"],
-                ].map(([label, href]) => (
+                {sitemapLinks.map(([label, href]) => (
                   <li key={href}><Link href={href} className="text-primary-700 hover:underline">{label}</Link></li>
                 ))}
               </ul>
@@ -135,7 +134,7 @@ export default function BantuanPage() {
           </Card>
           <Notice tone="info" title="Butuh bantuan langsung?">
             Kanal resmi kelompok ada di <Link href="/kontak" className="font-semibold text-primary-700 hover:underline">halaman kontak</Link>.
-            Untuk penggunaan aplikasi, mulai dari akun demo di atas.
+            Untuk menggunakan ruang kerja, masuk dengan akun resmi yang telah diberikan pengurus.
           </Notice>
         </div>
       </div>

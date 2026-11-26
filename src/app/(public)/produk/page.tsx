@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { ArrowRight, Package, Store } from "lucide-react";
 import { Badge, Card, EmptyState, Notice } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
@@ -9,8 +11,8 @@ import { PublicDataUnavailable } from "@/components/public-data-unavailable";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Katalog Produk",
-  description: "Katalog produk anggota dan kelompok usaha KWT Srikandi Buana yang telah disetujui untuk publikasi.",
+  title: "Produk",
+  description: "Produk anggota dan kelompok usaha yang telah disetujui untuk publikasi.",
 };
 
 interface PublicProduct {
@@ -36,6 +38,8 @@ export default async function ProdukPage({
 }: {
   searchParams: Promise<{ lihat?: string; oleh?: string; kategori?: string }>;
 }) {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.productCatalogue) notFound();
   const { lihat, oleh, kategori } = await searchParams;
   const loaded = await loadPublicData(
     "products",
@@ -71,7 +75,7 @@ export default async function ProdukPage({
     return (
       <div className="sb-shell py-12">
         <div className="max-w-3xl">
-          <div className="sb-label mb-2">Katalog publik</div>
+          <div className="sb-label mb-2">Produk publik</div>
           <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">
             Produk anggota dan kelompok usaha.
           </h1>
@@ -79,7 +83,7 @@ export default async function ProdukPage({
             Produk yang ditampilkan telah diaktifkan dan disetujui oleh pengurus.
           </p>
         </div>
-        <PublicDataUnavailable resource="Katalog produk" retryHref="/produk" />
+        <PublicDataUnavailable resource="Produk" retryHref="/produk" />
       </div>
     );
   }
@@ -94,13 +98,13 @@ export default async function ProdukPage({
   return (
     <div className="sb-shell py-12">
       <div className="max-w-3xl">
-        <div className="sb-label mb-2">Katalog publik</div>
+        <div className="sb-label mb-2">Produk publik</div>
         <h1 className="font-display text-[34px] leading-tight font-semibold text-ink sm:text-[40px]">
           Produk anggota dan kelompok usaha.
         </h1>
         <p className="mt-3 text-[14px] leading-relaxed text-ink2">
           Produk yang ditampilkan telah diaktifkan dan disetujui oleh pengurus. Informasi harga
-          pokok, persediaan internal, dan catatan usaha tidak ditampilkan pada katalog publik.
+          pokok, persediaan internal, dan catatan usaha tidak ditampilkan pada halaman produk publik.
         </p>
       </div>
 
@@ -156,7 +160,7 @@ export default async function ProdukPage({
               <EmptyState title="Tidak ada produk pada kategori ini" body="Pilih kategori lain untuk melihat produk yang tersedia." />
             ) : (
               <EmptyState
-                title="Katalog belum memuat produk publik"
+                title="Belum ada produk publik"
                 body="Produk akan muncul setelah dicatat, diaktifkan, dan disetujui untuk publikasi oleh pengurus."
               />
             )}

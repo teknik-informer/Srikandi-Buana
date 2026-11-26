@@ -7,11 +7,8 @@ import {
   ArrowRight, ArrowUpRight, ChevronDown, Menu, Search, ShieldCheck, X,
   Instagram, Youtube, Facebook, MessageCircle, Music2, Mail,
 } from "lucide-react";
-import { MEGA_MENU, MEGA_TAGLINE, FOOTER_MENU } from "@/config/navigation";
-import { ORG, DEMO_BANNER } from "@/config/org";
-import { AppIcon, Wordmark } from "@/components/brand";
-import { useSiteSettings } from "@/lib/site-settings";
-import type { SocialKey } from "@/lib/store";
+import { AppIcon } from "@/components/brand";
+import { isSitePathEnabled, type PublicSiteSettings, type SiteSocialPlatform } from "@/lib/site-settings-schema";
 
 const slug = (s: string) => s.toLowerCase();
 
@@ -23,12 +20,22 @@ function matches(items: { href: string }[], pathname: string) {
   });
 }
 
-export function PublicHeader() {
+export function PublicHeader({ settings }: { settings: PublicSiteSettings }) {
   const [open, setOpen] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
   const [palette, setPalette] = useState(false);
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement>(null);
+  const visibleGroups = useMemo(() => settings.navigation.groups
+    .map((group) => {
+      const columns = group.columns.map((column) => ({
+        ...column,
+        items: column.items.filter((item) => item.enabled && isSitePathEnabled(item.href, settings)),
+      })).filter((column) => column.items.length > 0);
+      return { ...group, columns, items: columns.flatMap((column) => column.items) };
+    })
+    .filter((group) => group.enabled && group.columns.length > 0 && isSitePathEnabled(group.feature.href, settings)),
+  [settings]);
   /**
    * Hovering already opens a panel; if the pointer then *clicks* the trigger the
    * naive toggle would close what the hover just opened. Remember when hover
@@ -62,14 +69,14 @@ export function PublicHeader() {
         setMobile(false);
         setPalette(false);
       }
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+      if (settings.navigation.showSearch && e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setPalette((v) => !v);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [settings.navigation.showSearch]);
 
   // Close a panel on an outside click, the way the old site did.
   useEffect(() => {
@@ -83,12 +90,11 @@ export function PublicHeader() {
 
   return (
     <>
-      <div className="no-print bg-[#123d32] px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-primary-100">
-        {DEMO_BANNER}{" "}
-        <Link href="/masuk" className="underline decoration-primary-400 underline-offset-2 hover:text-white">
-          Masuk demo
-        </Link>
-      </div>
+      {settings.announcement.enabled && settings.announcement.text.trim() ? (
+        <div className="no-print bg-[#123d32] px-4 py-1.5 text-center text-[11px] font-medium tracking-wide text-primary-100">
+          {settings.announcement.text}
+        </div>
+      ) : null}
 
       <header className="no-print sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div ref={navRef} className="relative sb-shell">
@@ -96,9 +102,9 @@ export function PublicHeader() {
             <Link href="/" aria-label="Srikandi Buana — beranda" className="shrink-0" onMouseEnter={() => setOpen(null)}>
               {/* The real lock-up at every size — on a phone it is simply
                   shorter, never replaced by a different mark. */}
-              <span className="block sm:hidden"><Wordmark height={38} /></span>
-              <span className="hidden lg:block"><Wordmark height={64} /></span>
-              <span className="hidden sm:block lg:hidden"><Wordmark height={46} /></span>
+              <span className="block sm:hidden"><img src={settings.identity.logoUrl} alt={settings.identity.siteName} className="h-[38px] w-auto max-w-[170px] object-contain object-left" /></span>
+              <span className="hidden lg:block"><img src={settings.identity.logoUrl} alt={settings.identity.siteName} className="h-[58px] w-auto max-w-[250px] object-contain object-left" /></span>
+              <span className="hidden sm:block lg:hidden"><img src={settings.identity.logoUrl} alt={settings.identity.siteName} className="h-[44px] w-auto max-w-[205px] object-contain object-left" /></span>
             </Link>
 
             {/* ── desktop nav: Beranda · Produk · four grouped panels ── */}
@@ -113,16 +119,14 @@ export function PublicHeader() {
                 Beranda
                 {pathname === "/" && <span className="ml-1.5 h-1 w-1 rounded-full bg-[#c8992e]" />}
               </Link>
-              <Link
-                href="/produk"
-                onMouseEnter={() => setOpen(null)}
-                className={`inline-flex items-center rounded-full px-2.5 py-2 text-[13px] font-semibold transition xl:px-3.5 xl:text-[13.5px] ${
-                  matches([{ href: "/produk" }], pathname) ? "text-[#123d32]" : "text-ink2 hover:text-[#123d32]"
-                }`}
-              >
-                Produk
-              </Link>
-              {MEGA_MENU.map((group) => {
+              {settings.features.productCatalogue ? (
+                <Link href="/produk" onMouseEnter={() => setOpen(null)}
+                  className={`inline-flex items-center rounded-full px-2.5 py-2 text-[13px] font-semibold transition xl:px-3.5 xl:text-[13.5px] ${
+                    matches([{ href: "/produk" }], pathname) ? "text-[#123d32]" : "text-ink2 hover:text-[#123d32]"
+                  }`}
+                >Produk</Link>
+              ) : null}
+              {visibleGroups.map((group) => {
                 const isActive = matches(group.items, pathname);
                 const isOpen = open === group.heading;
                 return (
@@ -150,27 +154,23 @@ export function PublicHeader() {
             </nav>
 
             <div className="hidden min-w-0 shrink items-center gap-1.5 lg:flex xl:gap-2">
-              <button
-                type="button"
-                onClick={() => setPalette(true)}
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-2.5 text-[12.5px] font-medium text-muted transition hover:border-primary-300 hover:text-ink xl:gap-2 xl:px-3"
-                aria-label="Cari di situs"
-              >
-                <Search size={14} />
-                <span className="hidden xl:inline">Cari</span>
-                <kbd className="hidden rounded border border-line bg-[#fafaf9] px-1.5 py-0.5 font-sans text-[10px] text-muted2 2xl:inline">⌘K</kbd>
-              </button>
-              <Link href="/kontak" className="sb-btn sb-btn-primary shrink-0 !px-2.5 !py-2 text-[12px] xl:!px-4 xl:text-[13px]">
-                <span className="hidden xl:inline">Hubungi kami</span><span className="xl:hidden">Kontak</span>
-                <ArrowRight size={14} />
-              </Link>
-              <Link
-                href="/masuk"
-                aria-label="Masuk ruang kerja pengelola"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-[#123d32] transition hover:border-primary-300 hover:bg-primary-50"
-              >
-                <ShieldCheck size={16} />
-              </Link>
+              {settings.navigation.showSearch ? (
+                <button type="button" onClick={() => setPalette(true)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-2.5 text-[12.5px] font-medium text-muted transition hover:border-primary-300 hover:text-ink xl:gap-2 xl:px-3" aria-label="Cari di situs">
+                  <Search size={14} /><span className="hidden xl:inline">Cari</span>
+                  <kbd className="hidden rounded border border-line bg-[#fafaf9] px-1.5 py-0.5 font-sans text-[10px] text-muted2 2xl:inline">⌘K</kbd>
+                </button>
+              ) : null}
+              {settings.navigation.showContact ? (
+                <Link href="/kontak" className="sb-btn sb-btn-primary shrink-0 !px-2.5 !py-2 text-[12px] xl:!px-4 xl:text-[13px]">
+                  <span className="hidden xl:inline">Hubungi kami</span><span className="xl:hidden">Kontak</span>
+                  <ArrowRight size={14} />
+                </Link>
+              ) : null}
+              {settings.navigation.showLogin ? (
+                <Link href="/masuk" aria-label="Masuk ruang kerja pengelola" className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-[#123d32] transition hover:border-primary-300 hover:bg-primary-50">
+                  <ShieldCheck size={16} />
+                </Link>
+              ) : null}
             </div>
 
             <button
@@ -195,7 +195,7 @@ export function PublicHeader() {
           ) : null}
 
           {/* ── mega panels (one at a time, 270px feature aside + columns) ── */}
-          {MEGA_MENU.map((group) => {
+          {visibleGroups.map((group) => {
             const isOpen = open === group.heading;
             if (!isOpen) return null;
             return (
@@ -208,7 +208,7 @@ export function PublicHeader() {
               >
                 <div className="grid grid-cols-[270px_1fr]">
                   <aside className="border-r border-[#e7e5e4] bg-[#fbfcfb] px-6 py-6">
-                    <Wordmark height={38} />
+                    <img src={settings.identity.logoUrl} alt={settings.identity.siteName} className="h-[38px] w-auto max-w-[190px] object-contain object-left" />
                     <div className="mt-6 text-[10.5px] font-bold uppercase tracking-[0.16em] text-muted">
                       {group.feature.eyebrow}
                     </div>
@@ -262,7 +262,7 @@ export function PublicHeader() {
                 </div>
 
                 <div className="flex items-center justify-between gap-4 border-t border-[#e7e5e4] px-6 py-2.5">
-                  <span className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-muted2">{MEGA_TAGLINE}</span>
+                  <span className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-muted2">{settings.navigation.tagline}</span>
                   <button
                     type="button"
                     onClick={() => setOpen(null)}
@@ -284,10 +284,12 @@ export function PublicHeader() {
             <Link href="/" className="flex items-center justify-between border-b border-line py-2.5 text-[14px] font-semibold text-ink">
               Beranda <ArrowRight size={14} className="text-muted2" />
             </Link>
-            <Link href="/produk" className="flex items-center justify-between border-b border-line py-2.5 text-[14px] font-semibold text-ink">
-              Produk <ArrowRight size={14} className="text-muted2" />
-            </Link>
-            {MEGA_MENU.map((group) => (
+            {settings.features.productCatalogue ? (
+              <Link href="/produk" className="flex items-center justify-between border-b border-line py-2.5 text-[14px] font-semibold text-ink">
+                Produk <ArrowRight size={14} className="text-muted2" />
+              </Link>
+            ) : null}
+            {visibleGroups.map((group) => (
               <details key={group.heading} className="group border-b border-line py-2.5">
                 <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-semibold text-ink">
                   {group.heading}
@@ -313,15 +315,15 @@ export function PublicHeader() {
               </details>
             ))}
             <div className="mt-4 flex gap-2">
-              <Link href="/kontak" className="sb-btn sb-btn-primary flex-1">Hubungi kami</Link>
-              <Link href="/masuk" className="sb-btn sb-btn-outline flex-1">Masuk</Link>
+              {settings.navigation.showContact ? <Link href="/kontak" className="sb-btn sb-btn-primary flex-1">Hubungi kami</Link> : null}
+              {settings.navigation.showLogin ? <Link href="/masuk" className="sb-btn sb-btn-outline flex-1">Masuk</Link> : null}
             </div>
             </div>
           </div>
         )}
       </header>
 
-      {palette && <SitePalette onClose={() => setPalette(false)} />}
+      {palette && <SitePalette settings={settings} onClose={() => setPalette(false)} />}
     </>
   );
 }
@@ -330,21 +332,20 @@ export function PublicHeader() {
  * ⌘K search. The old site showed the shortcut without a working field; here it
  * filters the real public pages and navigates, so the affordance is honest.
  */
-function SitePalette({ onClose }: { onClose: () => void }) {
+function SitePalette({ settings, onClose }: { settings: PublicSiteSettings; onClose: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const ref = useRef<HTMLInputElement>(null);
 
-  const entries = useMemo(
-    () => [
-      { label: "Beranda", href: "/", desc: "Halaman utama" },
-      { label: "Katalog produk", href: "/produk", desc: "Kopi, madu, gula aren, olahan kebun" },
-      ...MEGA_MENU.flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href, desc: i.desc ?? g.heading }))),
-      { label: "Masuk ruang kerja", href: "/masuk", desc: "Akun demo pengurus, sekretariat, bendahara" },
-      { label: "Portal mitra", href: "/portal", desc: "Akses eksternal terbatas" },
-    ],
-    [],
-  );
+  const entries = useMemo(() => [
+    { label: "Beranda", href: "/", desc: "Halaman utama" },
+    ...settings.navigation.groups.filter((group) => group.enabled)
+      .flatMap((group) => group.items.filter((item) => item.enabled && isSitePathEnabled(item.href, settings))
+        .map((item) => ({ label: item.label, href: item.href, desc: item.desc || group.heading }))),
+    ...(settings.features.productCatalogue ? [{ label: "Produk", href: "/produk", desc: "Produk yang disetujui untuk publikasi" }] : []),
+    ...(settings.navigation.showLogin ? [{ label: "Masuk ruang kerja", href: "/masuk", desc: "Akses pengelola dan anggota" }] : []),
+    ...(settings.features.externalPortal ? [{ label: "Portal eksternal", href: "/portal", desc: "Akses mitra terbatas" }] : []),
+  ], [settings]);
 
   const hits = entries.filter((e) =>
     `${e.label} ${e.desc}`.toLowerCase().includes(q.trim().toLowerCase()),
@@ -401,7 +402,7 @@ function SitePalette({ onClose }: { onClose: () => void }) {
           ))}
           {hits.length === 0 && (
             <li className="px-3 py-6 text-center text-[12.5px] text-muted">
-              Tidak ada halaman yang cocok. Coba “program”, “produk”, atau “kontak”.
+              Tidak ada halaman yang cocok. Coba kata kunci lain.
             </li>
           )}
         </ul>
@@ -415,7 +416,7 @@ function SitePalette({ onClose }: { onClose: () => void }) {
 }
 
 /** Social glyphs stay in one place so the studio and the footer agree. */
-export const SOCIAL_ICON: Record<SocialKey, typeof Instagram> = {
+export const SOCIAL_ICON: Record<SiteSocialPlatform, typeof Instagram> = {
   instagram: Instagram,
   youtube: Youtube,
   facebook: Facebook,
@@ -424,9 +425,11 @@ export const SOCIAL_ICON: Record<SocialKey, typeof Instagram> = {
   email: Mail,
 };
 
-export function PublicFooter() {
-  const site = useSiteSettings();
-  const live = site.social.filter((s) => s.on);
+export function PublicFooter({ settings }: { settings: PublicSiteSettings }) {
+  const live = settings.footer.showSocial ? settings.socials.filter((social) => social.enabled) : [];
+  const footerGroups = settings.footer.groups
+    .map((group) => ({ ...group, items: group.items.filter((item) => item.enabled && isSitePathEnabled(item.href, settings)) }))
+    .filter((group) => group.enabled && group.items.length > 0);
 
   return (
     <footer className="no-print relative isolate overflow-hidden bg-[#082617] text-primary-100">
@@ -451,44 +454,42 @@ export function PublicFooter() {
       </svg>
 
       <div className="sb-shell pb-7 pt-12 sm:pt-14">
-        <div className="grid gap-10 md:grid-cols-[1.45fr_repeat(4,1fr)]">
+        <div className="grid gap-8 md:grid-cols-[1.3fr_2fr] xl:grid-cols-[1.3fr_repeat(4,1fr)]">
           {/* brand — emblem and lock-up straight on the green, no plate behind it */}
           <div>
             <Link href="/" className="inline-flex flex-col gap-3" aria-label="Beranda Srikandi Buana">
               {/* the wordmark *with text*, same artwork as the header */}
-              {site.brandImage ? (
+              {settings.identity.logoUrl ? (
                 <img
-                  src={site.brandImage}
-                  alt="Srikandi Buana"
+                  src={settings.identity.logoUrl}
+                  alt={settings.identity.siteName}
                   width={1155}
                   height={403}
                   className="h-[62px] w-auto max-w-[270px] object-contain object-left drop-shadow-[0_10px_22px_rgba(0,0,0,0.42)] sm:h-[68px]"
                   decoding="async"
                 />
               ) : null}
-              <span className="flex flex-col">
-                <span className="sr-only">{site.creditName}</span>
-                {site.creditLine ? (
-                  <span className="max-w-[34ch] text-[12px] leading-relaxed text-[#a8c7b1]">
-                    {site.creditLine}
-                  </span>
-                ) : null}
-              </span>
+              {settings.footer.showCredit && settings.identity.creditLine ? (
+                <span className="max-w-[34ch] text-[12px] leading-relaxed text-[#a8c7b1]">
+                  <span className="sr-only">{settings.identity.creditName}</span>
+                  {settings.identity.creditLine}
+                </span>
+              ) : null}
             </Link>
 
             {/* socials sit directly under the branding, as asked */}
             {live.length > 0 && (
               <ul className="mt-5 flex flex-wrap items-center gap-2" aria-label="Media sosial Srikandi Buana">
-                {live.map(({ key, href }) => {
-                  const Icon = SOCIAL_ICON[key];
+                {live.map(({ id, platform, href }) => {
+                  const Icon = SOCIAL_ICON[platform];
                   return (
-                    <li key={key}>
+                    <li key={id}>
                       <a
                         href={href}
                         target={href.startsWith("mailto:") ? undefined : "_blank"}
                         rel="noreferrer noopener"
-                        aria-label={key}
-                        title={key}
+                        aria-label={platform}
+                        title={platform}
                         className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/[0.06] text-[#d9e9dd] transition hover:border-[#e6c56a]/60 hover:bg-white/[0.12] hover:text-[#f4e6c3]"
                       >
                         <Icon size={15} aria-hidden />
@@ -499,45 +500,49 @@ export function PublicFooter() {
               </ul>
             )}
 
-            {(site.email || site.hours) && (
+            {(settings.contact.email || settings.contact.officeHours || settings.contact.address || settings.contact.phone) ? (
               <div className="mt-4 space-y-1 text-[11.5px] leading-relaxed text-[#8fb29b]">
-                {site.email ? (
-                  <p>
-                    <a href={`mailto:${site.email}`} className="underline decoration-white/20 underline-offset-4 hover:text-[#f4e6c3]">
-                      {site.email}
-                    </a>
-                  </p>
-                ) : null}
-                {site.hours ? <p>{site.hours}</p> : null}
+                {settings.contact.email ? <p><a href={`mailto:${settings.contact.email}`} className="underline decoration-white/20 underline-offset-4 hover:text-[#f4e6c3]">{settings.contact.email}</a></p> : null}
+                {settings.contact.phone ? <p>{settings.contact.phone}</p> : null}
+                {settings.contact.officeHours ? <p>{settings.contact.officeHours}</p> : null}
+                {settings.contact.address ? <p>{settings.contact.address}</p> : null}
               </div>
-            )}
+            ) : null}
           </div>
 
-          {FOOTER_MENU.map((group) => (
-            <nav key={group.heading} aria-label={group.heading}>
-              <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-[#e6c56a]/85">{group.heading}</div>
-              <ul className="space-y-1.5">
-                {group.items.map((item) => (
-                  <li key={item.href + item.label}>
-                    <Link href={item.href} className="text-[12.5px] text-[#c4d8ca] transition hover:text-white">
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          ))}
+          <div className="hidden gap-6 md:grid md:grid-cols-2 xl:col-span-4 xl:grid-cols-4">
+            {footerGroups.map((group) => (
+              <nav key={group.id} aria-label={group.heading}>
+                <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-[#e6c56a]/85">{group.heading}</div>
+                <ul className="space-y-1.5">
+                  {group.items.map((item) => (
+                    <li key={item.id}><Link href={item.href} className="text-[12.5px] text-[#c4d8ca] transition hover:text-white">{item.label}</Link></li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
+          <div className="grid gap-2 md:hidden">
+            {footerGroups.map((group) => (
+              <details key={group.id} className="border-b border-white/10 py-2">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[11.5px] font-bold uppercase tracking-[0.14em] text-[#e6c56a]/90">
+                  {group.heading}<span className="text-white/50">+</span>
+                </summary>
+                <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 pb-2">
+                  {group.items.map((item) => (
+                    <li key={item.id}><Link href={item.href} className="text-[12px] text-[#c4d8ca] hover:text-white">{item.label}</Link></li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </div>
         </div>
 
         <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-5 text-[11.5px] text-[#93b6a0] sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 {ORG.shortName}. Seluruh hak dilindungi.</p>
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-            {site.showBlueprint && (
-              <p>Blueprint {ORG.docVersion} · Lingkungan demo · Data contoh berlabel</p>
-            )}
-            {site.showDemoNotice && site.showBlueprint && <span className="hidden text-white/20 sm:inline">•</span>}
-            {site.showDemoNotice && <p>Seluruh isi situs dapat diubah di Studio → Website.</p>}
-          </div>
+          {settings.footer.showCopyright ? (
+            <p>© {new Date().getFullYear()} {settings.identity.creditName || settings.identity.siteName}. {settings.footer.copyrightText}</p>
+          ) : <span />}
+          <div className="text-[10.5px] text-[#93b6a0]">{settings.identity.tagline}</div>
         </div>
       </div>
     </footer>

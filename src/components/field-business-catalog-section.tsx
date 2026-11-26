@@ -300,11 +300,11 @@ export async function FieldBusinessCatalogSection({
       <div className="pb-10">
         <PageHeader
           eyebrow={field.name}
-          title="Katalog produk"
+          title="Produk"
           description="Kelola identitas produk, produsen, satuan, harga jual, HPP internal, dan status publikasi. Produk hanya tampil di website setelah disetujui."
           actions={<Link href="/app/bidang/usaha/persediaan" className="sb-btn sb-btn-outline"><Warehouse size={14} /> Gudang & persediaan</Link>}
         />
-        {notice ? <div className="mb-4"><Notice tone={notice.tone} title="Pembaruan katalog">{notice.text}</Notice></div> : null}
+        {notice ? <div className="mb-4"><Notice tone={notice.tone} title="Pembaruan produk">{notice.text}</Notice></div> : null}
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Produk tercatat" value={summary.product_count} note={`${summary.active_count} aktif`} tone="info" />
@@ -415,7 +415,7 @@ export async function FieldBusinessCatalogSection({
         eyebrow={field.name}
         title="Gudang & persediaan"
         description="Kelola lokasi penyimpanan, saldo fisik, stok dicadangkan, dan riwayat mutasi. Setiap perubahan saldo dibuat sebagai mutasi permanen."
-        actions={<Link href="/app/bidang/usaha/katalog" className="sb-btn sb-btn-outline"><Package size={14} /> Katalog produk</Link>}
+        actions={<Link href="/app/bidang/usaha/katalog" className="sb-btn sb-btn-outline"><Package size={14} /> Daftar produk</Link>}
       />
       {notice ? <div className="mb-4"><Notice tone={notice.tone} title="Pembaruan persediaan">{notice.text}</Notice></div> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

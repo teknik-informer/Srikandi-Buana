@@ -757,3 +757,151 @@ assert.ok(
 );
 
 process.stdout.write("Printable POS payment receipt contract: PASS\\n");
+
+
+const publicShellSource = read("src/components/public-shell.tsx");
+const publicLayoutSource = read("src/app/(public)/layout.tsx");
+const siteSettingsSchema = read("src/lib/site-settings-schema.ts");
+const publicSiteSettingsService = read("src/lib/public-site-settings.ts");
+const publicSiteSettingsAction = read("src/app/actions/public-site-settings.ts");
+const publicSiteSettingsEditor = read("src/components/studio/public-site-settings-editor.tsx");
+const websiteStudio = read("src/app/studio/website/page.tsx");
+const publicHome = read("src/app/(public)/page.tsx");
+const publicHelp = read("src/app/(public)/bantuan/page.tsx");
+const publicProductPage = read("src/app/(public)/produk/page.tsx");
+const publicProductDetail = read("src/app/(public)/produk/[slug]/page.tsx");
+const publicOrderInfo = read("src/app/(public)/produk/pemesanan/page.tsx");
+
+assert.ok(
+  publicLayoutSource.includes("getPublicSiteSettings()") &&
+  publicLayoutSource.includes("<PublicHeader settings={settings} />") &&
+  publicLayoutSource.includes("<PublicFooter settings={settings} />"),
+  "Public layout must read one server-side organization site configuration and pass it to header and footer.",
+);
+assert.ok(
+  publicShellSource.includes("settings.navigation.groups") &&
+  publicShellSource.includes("settings.footer.groups") &&
+  publicShellSource.includes("settings.features.productCatalogue") &&
+  publicShellSource.includes("settings.identity.creditName") &&
+  !/DEMO_BANNER|Masuk demo|Lingkungan demo|Data contoh berlabel|useSiteSettings|localStorage|FOOTER_MENU/.test(publicShellSource),
+  "Public navigation and footer must use organization settings, suppress disabled product links, and contain no legacy demo/browser-local content.",
+);
+assert.ok(
+  publicShellSource.includes("<details") &&
+  publicShellSource.includes("md:hidden") &&
+  publicShellSource.includes("settings.footer.showCopyright"),
+  "Mobile footer navigation must use compact collapsible groups and a configurable copyright line.",
+);
+assert.ok(
+  siteSettingsSchema.includes("productCatalogue: false") &&
+  siteSettingsSchema.includes("creditLine: \"\"") &&
+  siteSettingsSchema.includes("footer-profil") &&
+  siteSettingsSchema.includes("function isSitePathEnabled"),
+  "Site settings must default public products off, suppress old credit copy, and provide feature-aware navigation defaults.",
+);
+assert.ok(
+  publicSiteSettingsService.includes("v9.system_settings") &&
+  publicSiteSettingsService.includes("visibility = 'public'") &&
+  publicSiteSettingsService.includes("setting_key = 'public_site'"),
+  "Public website settings must be read from the organization-scoped public system-settings record.",
+);
+assert.ok(
+  publicSiteSettingsAction.includes('requireRoles(["platform_admin", "organization_admin"])') &&
+  publicSiteSettingsAction.includes("INSERT INTO v9.system_settings") &&
+  publicSiteSettingsAction.includes("INSERT INTO v9.audit_events") &&
+  publicSiteSettingsAction.includes("public_site.settings.updated"),
+  "Website configuration CRUD must require authorized Studio roles and record before/after changes in the audit log.",
+);
+assert.ok(
+  publicSiteSettingsEditor.includes("savePublicSiteSettings") &&
+  publicSiteSettingsEditor.includes("addGroup") &&
+  publicSiteSettingsEditor.includes("deleteGroup") &&
+  publicSiteSettingsEditor.includes("addMenuLink") &&
+  publicSiteSettingsEditor.includes("deleteMenuLink") &&
+  publicSiteSettingsEditor.includes("addFooterGroup") &&
+  publicSiteSettingsEditor.includes("deleteFooterGroup") &&
+  publicSiteSettingsEditor.includes("addSocial") &&
+  publicSiteSettingsEditor.includes("deleteSocial"),
+  "Website Studio must expose create, edit and delete controls for navigation, footer and social links.",
+);
+assert.ok(
+  websiteStudio.includes("PublicSiteSettingsEditor") &&
+  websiteStudio.includes("getPublicSiteSettings"),
+  "Website Studio must load and render the shared settings editor.",
+);
+assert.ok(
+  publicHome.includes("getPublicSiteSettings()") &&
+  publicHome.includes("settings.hero.description") &&
+  publicHome.includes("settings.home.products && settings.features.productCatalogue"),
+  "The public home page must use editable hero content and respect product/home section switches.",
+);
+assert.ok(
+  publicHelp.includes("getPublicSiteSettings()") &&
+  publicHelp.includes("isSitePathEnabled") &&
+  !/lingkungan demonstrasi|akun demo|data sampel|localStorage|BLUEPRINT_VERSION/i.test(publicHelp),
+  "The public help page must show the feature-aware site map without obsolete demo, sample-data or browser-migration statements.",
+);
+assert.ok(
+  publicProductPage.includes("if (!siteSettings.features.productCatalogue) notFound()") &&
+  publicProductDetail.includes("if (!siteSettings.features.productCatalogue) notFound()") &&
+  publicOrderInfo.includes("if (!settings.features.productCatalogue) notFound()"),
+  "Turning off public product pages must also close direct listing, detail and order-information routes.",
+);
+for (const [path, feature] of [
+  ["src/app/(public)/program/page.tsx", "programs"],
+  ["src/app/(public)/pelatihan/page.tsx", "training"],
+  ["src/app/(public)/kegiatan/page.tsx", "activities"],
+  ["src/app/(public)/kemitraan/page.tsx", "partnerships"],
+  ["src/app/(public)/dokumen/page.tsx", "documents"],
+  ["src/app/(public)/gabung/page.tsx", "membershipInterest"],
+  ["src/app/(public)/galeri/page.tsx", "gallery"],
+  ["src/app/(public)/kabar/page.tsx", "news"],
+  ["src/app/(public)/faq/page.tsx", "faq"],
+]) {
+  const page = read(path);
+  assert.ok(
+    page.includes("getPublicSiteSettings()") && page.includes("siteSettings.features." + feature),
+    path + " must enforce its public feature switch on the server.",
+  );
+}
+const internalProducts = read("src/components/field-business-catalog-section.tsx");
+assert.ok(
+  internalProducts.includes("v9.business_products") &&
+  internalProducts.includes("product-created") &&
+  internalProducts.includes("Pembaruan produk") &&
+  !internalProducts.includes("productCatalogue"),
+  "Disabling the public catalogue must not disable the internal product register and its CRUD lifecycle.",
+);
+process.stdout.write("Public website settings, feature gates and footer contract: PASS\\n");
+
+const publicContactPage = read("src/app/(public)/kontak/page.tsx");
+const externalPortalPage = read("src/app/portal/page.tsx");
+const siteNavigationConfig = read("src/config/navigation.ts");
+const applicationConfig = read("src/config/apps.ts");
+const fieldConfig = read("src/config/fields.ts");
+const studioDataPage = read("src/app/studio/data/page.tsx");
+const businessSection = read("src/components/field-business-section.tsx");
+const businessOrders = read("src/components/field-business-orders-section.tsx");
+
+assert.ok(
+  publicContactPage.includes("getPublicSiteSettings()") &&
+  publicContactPage.includes("siteSettings.contact.email") &&
+  publicContactPage.includes("siteSettings.contact.whatsapp") &&
+  !publicContactPage.includes("+62 812-0000-0000"),
+  "The public contact page must use configured channels and must not publish blueprint placeholder phone numbers.",
+);
+assert.ok(
+  externalPortalPage.includes("siteSettings.features.externalPortal") &&
+  externalPortalPage.includes("requireRoles"),
+  "The external portal feature switch must complement, not replace, its server-side role requirement.",
+);
+assert.ok(
+  !/Katalog produk anggota|label: "Katalog"|Katalog, stok/i.test(siteNavigationConfig) &&
+  !/Katalog, stok/i.test(applicationConfig) &&
+  !/katalog, stok|"Katalog"/i.test(fieldConfig) &&
+  !/Katalog & Persediaan/i.test(studioDataPage) &&
+  !/katalog/i.test(businessSection) &&
+  !/katalog/i.test(businessOrders),
+  "Public menus, dashboards and internal business labels must use Produk / Persediaan language rather than legacy Katalog labels.",
+);
+process.stdout.write("Public contact, portal and product terminology contract: PASS\\n");

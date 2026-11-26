@@ -12,6 +12,7 @@ import { PublicDataUnavailable } from "@/components/public-data-unavailable";
 import { formatDateFull, formatIDR } from "@/lib/format";
 import { DashboardArt } from "@/components/dashboard-art";
 import { HeroRibbon } from "@/components/hero-ribbon";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -65,7 +66,7 @@ const MODULES = [
   { icon: Wallet, title: "Keuangan", desc: "Jurnal, persetujuan, dan laporan yang dibatasi hak akses." },
   { icon: Sprout, title: "Pertanian & produksi", desc: "Data lahan, kegiatan, dan catatan produksi." },
   { icon: GraduationCap, title: "Pelatihan", desc: "Sesi, peserta, dan pelaksanaan pelatihan." },
-  { icon: Store, title: "Usaha & kemitraan", desc: "Katalog, persediaan, pelanggan, dan pesanan." },
+  { icon: Store, title: "Usaha & kemitraan", desc: "Produk, persediaan, pelanggan, dan pesanan." },
 ];
 
 const FIELD_ICONS = {
@@ -83,6 +84,7 @@ function priceLabel(value: string): string {
 }
 
 export default async function HomePage() {
+  const settings = await getPublicSiteSettings();
   const loaded = await loadPublicData(
     "home-public-summary",
     async () => {
@@ -110,7 +112,7 @@ export default async function HomePage() {
           ORDER BY application.display_order, application.name
           LIMIT 8
         `,
-        sql`
+        settings.home.products && settings.features.productCatalogue ? sql`
           SELECT
             product.id::text AS id,
             product.slug,
@@ -130,8 +132,8 @@ export default async function HomePage() {
             AND product.publication_status = 'published'
           ORDER BY product.category_label NULLS LAST, product.product_name
           LIMIT 4
-        `,
-        sql`
+        ` : Promise.resolve([]),
+        settings.home.activities && settings.features.activities ? sql`
           SELECT
             activity.id::text AS id,
             activity.title,
@@ -152,7 +154,7 @@ export default async function HomePage() {
             AND activity.activity_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
           ORDER BY activity.activity_date, activity.start_time NULLS FIRST
           LIMIT 3
-        `,
+        ` : Promise.resolve([]),
       ]);
       return {
         organization: rowsFromResult<PublicOrganization>(organizationResult)[0] ?? null,
@@ -171,8 +173,8 @@ export default async function HomePage() {
 
   const organization = loaded.data.organization;
   const fields = loaded.data.fields;
-  const products = loaded.data.products;
-  const activities = loaded.data.activities;
+  const products = settings.home.products && settings.features.productCatalogue ? loaded.data.products : [];
+  const activities = settings.home.activities && settings.features.activities ? loaded.data.activities : [];
 
   return (
     <div className="bg-white">
@@ -199,27 +201,26 @@ export default async function HomePage() {
             <div className="flex items-center gap-3">
               <span className="h-px w-9 bg-[#e6c56a]" aria-hidden />
               <span className="text-[10.5px] font-bold uppercase tracking-[0.24em] text-[#f0d79a]">
-                Kelompok Wanita Tani
+                {settings.hero.eyebrow}
               </span>
             </div>
             <h1 className="mt-4 font-display text-[38px] leading-[1.02] tracking-[-0.03em] text-white sm:text-[50px] lg:text-[60px]">
-              <span className="block">{organization?.short_name ?? "Srikandi Buana"}</span>
+              <span className="block">{settings.hero.title || organization?.short_name || settings.identity.siteName}</span>
               <span className="mt-1 block text-[#f2d493]">
-                Bersama, Berkarya,
-                <br />
-                Berdaya
+                {settings.hero.subtitle}
               </span>
             </h1>
             <p className="mt-5 max-w-[46ch] text-[14px] leading-relaxed text-[#e2efe4] sm:text-[15px]">
-              Ruang kerja bersama untuk mengelola organisasi, memperkuat kegiatan pertanian,
-              dan mengembangkan kapasitas anggota secara bertahap.
+              {settings.hero.description}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-2.5">
-              <Link href="/gabung" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#127e2f] px-4 py-2.5 text-[12.5px] font-bold text-white shadow-[0_16px_30px_-16px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/25 transition hover:bg-[#159a3a] sm:px-5 sm:py-3 sm:text-[13px]">
-                Minat bergabung <ArrowRight size={15} />
-              </Link>
-              <Link href="/profil" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-2.5 text-[12.5px] font-bold text-white backdrop-blur-sm transition hover:border-white/60 hover:bg-white/15 sm:px-5 sm:py-3 sm:text-[13px]">
-                Lihat profil
+              {settings.features.membershipInterest ? (
+                <Link href={settings.hero.primaryHref} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#127e2f] px-4 py-2.5 text-[12.5px] font-bold text-white shadow-[0_16px_30px_-16px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/25 transition hover:bg-[#159a3a] sm:px-5 sm:py-3 sm:text-[13px]">
+                  {settings.hero.primaryLabel} <ArrowRight size={15} />
+                </Link>
+              ) : null}
+              <Link href={settings.hero.secondaryHref} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-2.5 text-[12.5px] font-bold text-white backdrop-blur-sm transition hover:border-white/60 hover:bg-white/15 sm:px-5 sm:py-3 sm:text-[13px]">
+                {settings.hero.secondaryLabel}
               </Link>
             </div>
           </div>
@@ -227,7 +228,7 @@ export default async function HomePage() {
         <HeroRibbon id="landing" />
       </section>
 
-      <section className="border-y border-line bg-white">
+      <section hidden={!settings.home.capabilities} className="border-y border-line bg-white">
         <div className="sb-shell">
           <ul className="grid grid-cols-2 divide-line sm:grid-cols-3 md:grid-cols-6 md:divide-x">
             {CAPABILITY_ITEMS.map(({ icon: Icon, label, subtitle }) => (
@@ -244,7 +245,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="sb-shell py-16">
+      <section hidden={!settings.home.capabilities} className="sb-shell py-16">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary-700">Satu ekosistem kerja</div>
@@ -282,7 +283,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[var(--sb-canvas)] py-16">
+      <section hidden={!settings.home.fields} className="bg-[var(--sb-canvas)] py-16">
         <div className="sb-shell">
           <div className="mx-auto mb-9 max-w-2xl text-center">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-primary-700 shadow-sm">
@@ -315,7 +316,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[var(--sb-primary-900)] py-14 text-white">
+      <section hidden={!settings.home.activities || !settings.features.activities} className="bg-[var(--sb-primary-900)] py-14 text-white">
         <div className="sb-shell">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -350,18 +351,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="sb-shell py-14">
+      <section hidden={!settings.home.products || !settings.features.productCatalogue} className="sb-shell py-14">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="sb-label mb-2">Katalog publik</div>
+            <div className="sb-label mb-2">Produk publik</div>
             <h2 className="font-display text-[28px] leading-tight text-ink sm:text-[32px]">Produk yang disetujui untuk ditampilkan.</h2>
           </div>
           <Link href="/produk" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary-700 hover:underline">
-            Buka katalog <ArrowRight size={14} />
+            Lihat produk <ArrowRight size={14} />
           </Link>
         </div>
         {loaded.unavailable ? (
-          <PublicDataUnavailable resource="Katalog produk" retryHref="/produk" />
+          <PublicDataUnavailable resource="Produk publik" retryHref="/produk" />
         ) : products.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {products.map((product) => (
@@ -382,7 +383,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section className="border-y border-line bg-[var(--sb-canvas)] py-12">
+      <section hidden={!settings.home.transparency} className="border-y border-line bg-[var(--sb-canvas)] py-12">
         <div className="sb-shell grid gap-5 md:grid-cols-3">
           <div className="md:col-span-2">
             <div className="sb-label mb-2">Transparansi</div>
@@ -393,13 +394,13 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="flex items-center gap-2 md:justify-end">
-            <Link href="/dokumen" className="sb-btn sb-btn-outline">Dokumen publik <ArrowRight size={13} /></Link>
-            <Link href="/gabung" className="sb-btn sb-btn-primary">Minat bergabung <ArrowRight size={13} /></Link>
+            {settings.features.documents ? <Link href="/dokumen" className="sb-btn sb-btn-outline">Dokumen publik <ArrowRight size={13} /></Link> : null}
+            {settings.features.membershipInterest ? <Link href="/gabung" className="sb-btn sb-btn-primary">Minat bergabung <ArrowRight size={13} /></Link> : null}
           </div>
         </div>
       </section>
 
-      <section className="pb-10 pt-10 sm:pb-14">
+      <section hidden={!settings.home.join || !settings.features.membershipInterest} className="pb-10 pt-10 sm:pb-14">
         <div className="sb-shell">
           <div className="relative isolate overflow-hidden rounded-[24px] ring-1 ring-inset ring-white/10">
             <div className="absolute inset-0 -z-10 bg-[linear-gradient(118deg,#062b17_0%,#0b3a20_38%,#0f4b29_64%,#146033_100%)]" aria-hidden />
