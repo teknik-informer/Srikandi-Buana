@@ -178,6 +178,7 @@ export async function buildCashLedgerPostingStatements(
     ).bind(relatedInvoiceId, owner).first() as Record<string, unknown> | null;
 
     if (!invoice) throw new Error("Faktur tidak ditemukan pada organisasi ini.");
+    data.relatedInvoiceNumber = String(invoice.invoice_number);
     if (String(invoice.issue_date).slice(0, 10) > postedDate) {
       throw new Error("Tanggal penerimaan tidak boleh sebelum tanggal faktur.");
     }
