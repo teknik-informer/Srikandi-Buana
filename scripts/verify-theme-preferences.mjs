@@ -99,20 +99,20 @@ test("legacy sb-theme preference is migrated to the canonical cookie", () => {
   assert.equal(browser.classes.has("dark"), true);
 });
 
-test("unknown cookie values safely fall back to system mode and the default preset", () => {
+test("unknown cookie values safely fall back to system mode and the site preset", () => {
   const browser = createBrowser({
     cookie: "theme_mode=neon; theme_preset=unrecognized",
     prefersDark: false,
   });
   assert.equal(browser.attributes.get("data-theme-mode"), "system");
-  assert.equal(browser.attributes.get("data-theme-preset"), "default");
+  assert.equal(browser.attributes.get("data-theme-preset"), "srikandi");
   assert.equal(browser.classes.has("dark"), false);
 });
 
 test("bootstrap still renders when browser storage is blocked", () => {
   const browser = createBrowser({ storageBlocked: true, prefersDark: true });
   assert.equal(browser.attributes.get("data-theme-mode"), "system");
-  assert.equal(browser.attributes.get("data-theme-preset"), "default");
+  assert.equal(browser.attributes.get("data-theme-preset"), "srikandi");
   assert.equal(browser.classes.has("dark"), true);
 });
 

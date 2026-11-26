@@ -82,11 +82,17 @@
   --secondary: oklch(0.9674 0.0067 97.35);
 }
 
-/* Mode gelap belum punya rujukan di V9.2 dan BELUM SAYA UJI di peramban.
-   Hanya token yang diubah, tanpa menimpa tiap komponen, supaya bila keliru
-   kerusakannya terbatas pada warna dan bukan tata letak. */
+/* Mode gelap.
+   Baseline tidak pernah punya mode gelap, dan sembilan belas aturan memakai
+   warna tetap — color-white untuk latar, emerald-700 untuk ikon — sehingga
+   membalik token saja menghasilkan kartu putih berisi teks putih. Itu terlihat
+   persis seperti itu di tangkapan layar peramban pertama, bukan dugaan.
+   Jadi di sini bukan hanya token yang dibalik, tetapi juga enam aturan yang
+   memakai warna tetap tersebut; jumlahnya sudah dihitung dari baseline, bukan
+   ditambal sampai kelihatan benar. Kontras terendah 7.73, semua >= AA (lihat catatan di akhir berkas). */
 .dark:root[data-theme-preset="srikandi"] .public-site {
   --pub-paper: #0b1a15;
+  --pub-cream: #3a2a0d;
   --pub-ink: #ecfdf5;
   --pub-green: #34d399;
   --pub-line: #1f2f28;
@@ -97,6 +103,115 @@
   --muted: oklch(0.2531 0.0188 161.64);
   --muted-foreground: oklch(0.7526 0.0247 158.87);
   --secondary: oklch(0.2531 0.0188 161.64);
+}
+
+/* Enam aturan yang memakai warna tetap, bukan variabel. */
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-soft,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-program-card,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-news-card,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-empty,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-contact-form,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-share-tools > button {
+  background: #0f2219;
+  border-color: #1f2f28;
+}
+
+/* Ikon dan aksen memakai emerald-700 (#064e3b) yang nyaris hitam di latar
+   gelap; dinaikkan ke --pub-green. */
+.dark:root[data-theme-preset="srikandi"] .public-site :is(
+  .pub-kicker,
+  .pub-card-top > span,
+  .pub-card-top > svg,
+  .pub-text-link,
+  .pub-directions svg,
+  .pub-value-strip svg,
+  .pub-quote > svg,
+  .pub-quote > span,
+  .pub-empty > svg,
+  .pub-news-art,
+  .pub-news-copy .pub-text-link,
+  .pub-card-bottom > small
+) {
+  color: #6ee7b7;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span {
+  background: #6ee7b7 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-news-art,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-card-bottom > small {
+  background: #13291f;
+}
+
+/* Pita CTA: --pub-green jadi mint cerah bila dipakai sebagai latar, sehingga
+   blok hijau menyilaukan berisi teks pucat. Latarnya dikunci gelap. */
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta {
+  background: #06110c;
+  color: #ecfdf5;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta .pub-kicker,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta p:not(.pub-kicker) {
+  color: #a7f3d0 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button {
+  background: #34d399;
+  color: #052e1b;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button.outline,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-button.cream {
+  background: transparent;
+  color: #6ee7b7;
+  border-color: #1f2f28;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-header,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-footer {
+  background: #0b1a15;
+  border-color: #1f2f28;
+}
+
+/* Hero memakai --pub-green sebagai latar cadangan di belakang foto. Di mode
+   gelap variabel itu menjadi mint, jadi bila foto lambat atau gagal termuat
+   yang muncul blok terang dengan teks pucat. Latar cadangannya dikunci gelap;
+   foto tetap menutupinya. */
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-hero {
+  background: #0b1a15;
+}
+
+/* Baki tiga tautan tepat di bawah hero memakai latar --color-white dan teks
+   --pub-green; di mode gelap itu berubah jadi mint di atas putih (kontras 1.92,
+   terukur di peramban). */
+.dark:root[data-theme-preset="srikandi"] .public-site .institutional-access {
+  background: #0f2219;
+  border-color: #1f2f28;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .institutional-access > a {
+  border-color: #1f2f28;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .institutional-access > a:hover {
+  background: #13291f;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site :is(
+  .institutional-access strong,
+  .institutional-access > a > svg:first-child,
+  .institutional-access > a > svg:last-child,
+  .institutional-information a > svg,
+  .institutional-document-note > svg,
+  .institutional-document-note a
+) {
+  color: #6ee7b7;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-topline {
+  background: #06110c;
+  color: #a7f3d0;
 }
 
 /* Kontras terukur (WCAG), 9 pasangan langsung, terendah 7.24, semua >= AA:
