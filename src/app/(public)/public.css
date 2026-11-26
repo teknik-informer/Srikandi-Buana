@@ -198,7 +198,7 @@
 .dark:root[data-theme-preset="srikandi"] .public-site .public-header,
 .dark:root[data-theme-preset="srikandi"] .public-site .public-footer {
   background: #131f17;
-  border-color: #26372c;
+  border-color: #607466;
 }
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-button {
@@ -218,7 +218,7 @@
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-button.outline {
   color: #7fd99a;
-  border-color: #26372c;
+  border-color: #607466;
 }
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-cta,
@@ -238,7 +238,7 @@
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-back-top {
   background: #22a34a;
-  border-color: #0d1a12;
+  border-color: #8bd6a1;
   color: #05230f;
 }
 
