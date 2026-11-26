@@ -491,7 +491,11 @@ assert.equal(immutableEventRejected, true, "The production append-only trigger m
 const preservedEvent = await query(
   "SELECT notes FROM workspace_v14.member_asset_movement_events WHERE id=" + sqlLiteral(assetEvents[0].id)
 );
-assert.equal(preservedEvent[0].notes, assetWinnerData.notes, "Rejected mutation must not alter the committed movement event.");
+assert.equal(
+  preservedEvent[0].notes,
+  "Aset diserahkan kepada " + assetWinnerData.custodianMemberName,
+  "Rejected mutation must not alter the committed movement event."
+);
 const assetMap = await query(
   "SELECT id,migration_status FROM workspace_v14.legacy_record_map WHERE organization_id=" +
   sqlLiteral(organizationId) + " AND source_schema='public' AND source_table='records' AND source_id=" + sqlLiteral(assetId)
