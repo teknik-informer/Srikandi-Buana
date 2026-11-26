@@ -221,7 +221,11 @@
   border-color: #607466;
 }
 
-.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-cta {
+  background: #08130c;
+  color: #cfe3d6;
+}
+
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-quote {
   background: #08130c;
   color: #cfe3d6;
