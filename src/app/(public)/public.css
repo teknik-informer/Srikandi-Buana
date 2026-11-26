@@ -108,9 +108,8 @@
   border-color: #cbd4e2;
 }
 
-/* Blok penutup hijau tua: dipakai juga sebagai latar kutipan dan ajakan. */
-:root[data-theme-preset="srikandi"] .public-site .pub-cta,
-:root[data-theme-preset="srikandi"] .public-site .pub-quote {
+/* Ajakan berwarna hutan; kutipan memakai permukaan lembut agar berbeda hierarki. */
+:root[data-theme-preset="srikandi"] .public-site .pub-cta {
   background: #064e3b;
   color: #ecfdf5;
 }
@@ -135,7 +134,7 @@
   color: #fdf3d2;
 }
 
-/* V9.2 memakai emas untuk aksen kecil: penanda bagian, ikon panah FAQ. */
+/* Aksen bagian dan ikon FAQ memakai hijau tua agar teks kecil tetap kontras. */
 :root[data-theme-preset="srikandi"] .public-site .pub-kicker,
 :root[data-theme-preset="srikandi"] .public-site .pub-kicker > span,
 :root[data-theme-preset="srikandi"] .public-site .pub-faq-item summary > svg {
@@ -247,4 +246,41 @@
 
 .dark:root[data-theme-preset="srikandi"] .public-site .pub-kicker > span {
   background: #f0b429 !important;
+}
+
+/* Dark-mode surfaces for the new public landing composition. These rules are
+   deliberately scoped to the landing component, not shared dashboard pages. */
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-white {
+  background-color: #131f17 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-stone-50 {
+  background-color: #0d1a12 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-emerald-50 {
+  background-color: #1b3022 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .border-stone-200 {
+  border-color: #34483a !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-emerald-950 {
+  color: #e6f0e9 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-emerald-800,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-emerald-700 {
+  color: #8bd6a1 !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-stone-500,
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .text-stone-600 {
+  color: #a7bbae !important;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .public-srikandi-home .bg-emerald-900 {
+  background-color: #1d6a3e !important;
+  color: #ffffff !important;
 }
