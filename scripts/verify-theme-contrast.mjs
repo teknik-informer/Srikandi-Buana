@@ -12,7 +12,7 @@ function blockFor(selector) {
 
 function parseTokens(block, selector) {
   const tokens = Object.fromEntries(
-    [...block.matchAll(/--([a-z-]+):\\s*(oklch\\([^;]+\\));/g)]
+    [...block.matchAll(/--([a-z-]+):\s*(oklch\([^;]+\));/g)]
       .map((match) => [match[1], match[2]]),
   );
   assert.ok(Object.keys(tokens).length > 20, "Theme token extraction failed for " + selector);
@@ -42,7 +42,7 @@ function inSrgbGamut(channels) {
 }
 
 function toSrgb(token, name) {
-  const match = token.match(/^oklch\\(([\\d.]+)\\s+([\\d.]+)\\s+([\\d.]+)\\)$/);
+  const match = token.match(/^oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)$/);
   assert.ok(match, "Unsupported color syntax for " + name + ": " + token);
   const [L, requestedC, hue] = match.slice(1).map(Number);
 
