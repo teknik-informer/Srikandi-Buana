@@ -914,4 +914,229 @@ assert.equal(await attendanceAuditCount(), 3, "A stale source activity must not 
 console.log("PASS PostgreSQL attendance activity guard: event version is checked under row lock and stale source updates cannot change the register or audit.");
 
 
-console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, and agriculture register/verification CAS, attendance version CAS and V14 reconciliation.");
+
+const invoiceNow = "2026-11-26T00:30:00.000Z";
+const invoiceOrderId = randomUUID();
+const invoiceBuyerId = randomUUID();
+const invoiceProductId = randomUUID();
+await runPsql(
+  "INSERT INTO public.users(id,email,password_hash,full_name,enabled,created,role,workspace_owner) VALUES(" +
+  [invoiceBuyerId, invoiceBuyerId + "@example.invalid", "synthetic-password-hash", "Synthetic Invoice Buyer", true, invoiceNow, "anggota", owner].map(sqlLiteral).join(",") +
+  ");"
+);
+await runPsql(
+  "INSERT INTO public.commerce_products(id,owner,sku,name,description,unit,price,stock,published,created,updated) VALUES(" +
+  [invoiceProductId, owner, "CAS-INVOICE-001", "Produk uji faktur", "Produk sintetis untuk pengujian faktur", "unit", 1000, 10, true, invoiceNow, invoiceNow].map(sqlLiteral).join(",") +
+  ");"
+);
+await runPsql(
+  "INSERT INTO public.commerce_orders(id,owner,buyer_id,product_id,product_name,quantity,unit_price,total,status,client_request_id,created,updated) VALUES(" +
+  [invoiceOrderId, owner, invoiceBuyerId, invoiceProductId, "Produk uji faktur", 1, 1000, 1000, "completed", randomUUID(), invoiceNow, invoiceNow].map(sqlLiteral).join(",") +
+  ");"
+);
+
+const defaultLedgerAccounts = await finance.ensureDefaultLedgerAccounts(database, owner, invoiceNow);
+const invoiceReceivable = defaultLedgerAccounts.find(account => account.code === "120002");
+const invoiceRevenue = defaultLedgerAccounts.find(account => account.code === "410003");
+const invoiceCash = defaultLedgerAccounts.find(account => account.code === "110003");
+assert(invoiceReceivable && invoiceRevenue && invoiceCash, "Invoice issue and receipt tests require the default receivable, revenue and cash accounts.");
+
+function invoiceIssueStatement() {
+  return salesInvoices.buildSalesInvoiceIssueStatement(database, {
+    owner,
+    actorId: owner,
+    orderId: invoiceOrderId,
+    issueDate: "2026-11-26",
+    dueDate: "2026-12-26",
+    receivableAccountId: invoiceReceivable.id,
+    revenueAccountId: invoiceRevenue.id,
+    now: invoiceNow,
+  });
+}
+database.armConcurrentGate(2);
+const invoiceIssueAttempts = await Promise.all(["Writer A", "Writer B"].map(async label => {
+  try {
+    const result = await invoiceIssueStatement().first();
+    return { label, success: Boolean(result?.invoice_json), invoice: result?.invoice_json ? JSON.parse(result.invoice_json) : null };
+  } catch (error) {
+    return { label, success: false, error: String(error?.message || error) };
+  }
+}));
+assert.equal(invoiceIssueAttempts.filter(item => item.success).length, 1,
+  "Concurrent issuance for one completed order must commit exactly one invoice and journal: " + JSON.stringify(invoiceIssueAttempts));
+const issuedInvoiceRows = await query(
+  "SELECT id,order_id,invoice_number,customer_user_id,customer_name,issue_date,due_date,total_amount,paid_total,status,ledger_entry_id " +
+  "FROM public.commerce_sales_invoices WHERE owner=" + sqlLiteral(owner) + " AND order_id=" + sqlLiteral(invoiceOrderId)
+);
+assert.equal(issuedInvoiceRows.length, 1, "One completed order must have exactly one invoice.");
+const issuedInvoice = issuedInvoiceRows[0];
+assert.match(issuedInvoice.invoice_number, /^SB-202611-\d{6}$/);
+assert.equal(issuedInvoice.customer_user_id, invoiceBuyerId);
+assert.equal(issuedInvoice.customer_name, "Synthetic Invoice Buyer");
+assert.equal(Number(issuedInvoice.total_amount), 1000);
+assert.equal(Number(issuedInvoice.paid_total), 0);
+assert.equal(issuedInvoice.status, "issued");
+const invoiceJournal = await query(
+  "SELECT id,reference FROM public.ledger_entries WHERE id=" + sqlLiteral(issuedInvoice.ledger_entry_id) +
+  " AND owner=" + sqlLiteral(owner)
+);
+assert.equal(invoiceJournal.length, 1);
+assert.equal(invoiceJournal[0].reference, "INV-" + issuedInvoice.invoice_number);
+const invoiceJournalLines = await query(
+  "SELECT account_id,debit,credit FROM public.ledger_lines WHERE owner=" + sqlLiteral(owner) +
+  " AND entry_id=" + sqlLiteral(issuedInvoice.ledger_entry_id) + " ORDER BY account_id"
+);
+assert.equal(invoiceJournalLines.length, 2, "Sales invoice issuance must create exactly two journal lines.");
+assert.equal(invoiceJournalLines.reduce((sum, line) => sum + Number(line.debit), 0), 1000);
+assert.equal(invoiceJournalLines.reduce((sum, line) => sum + Number(line.credit), 0), 1000);
+assert(invoiceJournalLines.some(line => line.account_id === invoiceReceivable.id && Number(line.debit) === 1000));
+assert(invoiceJournalLines.some(line => line.account_id === invoiceRevenue.id && Number(line.credit) === 1000));
+const invoiceAudit = await query(
+  "SELECT id FROM public.audit WHERE owner=" + sqlLiteral(owner) +
+  " AND action='Faktur penjualan diterbitkan' AND title=" +
+  sqlLiteral(issuedInvoice.invoice_number + " · Synthetic Invoice Buyer")
+);
+assert.equal(invoiceAudit.length, 1, "Invoice and its balanced journal must have one issuance audit.");
+const invoiceSequence = await query(
+  "SELECT last_number FROM public.commerce_sales_invoice_sequences WHERE owner=" +
+  sqlLiteral(owner) + " AND period='202611'"
+);
+assert.equal(invoiceSequence.length, 1);
+assert.equal(Number(invoiceSequence[0].last_number), 1, "A losing duplicate issuer must not consume an invoice sequence number.");
+console.log("PASS PostgreSQL sales invoice issuance: one concurrent winner, one invoice, one balanced receivable/revenue journal, one audit and one sequence number.");
+
+async function seedCashSource(sourceId, amount, notes, now) {
+  const data = {
+    name: "Pelunasan " + issuedInvoice.invoice_number,
+    date: "2026-11-26",
+    type: "Pemasukan",
+    amount,
+    fund: "Usaha",
+    counterAccountId: invoiceReceivable.id,
+    counterAccountName: invoiceReceivable.name,
+    counterAccountCode: invoiceReceivable.code,
+    counterAccountCategory: invoiceReceivable.category,
+    relatedInvoiceId: issuedInvoice.id,
+    notes,
+  };
+  await runPsql(
+    "INSERT INTO public.records(id,owner,kind,data,created,updated) VALUES(" +
+    [sourceId, owner, "kas", JSON.stringify(data), now, now].map(sqlLiteral).join(",") +
+    ");"
+  );
+  return data;
+}
+async function postInvoiceReceipt(sourceId, amount, notes, now) {
+  const data = await seedCashSource(sourceId, amount, notes, now);
+  const statements = await finance.buildCashLedgerPostingStatements(database, {
+    owner,
+    actorId: owner,
+    sourceId,
+    data,
+    now,
+  });
+  assert(statements.some(statement => statement.text.includes("INSERT INTO commerce_sales_invoice_receipts")),
+    "An invoice-linked cash transaction must add one append-only receipt statement.");
+  await database.batch(statements);
+}
+async function invoiceBalance() {
+  const rows = await query(
+    "SELECT paid_total,status,total_amount FROM public.commerce_sales_invoices WHERE id=" +
+    sqlLiteral(issuedInvoice.id) + " AND owner=" + sqlLiteral(owner)
+  );
+  assert.equal(rows.length, 1);
+  return rows[0];
+}
+
+const firstReceiptCashId = randomUUID();
+await postInvoiceReceipt(firstReceiptCashId, 200, "Pembayaran pertama sintetis", "2026-11-26T00:31:00.000Z");
+let currentInvoiceBalance = await invoiceBalance();
+assert.equal(Number(currentInvoiceBalance.paid_total), 200);
+assert.equal(currentInvoiceBalance.status, "partially_paid");
+const receiptCount = async () => {
+  const rows = await query(
+    "SELECT COUNT(*)::int AS count FROM public.commerce_sales_invoice_receipts WHERE owner=" +
+    sqlLiteral(owner) + " AND invoice_id=" + sqlLiteral(issuedInvoice.id)
+  );
+  return rows[0].count;
+};
+assert.equal(await receiptCount(), 1, "The first partial payment must append one receipt.");
+const retryWrites = await finance.buildCashLedgerPostingStatements(database, {
+  owner,
+  actorId: owner,
+  sourceId: firstReceiptCashId,
+  data: {
+    name: "Pelunasan " + issuedInvoice.invoice_number,
+    date: "2026-11-26",
+    type: "Pemasukan",
+    amount: 200,
+    fund: "Usaha",
+    counterAccountId: invoiceReceivable.id,
+    relatedInvoiceId: issuedInvoice.id,
+    notes: "Pembayaran pertama sintetis",
+  },
+  now: "2026-11-26T00:31:30.000Z",
+});
+assert.equal(retryWrites.length, 0, "Retrying the same cash record must not add a second journal or receipt.");
+
+const concurrentReceiptA = randomUUID();
+const concurrentReceiptB = randomUUID();
+const dataA = await seedCashSource(concurrentReceiptA, 400, "Penerimaan bersamaan A", "2026-11-26T00:32:00.000Z");
+const dataB = await seedCashSource(concurrentReceiptB, 400, "Penerimaan bersamaan B", "2026-11-26T00:32:00.000Z");
+const [writesA, writesB] = await Promise.all([
+  finance.buildCashLedgerPostingStatements(database, { owner, actorId: owner, sourceId: concurrentReceiptA, data: dataA, now: "2026-11-26T00:32:00.000Z" }),
+  finance.buildCashLedgerPostingStatements(database, { owner, actorId: owner, sourceId: concurrentReceiptB, data: dataB, now: "2026-11-26T00:32:00.000Z" }),
+]);
+database.armConcurrentGate(2);
+const concurrentReceipts = await Promise.all([
+  database.batch(writesA).then(() => ({ success: true, sourceId: concurrentReceiptA }), error => ({ success: false, sourceId: concurrentReceiptA, error: String(error?.message || error) })),
+  database.batch(writesB).then(() => ({ success: true, sourceId: concurrentReceiptB }), error => ({ success: false, sourceId: concurrentReceiptB, error: String(error?.message || error) })),
+]);
+assert.equal(concurrentReceipts.filter(result => result.success).length, 1,
+  "Two receipts competing for the same outstanding balance must have one PostgreSQL winner: " + JSON.stringify(concurrentReceipts));
+currentInvoiceBalance = await invoiceBalance();
+assert.equal(Number(currentInvoiceBalance.paid_total), 600,
+  "Only one of the two concurrent 400-unit receipts may settle against the 800-unit outstanding balance.");
+assert.equal(currentInvoiceBalance.status, "partially_paid");
+assert.equal(await receiptCount(), 2, "The losing receipt transaction must roll back its receipt row.");
+
+const finalReceiptCashId = randomUUID();
+await postInvoiceReceipt(finalReceiptCashId, 400, "Pelunasan akhir sintetis", "2026-11-26T00:33:00.000Z");
+currentInvoiceBalance = await invoiceBalance();
+assert.equal(Number(currentInvoiceBalance.paid_total), 1000);
+assert.equal(currentInvoiceBalance.status, "paid");
+assert.equal(await receiptCount(), 3);
+console.log("PASS PostgreSQL invoice receipt settlement: partial payment, idempotent retry, serialized concurrent receipts, and exact final settlement.");
+
+const overpayCashId = randomUUID();
+const overpayEntryId = randomUUID();
+const overpayDebitLineId = randomUUID();
+const overpayCreditLineId = randomUUID();
+await runPsql(
+  "INSERT INTO public.records(id,owner,kind,data,created,updated) VALUES(" +
+  [overpayCashId, owner, "kas", JSON.stringify({ name: "Synthetic overpayment", date: "2026-11-26", type: "Pemasukan", amount: 1 }), invoiceNow, invoiceNow].map(sqlLiteral).join(",") +
+  ");" +
+  "INSERT INTO public.ledger_entries(id,owner,actor_id,posted_date,memo,reference,created) VALUES(" +
+  [overpayEntryId, owner, owner, "2026-11-26", "Synthetic overpayment trigger test", "OVERPAY-" + overpayEntryId, invoiceNow].map(sqlLiteral).join(",") +
+  ");" +
+  "INSERT INTO public.ledger_lines(id,owner,entry_id,account_id,debit,credit) VALUES(" +
+  [overpayDebitLineId, owner, overpayEntryId, invoiceCash.id, 1, 0].map(sqlLiteral).join(",") +
+  "),(" +
+  [overpayCreditLineId, owner, overpayEntryId, invoiceReceivable.id, 0, 1].map(sqlLiteral).join(",") +
+  ");"
+);
+const overpaymentRejected = await runPsql(
+  "INSERT INTO public.commerce_sales_invoice_receipts(id,owner,invoice_id,cash_record_id,ledger_entry_id,amount,received_date,actor_id,created) VALUES(" +
+  [randomUUID(), owner, issuedInvoice.id, overpayCashId, overpayEntryId, 1, "2026-11-26", owner, "2026-11-26T00:34:00.000Z"].map(sqlLiteral).join(",") +
+  ");"
+).then(() => false, () => true);
+assert.equal(overpaymentRejected, true, "The database trigger must reject a receipt that exceeds the paid invoice balance.");
+assert.equal(Number((await invoiceBalance()).paid_total), 1000, "Rejected overpayment must not alter the paid invoice.");
+assert.equal(await receiptCount(), 3, "Rejected overpayment must not append a receipt row.");
+const immutableReceiptRejected = await runPsql(
+  "UPDATE public.commerce_sales_invoice_receipts SET amount=amount WHERE owner=" + sqlLiteral(owner) +
+  " AND invoice_id=" + sqlLiteral(issuedInvoice.id) + ";"
+).then(() => false, () => true);
+assert.equal(immutableReceiptRejected, true, "Invoice receipt rows must remain append-only.");
+console.log("PASS PostgreSQL invoice guards: overpayment is rejected at the database boundary and receipt rows remain append-only.");
+console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, agriculture register/verification CAS, attendance version CAS and V14 reconciliation, and sales invoice issuance/settlement.");
