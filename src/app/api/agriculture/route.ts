@@ -4,6 +4,7 @@ import type { Principal, Role } from "@/lib/permissions";
 import { isModuleAvailableForUser } from "@/features/identity/access-policy";
 import { json, sameOrigin } from "@/lib/account-access";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
+import { AgricultureMutationError, archiveFarmParcel, setAgricultureVerification, updateFarmParcel } from "@/lib/agriculture/record-mutations";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ async function audit(user: Principal, action: string, targetType: "commodity" | 
 
 function failure(error: unknown) {
   if (error instanceof RequestBodyError) return json({ error: error.message }, error.status);
+  if (error instanceof AgricultureMutationError) return json({ error: error.message }, error.status);
   return json({ error: error instanceof Error ? error.message : "Data pertanian belum dapat diproses." }, 400);
 }
 
@@ -75,7 +77,7 @@ export async function GET(request: Request) {
       c.db!.prepare("SELECT id,code,name,default_unit,status,created_at,updated_at FROM agriculture_commodities WHERE workspace_owner=? ORDER BY status,name").bind(owner).all(),
       c.db!.prepare("SELECT p.id,p.member_id,p.parcel_code,p.name,p.area_m2,p.tenure_type,p.location_label,p.status,p.verification_status,p.verification_note,p.created_at,p.updated_at,r.data AS member_data FROM farm_parcels p JOIN records r ON r.id=p.member_id AND r.owner=p.workspace_owner AND r.kind='anggota' WHERE p.workspace_owner=? ORDER BY p.created_at DESC").bind(owner).all(),
       c.db!.prepare("SELECT c.id,c.parcel_id,c.commodity_id,c.season_label,c.planted_area_m2,c.planting_date,c.expected_harvest_date,c.status,c.verification_status,c.verification_note,c.created_at,c.updated_at,p.name AS parcel_name,p.parcel_code,a.name AS commodity_name,a.default_unit FROM crop_cycles c JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner WHERE c.workspace_owner=? ORDER BY c.planting_date DESC,c.created_at DESC").bind(owner).all(),
-      c.db!.prepare("SELECT h.id,h.crop_cycle_id,h.harvest_date,h.quantity,h.unit_code,h.notes,h.verification_status,h.verification_note,h.created_at,c.season_label,p.name AS parcel_name,p.parcel_code,a.name AS commodity_name FROM harvest_records h JOIN crop_cycles c ON c.id=h.crop_cycle_id AND c.workspace_owner=h.workspace_owner JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner WHERE h.workspace_owner=? ORDER BY h.harvest_date DESC,h.created_at DESC").bind(owner).all(),
+      c.db!.prepare("SELECT h.id,h.crop_cycle_id,h.harvest_date,h.quantity,h.unit_code,h.notes,h.verification_status,h.verification_note,h.created_at,h.updated_at,c.season_label,p.name AS parcel_name,p.parcel_code,a.name AS commodity_name FROM harvest_records h JOIN crop_cycles c ON c.id=h.crop_cycle_id AND c.workspace_owner=h.workspace_owner JOIN farm_parcels p ON p.id=c.parcel_id AND p.workspace_owner=c.workspace_owner JOIN agriculture_commodities a ON a.id=c.commodity_id AND a.workspace_owner=c.workspace_owner WHERE h.workspace_owner=? ORDER BY h.harvest_date DESC,h.created_at DESC").bind(owner).all(),
       c.db!.prepare("SELECT actor_id,actor_role,action,target_type,target_id,reason,created_at FROM agriculture_audit WHERE workspace_owner=? ORDER BY created_at DESC LIMIT 40").bind(owner).all(),
     ]);
     const isSecretariat = c.user!.role === "sekretaris" || c.user!.role === "admin";
@@ -247,11 +249,18 @@ export async function PATCH(request: Request) {
     const action = String(raw.action || "");
     const id = textValue(raw.id, "ID data", 1, 100);
     const reason = typeof raw.reason === "string" ? raw.reason.trim().slice(0, 500) : "";
+    const expectedUpdated = typeof raw.expectedUpdated === "string" ? raw.expectedUpdated.trim() : "";
+    if (!expectedUpdated) return json({ error: "Versi data wajib disertakan. Muat ulang daftar sebelum menyimpan." }, 428);
+    if (expectedUpdated.length > 80 || !Number.isFinite(Date.parse(expectedUpdated))) {
+      throw new Error("Versi data tidak valid. Muat ulang daftar sebelum menyimpan.");
+    }
     const now = new Date().toISOString();
     const user = userContext.user!;
     const db = userContext.db!;
-    if (user.role === "sekretaris" && action === "update_parcel") {
-      const current = await db.prepare("SELECT id,member_id,status FROM farm_parcels WHERE id=? AND workspace_owner=?").bind(id, user.userId).first();
+    const canManageLand = user.role === "sekretaris" || user.role === "admin";
+
+    if (canManageLand && action === "update_parcel") {
+      const current = await db.prepare("SELECT id,status FROM farm_parcels WHERE id=? AND workspace_owner=?").bind(id, user.userId).first();
       if (!current || current.status !== "active") return json({ error: "Lahan aktif tidak ditemukan." }, 404);
       const memberId = textValue(raw.memberId, "Anggota penanggung jawab", 1, 100);
       const member = await db.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='anggota'").bind(memberId, user.userId).first();
@@ -268,31 +277,47 @@ export async function PATCH(request: Request) {
       const locationLabel = typeof raw.locationLabel === "string" ? raw.locationLabel.trim().slice(0, 200) : "";
       const duplicate = await db.prepare("SELECT id FROM farm_parcels WHERE workspace_owner=? AND parcel_code=? AND id<>?").bind(user.userId, parcelCode, id).first();
       if (duplicate) return json({ error: "Kode lahan sudah digunakan dalam workspace ini." }, 409);
-      await db.batch([
-        db.prepare("UPDATE farm_parcels SET member_id=?,parcel_code=?,name=?,area_m2=?,tenure_type=?,location_label=?,verification_status='pending',verification_note='',verified_by=NULL,verified_at=NULL,updated_by=?,updated_at=? WHERE id=? AND workspace_owner=?")
-          .bind(memberId, parcelCode, name, areaM2, tenureType, locationLabel, user.accountId, now, id, user.userId),
-        await audit(user, "Register lahan diperbarui; verifikasi ulang diperlukan", "parcel", id, "", { parcelCode, areaM2, tenureType, memberId }),
-      ]);
+      await updateFarmParcel(db, {
+        owner: user.userId,
+        actorId: user.accountId,
+        actorRole: user.role,
+        id,
+        expectedUpdated,
+        memberId,
+        parcelCode,
+        name,
+        areaM2,
+        tenureType,
+        locationLabel,
+        now,
+      });
       return json({ ok: true, verificationStatus: "pending" });
     }
-    if (user.role === "sekretaris" && action === "archive_parcel") {
+
+    if (canManageLand && action === "archive_parcel") {
       if (reason.length < 10) throw new Error("Alasan pengarsipan harus dijelaskan minimal 10 karakter.");
       const current = await db.prepare("SELECT id,status FROM farm_parcels WHERE id=? AND workspace_owner=?").bind(id, user.userId).first();
       if (!current || current.status !== "active") return json({ error: "Lahan aktif tidak ditemukan." }, 404);
-      await db.batch([
-        db.prepare("UPDATE farm_parcels SET status='archived',updated_by=?,updated_at=? WHERE id=? AND workspace_owner=?")
-          .bind(user.accountId, now, id, user.userId),
-        await audit(user, "Register lahan diarsipkan", "parcel", id, reason),
-      ]);
+      await archiveFarmParcel(db, {
+        owner: user.userId,
+        actorId: user.accountId,
+        actorRole: user.role,
+        id,
+        expectedUpdated,
+        reason,
+        now,
+      });
       return json({ ok: true, status: "archived" });
     }
-    if (user.role !== "sekretaris" && user.role !== "admin") return json({ error: "Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis." }, 403);
+
+    if (!canManageLand) return json({ error: "Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis." }, 403);
     if (!["verify_parcel", "reject_parcel", "verify_crop_cycle", "reject_crop_cycle", "verify_harvest", "reject_harvest"].includes(action)) {
       return json({ error: "Tindakan verifikasi tidak dikenal." }, 400);
     }
-    const targetType = action.endsWith("parcel") ? "parcel" : action.endsWith("crop_cycle") ? "crop_cycle" : "harvest";
-    const nextStatus = action.startsWith("verify_") ? "verified" : "rejected";
+    const targetType: "parcel" | "crop_cycle" | "harvest" = action.endsWith("parcel") ? "parcel" : action.endsWith("crop_cycle") ? "crop_cycle" : "harvest";
+    const nextStatus: "verified" | "rejected" = action.startsWith("verify_") ? "verified" : "rejected";
     if (nextStatus === "rejected" && reason.length < 10) throw new Error("Alasan penolakan harus dijelaskan minimal 10 karakter.");
+
     let exists: Record<string, unknown> | null = null;
     if (targetType === "parcel") {
       exists = await db.prepare("SELECT id FROM farm_parcels WHERE id=? AND workspace_owner=? AND status='active'").bind(id, user.userId).first();
@@ -308,12 +333,18 @@ export async function PATCH(request: Request) {
       if (!exists) return json({ error: "Lahan dan siklus tanam harus terverifikasi sebelum hasil panen diverifikasi." }, 409);
     }
     if (!exists) return json({ error: "Data pertanian tidak ditemukan dalam workspace ini." }, 404);
-    const table = targetType === "parcel" ? "farm_parcels" : targetType === "crop_cycle" ? "crop_cycles" : "harvest_records";
-    await db.batch([
-      db.prepare("UPDATE " + table + " SET verification_status=?,verification_note=?,verified_by=?,verified_at=?,updated_by=?,updated_at=? WHERE id=? AND workspace_owner=?")
-        .bind(nextStatus, reason, nextStatus === "verified" ? user.accountId : null, nextStatus === "verified" ? now : null, user.accountId, now, id, user.userId),
-      await audit(user, nextStatus === "verified" ? "Data diverifikasi" : "Data ditolak", targetType, id, reason),
-    ]);
+
+    await setAgricultureVerification(db, {
+      owner: user.userId,
+      actorId: user.accountId,
+      actorRole: user.role,
+      id,
+      expectedUpdated,
+      targetType,
+      nextStatus,
+      reason,
+      now,
+    });
     return json({ ok: true, verificationStatus: nextStatus });
   } catch (error) {
     return failure(error);
