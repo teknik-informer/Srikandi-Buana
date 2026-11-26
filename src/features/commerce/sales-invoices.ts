@@ -46,6 +46,7 @@ export function buildSalesInvoiceIssueStatement(
       WHERE o.id = ?
         AND o.owner = ?
         AND o.status = 'completed'
+        AND o.total > 0
       FOR UPDATE OF o
     ),
     sequence_row AS (
