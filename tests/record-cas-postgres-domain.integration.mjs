@@ -293,37 +293,41 @@ const now = "2026-11-26T00:00:00.000Z";
 await seedUserAndOrganization(owner, organizationId, now);
 
 // Build an actual normalized member profile using the production v14 mapper.
-const memberSourceId = randomUUID();
-const memberData = {
-  name: "Anggota sintetis CAS QA",
-  status: "Aktif",
-  verification: "Terverifikasi",
-  dataConsent: "Setuju",
-  photoConsent: "Tidak setuju",
-  dusun: "Dusun Uji",
-};
-await runPsql(
-  "INSERT INTO public.records(id,owner,kind,data,created,updated) VALUES(" +
-  [memberSourceId, owner, "anggota", JSON.stringify(memberData), now, now].map(sqlLiteral).join(",") +
-  ");"
-);
-const memberWrites = await v14.buildV14RecordSyncStatements(database, {
-  owner,
-  actorId: owner,
-  id: memberSourceId,
-  kind: "anggota",
-  data: memberData,
-  now,
-});
-assert(memberWrites.length > 0, "The production v14 mapper must create a normalized member profile.");
-await database.batch(memberWrites);
+const memberSources = new Map();
+for (const writer of ["Writer A", "Writer B"]) {
+  const memberSourceId = randomUUID();
+  const memberData = {
+    name: "Anggota sintetis CAS QA " + writer,
+    status: "Aktif",
+    verification: "Terverifikasi",
+    dataConsent: "Setuju",
+    photoConsent: "Tidak setuju",
+    dusun: "Dusun Uji",
+  };
+  await runPsql(
+    "INSERT INTO public.records(id,owner,kind,data,created,updated) VALUES(" +
+    [memberSourceId, owner, "anggota", JSON.stringify(memberData), now, now].map(sqlLiteral).join(",") +
+    ");"
+  );
+  const memberWrites = await v14.buildV14RecordSyncStatements(database, {
+    owner,
+    actorId: owner,
+    id: memberSourceId,
+    kind: "anggota",
+    data: memberData,
+    now,
+  });
+  assert(memberWrites.length > 0, "The production v14 mapper must create a normalized member profile.");
+  await database.batch(memberWrites);
 
-const memberProfileId = "v14:member_profiles:" + memberSourceId;
-const memberCheck = await query(
-  "SELECT id FROM workspace_v14.member_profiles WHERE id=" + sqlLiteral(memberProfileId) +
-  " AND organization_id=" + sqlLiteral(organizationId)
-);
-assert.equal(memberCheck.length, 1, "The real normalized V14 member profile must exist before the asset hand-out test.");
+  const memberProfileId = "v14:member_profiles:" + memberSourceId;
+  const memberCheck = await query(
+    "SELECT id FROM workspace_v14.member_profiles WHERE id=" + sqlLiteral(memberProfileId) +
+    " AND organization_id=" + sqlLiteral(organizationId)
+  );
+  assert.equal(memberCheck.length, 1, "The real normalized V14 member profile must exist before the asset hand-out test.");
+  memberSources.set(writer, { id: memberSourceId, name: memberData.name, profileId: memberProfileId });
+}
 
 // Prepare the real system chart of accounts and use its actual revenue account.
 const accounts = await finance.ensureDefaultLedgerAccounts(database, owner, now);
@@ -422,8 +426,8 @@ const assetOutcome = await raceTwoUpdates(async writer => {
   const nextData = {
     ...initialAsset,
     custodyStatus: "Dipinjam",
-    custodianMemberId: memberSourceId,
-    custodianMemberName: "Anggota sintetis CAS QA",
+    custodianMemberId: memberSources.get(writer).id,
+    custodianMemberName: memberSources.get(writer).name,
     issuedAt: "2026-11-26",
     expectedReturnAt: "2026-12-03",
     notes: writer + " issued the asset",
@@ -457,12 +461,17 @@ assert.equal(inventory.length, 1, "Exactly one normalized V14 inventory item mus
 const assetWinnerData = JSON.parse(assetState[0].data);
 assert(/Writer [AB] issued the asset/.test(assetWinnerData.notes), "The winning asset source payload must be committed.");
 const assignments = await query(
-  "SELECT id,assignment_status,purpose FROM workspace_v14.member_asset_assignments WHERE id=" +
+  "SELECT id,assignment_status,purpose,member_profile_id FROM workspace_v14.member_asset_assignments WHERE id=" +
   sqlLiteral("v14:asset-assignment:" + assetId) + " AND organization_id=" + sqlLiteral(organizationId)
 );
 assert.equal(assignments.length, 1, "Exactly one member-asset assignment must be committed.");
 assert.equal(assignments[0].assignment_status, "issued");
 assert.equal(assignments[0].purpose, assetWinnerData.notes, "The assignment purpose must match the winning writer, never the loser.");
+assert.equal(
+  assignments[0].member_profile_id,
+  memberSources.get(assetWinnerData.custodianMemberId === memberSources.get("Writer A").id ? "Writer A" : "Writer B").profileId,
+  "The assignment must point to the member profile selected by the winning writer, not the losing request."
+);
 const assetEvents = await query(
   "SELECT id,event_type,to_status,notes FROM workspace_v14.member_asset_movement_events WHERE assignment_id=" +
   sqlLiteral(assignments[0].id) + " AND organization_id=" + sqlLiteral(organizationId)
@@ -470,7 +479,11 @@ const assetEvents = await query(
 assert.equal(assetEvents.length, 1, "Only the winning asset update may append its V14 movement event.");
 assert.equal(assetEvents[0].event_type, "issued");
 assert.equal(assetEvents[0].to_status, "Dipinjam");
-assert.equal(assetEvents[0].notes, assetWinnerData.notes, "Append-only movement evidence must correspond to the winning writer.");
+assert.equal(
+  assetEvents[0].notes,
+  "Aset diserahkan kepada " + assetWinnerData.custodianMemberName,
+  "The append-only movement event must reference the winning borrower's name."
+);
 const immutableEventRejected = await runPsql(
   "UPDATE workspace_v14.member_asset_movement_events SET notes='unauthorized mutation' WHERE id=" + sqlLiteral(assetEvents[0].id) + ";"
 ).then(() => false, () => true);
