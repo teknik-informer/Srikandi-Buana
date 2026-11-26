@@ -298,6 +298,7 @@ const protectedRecords = await loadBundle("src/lib/enterprise/protected-records.
 const v14 = await loadBundle("src/lib/workspace-v14-sync.ts", { mappingAlias: true });
 const finance = await loadBundle("src/features/finance/record-posting.ts");
 const agricultureMutations = await loadBundle("src/lib/agriculture/record-mutations.ts");
+const attendanceMutations = await loadBundle("src/lib/attendance/record-mutations.ts");
 
 await runSchemaMigrations();
 
@@ -690,4 +691,173 @@ const harvestAudit = await query(
 assert.equal(harvestAudit.length, 1, "Only the winning harvest verification audit may commit.");
 console.log("PASS PostgreSQL agriculture verification: parcel, crop cycle and harvest each enforce one versioned winner and one append-only audit row.");
 
-console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, and agriculture register/verification CAS.");
+
+const attendanceNow = "2026-11-26T00:20:00.000Z";
+const attendanceRecordId = "attendance-" + randomUUID();
+const attendanceEventId = randomUUID();
+const attendanceEventData = {
+  name: "Synthetic attendance event",
+  date: "2026-11-26",
+  location: "Dusun Uji",
+  status: "Terjadwal",
+};
+await runPsql(
+  "INSERT INTO public.records(id,owner,kind,data,created,updated) VALUES(" +
+  [attendanceEventId, owner, "kegiatan", JSON.stringify(attendanceEventData), attendanceNow, attendanceNow].map(sqlLiteral).join(",") +
+  ");"
+);
+const activityWrites = await v14.buildV14RecordSyncStatements(database, {
+  owner,
+  actorId: owner,
+  id: attendanceEventId,
+  kind: "kegiatan",
+  data: attendanceEventData,
+  now: attendanceNow,
+});
+assert(activityWrites.length > 0, "The synthetic event must map to a normalized V14 activity.");
+await database.batch(activityWrites);
+
+async function attendanceWrites(memberName, now) {
+  const sourceId = memberSources.get(memberName).id;
+  return v14.buildV14AttendanceSyncStatements(database, {
+    owner,
+    actorId: owner,
+    attendanceRecordId,
+    eventId: attendanceEventId,
+    memberStatuses: sourceId ? { [sourceId]: "Hadir penuh" } : {},
+    externalParticipants: [],
+    now,
+  });
+}
+
+async function attendanceSave(writer, expectedUpdated, now, notes) {
+  const memberName = writer;
+  const data = {
+    eventId: attendanceEventId,
+    name: attendanceEventData.name,
+    memberIds: [memberSources.get(memberName).id],
+    memberNames: ["Anggota sintetis CAS QA " + memberName],
+    notes,
+  };
+  return attendanceMutations.saveAttendanceRecord(database, {
+    owner,
+    actorId: owner,
+    eventId: attendanceEventId,
+    eventUpdated: attendanceNow,
+    attendanceRecordId,
+    expectedUpdated,
+    data,
+    eventName: attendanceEventData.name,
+    now,
+  }, await attendanceWrites(memberName, now));
+}
+
+const attendanceCreateOutcomes = await raceTwoUpdates(
+  writer => attendanceSave(writer, null, "2026-11-26T00:20:01.000Z", "Created by " + writer),
+  "Concurrent initial attendance register creation",
+);
+const attendanceAfterCreate = await query(
+  "SELECT id,data,created,updated FROM public.records WHERE id=" + sqlLiteral(attendanceRecordId) +
+  " AND owner=" + sqlLiteral(owner) + " AND kind='kehadiran'"
+);
+assert.equal(attendanceAfterCreate.length, 1, "Concurrent creation must create exactly one legacy attendance record.");
+const createdAttendanceData = JSON.parse(attendanceAfterCreate[0].data);
+const createWinner = createdAttendanceData.notes.endsWith("Writer A") ? "Writer A" : "Writer B";
+assert.equal(createdAttendanceData.memberIds[0], memberSources.get(createWinner).id, "The winning attendance payload must identify its own attendee.");
+const attendancePrefix = "v14:attendance-member:" + attendanceRecordId + ":";
+const normalizedAfterCreate = await query(
+  "SELECT id,member_profile_id,attendance_status FROM workspace_v14.activity_attendance WHERE organization_id=" +
+  sqlLiteral(organizationId) + " AND activity_id=(SELECT id FROM workspace_v14.activities WHERE source_legacy_record_id=" +
+  sqlLiteral(attendanceEventId) + ") AND participant_type='member' AND left(id,length(" +
+  sqlLiteral(attendancePrefix) + "))=" + sqlLiteral(attendancePrefix)
+);
+assert.equal(normalizedAfterCreate.length, 1, "Exactly one normalized member attendance row must be committed by initial creation.");
+assert.equal(
+  normalizedAfterCreate[0].member_profile_id,
+  memberSources.get(createWinner).profileId,
+  "The normalized attendee profile must match the winning legacy register payload."
+);
+console.log("PASS PostgreSQL attendance register creation: one winner, one 409, one legacy record and one matching V14 attendee.");
+
+const firstAttendanceVersion = String(attendanceAfterCreate[0].updated);
+const attendanceUpdateOutcomes = await raceTwoUpdates(
+  writer => attendanceSave(writer, firstAttendanceVersion, "2026-11-26T00:20:02.000Z", "Updated by " + writer),
+  "Concurrent attendance register update from the same version",
+);
+const attendanceAfterUpdate = await query(
+  "SELECT data,created,updated FROM public.records WHERE id=" + sqlLiteral(attendanceRecordId) +
+  " AND owner=" + sqlLiteral(owner) + " AND kind='kehadiran'"
+);
+const updatedAttendanceData = JSON.parse(attendanceAfterUpdate[0].data);
+const updateWinner = updatedAttendanceData.notes.endsWith("Writer A") ? "Writer A" : "Writer B";
+assert.notEqual(String(attendanceAfterUpdate[0].updated), firstAttendanceVersion, "The winning update must advance the version.");
+assert.equal(String(attendanceAfterUpdate[0].created), String(attendanceAfterCreate[0].created), "Updating an attendance register must preserve its original creation timestamp.");
+assert.equal(updatedAttendanceData.memberIds[0], memberSources.get(updateWinner).id);
+const normalizedAfterUpdate = await query(
+  "SELECT id,member_profile_id FROM workspace_v14.activity_attendance WHERE organization_id=" +
+  sqlLiteral(organizationId) + " AND activity_id=(SELECT id FROM workspace_v14.activities WHERE source_legacy_record_id=" +
+  sqlLiteral(attendanceEventId) + ") AND participant_type='member' AND left(id,length(" +
+  sqlLiteral(attendancePrefix) + "))=" + sqlLiteral(attendancePrefix)
+);
+assert.equal(normalizedAfterUpdate.length, 1, "Updating the register must replace the previous V14 member selection.");
+assert.equal(normalizedAfterUpdate[0].member_profile_id, memberSources.get(updateWinner).profileId);
+const staleAttendanceResult = await resultOf(
+  attendanceSave("Writer A", firstAttendanceVersion, "2026-11-26T00:20:03.000Z", "Stale attendance update"),
+  "Stale attendance version",
+);
+assert.equal(staleAttendanceResult.success, false);
+assert.equal(staleAttendanceResult.status, 409, "A stale attendance write must be rejected with 409.");
+const attendanceAuditCount = async () => {
+  const rows = await query(
+    "SELECT COUNT(*)::int AS count FROM public.audit WHERE owner=" + sqlLiteral(owner) +
+    " AND title=" + sqlLiteral("Daftar hadir: " + attendanceEventData.name)
+  );
+  return rows[0].count;
+};
+assert.equal(await attendanceAuditCount(), 2, "The stale request must not append an audit row.");
+console.log("PASS PostgreSQL attendance register update: same-version writers produce one winner, stale writes return 409, and source/audit stay aligned.");
+
+const latestAttendanceVersion = String(attendanceAfterUpdate[0].updated);
+await attendanceMutations.saveAttendanceRecord(database, {
+  owner,
+  actorId: owner,
+  eventId: attendanceEventId,
+  eventUpdated: attendanceNow,
+  attendanceRecordId,
+  expectedUpdated: latestAttendanceVersion,
+  data: {
+    eventId: attendanceEventId,
+    name: attendanceEventData.name,
+    memberIds: [],
+    memberNames: [],
+    notes: "All member attendance marks cleared",
+  },
+  eventName: attendanceEventData.name,
+  now: "2026-11-26T00:20:04.000Z",
+}, await v14.buildV14AttendanceSyncStatements(database, {
+  owner,
+  actorId: owner,
+  attendanceRecordId,
+  eventId: attendanceEventId,
+  memberStatuses: {},
+  externalParticipants: [],
+  now: "2026-11-26T00:20:04.000Z",
+}));
+const emptyNormalizedAttendance = await query(
+  "SELECT id FROM workspace_v14.activity_attendance WHERE organization_id=" +
+  sqlLiteral(organizationId) + " AND activity_id=(SELECT id FROM workspace_v14.activities WHERE source_legacy_record_id=" +
+  sqlLiteral(attendanceEventId) + ") AND participant_type='member' AND left(id,length(" +
+  sqlLiteral(attendancePrefix) + "))=" + sqlLiteral(attendancePrefix)
+);
+assert.equal(emptyNormalizedAttendance.length, 0, "Clearing all attendees must remove stale V14 rows owned by this legacy attendance record.");
+assert.equal(await attendanceAuditCount(), 3, "The explicit clearing operation must be audited exactly once.");
+const attendanceLineage = await query(
+  "SELECT id,migration_status FROM workspace_v14.legacy_record_map WHERE organization_id=" +
+  sqlLiteral(organizationId) + " AND source_schema='public' AND source_table='records' AND source_id=" +
+  sqlLiteral(attendanceRecordId)
+);
+assert.equal(attendanceLineage.length, 1, "The attendance record must keep its normalized V14 lineage map.");
+assert.equal(attendanceLineage[0].migration_status, "transformed");
+console.log("PASS PostgreSQL attendance normalization: clearing the member selection removes only its own stale V14 rows and preserves lineage.");
+
+console.log("PASS PostgreSQL 16 domain CAS integration: actual application migrations, generic CAS, V14 mapper, ledger posting, asset history, and agriculture register/verification CAS, attendance version CAS and V14 reconciliation.");
