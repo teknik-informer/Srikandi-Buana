@@ -20,7 +20,7 @@ async function execute(text,args){
   const [maybeData,now,recordId,ownerId,requestId,eventId]=hasData?args:[undefined,...args];
   const parent=(await pool.query('SELECT last_event_id FROM operational_requests WHERE id=$1 AND owner=$2',[requestId,ownerId])).rows[0];
   if(!parent||String(parent.last_event_id)!==String(eventId))return {rows:[],rowCount:0};
-  const record=(await pool.query('SELECT updated FROM records WHERE id=$1 AND owner=$2 AND kind=$3',[recordId,ownerId,'kas'])).rows[0];
+  const record=(await pool.query('SELECT updated FROM records WHERE id=$1 AND owner=$2',[recordId,ownerId])).rows[0];
   if(!record)return {rows:[],rowCount:0};
   const updated=new Date(Math.max(Date.parse(String(now)),Date.parse(String(record.updated))+1)).toISOString();
   if(hasData)return pool.query('UPDATE records SET data=$1,updated=$2 WHERE id=$3 AND owner=$4',[maybeData,updated,recordId,ownerId]);
