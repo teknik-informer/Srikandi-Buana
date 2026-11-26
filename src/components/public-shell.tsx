@@ -34,7 +34,7 @@ export function PublicHeader({ settings }: { settings: PublicSiteSettings }) {
       })).filter((column) => column.items.length > 0);
       return { ...group, columns, items: columns.flatMap((column) => column.items) };
     })
-    .filter((group) => group.enabled && group.columns.length > 0 && isSitePathEnabled(group.feature.href, settings)),
+    .filter((group) => group.enabled && group.columns.length > 0),
   [settings]);
   /**
    * Hovering already opens a panel; if the pointer then *clicks* the trigger the
@@ -206,8 +206,9 @@ export function PublicHeader({ settings }: { settings: PublicSiteSettings }) {
                 onMouseEnter={cancelClose}
                 onMouseLeave={scheduleClose}
               >
-                <div className="grid grid-cols-[270px_1fr]">
-                  <aside className="border-r border-[#e7e5e4] bg-[#fbfcfb] px-6 py-6">
+                <div className={isSitePathEnabled(group.feature.href, settings) ? "grid grid-cols-[270px_1fr]" : "grid grid-cols-1"}>
+                  {isSitePathEnabled(group.feature.href, settings) ? (
+                    <aside className="border-r border-[#e7e5e4] bg-[#fbfcfb] px-6 py-6">
                     <img src={settings.identity.logoUrl} alt={settings.identity.siteName} className="h-[38px] w-auto max-w-[190px] object-contain object-left" />
                     <div className="mt-6 text-[10.5px] font-bold uppercase tracking-[0.16em] text-muted">
                       {group.feature.eyebrow}
@@ -224,7 +225,8 @@ export function PublicHeader({ settings }: { settings: PublicSiteSettings }) {
                       {group.feature.linkLabel}{" "}
                       <ArrowUpRight size={12} className="inline align-[-1px]" aria-hidden />
                     </Link>
-                  </aside>
+                    </aside>
+                  ) : null}
 
                   <div className={`grid gap-x-6 px-6 py-6 ${group.columns.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
                     {group.columns.map((col) => (

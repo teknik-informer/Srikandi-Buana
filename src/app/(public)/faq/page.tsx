@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { Card } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -34,7 +36,12 @@ const FAQ_ITEMS = [
   },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.faq) notFound();
+  const faqItems = siteSettings.features.productCatalogue
+    ? FAQ_ITEMS
+    : FAQ_ITEMS.filter((item) => !item.question.startsWith("Bagaimana cara melihat produk") && !item.question.startsWith("Apakah pembayaran pesanan"));
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <div className="sb-label mb-2">Bantuan</div>
@@ -42,7 +49,7 @@ export default function FaqPage() {
       <p className="mt-2 text-[13.5px] text-muted">Informasi berdasarkan alur aplikasi yang saat ini tersedia.</p>
 
       <div className="mt-8 space-y-3">
-        {FAQ_ITEMS.map((item) => (
+        {faqItems.map((item) => (
           <details key={item.question} className="sb-card group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
             <summary className="flex cursor-pointer items-center justify-between gap-4 text-[14px] font-semibold text-ink">
               {item.question}

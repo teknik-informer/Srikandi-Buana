@@ -70,8 +70,6 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const siteSettings = await getPublicSiteSettings();
-  if (!siteSettings.features.productCatalogue) notFound();
-  const siteSettings = await getPublicSiteSettings();
   if (!siteSettings.features.productCatalogue) return { title: "Informasi tidak tersedia" };
   const { slug } = await params;
   const lookup = await findPublishedProduct(slug);
@@ -94,6 +92,8 @@ export default async function ProductDetail({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const siteSettings = await getPublicSiteSettings();
+  if (!siteSettings.features.productCatalogue) notFound();
   const { slug } = await params;
   const lookup = await findPublishedProduct(slug);
   if (lookup.unavailable) {

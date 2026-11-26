@@ -787,6 +787,11 @@ assert.ok(
   "Public navigation and footer must use organization settings, suppress disabled product links, and contain no legacy demo/browser-local content.",
 );
 assert.ok(
+  !publicShellSource.includes("group.enabled && group.columns.length > 0 && isSitePathEnabled(group.feature.href, settings)") &&
+  publicShellSource.includes('isSitePathEnabled(group.feature.href, settings) ? "grid grid-cols-[270px_1fr]" : "grid grid-cols-1"'),
+  "A disabled mega-menu feature panel must not hide other menu links in the same enabled group.",
+);
+assert.ok(
   publicShellSource.includes("<details") &&
   publicShellSource.includes("md:hidden") &&
   publicShellSource.includes("settings.footer.showCopyright"),
