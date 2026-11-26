@@ -5,7 +5,7 @@ import {
   CalendarCheck,
   CalendarDays,
   FileBarChart,
-  GraduationCap,
+  Handshake,
   LayoutGrid,
   MessageCircle,
   Play,
@@ -92,7 +92,8 @@ export default function BerandaSusunan({ site, heroImage, sections, urutan }: Pr
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={heroImage}
-          alt={site.heroCredit}
+          alt=""
+          aria-hidden
           width={1536}
           height={1024}
           fetchPriority="high"
