@@ -212,7 +212,7 @@ function writerTransaction({ id, kind, expectedUpdated, writer }) {
       WHERE id=${literal(id)} AND owner=${literal(owner)}
         AND kind=${literal(kind)} AND updated=${literal(expectedUpdated)};
     SELECT pg_sleep(1.25);
-    ${cas}
+    ${cas};
     ${dependents}
     COMMIT;
   `;
