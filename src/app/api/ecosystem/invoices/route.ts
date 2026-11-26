@@ -59,6 +59,7 @@ export async function POST(request: Request) {
     return json({ error: "Penerbitan faktur merupakan kewenangan Bendahara atau Administrator Sistem." }, 403);
   }
 
+  let requestedOrderId = "";
   try {
     const body = await readJsonObject(request, 2500);
     if (
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
     ) {
       return json({ error: "Pesanan, tanggal terbit, atau tanggal jatuh tempo tidak valid." }, 400);
     }
+    requestedOrderId = body.orderId;
     const dueDate = typeof body.dueDate === "string" ? body.dueDate : "";
     if (dueDate && dueDate < body.issueDate) {
       return json({ error: "Tanggal jatuh tempo tidak boleh mendahului tanggal terbit." }, 400);
@@ -105,7 +107,6 @@ export async function POST(request: Request) {
     }
 
     const issueDate = body.issueDate;
-    const period = issueDate.slice(0, 7).replace("-", "");
     const statement = buildSalesInvoiceIssueStatement(context.db, {
       owner: context.user.userId,
       actorId: context.user.accountId,
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
     if (error instanceof RequestBodyError) return json({ error: error.message }, error.status);
     const existing = await context.db.prepare(
       "SELECT id,invoice_number FROM commerce_sales_invoices WHERE owner=? AND order_id=?",
-    ).bind(context.user.userId, String((error as { orderId?: unknown })?.orderId || "")).first().catch(() => null);
+    ).bind(context.user.userId, requestedOrderId).first().catch(() => null);
     if (existing) {
       return json({ error: "Pesanan sudah memiliki faktur " + String(existing.invoice_number) + "." }, 409);
     }
