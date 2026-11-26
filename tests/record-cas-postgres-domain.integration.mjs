@@ -1113,6 +1113,7 @@ const overpayEntryId = randomUUID();
 const overpayDebitLineId = randomUUID();
 const overpayCreditLineId = randomUUID();
 await runPsql(
+  "BEGIN;" +
   "INSERT INTO public.records(id,owner,kind,data,created,updated) VALUES(" +
   [overpayCashId, owner, "kas", JSON.stringify({ name: "Synthetic overpayment", date: "2026-11-26", type: "Pemasukan", amount: 1 }), invoiceNow, invoiceNow].map(sqlLiteral).join(",") +
   ");" +
@@ -1123,7 +1124,8 @@ await runPsql(
   [overpayDebitLineId, owner, overpayEntryId, invoiceCash.id, 1, 0].map(sqlLiteral).join(",") +
   "),(" +
   [overpayCreditLineId, owner, overpayEntryId, invoiceReceivable.id, 0, 1].map(sqlLiteral).join(",") +
-  ");"
+  ");" +
+  "COMMIT;"
 );
 const overpaymentRejected = await runPsql(
   "INSERT INTO public.commerce_sales_invoice_receipts(id,owner,invoice_id,cash_record_id,ledger_entry_id,amount,received_date,actor_id,created) VALUES(" +
