@@ -107,8 +107,7 @@ CREATE TABLE audit (
   owner TEXT NOT NULL,
   action TEXT NOT NULL,
   title TEXT NOT NULL,
-  created TEXT NOT NULL,
-  record_id TEXT NOT NULL
+  created TEXT NOT NULL
 );
 CREATE TABLE operational_requests (
   id TEXT PRIMARY KEY,
@@ -167,7 +166,7 @@ function createCasStatement({ id, kind, expectedUpdated, nextData, writer }) {
   const values = [
     JSON.stringify(nextData), proposedNow, id, owner, kind, expectedUpdated,
     ...lockArgs,
-    auditId, owner, "Diperbarui", `${kind}: ${writer}`, proposedNow,
+    auditId, owner, "Diperbarui", `${kind}: ${id}`, proposedNow,
   ];
   return bindSql(productionCasTemplate.replace("${lock}", lock), values);
 }
@@ -189,7 +188,7 @@ function writerTransaction({ id, kind, expectedUpdated, writer }) {
       VALUES (${literal(randomUUID())},${literal(owner)},${literal(id)},125000)
       RETURNING id;
       INSERT INTO ledger_lines(id,entry_id,line_no,debit,credit)
-      SELECT entry_id, entry_id, line_no, debit, credit
+      SELECT gen_random_uuid()::text, entry_id, line_no, debit, credit
       FROM (
         SELECT (SELECT id FROM ledger_entries WHERE record_id=${literal(id)}) AS entry_id,
                1 AS line_no, 0::bigint AS debit, 125000::bigint AS credit
@@ -238,7 +237,7 @@ async function readState(id) {
     SET search_path TO ${schema};
     SELECT json_build_object(
       'source', (SELECT json_build_object('data',data,'updated',updated) FROM records WHERE id=${literal(id)}),
-      'audit_count', (SELECT count(*) FROM audit WHERE record_id=${literal(id)}),
+      'audit_count', (SELECT count(*) FROM audit WHERE title=${literal("kas: " + id)} OR title=${literal("aset: " + id)}),
       'projection_count', (SELECT count(*) FROM v14_record_projection WHERE record_id=${literal(id)}),
       'ledger_count', (SELECT count(*) FROM ledger_entries WHERE record_id=${literal(id)}),
       'ledger_line_count', (SELECT count(*) FROM ledger_lines WHERE entry_id IN (SELECT id FROM ledger_entries WHERE record_id=${literal(id)})),
