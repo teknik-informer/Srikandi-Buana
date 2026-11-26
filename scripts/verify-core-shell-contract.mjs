@@ -81,6 +81,13 @@ assert.ok(
 const searchApi = read("src/app/api/search/route.ts");
 const operationalSearch = read("src/lib/operational-search.ts");
 assert.ok(
+  searchDialog.includes("canAccessAppHref(identity, hit.href)") &&
+  searchDialog.includes("canAccessApp(identity, app.key)") &&
+  searchDialog.includes("/api/search?q=") &&
+  searchDialog.includes("AbortController"),
+  "The topbar search must combine debounced server results with navigation and filter destinations by identity permissions.",
+);
+assert.ok(
   searchApi.includes("getIdentity()") &&
   searchApi.includes("searchOperationalRecords") &&
   searchApi.includes("Cache-Control") &&
