@@ -27,9 +27,11 @@ test("Accounting UI holds its journal reference until a confirmed successful res
   const ui = read("src/app/_components/ecosystem-workspace.tsx");
   const accounting = ui.slice(ui.indexOf("export function AccountingWorkspace"));
   assert(accounting.includes("const journalRequestId=useRef<string|null>(null)"));
-  assert(accounting.includes("if(isJournal&&!journalRequestId.current)journalRequestId.current=crypto.randomUUID()"));
+  assert(accounting.includes("sessionStorage.getItem(journalRequestStorageKey)"));
+  assert(accounting.includes("sessionStorage.setItem(journalRequestStorageKey,journalRequestId.current)"));
   assert(accounting.includes("reference:'UI-'+journalRequestId.current"));
-  assert(accounting.includes("await api('ledger',payload);if(isJournal)journalRequestId.current=null"));
+  assert(accounting.includes("await api('ledger',payload);if(isJournal){journalRequestId.current=null"));
+  assert(accounting.includes("sessionStorage.removeItem(journalRequestStorageKey)"));
   assert(accounting.includes("Pencatatan belum dapat dipastikan"));
   assert(!accounting.includes("reference:crypto.randomUUID()"));
 });
