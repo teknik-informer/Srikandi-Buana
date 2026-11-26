@@ -221,3 +221,288 @@
    scripts/verify-theme-contrast.mjs hanya memeriksa token preset panel, bukan
    .public-site, jadi angka ini diukur terpisah dan ditulis di sini agar bisa
    diperiksa ulang, bukan diklaim. */
+
+/* ---------------------------------------------------------------------------
+   Susunan beranda mengikuti V9.2
+   V9.2 memakai kosakata sendiri (sb-shell, sb-card, font-display, text-ink)
+   yang tidak ada di produksi. Yang diadopsi di sini adalah susunan dan
+   ritmenya, bukan tokennya: tetap --pub-*, emerald tua dan stone hangat.
+
+   Tiga beda yang disengaja dari V9.2, karena halaman ini milik kelompok tani,
+   bukan panel admin:
+     · strip bawah hero memakai tiga tautan nyata yang sudah ada di produksi,
+       bukan enam kemampuan dashboard yang mengarang kemampuan;
+     · panel "satu layar" memakai foto pertanian yang sudah ada, bukan
+       ilustrasi dashboard, dan tiga catatannya benar untuk situs ini;
+     · kisi "modul unggulan" tidak dipindahkan. Isinya daftar fitur dashboard
+       yang tidak dimiliki halaman publik ini; memasukkannya berarti menjanjikan
+       yang tidak ada. Sebagai gantinya, tiga tautan informasi organisasi naik
+       dari bagian bawah ke bentuk kartu.
+--------------------------------------------------------------------------- */
+
+/* Strip empat bidang, gaya V9.2: tanpa kotak, judul kecil berhuruf kapital. */
+.pub-bidang {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.pub-bidang > article {
+  border-top: 1px solid var(--pub-line);
+  padding-top: 20px;
+}
+
+.pub-bidang h3 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 9px;
+  color: var(--pub-ink);
+}
+
+.pub-bidang p {
+  font-size: 12px;
+  line-height: 1.85;
+}
+
+.pub-bidang .pub-direction-number {
+  top: 21px;
+}
+
+/* Panel "satu layar": foto di kiri, tiga catatan berbingkai di kanan. */
+.pub-panel {
+  display: grid;
+  gap: 40px;
+  grid-template-columns: 1.25fr 1fr;
+  align-items: center;
+}
+
+.pub-panel-art {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--pub-line);
+  background: #0d3b2e;
+  aspect-ratio: 4 / 3;
+  margin: 0;
+}
+
+.pub-panel-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pub-panel-art figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 34px 22px 16px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #ecfdf5;
+  background: linear-gradient(0deg, rgb(2 44 34 / 0.82), transparent);
+}
+
+.pub-panel-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.pub-panel-notes > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--pub-line);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 15px;
+}
+
+.pub-panel-notes svg {
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: var(--pub-green);
+}
+
+.pub-panel-notes strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pub-ink);
+}
+
+.pub-panel-notes small {
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  margin-top: 3px;
+  color: var(--pub-muted);
+}
+
+/* Kisi tiga kartu informasi, menggantikan daftar bertumpuk di bagian bawah. */
+.pub-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.pub-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--pub-line);
+  border-radius: 14px;
+  background: var(--pub-paper);
+  padding: 22px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.pub-info-card:hover {
+  border-color: var(--color-emerald-500);
+  transform: translateY(-2px);
+}
+
+.pub-info-card > svg {
+  color: var(--pub-green);
+}
+
+.pub-info-card > strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pub-ink);
+}
+
+.pub-info-card > small {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--pub-muted);
+}
+
+.pub-info-card > span {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pub-green);
+}
+
+/* Latar lembut bergantian, mengikuti ritme V9.2. */
+.pub-band {
+  background: #f2f1ec;
+}
+
+/* --- mode gelap --- */
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-panel-notes > li,
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-info-card {
+  background: #0f2219;
+  border-color: #1f2f28;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-band {
+  background: #0a1712;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site :is(
+  .pub-bidang h3,
+  .pub-panel-notes strong,
+  .pub-info-card > strong
+) {
+  color: #ecfdf5;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site :is(
+  .pub-panel-notes svg,
+  .pub-info-card > svg,
+  .pub-info-card > span
+) {
+  color: #6ee7b7;
+}
+
+/* --- ponsel --- */
+@media (max-width: 900px) {
+  .pub-panel {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+  .pub-info-grid {
+    grid-template-columns: 1fr;
+  }
+  .pub-bidang {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .pub-bidang > article {
+    padding-block: 18px;
+  }
+}
+
+/* Panel angka: tiga hitungan nyata dari data kelompok, menggantikan foto yang
+   akan mengulang gambar hero (produksi hanya punya satu foto kebun). */
+.pub-panel-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pub-panel-stats > div {
+  border: 1px solid var(--pub-line);
+  border-radius: 16px;
+  background: var(--pub-paper);
+  padding: 22px 18px;
+}
+
+.pub-panel-stats strong {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 46px;
+  line-height: 1;
+  color: var(--pub-green);
+}
+
+.pub-panel-stats > div > span {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pub-ink);
+}
+
+.pub-panel-stats small {
+  display: block;
+  margin-top: 9px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--pub-muted);
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-panel-stats > div {
+  background: #0f2219;
+  border-color: #1f2f28;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-panel-stats strong {
+  color: #6ee7b7;
+}
+
+.dark:root[data-theme-preset="srikandi"] .public-site .pub-panel-stats > div > span {
+  color: #ecfdf5;
+}
+
+@media (max-width: 900px) {
+  .pub-panel-stats {
+    grid-template-columns: 1fr;
+  }
+  .pub-panel-stats strong {
+    font-size: 38px;
+  }
+}
