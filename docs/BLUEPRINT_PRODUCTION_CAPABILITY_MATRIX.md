@@ -458,3 +458,14 @@ Tidak ada perubahan schema, migration, database, data, auth/session, RBAC, envir
 8. Exact-head CI, Preview and browser UAT remain mandatory; no claim of Production readiness from source tests alone.
 
 **Overall status:** Business/Inventory and General Ledger are `partial`; Member Finance/Savings/Loans are `catalog-only` on evidence reviewed. Production runtime, live migration state, database concurrency and browser UAT are not verified. No Production, database, migration, data, auth/session, RBAC, environment, domain or billing changes were made by this audit.
+
+
+### 12.10 Asset inventory and custody — distinction between legacy operational assets and v14 schema
+
+**Legacy operational evidence:** `records.kind='aset'` is used by `src/app/api/operations/route.ts` and enterprise repository. The operations workflow validates asset condition/status/quantity, reserves approved/in-progress loans in aggregate, prevents competing approvals when available quantity is insufficient, and requires return action with condition. The operational request has version and event history; source asset row is locked/touched during fulfillment/return.
+
+**Normalized v14 evidence:** migration `011_member_asset_movement_history.sql` adds a unique legacy asset mapping and `workspace_v14.member_asset_movement_events` for issued/returned/maintenance/damaged/lost/status_changed events. The event table is workspace-scoped and append-only. The migration explicitly excludes personal/member-owned property from group inventory.
+
+**Status:** legacy asset loan/operations `partial`; normalized v14 custody history `catalog-only` on this audit. The migration alone does not prove that records are migrated, that the migration is applied in Production, or that event-writing API/UI exists. No handler writing `workspace_v14.member_asset_movement_events` was identified in the reviewed API inventory.
+
+**P1:** test parallel asset reservations and return vs another reservation using real PostgreSQL; ensure asset quantity/state and operational event commit together; provide movement source/event APIs and audit screens before claiming normalized custody is live; preserve distinction between group-owned inventory and member-owned assets.
