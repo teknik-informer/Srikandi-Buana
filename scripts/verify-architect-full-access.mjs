@@ -68,7 +68,7 @@ assert.doesNotMatch(operationsApi, /user\.role===\x27admin\x27\)return json\(\{e
 assert.match(operationsApi, /!\[\x27admin\x27,\x27ketua\x27\]\.includes\(user\.role\)/);
 assert.match(agricultureApi, /user\.role === "admin" \|\| \["ketua", "sekretaris", "bendahara"\]/);
 assert.match(agricultureApi, /user\.role !== "sekretaris" && user\.role !== "admin"/);
-assert.match(attendanceApi, /user\.role!=='sekretaris'&&user\.role!=='admin'/);
+assert.match(attendanceApi, /user\.role\s*!==\s*"sekretaris"\s*&&\s*user\.role\s*!==\s*"admin"/);
 assert.match(ledgerApi, /canRead=\(role:string\)=>\['admin','ketua','sekretaris','bendahara'\]/);
 assert.match(ledgerApi, /canWrite=\(role:string\)=>role==='admin'\|\|role==='bendahara'/);
 assert.match(ordersApi, /canReadAll=\['admin','ketua','bendahara'\]/);
