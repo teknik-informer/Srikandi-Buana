@@ -96,11 +96,11 @@ function find(node, predicate) {
     const match = find(child, predicate); if (match) return match;
   }
 }
-let confirm = false, attendanceRequest = deferred(), attendanceCalls = 0, saved = 0;
+let confirm = false, attendanceRequest = deferred(), attendanceCalls = 0, attendanceRequestBody = null, saved = 0;
 const form = { dataset: {} };
 const attendance = await harness("src/app/_components/attendance.tsx", {
   document: { querySelector: () => form.dataset.unsaved ? form : null }, window: { confirm: () => confirm },
-  fetch: () => { attendanceCalls++; return attendanceRequest.promise; },
+  fetch: (_url, options) => { attendanceCalls++; attendanceRequestBody = JSON.parse(options?.body || "{}"); return attendanceRequest.promise; },
 });
 const row = (id, kind, values) => ({ id, kind, data: values, created: "2026-11-03", updated: "2026-11-03" });
 let rows = [row("a", "kegiatan", { name: "Kegiatan A" }), row("b", "kegiatan", { name: "Kegiatan B" }),
@@ -111,13 +111,14 @@ find(tree, (n) => n.props?.id === "attendance-event").props.onChange({ target: {
 tree = render(); find(tree, (n) => n.type === "form").props.ref.current = form; attendance.effects(); tree = render();
 find(tree, (n) => n.props?.id === "attendance-notes").props.onChange({ target: { value: "unsaved draft" } });
 assert.equal(form.dataset.unsaved, "true");
-rows = rows.map((r) => r.id === "at" ? { ...r, data: { ...r.data, notes: "server update" } } : r);
+rows = rows.map((r) => r.id === "at" ? { ...r, data: { ...r.data, notes: "server update" }, updated: "2026-11-04T00:00:00.000Z" } : r.id === "a" ? { ...r, updated: "2026-11-04T00:00:00.000Z" } : r);
 tree = render(); attendance.effects(); tree = render();
 assert.equal(find(tree, (n) => n.props?.id === "attendance-notes").props.value, "unsaved draft");
 find(tree, (n) => n.props?.id === "attendance-event").props.onChange({ target: { value: "b" } });
 tree = render(); assert.equal(find(tree, (n) => n.props?.id === "attendance-event").props.value, "a");
 let submit = find(tree, (n) => n.type === "form").props.onSubmit;
 const saving = submit({ preventDefault() {} }); await submit({ preventDefault() {} }); assert.equal(attendanceCalls, 1);
+assert.deepEqual(attendanceRequestBody, { eventId: "a", eventUpdated: "2026-11-03", expectedUpdated: "2026-11-03", memberIds: [], notes: "unsaved draft" }, "Attendance saves must submit the versions captured when the current form was loaded, not a background refresh version");
 tree = render(); assert.equal(find(tree, (n) => n.props?.id === "attendance-event").props.disabled, true);
 attendanceRequest.resolve(response(503, { error: "Coba lagi nanti." })); await saving;
 assert.equal(form.dataset.unsaved, "true"); tree = render();
