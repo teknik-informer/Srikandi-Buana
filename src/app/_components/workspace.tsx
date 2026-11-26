@@ -213,6 +213,8 @@ export default function Workspace({
   const [showMembershipAccess, setShowMembershipAccess] = useState(false);
   const [ledgerAccounts, setLedgerAccounts] = useState<Array<{id:string;code:string;name:string;category:string;active:boolean}>>([]);
   const [ledgerAccountsError, setLedgerAccountsError] = useState("");
+  const [salesInvoices, setSalesInvoices] = useState<Array<{id:string;invoice_number:string;customer_name:string;outstanding:number;status:string}>>([]);
+  const [salesInvoicesError, setSalesInvoicesError] = useState("");
   const imageUploadPending = useRef(false);
   const [imageUploading, setImageUploading] = useState(false);
   function imageBusy(value: boolean) { imageUploadPending.current = value; setImageUploading(value); }
@@ -265,6 +267,36 @@ export default function Workspace({
       }
     };
     void loadAccounts();
+    return () => { active = false; };
+  }, [section, principal.role]);
+
+  useEffect(() => {
+    if (section !== "kas" || !["admin", "ketua", "sekretaris", "bendahara"].includes(principal.role)) {
+      setSalesInvoices([]);
+      setSalesInvoicesError("");
+      return;
+    }
+    let active = true;
+    const loadInvoices = async () => {
+      try {
+        const response = await fetch("/api/ecosystem/invoices", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Daftar faktur belum dapat dimuat.");
+        if (active) {
+          setSalesInvoices(Array.isArray(body.items) ? body.items : []);
+          setSalesInvoicesError("");
+        }
+      } catch (cause) {
+        if (active) {
+          setSalesInvoices([]);
+          setSalesInvoicesError(cause instanceof Error ? cause.message : "Daftar faktur belum dapat dimuat.");
+        }
+      }
+    };
+    void loadInvoices();
     return () => { active = false; };
   }, [section, principal.role]);
 
@@ -1225,6 +1257,20 @@ export default function Workspace({
                             </NativeSelectOption>
                           ))}
                         </NativeSelect>
+                      ) : f.type === "sales-invoice" ? (
+                        <NativeSelect
+                          id={f.key}
+                          name={f.key}
+                          defaultValue={String(editor.row?.data[f.key] ?? editor.initial?.[f.key] ?? "")}
+                          disabled={!salesInvoices.length || (principal.role !== "bendahara" && principal.role !== "admin")}
+                        >
+                          <NativeSelectOption value="">Tidak terkait faktur</NativeSelectOption>
+                          {salesInvoices.map((invoice) => (
+                            <NativeSelectOption key={invoice.id} value={invoice.id}>
+                              {invoice.invoice_number} · {invoice.customer_name} · Sisa Rp {Number(invoice.outstanding).toLocaleString("id-ID")} ({({issued:"Belum dibayar",partially_paid:"Sebagian",paid:"Lunas"} as Record<string,string>)[invoice.status] || invoice.status})
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
                       ) : f.options ? (
                         <NativeSelect
                           id={f.key}
@@ -1302,6 +1348,7 @@ export default function Workspace({
                         />
                       )}
                       {f.type === "ledger-account" && ledgerAccountsError && <p role="alert" className="text-xs text-destructive">{ledgerAccountsError}</p>}
+                      {f.type === "sales-invoice" && salesInvoicesError && <p role="alert" className="text-xs text-destructive">{salesInvoicesError}</p>}
                       {f.helpText && <p className="text-xs leading-5 text-muted-foreground">{f.helpText}</p>}
                     </Field>
                   ))}
