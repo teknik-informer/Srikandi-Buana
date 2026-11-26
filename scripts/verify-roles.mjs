@@ -106,6 +106,8 @@ const transform=await build({entryPoints:['src/lib/sql-compat.ts'],bundle:true,w
 // pg-mem cannot execute data-modifying CTEs. Only this SQL primitive is emulated;
 // the unmodified activation/reset SQL is separately exercised on the isolated Neon branch.
 let raceNextCas=null;
+let concurrentCasGate=null;
+let dbBatchTail=Promise.resolve();
 async function execute(text,args){
  if(text.trimStart().startsWith('WITH changed AS (')){
   const [jsonData,proposedNow,id,ownerId,kind,expectedUpdated]=args;
@@ -152,12 +154,23 @@ async function execute(text,args){
  }try{return await pool.query(translate(text),args)}catch(error){console.error('PG_MEM_QUERY_FAILURE',text,args,error);throw error;}}
 function prepare(text,args=[]){return {text,args,bind(...values){return prepare(text,values)},async first(){return (await execute(text,args)).rows[0]||null},async all(){return {results:(await execute(text,args)).rows}},async run(){return {meta:{changes:(await execute(text,args)).rowCount}}}}}
 const DB={prepare,async batch(statements){
- if(raceNextCas&&statements[0]?.text.trimStart().startsWith('WITH changed AS (')){
-  const race=raceNextCas;raceNextCas=null;
-  await pool.query('UPDATE records SET data=$1,updated=$2 WHERE id=$3 AND owner=$4',[JSON.stringify(race.data),race.updated,race.id,race.owner]);
-  await pool.query('INSERT INTO audit(id,owner,action,title,created) VALUES($1,$2,$3,$4,$5)',[randomUUID(),race.owner,'Pembaruan bersamaan',race.title||'Penulis lain memenangkan CAS',race.updated]);
+ const isCas=statements[0]?.text.trimStart().startsWith('WITH changed AS (');
+ if(isCas&&concurrentCasGate){
+  const gate=concurrentCasGate;gate.arrivals++;
+  if(gate.arrivals===2){concurrentCasGate=null;gate.release();}
+  await gate.promise;
  }
- const backup=mem.backup();try{const results=[];for(const s of statements)results.push(await execute(s.text,s.args));return results}catch(e){backup.restore();throw e}
+ const previous=dbBatchTail;let releaseBatch;
+ dbBatchTail=new Promise(resolve=>{releaseBatch=resolve;});
+ await previous;
+ try{
+  if(raceNextCas&&isCas){
+   const race=raceNextCas;raceNextCas=null;
+   await pool.query('UPDATE records SET data=$1,updated=$2 WHERE id=$3 AND owner=$4',[JSON.stringify(race.data),race.updated,race.id,race.owner]);
+   await pool.query('INSERT INTO audit(id,owner,action,title,created) VALUES($1,$2,$3,$4,$5)',[randomUUID(),race.owner,'Pembaruan bersamaan',race.title||'Penulis lain memenangkan CAS',race.updated]);
+  }
+  const backup=mem.backup();try{const results=[];for(const s of statements)results.push(await execute(s.text,s.args));return results}catch(e){backup.restore();throw e}
+ }finally{releaseBatch();}
 }};
 const storage=new Map(),BUCKET={async put(k,bytes){storage.set(k,bytes)},async get(k){if(storage.has(k))return {body:new Uint8Array(storage.get(k))};const row=(await pool.query('SELECT content FROM file_objects WHERE key=$1',[k])).rows[0];return row?{body:new Uint8Array(row.content)}:null},async delete(k){storage.delete(k)}};
 const cache=new Map(),sentEmails=[];const testEmail='roles-owner-'+randomUUID()+'@example.test';
@@ -195,6 +208,26 @@ assert.equal(String(cashAfterRace.updated),winningTimestamp,'The losing transact
 assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_entries WHERE owner=?').bind(owner).first()).count),ledgerCountBefore,'A losing cash update creates no ledger journal');
 assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines WHERE owner=?').bind(owner).first()).count),ledgerLineCountBefore,'A losing cash update creates no ledger lines');
 assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count),auditCountBeforeRace+1,'Only the competing winner audit remains; the losing update audit is rolled back');
+const concurrentCashId=randomUUID();
+await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(concurrentCashId,owner,'kas',JSON.stringify(cashData),now,now).run();
+const concurrentAuditBefore=Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count);
+const concurrentLedgerBefore=Number((await prepare('SELECT COUNT(*) AS count FROM ledger_entries WHERE owner=?').bind(owner).first()).count);
+const concurrentLinesBefore=Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines WHERE owner=?').bind(owner).first()).count);
+let releaseConcurrentGate;
+concurrentCasGate={arrivals:0,promise:new Promise(resolve=>{releaseConcurrentGate=resolve;}),release:()=>releaseConcurrentGate()};
+const concurrentResponses=await Promise.all([
+ recordsAdmin.PUT(req('/api/records','PUT',{id:concurrentCashId,kind:'kas',expectedUpdated:now,data:{...cashData,notes:'Concurrent writer A'}})),
+ recordsAdmin.PUT(req('/api/records','PUT',{id:concurrentCashId,kind:'kas',expectedUpdated:now,data:{...cashData,notes:'Concurrent writer B'}})),
+]);
+const concurrentStatuses=concurrentResponses.map(response=>response.status).sort((a,b)=>a-b);
+assert.deepEqual(concurrentStatuses,[200,409],'Two concurrent handler requests using the same initial version produce exactly one 200 and one 409');
+const concurrentWinner=await prepare('SELECT data,updated FROM records WHERE id=? AND owner=?').bind(concurrentCashId,owner).first();
+assert(['Concurrent writer A','Concurrent writer B'].includes(JSON.parse(String(concurrentWinner.data)).notes),'The committed source is exactly one concurrent winner');
+assert.notEqual(String(concurrentWinner.updated),now,'The winning request advances the source version');
+assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM audit WHERE owner=?').bind(owner).first()).count),concurrentAuditBefore+1,'Exactly one audit snapshot is committed for the two concurrent requests');
+assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_entries WHERE owner=?').bind(owner).first()).count),concurrentLedgerBefore+1,'Exactly one ledger journal is created for the concurrent cash updates');
+assert.equal(Number((await prepare('SELECT COUNT(*) AS count FROM ledger_lines WHERE owner=?').bind(owner).first()).count),concurrentLinesBefore+2,'Only the winning cash update contributes its balanced two-line journal');
+
 
 async function member(name,status='Aktif',verification='Terverifikasi'){const id=randomUUID(),email='member-'+id+'@example.test';await prepare('INSERT INTO records(id,owner,kind,data,created,updated) VALUES(?,?,?,?,?,?)').bind(id,owner,'anggota',JSON.stringify({name,dusun:'Synthetic address',status,verification,email,phone:'081234567890',notes:'PRIVATE-CANARY',potential:'PRIVATE-POTENTIAL',role:'Anggota'}),now,now).run();return id}
 async function invite(memberId,role='anggota',extra={}){const source=await prepare('SELECT data FROM records WHERE id=? AND owner=?').bind(memberId,owner).first();const email=String(JSON.parse(String(source.data)).email||'');const r=await accountManager.POST(req('/api/accounts','POST',{action:'activate_member',memberId,role,position:role,programIds:role==='koordinator'?['1','5','8']:[],...extra}));const data=await r.json();const sent=sentEmails.pop();if(r.status===200){assert.equal(data.sent,true,'Member activation must be sent by the mailer');assert.equal(data.url,undefined,'API must not expose the private activation URL');assert.equal(sent?.to,email,'Mailer must send to the member email recorded once in the membership workspace');}return {response:r,data:{...data,url:sent?.url},email}}
