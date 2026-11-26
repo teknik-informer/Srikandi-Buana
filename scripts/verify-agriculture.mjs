@@ -192,7 +192,7 @@ assert(access.includes('if (id === "pertanian") return ["admin", "ketua", "sekre
 assert(access.includes('user.role === "sekretaris") return secretariatWrite.includes(kind)'));
 assert(api.includes("Master komoditas merupakan register referensi yang dikelola Sekretariat."));
 assert(api.includes("Verifikasi data pertanian hanya dapat dilakukan Sekretariat; Koordinator hanya mencatat data teknis."));
-assert(api.includes('action === "update_parcel"') && api.includes("verification_status='pending'"), "Secretariat edits must return land records to Secretariat re-verification");
+assert(api.includes('canManageLand && action === "update_parcel"') && agricultureMutations.includes("verification_status=\'pending\'"), "Administrator and Secretariat land edits must return the register to pending verification");
 assert(api.includes('const expectedUpdated = typeof raw.expectedUpdated === "string"') && api.includes("}, 428)"), "Every agriculture PATCH must reject missing record versions with HTTP 428");
 assert(api.includes("await updateFarmParcel(db") && api.includes("await archiveFarmParcel(db") && api.includes("await setAgricultureVerification(db"), "All agriculture parcel lifecycle mutations must use the version-guarded helpers");
 assert(agricultureMutations.includes("target.updated_at=?") && (agricultureMutations.match(/FROM changed RETURNING target_id/g) || []).length === 3, "Parcel edit, archive and verification must atomically write their audit only from a successful version-guarded update");
