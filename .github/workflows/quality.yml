@@ -57,6 +57,8 @@ jobs:
         run: npm run test:agriculture
       - name: Integration security tests
         run: npm run test:integration:staging
+      - name: Sales invoice workflow regression tests
+        run: node scripts/verify-sales-invoices.mjs
       - name: TypeScript typecheck
         run: npm run typecheck
       - name: Project regression tests
