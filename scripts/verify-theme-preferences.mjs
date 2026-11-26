@@ -120,6 +120,7 @@ test("preset picker is an explicit accessible radio menu, not a right-click gest
   assert.match(controlSource, /DropdownMenuRadioGroup/);
   assert.match(controlSource, /DropdownMenuRadioItem/);
   assert.match(controlSource, /media.addEventListener\("change", apply\)/);
+  assert.match(controlSource, /if \(mode !== "system" \|\| typeof window\.matchMedia !== "function"\) return;/);
   assert.ok(controlSource.includes("Pilih gaya tampilan. Saat ini"));
   assert.doesNotMatch(controlSource, /onContextMenu/);
   assert.match(controlSource, /writeCookie\("theme_preset", nextPreset\)/);
