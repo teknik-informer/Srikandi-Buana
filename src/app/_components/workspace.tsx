@@ -93,6 +93,7 @@ import Inbox from "./inbox";
 import EnterpriseReports from "./enterprise-reports";
 import EnterpriseMonitoring from "./enterprise-monitoring";
 import SiteSettingsEditor from "./site-settings-editor";
+import PublicPoliciesEditor from "./public-policies-editor";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
@@ -1036,13 +1037,16 @@ export default function Workspace({
         )}
         {section === "pesan" && <Inbox />}
         {section === "pengaturan" && (
-          <SiteSettingsEditor
-            files={files}
-            onSaved={() => {
-              load();
-              router.refresh();
-            }}
-          />
+          <div className="space-y-6">
+            <SiteSettingsEditor
+              files={files}
+              onSaved={() => {
+                load();
+                router.refresh();
+              }}
+            />
+            {principal.role === "admin" && <PublicPoliciesEditor />}
+          </div>
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
         {section === "laporan" && !loading && !error && (
