@@ -3,13 +3,14 @@ import {PageSchema} from "./structured-data";
 import Link from "next/link";
 import {PageIntro} from "./shared";
 import {ArticleActions} from "./utilities";
-import {getPublicPolicyDocument} from "@/lib/policy-documents";
+import {getPublicPolicyDocument,getPublicPolicyDocuments} from "@/lib/policy-documents";
 import {getSiteSettings} from "@/lib/site-settings";
 import {contactLink} from "@/lib/contact-topics";
 
 export default async function InformationPage({slug}:{slug:string}) {
-  const [page, site] = await Promise.all([getPublicPolicyDocument(slug), getSiteSettings()]);
+  const [page, site, visibleDocuments] = await Promise.all([getPublicPolicyDocument(slug), getSiteSettings(), getPublicPolicyDocuments()]);
   if (!page) notFound();
+  const visibleSlugs = new Set(visibleDocuments.map((document) => document.slug));
   const updated = new Date(page.updatedAt + "T00:00:00.000Z").toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   const effective = new Date(page.effectiveDate + "T00:00:00.000Z").toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   return <>
@@ -46,8 +47,8 @@ export default async function InformationPage({slug}:{slug:string}) {
           <Link className="pub-button" href={contactLink(page.topic)}>Sampaikan {page.topic.toLowerCase()}</Link>
           <div className="policy-related">
             <Link href="/kebijakan">Pusat kebijakan</Link>
-            <Link href="/privasi">Kebijakan privasi</Link>
-            <Link href="/pengaduan">Pengaduan</Link>
+            {visibleSlugs.has("privasi") && <Link href="/privasi">Kebijakan privasi</Link>}
+            {visibleSlugs.has("pengaduan") && <Link href="/pengaduan">Pengaduan</Link>}
           </div>
         </section>
       </article>
