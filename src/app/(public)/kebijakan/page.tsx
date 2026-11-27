@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PageIntro } from "../../_components/public/shared";
 import { getPublicPolicySettings } from "@/lib/public-policy-store";
 import { publicPolicyHref } from "@/lib/public-policies";
-export const metadata = pageMetadata("/kebijakan");
+export async function generateMetadata() { const settings = await getPublicPolicySettings(); return pageMetadata("/kebijakan", "Pusat Kebijakan & Layanan", "Privasi, syarat dan ketentuan, cookie, publikasi, pengaduan, hak data, dan bantuan penggunaan situs Srikandi Buana.", { noindex: !settings.enabled || !settings.documents.some(document => document.status === "published") }); }
 
 export default async function Page() {
   const settings = await getPublicPolicySettings();
