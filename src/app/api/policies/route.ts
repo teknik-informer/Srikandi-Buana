@@ -25,8 +25,7 @@ export async function PUT(request: Request) {
   const access = await authorize();
   if (access.response || !access.user) return access.response;
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) return json({ error: "Permintaan ditolak." }, 403);
-  if (request.headers.get("sec-fetch-site") === "cross-site") return json({ error: "Permintaan lintas situs ditolak." }, 403);
+  if (origin !== new URL(request.url).origin && request.headers.get("sec-fetch-site") !== "same-origin") return json({ error: "Permintaan lintas situs ditolak." }, 403);
   try {
     const body = await readJsonObject(request, 260000);
     const documents = validatePolicyDocuments(body.documents);
