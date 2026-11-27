@@ -40,6 +40,7 @@ assert.throws(() => validatePublicPolicySettings({ ...defaultPublicPolicySetting
 assert.throws(() => validatePublicPolicySettings({ ...defaultPublicPolicySettings, documents: [{ ...legal, slug: 'api' }] }), /telah digunakan/);
 assert.throws(() => validatePublicPolicySettings({ ...defaultPublicPolicySettings, documents: [{ ...legal, sections: [{ id: 'x', title: 'X', paragraphs: ['Isi'] }] }] }), /ID/);
 
+for (const slug of Object.keys(informationPages)) { const route = readFileSync('src/app/(public)/' + slug + '/page.tsx', 'utf8'); assert(route.includes('generateMetadata') && route.includes('getPublishedPolicy'), 'Metadata follows publish state: ' + slug); }
 const footer = readFileSync('src/app/(public)/layout.tsx', 'utf8');
 assert(footer.includes('policySettings.enabled'));
 assert(footer.includes('document.status==="published"'));
