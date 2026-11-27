@@ -18,7 +18,11 @@ for (const slug of [
 ]) {
   assert.ok(model.includes('"'+slug+'"'), "Default policy missing: "+slug);
 }
-assert.ok(model.includes('status: "draft"'), "Legal identity must remain draft until registration details are verified.");
+assert.ok(
+  model.includes('document("legalitas-identitas", "legalitas-identitas", "Legalitas & Identitas Situs"') &&
+  model.includes('"draft", ['),
+  "Legal identity must remain draft until registration details are verified.",
+);
 assert.ok(action.includes('requireRoles(["platform_admin", "organization_admin"])'), "Only authorized administrators may edit public policies.");
 assert.ok(action.includes("'public_policies.settings.updated'") && action.includes("before_state") && action.includes("after_state"), "Policy updates must be audited with before/after state.");
 assert.ok(editor.includes('name="policies_json"') && editor.includes("Simpan dokumen kebijakan"), "Studio policy CRUD must submit persistent settings.");
