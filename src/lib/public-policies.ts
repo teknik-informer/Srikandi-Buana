@@ -156,6 +156,6 @@ export async function getPublicPolicySettings(): Promise<PublicPolicySettings> {
   } catch (reason) {
     const errorName = reason instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(reason.name) ? reason.name : "UnknownError";
     console.warn("[public-policies] Defaults used", errorName);
-    return DEFAULT_PUBLIC_POLICY_SETTINGS;
+    return { ...DEFAULT_PUBLIC_POLICY_SETTINGS, enabled: false };
   }
 }
