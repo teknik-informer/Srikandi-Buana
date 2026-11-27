@@ -142,6 +142,12 @@ function defaultDocuments(): PolicyDocument[] {
 
 const fallbackDocuments = defaultDocuments();
 
+const reservedPublicRoutes = new Set([
+  "produk","profil","visi-misi","program","kegiatan","kabar","galeri","kemitraan","dokumen",
+  "kontak","faq","kebijakan","peta-situs","pasang","cari","masuk","dashboard","keluar",
+  "aktivasi","aktivasi-admin","portal-eksternal","offline"
+]);
+
 function cleanText(value: unknown, max: number, label: string, required = true): string {
   if (typeof value !== "string") throw new Error(label + " harus berupa teks.");
   const result = value.trim();
@@ -158,6 +164,7 @@ export function validatePolicyDocuments(raw: unknown): PolicyDocument[] {
     const doc = entry as Record<string, unknown>;
     const slug = cleanText(doc.slug, 80, "Slug dokumen");
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error("Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung.");
+    if (reservedPublicRoutes.has(slug) && !corePolicySlugs.has(slug)) throw new Error("Slug bertabrakan dengan rute situs yang sudah digunakan.");
     if (slugs.has(slug)) throw new Error("Slug dokumen tidak boleh duplikat.");
     slugs.add(slug);
     const status = doc.status;
