@@ -66,7 +66,13 @@ export default function PolicyDocumentsEditor() {
   }
 
   function updateDraft(update: Partial<PolicyDocument>) {
-    setDraft((current) => current ? { ...current, ...update } : current);
+    setDraft((current) => {
+      if (!current) return current;
+      const existing = documents.some((doc) => doc.slug === current.slug);
+      const next = { ...current, ...update };
+      if (!existing && typeof update.title === "string" && update.title.trim()) next.slug = slugify(update.title);
+      return next;
+    });
   }
 
   function updateSection(index: number, update: Partial<PolicySection>) {
@@ -113,7 +119,8 @@ export default function PolicyDocumentsEditor() {
     if (!draft) return;
     const title = draft.title.trim();
     const slug = slugify(draft.slug || title);
-    if (!slug) { setError("Judul dokumen wajib diisi."); return; }
+    if (!title) { setError("Judul dokumen wajib diisi."); return; }
+    if (!slug) { setError("Alamat halaman dokumen wajib diisi."); return; }
     const next: PolicyDocument = {
       ...draft,
       slug,
