@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Blocks, Building2, Database, GitBranch, Palette, Workflow } from "lucide-react";
 import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
+import { requireRoles } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Studio Pengelola" };
 
@@ -71,7 +72,8 @@ const BUILDERS = [
   },
 ];
 
-export default function StudioHome() {
+export default async function StudioHome() {
+  await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <div className="pb-10">
       <PageHeader

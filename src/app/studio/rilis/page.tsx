@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { ArrowUpRight, GitBranch, ShieldCheck } from "lucide-react";
 import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
 
+import { requireRoles } from "@/lib/session";
+
 export const metadata: Metadata = { title: "Rilis & Riwayat" };
 
 const releaseSystems = [
@@ -20,7 +22,8 @@ const releaseSystems = [
   },
 ];
 
-export default function RilisStudio() {
+export default async function RilisStudio() {
+  await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <div className="pb-10">
       <PageHeader

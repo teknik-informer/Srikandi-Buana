@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Palette, Type, Ruler } from "lucide-react";
 import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
 
+import { requireRoles } from "@/lib/session";
+
 export const metadata: Metadata = { title: "Design & Theme Manager" };
 
 const CURRENT_TOKENS = [
@@ -14,7 +16,8 @@ const CURRENT_TOKENS = [
   { name: "Muted", value: "#5c6a7d", purpose: "Teks sekunder" },
 ];
 
-export default function TemaStudio() {
+export default async function TemaStudio() {
+  await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <div className="pb-10">
       <PageHeader

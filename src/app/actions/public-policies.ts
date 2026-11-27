@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireRoles } from "@/lib/session";
+import { requireIdentity } from "@/lib/session";
 import { normalizePublicPolicySettings, type PublicPolicySettings } from "@/lib/public-policies";
 
 export interface SavePublicPoliciesState { ok: boolean; message: string; }
@@ -52,7 +52,7 @@ export async function savePublicPolicies(
   _previous: SavePublicPoliciesState,
   formData: FormData,
 ): Promise<SavePublicPoliciesState> {
-  const identity = await requireRoles(["platform_admin", "organization_admin"]);
+  const identity = await requireIdentity("cms:publish");
   const raw = String(formData.get("policies_json") ?? "");
   if (!raw || raw.length > 360000) return { ok: false, message: "Data kebijakan tidak valid atau terlalu besar." };
 

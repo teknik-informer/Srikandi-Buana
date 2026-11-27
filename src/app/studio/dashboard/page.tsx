@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { ArrowRight, ChartNoAxesCombined, LayoutDashboard } from "lucide-react";
 import { Card, CardHeader, Notice, PageHeader } from "@/components/ui";
 
+import { requireRoles } from "@/lib/session";
+
 export const metadata: Metadata = { title: "Dashboard Builder" };
 
 const dashboards = [
@@ -15,7 +17,8 @@ const dashboards = [
   { name: "Dashboard Usaha", audience: "Bidang Usaha", href: "/app/bidang/usaha", description: "Produk, persediaan, pesanan dan kemitraan." },
 ];
 
-export default function DashboardStudio() {
+export default async function DashboardStudio() {
+  await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <div className="pb-10">
       <PageHeader

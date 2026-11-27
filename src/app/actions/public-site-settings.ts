@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireRoles } from "@/lib/session";
+import { requireIdentity } from "@/lib/session";
 import { normalizePublicSiteSettings, type PublicSiteSettings, type SiteMenuGroup, type SiteFooterGroup } from "@/lib/site-settings-schema";
 
 export interface SaveSiteSettingsState { ok: boolean; message: string; }
@@ -93,7 +93,7 @@ export async function savePublicSiteSettings(
   _previous: SaveSiteSettingsState,
   formData: FormData,
 ): Promise<SaveSiteSettingsState> {
-  const identity = await requireRoles(["platform_admin", "organization_admin"]);
+  const identity = await requireIdentity("cms:publish");
   const raw = String(formData.get("settings_json") ?? "");
   if (!raw || raw.length > 120_000) return { ok: false, message: "Data pengaturan tidak valid atau terlalu besar." };
 
