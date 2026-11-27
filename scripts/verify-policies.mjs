@@ -43,8 +43,8 @@ assert.throws(() => validatePublicPolicySettings({ ...defaultPublicPolicySetting
 for (const slug of Object.keys(informationPages)) { const route = readFileSync('src/app/(public)/' + slug + '/page.tsx', 'utf8'); assert(route.includes('generateMetadata') && route.includes('getPublishedPolicy'), 'Metadata follows publish state: ' + slug); }
 const footer = readFileSync('src/app/(public)/layout.tsx', 'utf8');
 assert(footer.includes('policySettings.enabled'));
-assert(footer.includes('document.status==="published"'));
-assert(footer.includes('publicPolicyHref(document.slug)'));
+assert(footer.includes('href="/kebijakan">Pusat kebijakan & bantuan</Link>'));
+assert(!footer.includes('document.status==="published"'), 'Detailed policy links stay in the hub to keep footer compact');
 const studio = readFileSync('src/app/_components/workspace.tsx', 'utf8');
 assert(studio.includes('PublicPoliciesEditor'));
 const api = readFileSync('src/app/api/policies/route.ts', 'utf8');
