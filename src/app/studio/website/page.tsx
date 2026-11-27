@@ -3,12 +3,14 @@ import Link from "next/link";
 import { ArrowUpRight, ToggleLeft, Menu, PanelsTopLeft } from "lucide-react";
 import { Badge, Card, CardHeader, PageHeader, StatCard } from "@/components/ui";
 import { PublicSiteSettingsEditor } from "@/components/studio/public-site-settings-editor";
+import { PublicPoliciesEditor } from "@/components/studio/public-policies-editor";
+import { getPublicPolicySettings } from "@/lib/public-policies";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
 
 export const metadata: Metadata = { title: "Website Studio" };
 
 export default async function WebsiteStudio() {
-  const settings = await getPublicSiteSettings();
+  const [settings, policySettings] = await Promise.all([getPublicSiteSettings(), getPublicPolicySettings()]);
   const activeFeatures = Object.values(settings.features).filter(Boolean).length;
   const menuCount = settings.navigation.groups.filter((group) => group.enabled).length;
   const footerCount = settings.footer.groups.filter((group) => group.enabled).length;
@@ -30,6 +32,12 @@ export default async function WebsiteStudio() {
         <CardHeader title="Konfigurasi website" subtitle="Perubahan tersimpan bersama untuk organisasi dan dicatat pada jejak audit." action={<Badge tone="success">Database organisasi</Badge>} />
         <div className="p-3 sm:p-4">
           <PublicSiteSettingsEditor initialSettings={settings} />
+        </div>
+      </Card>
+      <Card className="mt-4">
+        <CardHeader title="Dokumen & kebijakan utama" subtitle="Kelola legalitas situs, syarat penggunaan, privasi, cookie, keamanan, hak data, publikasi, pengaduan, dan pernyataan layanan." action={<Badge tone="success">Dikelola di Studio</Badge>} />
+        <div className="p-3 sm:p-4">
+          <PublicPoliciesEditor initialSettings={policySettings} />
         </div>
       </Card>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
