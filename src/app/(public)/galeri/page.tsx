@@ -17,7 +17,7 @@ export default async function GaleriPage() {
       <PageHeader
         eyebrow="Galeri"
         title="Potret dari lapangan"
-        description="Foto dan video hanya akan ditampilkan setelah izin publikasi, keterangan media, dan batas penggunaan tercatat."
+        description={siteSettings.profileContent.galleryIntro || "Foto dan video hanya akan ditampilkan setelah izin publikasi, keterangan media, dan batas penggunaan tercatat."}
       />
       <Card className="mt-6 px-5 py-10">
         <EmptyState

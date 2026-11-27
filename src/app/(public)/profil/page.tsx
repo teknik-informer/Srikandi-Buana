@@ -4,6 +4,7 @@ import { Badge, Card, CardHeader, EmptyState, Notice, PageHeader } from "@/compo
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { loadPublicData } from "@/lib/public-data";
 import { PublicDataUnavailable } from "@/components/public-data-unavailable";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -27,6 +28,9 @@ interface PublicField {
 }
 
 export default async function ProfilPage() {
+  const siteSettings = await getPublicSiteSettings();
+  const profileContent = siteSettings.profileContent;
+  const safeMapUrl = /^https:\/\//i.test(profileContent.mapUrl) ? profileContent.mapUrl : "";
   const loaded = await loadPublicData(
     "public-organization-profile",
     async () => {
@@ -69,7 +73,7 @@ export default async function ProfilPage() {
   if (loaded.unavailable) {
     return (
       <div className="sb-shell py-12">
-        <PageHeader eyebrow="Profil organisasi" title="Tentang Srikandi Buana" description="Informasi kelembagaan yang telah dicatat pada registry organisasi." />
+        <PageHeader eyebrow="Profil organisasi" title="Tentang Srikandi Buana" description={profileContent.intro || "Informasi kelembagaan yang telah dicatat pada registry organisasi."} />
         <PublicDataUnavailable resource="Profil organisasi" retryHref="/profil" />
       </div>
     );
@@ -82,7 +86,7 @@ export default async function ProfilPage() {
       <PageHeader
         eyebrow="Profil organisasi"
         title={organization?.short_name ?? "Srikandi Buana"}
-        description="Identitas organisasi dan mandat bidang ditampilkan berdasarkan registry yang tersimpan. Informasi sejarah, jumlah anggota, dan susunan personal tidak diganti dengan catatan contoh."
+        description={profileContent.intro || "Identitas organisasi dan mandat bidang ditampilkan berdasarkan registry yang tersimpan. Informasi sejarah, jumlah anggota, dan susunan personal tidak diganti dengan catatan contoh."}
       />
 
       {organization ? (
@@ -104,6 +108,22 @@ export default async function ProfilPage() {
               </div>
             </dl>
           </Card>
+
+          {profileContent.vision || profileContent.missions.some((mission) => mission.trim()) ? (
+            <section className="mt-8 grid gap-4 lg:grid-cols-2">
+              {profileContent.vision.trim() ? <Card className="p-5">
+                <h2 className="font-display text-[21px] font-semibold text-ink">Visi organisasi</h2>
+                <p className="mt-3 text-[12.5px] leading-relaxed text-ink2">{profileContent.vision}</p>
+              </Card> : null}
+              {profileContent.missions.some((mission) => mission.trim()) ? <Card className="p-5">
+                <h2 className="font-display text-[21px] font-semibold text-ink">Misi organisasi</h2>
+                <ol className="mt-3 list-decimal space-y-2 pl-5 text-[12px] leading-relaxed text-ink2">
+                  {profileContent.missions.filter((mission) => mission.trim()).map((mission, index) => <li key={index}>{mission}</li>)}
+                </ol>
+              </Card> : null}
+            </section>
+          ) : null}
+          {safeMapUrl ? <div className="mt-4"><a href={safeMapUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-[11.5px] font-semibold text-primary-700 hover:bg-paper"><Building2 size={14} /> Buka lokasi pada peta</a></div> : null}
 
           <section className="mt-8">
             <div className="flex items-center gap-2">

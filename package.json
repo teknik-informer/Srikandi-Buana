@@ -1,6 +1,6 @@
 {
   "name": "srikandi-buana-v9",
-  "version": "9.1.0-alpha.1",
+  "version": "9.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "bootstrap:v9-admin": "node scripts/bootstrap-v9-admin.mjs",
     "test:organization-reporting": "node scripts/verify-organization-reporting.mjs",
-    "test:core-shell-contract": "node scripts/verify-core-shell-contract.mjs && node scripts/verify-field-program-lifecycle.mjs && node scripts/verify-secretariat-document-generator.mjs && node scripts/verify-secretariat-source-integration.mjs && node scripts/verify-secretariat-field-report-integration.mjs && node scripts/verify-cloudinary-file-service.mjs && node scripts/verify-public-policy-contract.mjs"
+    "test:core-shell-contract": "node scripts/verify-core-shell-contract.mjs && node scripts/verify-field-program-lifecycle.mjs && node scripts/verify-secretariat-document-generator.mjs && node scripts/verify-secretariat-source-integration.mjs && node scripts/verify-secretariat-field-report-integration.mjs && node scripts/verify-cloudinary-file-service.mjs && node scripts/verify-public-policy-contract.mjs && node scripts/verify-public-profile-content.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.545.0",

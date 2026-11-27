@@ -19,6 +19,20 @@ export interface SiteFooterGroup { id: string; heading: string; enabled: boolean
 export type SiteSocialPlatform = "instagram" | "youtube" | "facebook" | "whatsapp" | "tiktok" | "email";
 export interface SiteSocialItem { id: string; platform: SiteSocialPlatform; href: string; enabled: boolean; }
 
+export interface PublicProfileContent {
+  schemaVersion: 1;
+  intro: string;
+  vision: string;
+  missions: string[];
+  galleryIntro: string;
+  mapUrl: string;
+  heroCredit: string;
+  legacyHeroFileId: string;
+  legacyLogoFileId: string;
+  source: string;
+  sourcePreservedInArchive: boolean;
+}
+
 export interface PublicSiteSettings {
   schemaVersion: 1;
   identity: { siteName: string; tagline: string; logoUrl: string; creditName: string; creditLine: string };
@@ -30,6 +44,7 @@ export interface PublicSiteSettings {
   navigation: { showSearch: boolean; showContact: boolean; showLogin: boolean; tagline: string; groups: SiteMenuGroup[] };
   footer: { showSocial: boolean; showCredit: boolean; showCopyright: boolean; copyrightText: string; groups: SiteFooterGroup[] };
   socials: SiteSocialItem[];
+  profileContent: PublicProfileContent;
 }
 
 const idOf = (value: string) => value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -93,6 +108,7 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
     showSocial: true, showCredit: false, showCopyright: true, copyrightText: "Seluruh hak dilindungi.", groups: footerGroups,
   },
   socials: [],
+  profileContent: { schemaVersion: 1, intro: "", vision: "", missions: [], galleryIntro: "", mapUrl: "", heroCredit: "", legacyHeroFileId: "", legacyLogoFileId: "", source: "", sourcePreservedInArchive: false },
 };
 
 export const SITE_FEATURE_LABELS: Record<SiteFeatureKey, { label: string; description: string }> = {
@@ -121,9 +137,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-export function normalizePublicSiteSettings(input: unknown): PublicSiteSettings {
-  if (!isRecord(input)) return DEFAULT_PUBLIC_SITE_SETTINGS;
-  const value = input as Partial<PublicSiteSettings>;
+export function normalizePublicSiteSettings(input: unknown, profileContentInput?: unknown): PublicSiteSettings {
+  const value = (isRecord(input) ? input : {}) as Partial<PublicSiteSettings>;
   const base = DEFAULT_PUBLIC_SITE_SETTINGS;
   const identity = { ...base.identity, ...(isRecord(value.identity) ? value.identity : {}) };
   const hero = { ...base.hero, ...(isRecord(value.hero) ? value.hero : {}) };
@@ -133,6 +148,20 @@ export function normalizePublicSiteSettings(input: unknown): PublicSiteSettings 
   const home = { ...base.home, ...(isRecord(value.home) ? value.home : {}) };
   const navigation = { ...base.navigation, ...(isRecord(value.navigation) ? value.navigation : {}) };
   const footer = { ...base.footer, ...(isRecord(value.footer) ? value.footer : {}) };
+  const profileSource = isRecord(profileContentInput) ? profileContentInput : isRecord(value.profileContent) ? value.profileContent : {};
+  const profileContent: PublicProfileContent = {
+    schemaVersion: 1,
+    intro: typeof profileSource.intro === "string" ? profileSource.intro : base.profileContent.intro,
+    vision: typeof profileSource.vision === "string" ? profileSource.vision : base.profileContent.vision,
+    missions: Array.isArray(profileSource.missions) ? profileSource.missions.filter((mission): mission is string => typeof mission === "string").slice(0, 12) : base.profileContent.missions,
+    galleryIntro: typeof profileSource.galleryIntro === "string" ? profileSource.galleryIntro : base.profileContent.galleryIntro,
+    mapUrl: typeof profileSource.mapUrl === "string" ? profileSource.mapUrl : base.profileContent.mapUrl,
+    heroCredit: typeof profileSource.heroCredit === "string" ? profileSource.heroCredit : base.profileContent.heroCredit,
+    legacyHeroFileId: typeof profileSource.legacyHeroFileId === "string" ? profileSource.legacyHeroFileId : base.profileContent.legacyHeroFileId,
+    legacyLogoFileId: typeof profileSource.legacyLogoFileId === "string" ? profileSource.legacyLogoFileId : base.profileContent.legacyLogoFileId,
+    source: typeof profileSource.source === "string" ? profileSource.source : base.profileContent.source,
+    sourcePreservedInArchive: profileSource.sourcePreservedInArchive === true,
+  };
 
   const groups = Array.isArray(navigation.groups)
     ? navigation.groups.filter(isRecord).map((rawGroup, index) => {
@@ -218,6 +247,7 @@ export function normalizePublicSiteSettings(input: unknown): PublicSiteSettings 
     navigation: { ...navigation, groups },
     footer: { ...footer, groups: footerLinks },
     socials,
+    profileContent,
   } as PublicSiteSettings;
 }
 

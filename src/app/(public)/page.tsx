@@ -213,6 +213,7 @@ export default async function HomePage() {
             <p className="mt-5 max-w-[46ch] text-[14px] leading-relaxed text-[#e2efe4] sm:text-[15px]">
               {settings.hero.description}
             </p>
+            {settings.profileContent.heroCredit ? <p className="mt-2 text-[10px] italic leading-relaxed text-[#d2e1d5]">Keterangan visual: {settings.profileContent.heroCredit}</p> : null}
             <div className="mt-7 flex flex-wrap items-center gap-2.5">
               {settings.features.membershipInterest ? (
                 <Link href={settings.hero.primaryHref} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#127e2f] px-4 py-2.5 text-[12.5px] font-bold text-white shadow-[0_16px_30px_-16px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/25 transition hover:bg-[#159a3a] sm:px-5 sm:py-3 sm:text-[13px]">

@@ -9,7 +9,7 @@ import {
   type SiteMenuGroup, type SiteMenuItem, type SiteFooterGroup, type SiteSocialPlatform,
 } from "@/lib/site-settings-schema";
 
-type Tab = "umum" | "fitur" | "navigasi" | "footer" | "sosial";
+type Tab = "umum" | "profil" | "fitur" | "navigasi" | "footer" | "sosial";
 const emptyResult: SaveSiteSettingsState = { ok: false, message: "" };
 const makeId = (prefix: string) => prefix + "-" + Math.random().toString(36).slice(2, 9);
 
@@ -63,6 +63,14 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
     setSettings((s) => ({ ...s, hero: { ...s.hero, ...patch } }));
   const patchContact = (patch: Partial<PublicSiteSettings["contact"]>) =>
     setSettings((s) => ({ ...s, contact: { ...s.contact, ...patch } }));
+  const patchProfileContent = (patch: Partial<PublicSiteSettings["profileContent"]>) =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, ...patch } }));
+  const patchMission = (index: number, value: string) =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, missions: s.profileContent.missions.map((mission, i) => i === index ? value : mission) } }));
+  const addMission = () =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, missions: [...s.profileContent.missions, ""] } }));
+  const deleteMission = (index: number) =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, missions: s.profileContent.missions.filter((_, i) => i !== index) } }));
 
   function patchGroup(index: number, patch: Partial<SiteMenuGroup>) {
     setSettings((s) => {
@@ -170,7 +178,7 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
   }
 
   const tabs: Array<{ id: Tab; label: string }> = [
-    { id: "umum", label: "Identitas & beranda" }, { id: "fitur", label: "Fitur situs" },
+    { id: "umum", label: "Identitas & beranda" }, { id: "profil", label: "Profil & galeri" }, { id: "fitur", label: "Fitur situs" },
     { id: "navigasi", label: "Navigasi" }, { id: "footer", label: "Footer" }, { id: "sosial", label: "Kontak & sosial" },
   ];
 
@@ -222,6 +230,48 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
           {(Object.keys(SITE_HOME_LABELS) as SiteHomeSectionKey[]).map((key) =>
             <Toggle key={key} label={SITE_HOME_LABELS[key].label} description={SITE_HOME_LABELS[key].description} checked={settings.home[key]} onChange={(value) => setSettings((s) => ({ ...s, home: { ...s.home, [key]: value } }))} />)}
         </div>
+      </section>
+    </div> : null}
+
+    {tab === "profil" ? <div className="grid gap-4 xl:grid-cols-2">
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h2 className="text-[13px] font-bold text-ink">Profil organisasi</h2>
+        <p className="mb-4 mt-1 text-[10.5px] text-muted">Konten profil yang ditampilkan pada website publik. Data ini tidak menggantikan status hukum atau registry organisasi.</p>
+        <div className="grid gap-3">
+          <label className="block"><span className="mb-1 block text-[11px] font-semibold text-ink2">Pengantar organisasi</span>
+            <textarea value={settings.profileContent.intro} onChange={(event) => patchProfileContent({ intro: event.target.value })} maxLength={1200} rows={5} className="sb-input h-auto w-full resize-y py-2" /></label>
+          <label className="block"><span className="mb-1 block text-[11px] font-semibold text-ink2">Visi organisasi</span>
+            <textarea value={settings.profileContent.vision} onChange={(event) => patchProfileContent({ vision: event.target.value })} maxLength={1000} rows={4} className="sb-input h-auto w-full resize-y py-2" /></label>
+        </div>
+      </section>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div><h2 className="text-[13px] font-bold text-ink">Misi organisasi</h2><p className="mt-1 text-[10.5px] text-muted">Maksimal 12 butir. Urutan mengikuti susunan di sini.</p></div>
+          <button type="button" disabled={settings.profileContent.missions.length >= 12} onClick={addMission} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-line px-3 py-2 text-[11px] font-semibold text-primary-700 disabled:opacity-40"><Plus size={13} /> Tambah</button>
+        </div>
+        <div className="mt-3 space-y-2">
+          {settings.profileContent.missions.map((mission, index) => <div key={index} className="flex items-start gap-2">
+            <span className="mt-2.5 w-5 shrink-0 text-[11px] font-semibold text-muted">{index + 1}.</span>
+            <textarea aria-label={"Misi " + (index + 1)} value={mission} onChange={(event) => patchMission(index, event.target.value)} maxLength={500} rows={3} className="sb-input h-auto min-w-0 flex-1 resize-y py-2" />
+            <button type="button" onClick={() => deleteMission(index)} aria-label={"Hapus misi " + (index + 1)} className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50"><Trash2 size={14} /></button>
+          </div>)}
+          {!settings.profileContent.missions.length ? <p className="rounded-lg bg-paper px-3 py-4 text-[11px] text-muted">Belum ada misi yang dicatat.</p> : null}
+        </div>
+      </section>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h2 className="text-[13px] font-bold text-ink">Galeri & lokasi</h2>
+        <p className="mb-4 mt-1 text-[10.5px] text-muted">Pengantar galeri tetap tampil meskipun belum ada media yang disetujui untuk publikasi.</p>
+        <div className="grid gap-3">
+          <label className="block"><span className="mb-1 block text-[11px] font-semibold text-ink2">Pengantar galeri</span>
+            <textarea value={settings.profileContent.galleryIntro} onChange={(event) => patchProfileContent({ galleryIntro: event.target.value })} maxLength={600} rows={3} className="sb-input h-auto w-full resize-y py-2" /></label>
+          <Field label="URL peta (HTTPS)" type="url" value={settings.profileContent.mapUrl} onChange={(mapUrl) => patchProfileContent({ mapUrl })} maxLength={1000} placeholder="https://maps.google.com/..." />
+          <Field label="Keterangan visual hero" value={settings.profileContent.heroCredit} onChange={(heroCredit) => patchProfileContent({ heroCredit })} maxLength={180} />
+        </div>
+      </section>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h2 className="text-[13px] font-bold text-ink">Catatan sumber</h2>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted">Referensi aset lama disimpan sebagai metadata arsip. Aset tidak akan dipublikasikan sebelum file aktual, pemilik, dan izin penggunaannya diverifikasi serta terhubung ke layanan media.</p>
+        <div className="mt-3 rounded-lg bg-paper px-3 py-2 text-[10.5px] text-muted">Sumber: {settings.profileContent.source || "Belum dicatat"} · Arsip: {settings.profileContent.sourcePreservedInArchive ? "Terjaga" : "Belum dikonfirmasi"}</div>
       </section>
     </div> : null}
 

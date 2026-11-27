@@ -1,4 +1,4 @@
-name: V9.1 quality gate
+name: V9.2 quality gate
 
 on:
   push:
@@ -6,11 +6,13 @@ on:
       - v9-rebuild
       - feat/v9-operational-core
       - feat/v9.2-production-integration
+      - feat/v9.2-profile-content-studio
   pull_request:
     branches:
       - v9-rebuild
       - feat/v9-operational-core
       - feat/v9.2-production-integration
+      - feat/v9.2-profile-content-studio
   workflow_dispatch:
 
 permissions:

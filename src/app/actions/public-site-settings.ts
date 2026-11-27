@@ -35,11 +35,18 @@ function validateSettings(settings: PublicSiteSettings): string | null {
     ["Tagline navigasi", settings.navigation.tagline, 160],
     ["Jam layanan", settings.contact.officeHours, 180],
     ["Teks hak cipta", settings.footer.copyrightText, 180],
+    ["Pengantar profil", settings.profileContent.intro, 1200],
+    ["Visi organisasi", settings.profileContent.vision, 1000],
+    ["URL peta", settings.profileContent.mapUrl, 1000],
+    ["Pengantar galeri", settings.profileContent.galleryIntro, 600],
+    ["Keterangan visual", settings.profileContent.heroCredit, 180],
   ];
   for (const [label, value, max] of textFields) {
     if (typeof value !== "string" || value.length > max) return label + " melebihi batas karakter.";
   }
   if (settings.identity.siteName.trim().length < 2) return "Nama situs wajib diisi.";
+  if (!Array.isArray(settings.profileContent.missions) || settings.profileContent.missions.length > 12 || settings.profileContent.missions.some((mission) => typeof mission !== "string" || mission.length > 500)) return "Daftar misi tidak valid atau melebihi 12 butir (maksimal 500 karakter per butir).";
+  if (settings.profileContent.mapUrl && !/^https:\/\/\S+$/i.test(settings.profileContent.mapUrl)) return "Tautan peta harus berupa URL HTTPS yang valid.";
   if (Object.values(settings.features).some((value) => typeof value !== "boolean") ||
       Object.values(settings.home).some((value) => typeof value !== "boolean")) {
     return "Status pengaktifan fitur dan bagian beranda harus berupa pilihan aktif/nonaktif.";
@@ -101,53 +108,46 @@ export async function savePublicSiteSettings(
 
   try {
     const sql = getV9Sql();
+    const { profileContent, ...siteSettings } = settings;
     const result = await sql
       `WITH existing AS MATERIALIZED (
-         SELECT setting_value
-         FROM v9.system_settings
+         SELECT setting_key, setting_value FROM v9.system_settings
          WHERE organization_id = ${identity.organizationId}
-           AND setting_key = 'public_site'
-         LIMIT 1
+           AND setting_key IN ('public_site', 'public_profile_content')
        ),
-       saved AS (
-         INSERT INTO v9.system_settings (
-           organization_id, setting_key, setting_value, visibility, updated_by, updated_at
-         )
-         VALUES (
-           ${identity.organizationId},
-           'public_site',
-           ${JSON.stringify(settings)}::jsonb,
-           'public',
-           ${identity.userId},
-           now()
-         )
-         ON CONFLICT (organization_id, setting_key)
-         DO UPDATE SET
-           setting_value = EXCLUDED.setting_value,
-           visibility = 'public',
-           updated_by = EXCLUDED.updated_by,
-           updated_at = now()
+       saved_site AS (
+         INSERT INTO v9.system_settings (organization_id, setting_key, setting_value, visibility, updated_by, updated_at)
+         VALUES (${identity.organizationId}, 'public_site', ${JSON.stringify(siteSettings)}::jsonb, 'public', ${identity.userId}, now())
+         ON CONFLICT (organization_id, setting_key) DO UPDATE SET
+           setting_value = EXCLUDED.setting_value, visibility = 'public',
+           updated_by = EXCLUDED.updated_by, updated_at = now()
          RETURNING id, organization_id, setting_value
        ),
-       audit AS (
-         INSERT INTO v9.audit_events (
-           organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state
-         )
-         SELECT
-           saved.organization_id,
-           ${identity.userId},
-           'public_site.settings.updated',
-           'system_setting',
-           'public_site',
-           existing.setting_value,
-           saved.setting_value
-         FROM saved
-         LEFT JOIN existing ON true
-         RETURNING id
+       saved_profile AS (
+         INSERT INTO v9.system_settings (organization_id, setting_key, setting_value, visibility, updated_by, updated_at)
+         VALUES (${identity.organizationId}, 'public_profile_content', ${JSON.stringify(profileContent)}::jsonb, 'public', ${identity.userId}, now())
+         ON CONFLICT (organization_id, setting_key) DO UPDATE SET
+           setting_value = EXCLUDED.setting_value, visibility = 'public',
+           updated_by = EXCLUDED.updated_by, updated_at = now()
+         RETURNING id, organization_id, setting_value
+       ),
+       audit_site AS (
+         INSERT INTO v9.audit_events (organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state)
+         SELECT saved_site.organization_id, ${identity.userId}, 'public_site.settings.updated',
+           'system_setting', 'public_site',
+           (SELECT setting_value FROM existing WHERE setting_key = 'public_site'), saved_site.setting_value
+         FROM saved_site RETURNING id
+       ),
+       audit_profile AS (
+         INSERT INTO v9.audit_events (organization_id, actor_user_id, action, entity_type, entity_id, before_state, after_state)
+         SELECT saved_profile.organization_id, ${identity.userId}, 'public_profile_content.settings.updated',
+           'system_setting', 'public_profile_content',
+           (SELECT setting_value FROM existing WHERE setting_key = 'public_profile_content'), saved_profile.setting_value
+         FROM saved_profile RETURNING id
        )
-       SELECT saved.id::text AS id
-       FROM saved
-       INNER JOIN audit ON true`;
+       SELECT saved_site.id::text AS id FROM saved_site
+       CROSS JOIN saved_profile CROSS JOIN audit_site CROSS JOIN audit_profile`;
+
     if (!rowsFromResult<{ id: string }>(result).length) {
       return { ok: false, message: "Pengaturan belum tersimpan. Muat ulang dan coba kembali." };
     }
@@ -158,6 +158,8 @@ export async function savePublicSiteSettings(
   }
 
   revalidatePath("/", "layout");
+  revalidatePath("/profil");
+  revalidatePath("/galeri");
   revalidatePath("/studio/website");
   return { ok: true, message: "Pengaturan situs tersimpan dan berlaku untuk pengunjung setelah halaman diperbarui." };
 }
