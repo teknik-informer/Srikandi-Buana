@@ -93,6 +93,7 @@ import Inbox from "./inbox";
 import EnterpriseReports from "./enterprise-reports";
 import EnterpriseMonitoring from "./enterprise-monitoring";
 import SiteSettingsEditor from "./site-settings-editor";
+import PublicPoliciesEditor from "./public-policies-editor";
 import SourceReview from "./source-review";
 import WorkspaceShell from "./workspace-shell";
 import RecordTable from "./record-table";
@@ -1036,13 +1037,16 @@ export default function Workspace({
         )}
         {section === "pesan" && <Inbox />}
         {section === "pengaturan" && (
-          <SiteSettingsEditor
-            files={files}
-            onSaved={() => {
-              load();
-              router.refresh();
-            }}
-          />
+          <div className="grid min-w-0 gap-4">
+            <SiteSettingsEditor
+              files={files}
+              onSaved={() => {
+                load();
+                router.refresh();
+              }}
+            />
+            <PublicPoliciesEditor onSaved={() => router.refresh()} />
+          </div>
         )}
         {section === "kehadiran" && <Attendance rows={rows} onSaved={load} />}
         {section === "laporan" && !loading && !error && (
