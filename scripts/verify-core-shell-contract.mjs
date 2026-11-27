@@ -807,7 +807,9 @@ assert.ok(
 assert.ok(
   publicSiteSettingsService.includes("v9.system_settings") &&
   publicSiteSettingsService.includes("visibility = 'public'") &&
-  publicSiteSettingsService.includes("setting_key = 'public_site'"),
+  publicSiteSettingsService.includes("setting_key IN ('public_site', 'public_profile_content')") &&
+  publicSiteSettingsService.includes('row.setting_key === "public_site"') &&
+  publicSiteSettingsService.includes('row.setting_key === "public_profile_content"'),
   "Public website settings must be read from the organization-scoped public system-settings record.",
 );
 assert.ok(
