@@ -1,6 +1,21 @@
-import {pageMetadata} from "@/lib/seo";
+import { pageMetadata } from "@/lib/seo";
+import { getPublicPolicySettings } from "@/lib/public-policies";
 import InformationPage from "../../_components/public/information-page";
-import {informationPages} from "@/lib/information-pages";
-const slug="pengaduan";
-export const metadata=pageMetadata("/"+slug);
-export default function Page(){return <InformationPage slug={slug}/>;}
+import { notFound } from "next/navigation";
+
+const slug = "pengaduan";
+
+export async function generateMetadata() {
+  const settings = await getPublicPolicySettings();
+  const document = settings.documents.find((item) => item.slug === slug && item.status === "published");
+  if (!settings.enabled || !document) {
+    return pageMetadata("/kebijakan", "Dokumen tidak tersedia", "Dokumen kebijakan ini tidak tersedia.", { noindex: true });
+  }
+  return pageMetadata("/" + slug, document.title, document.description);
+}
+
+export default async function Page() {
+  const settings = await getPublicPolicySettings();
+  if (!settings.enabled || !settings.documents.some((item) => item.slug === slug && item.status === "published")) notFound();
+  return <InformationPage slug={slug} />;
+}
