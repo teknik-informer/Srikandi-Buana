@@ -16,6 +16,7 @@ export const dynamic="force-dynamic";
 
 export default async function PublicLayout({children}:{children:React.ReactNode}) {
   const [feed,site,policies]=await Promise.all([getPublications(),getSiteSettings(),getPublicPolicyDocuments()]);
+  const policySlugs=new Set(policies.map((document)=>document.slug));
   return <div className="public-site">
     <OrganizationSchema site={site}/>
     <ConnectionStatus/>
@@ -56,14 +57,14 @@ export default async function PublicLayout({children}:{children:React.ReactNode}
           <div>
             <h3>Kebijakan & bantuan</h3>
             <Link href="/kebijakan">Pusat kebijakan & legalitas</Link>
-            <Link href="/pengaduan">Pengaduan & pelaporan</Link>
-            <Link href="/bantuan">Pusat bantuan</Link>
+            {policySlugs.has("pengaduan") && <Link href="/pengaduan">Pengaduan & pelaporan</Link>}
+            {policySlugs.has("bantuan") && <Link href="/bantuan">Pusat bantuan</Link>}
             <Link href="/pasang">Pasang aplikasi</Link>
           </div>
         </div>
         <div className="pub-footer-bottom">
           <span>© {new Date().getFullYear()} KWT Srikandi Buana</span>
-          <div><Link href="/aksesibilitas">Aksesibilitas</Link><Link href="/peta-situs">Peta situs</Link><a href="/dashboard">Ruang pengelola <ArrowUpRight size={12}/></a></div>
+          <div>{policySlugs.has("aksesibilitas") && <Link href="/aksesibilitas">Aksesibilitas</Link>}<Link href="/peta-situs">Peta situs</Link><a href="/dashboard">Ruang pengelola <ArrowUpRight size={12}/></a></div>
         </div>
       </div>
     </footer>
