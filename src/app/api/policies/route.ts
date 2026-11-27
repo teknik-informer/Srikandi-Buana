@@ -1,5 +1,6 @@
 import { env } from "@/lib/runtime";
 import { getAdminUser } from "../../admin-auth";
+import { isModuleAvailableForUser } from "@/features/identity/access-policy";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { defaultPublicPolicySettings, validatePublicPolicySettings } from "@/lib/public-policies";
 import { getPublicPolicySettings } from "@/lib/public-policy-store";
@@ -10,6 +11,7 @@ const json = (data: unknown, status = 200) =>
 export async function GET() {
   const user = await getAdminUser();
   if (!user) return json({ error: "Akses khusus administrator." }, 401);
+  if (!isModuleAvailableForUser(user, "cms")) return json({ error: "Layanan CMS sedang dinonaktifkan atau diblokir untuk akun ini." }, 403);
   if (!env.DB) return json({ error: "Database belum tersedia." }, 503);
   return json({ settings: await getPublicPolicySettings() });
 }
@@ -17,6 +19,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   const user = await getAdminUser();
   if (!user) return json({ error: "Akses khusus administrator." }, 401);
+  if (!isModuleAvailableForUser(user, "cms")) return json({ error: "Layanan CMS sedang dinonaktifkan atau diblokir untuk akun ini." }, 403);
   const origin = request.headers.get("origin");
   if ((origin && origin !== new URL(request.url).origin) || (!origin && request.headers.get("sec-fetch-site") !== "same-origin")) {
     return json({ error: "Permintaan ditolak." }, 403);
