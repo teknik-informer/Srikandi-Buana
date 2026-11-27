@@ -50,7 +50,7 @@ assert(studio.includes('PublicPoliciesEditor'));
 const api = readFileSync('src/app/api/policies/route.ts', 'utf8');
 assert(api.includes('getAdminUser()') && api.includes('readJsonObject') && api.includes('env.DB.batch'));
 assert(api.includes('isModuleAvailableForUser(user, "cms")'));
-assert.equal((api.match(/isModuleAvailableForUser\\(user, "cms"\\)/g) || []).length, 2, "GET and PUT both enforce CMS module access");
+assert.equal(api.split('isModuleAvailableForUser(user, "cms")').length - 1, 2, "GET and PUT both enforce CMS module access");
 assert(api.includes("INSERT INTO audit"));
 assert(!api.includes('system_settings') && !api.includes('audit_events'));
 const reader = readFileSync('src/lib/public-policy-store.ts', 'utf8');
