@@ -112,7 +112,7 @@ export default function PolicyDocumentsEditor() {
   async function saveDocument() {
     if (!draft) return;
     const title = draft.title.trim();
-    const slug = slugify(title || draft.slug);
+    const slug = slugify(draft.slug || title);
     if (!slug) { setError("Judul dokumen wajib diisi."); return; }
     const next: PolicyDocument = {
       ...draft,
@@ -127,7 +127,8 @@ export default function PolicyDocumentsEditor() {
         items: (section.items || []).map((item) => item.trim()).filter(Boolean)
       }))
     };
-    const existing = documents.findIndex((doc) => doc.slug === draft.slug || doc.slug === next.slug);
+    const existing = documents.findIndex((doc) => doc.slug === draft.slug);
+    if (existing < 0 && documents.some((doc) => doc.slug === next.slug)) { setError("Alamat halaman sudah digunakan. Pilih slug yang berbeda."); return; }
     const all = [...documents];
     if (existing >= 0) all[existing] = next; else all.push(next);
     await persist(all, next);
@@ -183,9 +184,9 @@ export default function PolicyDocumentsEditor() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Editor dokumen</p><h3 className="text-lg font-semibold">{draft.title || "Dokumen baru"}</h3></div>
                   <div className="flex flex-wrap gap-2">
-                    {draft.status !== "published" && <Button type="button" size="sm" variant="outline" onClick={() => void setStatus("published")} disabled={saving}><RotateCcw data-icon="inline-start" /> Terbitkan</Button>}
-                    {draft.status !== "inactive" && <Button type="button" size="sm" variant="outline" onClick={() => void setStatus("inactive")} disabled={saving}><Archive data-icon="inline-start" /> Nonaktifkan</Button>}
-                    {draft.status === "inactive" && <Button type="button" size="sm" variant="outline" onClick={() => void setStatus("draft")} disabled={saving}><RotateCcw data-icon="inline-start" /> Pulihkan ke draf</Button>}
+                    {documents.some((doc) => doc.slug === draft.slug) && draft.status !== "published" && <Button type="button" size="sm" variant="outline" onClick={() => void setStatus("published")} disabled={saving}><RotateCcw data-icon="inline-start" /> Terbitkan</Button>}
+                    {documents.some((doc) => doc.slug === draft.slug) && draft.status !== "inactive" && <Button type="button" size="sm" variant="outline" onClick={() => void setStatus("inactive")} disabled={saving}><Archive data-icon="inline-start" /> Nonaktifkan</Button>}
+                    {documents.some((doc) => doc.slug === draft.slug) && draft.status === "inactive" && <Button type="button" size="sm" variant="outline" onClick={() => void setStatus("draft")} disabled={saving}><RotateCcw data-icon="inline-start" /> Pulihkan ke draf</Button>}
                     {!core.has(draft.slug) && documents.some((doc) => doc.slug === draft.slug) && <Button type="button" size="icon" variant="ghost" aria-label="Hapus dokumen" onClick={() => void deleteDocument()} disabled={saving}><Trash2 /></Button>}
                   </div>
                 </div>
@@ -198,7 +199,7 @@ export default function PolicyDocumentsEditor() {
                     <Field><FieldLabel htmlFor="policy-topic">Topik formulir kontak</FieldLabel><Input id="policy-topic" value={draft.topic} maxLength={100} onChange={(event) => updateDraft({ topic: event.target.value })} /></Field>
                     <Field><FieldLabel htmlFor="policy-version">Nomor versi</FieldLabel><Input id="policy-version" value={draft.version} maxLength={24} onChange={(event) => updateDraft({ version: event.target.value })} /></Field>
                     <Field><FieldLabel htmlFor="policy-effective">Tanggal berlaku</FieldLabel><Input id="policy-effective" type="date" value={draft.effectiveDate} onChange={(event) => updateDraft({ effectiveDate: event.target.value })} /></Field>
-                    <Field><FieldLabel htmlFor="policy-slug">Alamat halaman (slug)</FieldLabel><Input id="policy-slug" value={draft.slug} disabled={documents.some((doc) => doc.slug === draft.slug) && core.has(draft.slug)} onChange={(event) => { const slug = slugify(event.target.value); updateDraft({ slug }); setSelectedSlug(slug); }} /><FieldDescription>Gunakan huruf kecil dan tanda hubung. Alamat halaman: /{draft.slug}</FieldDescription></Field>
+                    <Field><FieldLabel htmlFor="policy-slug">Alamat halaman (slug)</FieldLabel><Input id="policy-slug" value={draft.slug} disabled={documents.some((doc) => doc.slug === draft.slug)} onChange={(event) => { const slug = slugify(event.target.value); updateDraft({ slug }); setSelectedSlug(slug); }} /><FieldDescription>Gunakan huruf kecil dan tanda hubung. Alamat halaman: /{draft.slug}</FieldDescription></Field>
                   </div>
                 </FieldGroup>
 
