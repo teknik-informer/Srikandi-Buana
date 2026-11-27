@@ -89,7 +89,7 @@ test("the report center exposes only report groups covered by the current role",
   assert.equal(memberReport[0]?.data.potential, undefined, "Member needs remain redacted in treasury reports");
 
   const adminGroups = reporting.getVisibleReportGroups(principal("admin")).map((group) => group.id);
-  assert.deepEqual(plain(adminGroups), [], "Technical administrator does not receive organizational reports");
+  assert.deepEqual(plain(adminGroups), ["operasional", "keanggotaan", "administrasi", "keuangan", "usaha", "publikasi"], "System administrator can inspect all report groups");
 });
 
 test("member reports contain only the member's own records and readable activities", () => {
@@ -144,19 +144,19 @@ test("monitoring metrics are role-scoped and finance data is withheld from membe
   assert.equal(memberSnapshot.visibleRecords, 2);
 });
 
-test("technical administrator cannot inspect business monitoring signals", () => {
+test("system administrator can inspect cross-application monitoring signals", () => {
   const adminSnapshot = monitoring.buildEnterpriseMonitoring(
     records,
     [],
     principal("admin"),
     new Date("2026-11-07T04:00:00.000Z"),
   );
-  assert.equal(adminSnapshot.membership, null);
-  assert.equal(adminSnapshot.operational, null);
-  assert.equal(adminSnapshot.finance, null);
-  assert.equal(adminSnapshot.business, null);
-  assert.equal(adminSnapshot.publication, null);
-  assert.equal(adminSnapshot.visibleRecords, 0);
+  assert.equal(adminSnapshot.membership.total, 2);
+  assert.ok(adminSnapshot.operational);
+  assert.equal(adminSnapshot.finance.transactions, 1);
+  assert.equal(adminSnapshot.business.assets, 1);
+  assert.equal(adminSnapshot.publication.drafts, 1);
+  assert.ok(adminSnapshot.visibleRecords > 0);
 });
 
 test("coordinator monitoring omits non-assigned program activity", () => {
@@ -194,7 +194,7 @@ test("task result handoff requires real evidence and a leadership decision", () 
   );
 });
 
-test("only the Secretariat can verify a completed task result", () => {
+test("Secretariat and system administrator can verify a completed task result", () => {
   const pending = {
     role: "sekretaris",
     previousVerification: "Menunggu verifikasi",
@@ -206,7 +206,8 @@ test("only the Secretariat can verify a completed task result", () => {
     reviewNote: "",
   };
   assert.equal(verification.taskVerificationError(pending), null);
-  for (const role of ["admin", "ketua", "koordinator"]) {
+  assert.equal(verification.taskVerificationError({ ...pending, role: "admin" }), null);
+  for (const role of ["ketua", "koordinator"]) {
     assert.match(
       verification.taskVerificationError({ ...pending, role }) || "",
       /Hanya Sekretariat/,
@@ -462,7 +463,7 @@ test("meeting decision evaluations require a dated leadership review and a reaso
     note: "Satu keputusan selesai; jadwal pelatihan menunggu penyuluh.",
   };
   assert.equal(meetingCycle.meetingReviewError(review), null);
-  assert.match(meetingCycle.meetingReviewError({ ...review, role: "admin" }) || "", /Sekretariat/);
+  assert.equal(meetingCycle.meetingReviewError({ ...review, role: "admin" }), null);
   assert.match(
     meetingCycle.meetingReviewError({ ...review, role: "ketua" }) || "",
     /Sekretariat/,

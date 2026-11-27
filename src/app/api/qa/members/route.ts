@@ -1,20 +1,17 @@
 import {env} from "@/lib/runtime";
 import {getAuthenticatedUser} from "@/lib/auth";
 import {normalizeIndonesianMobilePhone} from "@/lib/phone";
+import {isArchitectQaPreview} from "@/features/shared/qa-preview.mjs";
 import {sameOrigin,json} from "@/lib/account-access";
 import {readJsonObject,RequestBodyError} from "@/lib/request-body";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
-const QA_BRANCH="feat/architect-identity-console-2026-11-15";
-function enabled(){
-  return process.env.VERCEL_ENV==="preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF===QA_BRANCH;
-}
+function enabled(){ return isArchitectQaPreview(process.env); }
 async function principal(){
   if(!enabled())return {error:json({error:"Laboratorium anggota hanya tersedia pada Preview QA."},404)};
   const user=await getAuthenticatedUser();
-  if(!user||user.role!=="admin")return {error:json({error:"Akses khusus Arsitek Sistem pada Preview QA."},403)};
+  if(!user||user.role!=="admin"||user.architectFullAccess!==true)return {error:json({error:"Akses khusus Arsitek Sistem pada Preview QA."},403)};
   if(!env.DB)return {error:json({error:"Database QA belum tersedia."},503)};
   return {user,db:env.DB};
 }

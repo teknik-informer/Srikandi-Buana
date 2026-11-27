@@ -122,6 +122,11 @@ assert.ok(formulaOutput.includes("\"'=HYPERLINK("), "CSV text beginning with a f
 const bendahara = { role: "bendahara", userId: "workspace-1", accountId: "treasurer-1" };
 assert.equal((await requestAs(bendahara, packageFixture({ group_id: "operasional" }))).status, 404);
 assert.equal((await requestAs(chair, packageFixture({ status: "draft" }))).status, 404);
-assert.equal((await requestAs({ role: "admin", userId: "workspace-1", accountId: "admin-1" }, packageFixture())).status, 403);
+const administratorResponse = await requestAs({ role: "admin", userId: "workspace-1", accountId: "admin-1" }, packageFixture());
+assert.equal(administratorResponse.status, 200);
+const administratorOutput = await administratorResponse.text();
+assert.ok(administratorOutput.includes("Nama Anggota Rahasia"), "System administrator receives the full authorized workspace snapshot");
+assert.ok(administratorOutput.includes("081234567890"), "System administrator can inspect authorized member contact data");
+
 assert.equal((await requestAs(null, packageFixture())).status, 401);
 console.log("PASS: approved report exports enforce authentication, status and domain guards; Chair CSV/print omit personal data while Secretariat retains authorized source access.");

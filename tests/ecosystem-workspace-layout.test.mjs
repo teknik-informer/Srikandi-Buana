@@ -208,7 +208,7 @@ test("chair records decisions through the task workspace rather than a context-f
 test("Chair and Secretariat receive their privileged screens through the authenticated role route", () => {
   const route = read("src/app/dashboard/[[...section]]/page.tsx");
   assert.ok(route.includes('admin.role === "ketua" && active === "akun"'));
-  assert.ok(route.includes('["ketua", "sekretaris"].includes(admin.role)'));
+  assert.ok(route.includes('["admin", "ketua", "sekretaris"].includes(admin.role)'));
   assert.ok(route.includes("<Inbox />"));
   assert.ok(route.includes("getGovernanceAdminUser") === false, "Page visibility is role-driven; API guards remain authoritative");
 });
@@ -248,7 +248,7 @@ test("leadership task decisions are retained as distinct audit events and shown 
   for (const action of ["Hasil diajukan untuk verifikasi", "Hasil tugas disahkan", "Perbaikan tugas diminta"]) {
     assert.ok(api.includes(action));
   }
-  assert.ok(api.includes("audit:u.role==='ketua'?audit.results.map(row=>({action:row.action,title:'Catatan organisasi diperbarui',created:row.created})):[]"));
+  assert.ok(api.includes("audit:u.role==='ketua'||u.role==='admin'?audit.results.map(row=>({action:row.action,title:'Catatan organisasi diperbarui',created:row.created})):[]"));
 
   assert.ok(monitoring.includes("Aktivitas tercatat"));
 });

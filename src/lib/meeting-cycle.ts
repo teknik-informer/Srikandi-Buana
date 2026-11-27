@@ -81,8 +81,8 @@ export function meetingReviewError(input: {
     previous.note !== next.note;
 
   if (!changed) return null;
-  if (input.role !== "sekretaris") {
-    return "Evaluasi tindak lanjut keputusan rapat merupakan kewenangan Sekretariat.";
+  if (!["admin", "sekretaris"].includes(input.role)) {
+    return "Evaluasi tindak lanjut keputusan rapat merupakan kewenangan Sekretariat atau Administrator Sistem.";
   }
   if (next.status !== "Belum dievaluasi") {
     if (!next.meeting) return "Isi judul atau nomor rapat yang melakukan evaluasi.";
