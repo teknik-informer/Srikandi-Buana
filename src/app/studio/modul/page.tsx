@@ -25,7 +25,7 @@ function safeErrorType(reason: unknown): string {
 }
 
 export default async function ModulStudio() {
-  const identity = await requireRoles(["platform_admin", "organization_admin"]);;
+  const identity = await requireRoles(["platform_admin", "organization_admin"]);
   let fields: FieldApplicationRow[] = [];
   let unavailable = false;
   try {

@@ -51,7 +51,7 @@ function countLabel(value: number | undefined): string {
 }
 
 export default async function WorkflowStudio() {
-  const identity = await requireRoles(["platform_admin", "organization_admin"]);;
+  const identity = await requireRoles(["platform_admin", "organization_admin"]);
   const canReadFinance = can(identity, "finance:read");
   const canReadMembership = can(identity, "field:organisasi:review");
   const canReadWorkplans = can(identity, "approval:read") || can(identity, "organization:team:approve");

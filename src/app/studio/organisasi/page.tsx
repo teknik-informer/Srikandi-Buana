@@ -91,7 +91,7 @@ function appointmentStatus(item: AssignmentRow, today: string): {
 }
 
 export default async function OrganisasiStudio() {
-  const identity = await requireRoles(["platform_admin", "organization_admin"]);;
+  const identity = await requireRoles(["platform_admin", "organization_admin"]);
   let organization: OrganizationRow | null = null;
   let units: UnitRow[] = [];
   let members: MemberRow[] = [];
