@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const paths = [
     ...Object.keys(publicPages).filter(path => !legacyPolicyPaths.has(path)),
     ...programs.map(program => "/program/" + program.id),
-    ...(policySettings.enabled ? ["/kebijakan", ...policyDocuments.map(document => publicPolicyHref(document.slug))] : [])
+    ...(policySettings.enabled ? ["/kebijakan"] : [])
   ];
   const pageEntries = [...new Set(paths)].map(path => ({
     url: new URL(path, base).toString(),
@@ -33,5 +33,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: base + "/kabar/" + encodeURIComponent(item.id),
     lastModified: new Date(item.updated || item.date)
   }));
-  return [...pageEntries, ...policyEntries, ...publicationEntries];
+  const entries = [...pageEntries, ...policyEntries, ...publicationEntries];
+  return [...new Map(entries.map(entry => [entry.url, entry])).values()];
 }

@@ -49,6 +49,8 @@ const studio = readFileSync('src/app/_components/workspace.tsx', 'utf8');
 assert(studio.includes('PublicPoliciesEditor'));
 const api = readFileSync('src/app/api/policies/route.ts', 'utf8');
 assert(api.includes('getAdminUser()') && api.includes('readJsonObject') && api.includes('env.DB.batch'));
+assert(api.includes('isModuleAvailableForUser(user, "cms")'));
+assert.equal(api.split('isModuleAvailableForUser(user, "cms")').length - 1, 2, "GET and PUT both enforce CMS module access");
 assert(api.includes("INSERT INTO audit"));
 assert(!api.includes('system_settings') && !api.includes('audit_events'));
 const reader = readFileSync('src/lib/public-policy-store.ts', 'utf8');
@@ -58,6 +60,8 @@ const sitemap = readFileSync('src/app/sitemap.ts', 'utf8');
 assert(search.includes('policySettings.documents.filter(document=>document.status===\'published\')'));
 assert(sitemap.includes('document.status === "published"'));
 assert(sitemap.includes('getPublicPolicySettings'));
+assert(!sitemap.includes('...policyDocuments.map(document => publicPolicyHref(document.slug))'), "Policy documents must not be listed twice");
+assert(sitemap.includes('new Map(entries.map(entry => [entry.url, entry]))'), "Sitemap URLs must be unique");
 assert(readFileSync('src/app/_components/public/information-page.tsx', 'utf8').includes('getPublishedPolicy'));
 
 const footerRoutes = ['kebijakan', 'peta-situs'];
