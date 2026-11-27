@@ -14,7 +14,7 @@ const appAccess = read("src/lib/app-access.ts");
 const appShellSource = read("src/components/app-shell.tsx");
 const sessionSource = read("src/lib/session.ts");
 const studioLayout = read("src/app/studio/layout.tsx");
-const studioHome = read("src/app/studio/page.tsx");
+const studioLandingAccessCheck = read("src/app/studio/page.tsx");
 
 assert.match(coreShell, /nav=\{nav\}/, "CoreShell must preserve navigation supplied by the server layout.");
 assert.match(coreShell, /notices=\{\[\]\}/, "CoreShell must not display local demo notices.");
@@ -831,7 +831,7 @@ assert.ok(
 assert.ok(
   studioLayout.includes("SECRETARY_STUDIO_NAV") &&
   studioLayout.includes('identity.roleKey === "secretary"') &&
-  studioHome.includes('requireRoles(["platform_admin", "organization_admin"])'),
+  studioLandingAccessCheck.includes('requireRoles(["platform_admin", "organization_admin"])'),
   "Secretaries may enter the Website Studio only; the general Studio home remains restricted to administrators.",
 );
 assert.ok(
