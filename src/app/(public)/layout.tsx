@@ -5,7 +5,7 @@ import BrandLogo from "@/components/brand-logo";
 import SocialLinks from "../_components/public/social-links";
 import ConnectionStatus from "../_components/connection-status";
 import Link from "next/link";
-import {Sprout,ArrowUpRight,MapPin} from "lucide-react";
+import {ArrowUpRight,MapPin} from "lucide-react";
 import PublicNavigation from "../_components/public/navigation";
 import "./public.css";
 import {getSiteSettings} from "@/lib/site-settings";
