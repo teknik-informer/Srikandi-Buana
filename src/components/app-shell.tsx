@@ -13,6 +13,7 @@ import { APPS, type AppKey } from "@/config/apps";
 import { canAccessApp, canAccessAppHref } from "@/lib/app-access";
 import { AppIcon } from "@/components/brand";
 import { SearchProvider, SearchButton } from "@/components/search-dialog";
+import { logout } from "@/app/actions/auth";
 import type { DemoIdentity } from "@/lib/identity";
 
 interface NavItem { label: string; href: string; badge?: number }
@@ -218,9 +219,14 @@ export function AppShell({
                     <div className="border-t border-line px-2 py-2">
                       <Link href="/app/anggota/profil" className="flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-[11.5px] text-ink2 hover:bg-surface2">Profil &amp; preferensi</Link>
                       <Link href="/bantuan" className="flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-[11.5px] text-ink2 hover:bg-surface2">Pusat bantuan</Link>
-                      <Link href="/keluar" className="flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-[11.5px] font-semibold text-[var(--sb-danger)] hover:bg-[var(--sb-danger-bg)]">
-                        <LogOut size={13} /> Keluar
-                      </Link>
+                      <form action={logout}>
+                        <button
+                          type="submit"
+                          className="flex w-full items-center gap-2 rounded-[7px] px-2 py-1.5 text-left text-[11.5px] font-semibold text-[var(--sb-danger)] hover:bg-[var(--sb-danger-bg)]"
+                        >
+                          <LogOut size={13} /> Keluar
+                        </button>
+                      </form>
                     </div>
                   </div>
                 </div>
