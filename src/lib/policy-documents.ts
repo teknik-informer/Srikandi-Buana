@@ -21,7 +21,7 @@ const legalNotice: PolicyDocument = {
   slug: "legalitas",
   title: "Legalitas & Identitas Situs",
   description: "Identitas pengelola, status dokumen kelembagaan, dan informasi kepatuhan penyelenggaraan situs Srikandi Buana.",
-  category: "Tata kelola informasi",
+  category: "Legalitas situs",
   topic: "Informasi kelompok",
   status: "published",
   version: "1.0",
