@@ -93,7 +93,7 @@ interface LoginContentRow { setting_value: unknown; }
 export async function getLoginPageContent(): Promise<LoginPageContent> {
   try {
     const sql = getV9Sql();
-    const result = await sql\`
+    const result = await sql`
       SELECT setting_value
       FROM v9.system_settings
       WHERE organization_id = (
@@ -104,7 +104,7 @@ export async function getLoginPageContent(): Promise<LoginPageContent> {
         AND setting_key = 'login_page_content'
         AND visibility = 'public'
       LIMIT 1
-    \`;
+    `;
     const rows = rowsFromResult<LoginContentRow>(result);
     return normalizeLoginPageContent(rows[0]?.setting_value);
   } catch (reason) {
