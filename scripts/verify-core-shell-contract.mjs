@@ -775,7 +775,7 @@ const publicOrderInfo = read("src/app/(public)/produk/pemesanan/page.tsx");
 assert.ok(
   publicLayoutSource.includes("getPublicSiteSettings()") &&
   publicLayoutSource.includes("<PublicHeader settings={settings} />") &&
-  publicLayoutSource.includes("<PublicFooter settings={settings} />"),
+  publicLayoutSource.includes("<PublicFooter settings={settings} policiesEnabled={policies.enabled} />"),
   "Public layout must read one server-side organization site configuration and pass it to header and footer.",
 );
 assert.ok(
