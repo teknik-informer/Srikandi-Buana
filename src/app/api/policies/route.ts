@@ -3,7 +3,6 @@ import { getAdminUser } from "../../admin-auth";
 import { isModuleAvailableForUser } from "@/features/identity/access-policy";
 import { readJsonObject, RequestBodyError } from "@/lib/request-body";
 import { defaultPublicPolicySettings, validatePublicPolicySettings } from "@/lib/public-policies";
-import { getPublicPolicySettings } from "@/lib/public-policy-store";
 
 const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
@@ -13,7 +12,15 @@ export async function GET() {
   if (!user) return json({ error: "Akses khusus administrator." }, 401);
   if (!isModuleAvailableForUser(user, "cms")) return json({ error: "Layanan CMS sedang dinonaktifkan atau diblokir untuk akun ini." }, 403);
   if (!env.DB) return json({ error: "Database belum tersedia." }, 503);
-  return json({ settings: await getPublicPolicySettings() });
+  try {
+    const row = await env.DB.prepare("SELECT data FROM settings WHERE key='public-policies'").first();
+    const settings = row?.data
+      ? validatePublicPolicySettings(JSON.parse(String(row.data)))
+      : defaultPublicPolicySettings;
+    return json({ settings });
+  } catch {
+    return json({ error: "Pengaturan kebijakan belum dapat dimuat. Coba kembali." }, 503);
+  }
 }
 
 export async function PUT(request: Request) {
@@ -42,6 +49,10 @@ export async function PUT(request: Request) {
     return json({ ok: true, settings: persisted });
   } catch (error) {
     if (error instanceof RequestBodyError) return json({ error: error.message }, error.status);
-    return json({ error: error instanceof Error ? error.message : "Pengaturan kebijakan belum tersimpan." }, 400);
+    const message = error instanceof Error ? error.message : "Pengaturan kebijakan belum tersimpan.";
+    if (message.includes("Database belum dapat menyimpan perubahan")) {
+      return json({ error: "Database belum dapat menyimpan perubahan. Coba kembali." }, 503);
+    }
+    return json({ error: message }, 400);
   }
 }
