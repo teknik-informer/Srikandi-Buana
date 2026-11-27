@@ -429,7 +429,7 @@ export const SOCIAL_ICON: Record<SiteSocialPlatform, typeof Instagram> = {
   email: Mail,
 };
 
-export function PublicFooter({ settings }: { settings: PublicSiteSettings }) {
+export function PublicFooter({ settings, policiesEnabled = false }: { settings: PublicSiteSettings; policiesEnabled?: boolean }) {
   const live = settings.footer.showSocial ? settings.socials.filter((social) => social.enabled) : [];
   const footerGroups = settings.footer.groups
     .map((group) => ({ ...group, items: group.items.filter((item) => item.enabled && isSitePathEnabled(item.href, settings)) }))
@@ -546,7 +546,10 @@ export function PublicFooter({ settings }: { settings: PublicSiteSettings }) {
           {settings.footer.showCopyright ? (
             <p>© {new Date().getFullYear()} {settings.identity.creditName || settings.identity.siteName}. {settings.footer.copyrightText}</p>
           ) : <span />}
-          <div className="text-[10.5px] text-[#93b6a0]">{settings.identity.tagline}</div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="text-[10.5px] text-[#93b6a0]">{settings.identity.tagline}</div>
+            {policiesEnabled ? <Link href="/kebijakan" className="text-[10.5px] text-[#c4d8ca] underline decoration-white/20 underline-offset-4 hover:text-white">Kebijakan & privasi</Link> : null}
+          </div>
         </div>
       </div>
     </footer>
