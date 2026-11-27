@@ -123,7 +123,7 @@ export function normalizePublicPolicySettings(input: unknown): PublicPolicySetti
         summary: typeof raw.summary === "string" ? raw.summary : "",
         version: typeof raw.version === "string" ? raw.version : "1.0",
         effectiveDate: typeof raw.effectiveDate === "string" ? raw.effectiveDate : "",
-        status: raw.status === "published" || raw.status === "inactive" ? raw.status : "draft",
+        status: (raw.status === "published" || raw.status === "inactive" ? raw.status : "draft") as PolicyStatus,
         sections: Array.isArray(raw.sections) ? raw.sections.filter(isRecord).map((item, sectionIndex) => ({
           id: typeof item.id === "string" ? item.id : "section-" + index + "-" + sectionIndex,
           heading: typeof item.heading === "string" ? item.heading : "",
