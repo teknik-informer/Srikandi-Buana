@@ -32,7 +32,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const access = await authorizedUser();
-  if (access.response || !access.user) return access.response;
+  if (access.response) return access.response;
+  if (!access.user) return json({ error: "Akses khusus administrator sistem." }, 401);
   if (
     request.headers.get("origin") !== new URL(request.url).origin &&
     request.headers.get("sec-fetch-site") !== "same-origin"
