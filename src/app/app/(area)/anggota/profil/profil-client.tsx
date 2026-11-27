@@ -119,7 +119,7 @@ export function ProfilClient({
     return (
       <div className="pb-10">
         <header className="mb-5 border-b border-line pb-4">
-          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <div className="sb-label mb-1.5">Akun & profil</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
         </header>
         <Notice tone="danger" title="Profil belum dapat dimuat">
@@ -134,7 +134,7 @@ export function ProfilClient({
     return (
       <div className="pb-10">
         <header className="mb-5 border-b border-line pb-4">
-          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <div className="sb-label mb-1.5">Akun & profil</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
         </header>
         <Notice tone="warning" title="Data anggota belum terhubung">
@@ -152,7 +152,7 @@ export function ProfilClient({
     <div className="pb-10">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
         <div>
-          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <div className="sb-label mb-1.5">Akun & profil</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
           <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
             Data tampilan dan kontak dapat Anda perbarui. Identitas legal serta status keanggotaan resmi tetap dikelola Sekretariat.

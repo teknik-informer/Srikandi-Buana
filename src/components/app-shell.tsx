@@ -217,7 +217,7 @@ export function AppShell({
                       <div className="mt-1.5 text-[10.5px] leading-snug text-muted2">{identity.note}</div>
                     </div>
                     <div className="border-t border-line px-2 py-2">
-                      <Link href="/app/anggota/profil" className="flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-[11.5px] text-ink2 hover:bg-surface2">Profil &amp; preferensi</Link>
+                      <Link href="/app/profil" className="flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-[11.5px] text-ink2 hover:bg-surface2">Profil &amp; preferensi</Link>
                       <Link href="/bantuan" className="flex items-center gap-2 rounded-[7px] px-2 py-1.5 text-[11.5px] text-ink2 hover:bg-surface2">Pusat bantuan</Link>
                       <form action={logout}>
                         <button
@@ -398,7 +398,7 @@ export function AppShell({
             <p className="mt-1 text-[10.5px] leading-relaxed text-muted">
               Periksa dan perbarui informasi profil melalui ruang anggota. Data kelengkapan akan ditampilkan setelah terhubung ke sumber data profil.
             </p>
-            <Link href="/app/anggota/profil" className="mt-2 inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300 hover:text-primary-800">
+            <Link href="/app/profil" className="mt-2 inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300 hover:text-primary-800">
               Lihat Profil <ArrowRight size={11} />
             </Link>
           </div>
