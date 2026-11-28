@@ -33,6 +33,7 @@ export default async function FileManagerPage({
   const sql = getV9Sql();
   const files = rowsFromResult<FileRow>(await sql`
     SELECT asset.id::text AS id, asset.uploaded_by::text AS uploaded_by, asset.file_name,
+      COALESCE(asset.mime_type, 'application/octet-stream') AS mime_type,
       asset.size_bytes::int AS size_bytes, asset.category, asset.scope_kind,
       asset.created_at::text AS created_at
     FROM v9.file_assets AS asset
@@ -129,8 +130,9 @@ export default async function FileManagerPage({
           <div className="grid gap-2 p-3 sm:p-4">
             {files.map((file) => {
               const canShare = file.uploaded_by === identity.userId || can(identity, "files:manage");
-              const printable = file.mime_type === "application/pdf" || file.mime_type.startsWith("image/");
-              const ImageType = file.mime_type.startsWith("image/") ? FileImage : file.mime_type.includes("spreadsheet") ? FileSpreadsheet : FileIcon;
+              const mimeType = file.mime_type || "application/octet-stream";
+              const printable = mimeType === "application/pdf" || mimeType.startsWith("image/");
+              const ImageType = mimeType.startsWith("image/") ? FileImage : mimeType.includes("spreadsheet") ? FileSpreadsheet : FileIcon;
               return (
                 <article key={file.id} className="group flex min-w-0 flex-col gap-3 rounded-[13px] border border-line bg-white p-3 transition hover:border-[#b8d0bd] hover:shadow-[0_8px_24px_-20px_rgba(12,49,27,.45)] sm:flex-row sm:items-center sm:justify-between sm:p-3.5">
                   <div className="flex min-w-0 items-start gap-3">
