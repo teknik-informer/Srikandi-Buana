@@ -503,7 +503,7 @@ The latest exact-head run #1037 passed on commit `a7d07b52cf247b40dcbbc3c2aa9146
 
 For each of the six finance relations, the fixture now has an A/B visibility assertion, at least one cross-tenant UPDATE or DELETE attempt that must affect zero rows (plus the explicit finance-account and journal INSERT denials), and a positive same-tenant mutation. The assertions execute as `v9_app` with the tenant-A verified transaction context; fixture setup is done by the disposable CI migration owner.
 
-The remaining finance gaps are lifecycle-specific, not basic row-boundary coverage: journal post/reversal, period close/reopen, budget approval/close, contribution allocation, and receipt-to-posted-journal linkage remain separate tests. The Browser/Finance UI is not declared UAT-complete.
+The finance lifecycle-specific database coverage is now automated in `tests/postgres16/finance-lifecycle-integration.sql`: journal submit/independent approval/post, one-time reversal and swapped-line invariants, budget submit/independent approval/close guard, member-contribution allocation cap/audited correction/immutable delete, exact posted-sale receipt linkage and rejection of mismatch/relink/unlink, plus period overlap/close blocker/close-reopen-reclose/audit retention. Exact-head CI #1060 on commit `3f0b2be22c2e08a9d62fd031dbbe01d21b454237` passed this suite and the full tenant RLS, payment concurrency, TypeScript, and Next.js build jobs. The Browser/Finance/POS UI and actual server-action CTE side effects are still not declared UAT-complete.
 
 ### 12.8 Field application tenant identity and route migration
 
@@ -541,9 +541,9 @@ A separate `tests/postgres16/tenant-rls-payment-concurrency.sh` test runs two in
 
 Remaining business-order gates are not inferred as complete from those database assertions:
 - application CTEs for confirm/reserve, fulfil/deduct-and-record-sale, cancel/release-reservation and POS payment need end-to-end regression/UAT with legitimate users;
-- the one-time receipt-to-posted-journal linkage branch and matching journal-line invariants still need positive and negative integration tests;
-- audit/no-side-effect expectations and the application/browser Finance/POS experience still need explicit coverage.
-Issue #90 remains open for the live-QA migration 0045 application gate, remaining finance and business lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
+- database-level positive and negative receipt-to-posted-journal linkage is now covered by the finance lifecycle fixture; application action/browser wiring and audit/no-side-effect behavior remain to be verified end to end;
+- the application/browser Finance/POS experience, exports/downloads/share mappings and operational evidence still need explicit coverage.
+Issue #90 remains open for the live-QA migration 0045 application gate, application lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
 
 ### 12.10 Migration 0045 execution readiness and recovery plan
 
@@ -552,3 +552,35 @@ A dedicated operator runbook is now committed at `docs/security/migration-0045-q
 A fresh read-only check on 28 Nov 2026 reconfirmed that the QA branch is `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx`, state `ready`, non-default and non-primary, with PostgreSQL 18.7. The live catalog remains pre-migration: `PRIMARY KEY (field_key)`, `UNIQUE (route)`, the retained composite `UNIQUE (field_key, organization_id)`, no 0045 ledger row, and 17 incoming operational foreign keys, all composite. Four rows exist across one organization, with no NULL identity/route values and no duplicate tenant-scoped key or route groups.
 
 This is a prepared and reviewed runbook, **not migration execution approval**. Migration 0045 remains unapplied on live QA. Apply only after separate explicit approval naming this exact QA branch and migration. The runbook's rollback is conditional: it must abort if any duplicate `field_key` or `route` values across organizations exist, because the former global unique constraints could not then be restored safely. No Production operation is authorized.
+
+
+### 12.11 Finance lifecycle and reversal transaction correction
+
+The first lifecycle CI iteration exposed a genuine defect in `createFinanceReversalJournal`: the original single-command data-modifying CTE inserted a zero-total journal header, then inserted lines and updated the same header within that same SQL command. PostgreSQL did not make that same-command inserted row available to the subsequent update as the action assumed. The reversal draft therefore retained zero header totals and could not pass the journal submit guard.
+
+The branch now adds `db/migrations/0046_finance_reversal_draft_transaction.sql`, which defines `v9.create_finance_reversal_draft(...)` as a `SECURITY INVOKER` function. It checks the request actor and tenant, locks the original posted journal, enforces one reversal per original, creates the zero-total draft in a distinct statement, copies each line with debit/credit swapped, calculates totals in a subsequent statement, updates the header, and writes the audit event. The application action now calls this function using the normal four-argument form; the fifth optional journal ID parameter exists only to make CI fixtures deterministic. The function retains RLS and does not elevate execution privileges.
+
+A separate defect in `closeFinancePeriod` was fixed in the same branch: closing a reopened period no longer clears `reopened_by`, `reopened_at`, or `reopen_note`. Migration 0034 requires those reopening fields to remain intact when the period is re-closed, preserving the audit trail.
+
+The CI fixture now tests the database transitions and audit state as `v9_app` under authenticated organization-scoped actors. It includes independent writer/reviewer identities; the test data is synthetic and only created in the disposable PostgreSQL 16 service. The fixture covers journal post and reversal, budget approval and close blocking, contribution allocation and correction, receipt journal link rules, period overlap and close/reopen/re-close, and audit event completeness. It does not prove application UI/browser UAT or the business order confirm/fulfil/cancel CTE behavior.
+
+Migration 0046 is currently only part of the QA PR branch and disposable PostgreSQL 16 CI path. It has **not** been applied to the live Neon QA database. It has not been deployed to Production.
+
+### 12.12 Latest exact-head validation — run #1060
+
+GitHub Actions run #1060: [`46142219187`](https://github.com/teknik-informer/Srikandi-Buana/actions/runs/46142219187)  
+Exact tested commit: `3f0b2be22c2e08a9d62fd031dbbe01d21b454237`.
+
+Both jobs completed successfully:
+
+- `Tenant RLS PostgreSQL 16 integration`: success.
+- `Typecheck and production build`: success, including TypeScript validation and Next.js production build.
+
+The PostgreSQL 16 log explicitly records:
+- `PASS PostgreSQL 16 tenant RLS integration: 63/63 FORCE RLS`;
+- `PASS PostgreSQL 16 finance lifecycle`, including journal review/post/reversal, budget guards, contribution allocation cap/correction, exact one-time receipt journal link, period close/reopen/re-close metadata, and audit events;
+- `PASS PostgreSQL 16 concurrent payment guard`: one receipt committed, the concurrent overpayment rejected, final total IDR 6,000.
+
+The overpayment error emitted by the second concurrent session is the expected negative-test outcome; the runner confirms the committed single-receipt final state and exits successfully. This run is evidence for the exact commit above only. It does not apply any migration to live Neon QA or Production, and it is not browser UAT or an independent security review.
+
+PR #92 remains Draft/Open/Unmerged. Issue #90 remains Open. Migration 0045 remains unapplied on live QA pending explicit authorization for the exact target branch and migration.
