@@ -718,3 +718,19 @@ The exact-target and least-privilege runtime principal acceptance gate is now co
 **Interpretation:** the runtime diagnostic proves target pinning, application-role identity, absence of elevated role/DDL privileges, and transaction-local isolation for the tested session. It is not evidence that the entire UI CRUD surface, all downloads/exports/shares, Finance/POS business workflows, or all negative cross-tenant paths passed. Those functional acceptance tests remain open.
 
 No credentials, session tokens, connection URLs, organization data, or table contents were shared in the diagnostic result. The read-only probe made no database or application data changes.
+
+
+### 12.18 Secretariat functional UAT repair — 28 Nov 2026
+
+**Observed user report:** in authenticated Preview, the Surat Masuk/Keluar tabs did not appear to change the table although the Surat Keluar indicator showed one row. The user confirmed that the registration modal opened and the Generator saved the outgoing-letter document as a draft, but the next step was not apparent.
+
+**Code repair (Preview QA branch only):**
+
+- Replaced the letter direction's client-only segmented state control with server-validated URL navigation: `/app/sekretariat/surat?direction=masuk` and `?direction=keluar`. The server page passes the validated direction to the client, and table contents, headings and labels are derived from it.
+- Changed Generator buttons to “Simpan draf & lanjutkan” / “Simpan revisi & lanjutkan” and added an explicit explanation that saving opens the review page.
+- Added a top-of-page next-step panel on generated drafts: review the naskah, print or save PDF, then finalize only after approval by an authorized person. Finalization remains an explicit action; draft status is not silently promoted.
+- Kept the existing server-side post-save redirect to `/app/sekretariat/dokumen/{id}/cetak?result=created|revised` and added static regression assertions for the redirect and next-step UI. No existing operational or test record was modified.
+
+**Evidence:** commit `bff57cc9bec71de57632af02537c71a183af0df9`; GitHub Actions run #1103 passed the PostgreSQL 16 RLS integration, regression/contract checks, TypeScript validation, and Next.js production build. Exact Preview deployment `dpl_AgS2rD7YuNCg2ru2xMtxobBAMHy5` is READY at https://admin-dashboard-o59wr0vx9-teknik-informer.vercel.app. Public-route smoke checks passed, protected module routes presented the sign-in surface without an application session, and no Preview runtime error/fatal records were returned for the latest 30-minute query.
+
+**Not yet accepted:** an authenticated user retest of tab switching and post-save continuation is still required. The deployment smoke test does not substitute for browser UAT with the user's authenticated session. No QA business data or database state was changed. Production remains untouched, and PR #92 remains Draft/Open/Unmerged pending all independent security and UAT gates.
