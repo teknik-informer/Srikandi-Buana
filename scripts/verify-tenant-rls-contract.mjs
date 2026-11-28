@@ -51,6 +51,14 @@ assert.match(migration, /FORCE ROW LEVEL SECURITY/i, "FORCE RLS must be explicit
 assert.match(migration, /CREATE POLICY/i, "RLS policy definitions must be included.");
 assert.match(migration, /External viewers have no database access to operational tenant tables/, "External viewer roles must remain deny-by-default until scoped grants exist.");
 assert.match(migration, /government_viewer', 'ngo_viewer', 'partner_viewer/, "Government, NGO and partner viewer roles must be denied operational tenant policies.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_fields\(\)/, "Public field registry must be exposed via an allowlisted projection.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_products\(/, "Public product data must be projected through a fixed column allow-list.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_activities\(/, "Public activity data must be limited to explicitly open events.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_training_sessions\(/, "Public training data must expose aggregate counts only.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_documents\(/, "Public documents must be listed through a fixed projection.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_document_file\(/, "Public document download must use a fixed projection.");
+assert.match(migration, /get_public_training_sessions\(boolean,integer\)/, "Public training projection execute privilege must be explicitly granted.");
+
 assert.match(migration, /SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, v9/i, "Policy helpers must pin search_path.");
 assert.match(migration, /current_setting\('v9\.share_token_hash', true\)/, "Public share access must be token-scoped to the transaction-local hashed token.");
 assert.match(migration, /_public_banner_asset/i, "Public banner access must be narrowly scoped.");
