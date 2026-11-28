@@ -1082,6 +1082,13 @@ BEGIN
 END
 $drop_existing_policies$;
 
+-- Remove legacy SECURITY DEFINER helpers that exposed complete person/account
+-- rows to same-organization callers. Their policies were removed above; keep
+-- the name-only community projection below as the only author lookup surface.
+DROP FUNCTION IF EXISTS v9._account_row_visible(uuid);
+DROP FUNCTION IF EXISTS v9._community_membership_visible(uuid);
+DROP FUNCTION IF EXISTS v9._community_person_visible(uuid);
+
 -- Direct organization/field/member scoped operational tables.
 DO $policies$
 DECLARE item record;
@@ -1530,5 +1537,10 @@ REVOKE UPDATE (download_count, revoked_at) ON TABLE v9.file_share_links FROM v9_
 GRANT UPDATE (download_count, revoked_at) ON TABLE v9.file_share_links TO v9_app;
 
 INSERT INTO v9.schema_migrations (name, checksum)
-VALUES ('0044_tenant_row_level_security.sql', 'sha256:tenant-row-level-security-v1')
-ON CONFLICT (name) DO NOTHING;
+VALUES (
+  '0044_tenant_row_level_security.sql',
+  'sha256:tenant-row-level-security-v2-transaction-context-privacy-policy-20261128'
+)
+ON CONFLICT (name) DO UPDATE
+SET checksum = EXCLUDED.checksum,
+    applied_at = now();
