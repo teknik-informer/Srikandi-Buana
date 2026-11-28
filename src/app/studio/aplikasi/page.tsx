@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Network } from "lucide-react";
 import {
-  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
+  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, ComingSoonBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
@@ -61,7 +61,7 @@ export default async function AplikasiStudio() {
         eyebrow="Application Studio"
         title="Registry aplikasi bidang"
         description="Status aplikasi bidang berasal dari registry organisasi. Daftar rute aplikasi inti dikelola melalui rilis kode; pembuatan instance, penggandaan template, dan perubahan menu belum tersedia sebagai operasi tersimpan."
-        actions={<Link href="/studio/organisasi" className="sb-btn sb-btn-outline">Organization Studio <ArrowRight size={13} /></Link>}
+        actions={<div className="flex flex-wrap items-center gap-2"><ComingSoonBadge label="Template & cloning" /><Link href="/studio/organisasi" className="sb-btn sb-btn-outline">Organization Studio <ArrowRight size={13} /></Link></div>}
       />
 
       {unavailable ? (
@@ -119,7 +119,7 @@ export default async function AplikasiStudio() {
             ))}
           </div>
         </Card>
-        <Notice tone="warning" title="Template dan pengaturan instance belum dapat diubah">
+        <Notice tone="warning" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Template & cloning" /> Template dan pengaturan instance belum dapat diubah</span>}>
           Registry template, cloning aplikasi, susunan menu per instance, serta status modul turunan belum memiliki penyimpanan konfigurasi dan riwayat perubahan pada platform. Studio tidak menampilkan tombol seolah-olah perubahan tersebut sudah tersimpan.
         </Notice>
       </div>
