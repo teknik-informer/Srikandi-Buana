@@ -544,6 +544,11 @@ BEGIN
         FROM v9.member_community_replies AS reply
         WHERE reply.organization_id = actor.organization_id
           AND reply.author_user_id = p_user_id
+      ) AND NOT EXISTS (
+        SELECT 1
+        FROM v9.member_community_reports AS report
+        WHERE report.organization_id = actor.organization_id
+          AND report.reporter_user_id = p_user_id
       ) THEN
         RETURN NULL;
       END IF;
