@@ -653,6 +653,180 @@ END
 $public_share$;
 COMMIT;
 
+-- Public data projections expose only published/public fields and aggregate
+-- counts; direct table reads by an anonymous v9_app session remain default-deny.
+INSERT INTO v9.field_activities (
+  id, organization_id, field_key, reference_no, title, activity_date,
+  status, open_to_public, created_by
+) VALUES
+  ('a1000000-0000-4000-8000-0000000000a1',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'ci-pertanian', 'CI-ACT-PUBLIC', 'Kegiatan publik QA',
+   current_date + 3, 'scheduled', true, '40000000-0000-4000-8000-000000000004'),
+  ('a2000000-0000-4000-8000-0000000000a2',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'ci-pertanian', 'CI-ACT-PRIVATE', 'Kegiatan internal QA',
+   current_date + 4, 'scheduled', false, '40000000-0000-4000-8000-000000000004');
+
+INSERT INTO v9.business_products (
+  id, organization_id, field_key, sku, slug, product_name,
+  category_label, product_kind, unit_label, selling_price, status,
+  publication_status, track_stock, created_by, published_by, published_at
+) VALUES
+  ('a3000000-0000-4000-8000-0000000000a3',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'usaha', 'CI-PRODUCT-PUBLIC', 'produk-publik-qa', 'Produk publik QA',
+   'Hortikultura', 'physical', 'kg', 15000, 'active',
+   'published', true, '40000000-0000-4000-8000-000000000004',
+   '40000000-0000-4000-8000-000000000004', now()),
+  ('a4000000-0000-4000-8000-0000000000a4',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'usaha', 'CI-PRODUCT-PRIVATE', 'produk-private-qa', 'Produk internal QA',
+   'Hortikultura', 'physical', 'kg', 999999, 'draft',
+   'private', true, '40000000-0000-4000-8000-000000000004',
+   NULL, NULL);
+
+INSERT INTO v9.training_sessions (
+  id, organization_id, field_key, reference_no, title,
+  session_date, status, created_by
+) VALUES
+  ('a5000000-0000-4000-8000-0000000000a5',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'pelatihan', 'CI-TRAINING-OPEN', 'Pelatihan publik QA',
+   current_date + 5, 'registration_open', '40000000-0000-4000-8000-000000000004'),
+  ('a6000000-0000-4000-8000-0000000000a6',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'pelatihan', 'CI-TRAINING-COMPLETE', 'Pelatihan selesai QA',
+   current_date - 5, 'completed', '40000000-0000-4000-8000-000000000004');
+
+INSERT INTO v9.training_sessions (
+  id, organization_id, field_key, reference_no, title,
+  session_date, status, completed_at, created_by
+) VALUES (
+  'a7000000-0000-4000-8000-0000000000a7',
+  (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+  'pelatihan', 'CI-TRAINING-COMPLETE-2', 'Pelatihan selesai kedua QA',
+  current_date - 7, 'completed', now(), '40000000-0000-4000-8000-000000000004'
+);
+
+INSERT INTO v9.training_enrollments (
+  id, organization_id, field_key, session_id, participant_name,
+  registration_status, attendance_status, recorded_by,
+  attendance_recorded_by, attendance_recorded_at
+) VALUES
+  ('a8000000-0000-4000-8000-0000000000a8',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'pelatihan', 'a5000000-0000-4000-8000-0000000000a5',
+   'CI PRIVATE PARTICIPANT OPEN', 'confirmed', 'not_marked',
+   '40000000-0000-4000-8000-000000000004', NULL, NULL),
+  ('a9000000-0000-4000-8000-0000000000a9',
+   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
+   'pelatihan', 'a6000000-0000-4000-8000-0000000000a6',
+   'CI PRIVATE PARTICIPANT COMPLETED', 'confirmed', 'hadir',
+   '40000000-0000-4000-8000-000000000004',
+   '40000000-0000-4000-8000-000000000004', now());
+
+BEGIN;
+SET LOCAL ROLE v9_app;
+DO $public_projections$
+DECLARE
+  field_count integer;
+  activity_count integer;
+  product_count integer;
+  training_count integer;
+  registered integer;
+  present integer;
+  document_count integer;
+  file_count integer;
+  direct_rows integer;
+  result_columns text;
+BEGIN
+  SELECT count(*) INTO field_count
+  FROM v9.get_public_fields()
+  WHERE field_key='ci-pertanian';
+  IF field_count <> 1 THEN
+    RAISE EXCEPTION 'Public field projection should return one active CI field.';
+  END IF;
+
+  SELECT count(*) INTO activity_count
+  FROM v9.get_public_activities('ci-pertanian', false, 100)
+  WHERE id='a1000000-0000-4000-8000-0000000000a1';
+  IF activity_count <> 1 THEN
+    RAISE EXCEPTION 'Public activity projection should return the explicitly open activity.';
+  END IF;
+
+  SELECT count(*) INTO activity_count
+  FROM v9.get_public_activities('ci-pertanian', false, 100)
+  WHERE id='a2000000-0000-4000-8000-0000000000a2';
+  IF activity_count <> 0 THEN
+    RAISE EXCEPTION 'Public activity projection leaked an internal activity.';
+  END IF;
+
+  SELECT count(*) INTO product_count
+  FROM v9.get_public_products(NULL, NULL, NULL, 200)
+  WHERE id='a3000000-0000-4000-8000-0000000000a3';
+  IF product_count <> 1 THEN
+    RAISE EXCEPTION 'Public product projection should return a published product.';
+  END IF;
+
+  SELECT count(*) INTO product_count
+  FROM v9.get_public_products(NULL, NULL, NULL, 200)
+  WHERE id='a4000000-0000-4000-8000-0000000000a4';
+  IF product_count <> 0 THEN
+    RAISE EXCEPTION 'Public product projection leaked a draft/private product.';
+  END IF;
+
+  SELECT registered_count INTO registered
+  FROM v9.get_public_training_sessions(false, 50)
+  WHERE id='a5000000-0000-4000-8000-0000000000a5';
+  IF registered <> 1 THEN
+    RAISE EXCEPTION 'Public training projection should expose only an aggregate registration count.';
+  END IF;
+
+  SELECT present_count INTO present
+  FROM v9.get_public_training_sessions(true, 20)
+  WHERE id='a6000000-0000-4000-8000-0000000000a6';
+  IF present <> 1 THEN
+    RAISE EXCEPTION 'Public completed training projection should expose only an aggregate attendance count.';
+  END IF;
+
+  SELECT pg_get_function_result('v9.get_public_training_sessions(boolean,integer)'::regprocedure)
+    INTO result_columns;
+  IF result_columns LIKE '%participant_name%' OR result_columns LIKE '%membership_id%' THEN
+    RAISE EXCEPTION 'Public training projection schema must not contain personal participant fields.';
+  END IF;
+
+  SELECT count(*) INTO document_count
+  FROM v9.get_public_documents(NULL, 200)
+  WHERE document_id='b0000000-0000-4000-8000-00000000000b';
+  IF document_count <> 1 THEN
+    RAISE EXCEPTION 'Public document projection should list the final public document.';
+  END IF;
+
+  SELECT count(*) INTO file_count
+  FROM v9.get_public_document_file('b0000000-0000-4000-8000-00000000000b');
+  IF file_count <> 1 THEN
+    RAISE EXCEPTION 'Public document file projection should return its latest public revision.';
+  END IF;
+
+  SELECT count(*) INTO direct_rows FROM v9.business_products;
+  IF direct_rows <> 0 THEN
+    RAISE EXCEPTION 'Anonymous runtime must not directly SELECT the product base table.';
+  END IF;
+
+  SELECT count(*) INTO direct_rows FROM v9.training_enrollments;
+  IF direct_rows <> 0 THEN
+    RAISE EXCEPTION 'Anonymous runtime must not directly SELECT training enrolments.';
+  END IF;
+
+  SELECT count(*) INTO direct_rows FROM v9.secretariat_documents;
+  IF direct_rows <> 0 THEN
+    RAISE EXCEPTION 'Anonymous runtime must not directly SELECT secretariat documents.';
+  END IF;
+END
+$public_projections$;
+COMMIT;
+
 -- Public banner projection: only the exact active banner referenced by an
 -- explicitly public public-site setting is visible without a tenant session.
 INSERT INTO v9.file_assets (
