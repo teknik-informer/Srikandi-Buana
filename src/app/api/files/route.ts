@@ -47,6 +47,9 @@ export async function POST(request: Request) {
     return fail("Permintaan lintas situs ditolak.", 403);
   }
 
+  let phase: "validation" | "cloudinary_upload" | "database_persist" = "validation";
+  let cloudinaryUploaded = false;
+
   try {
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > MAX_FILE_BYTES + 128 * 1024) {
@@ -74,6 +77,7 @@ export async function POST(request: Request) {
     if (bytes.byteLength > MAX_FILE_BYTES) return fail("Ukuran berkas melebihi 3 MiB.", 400);
 
     const id = randomUUID();
+    phase = "cloudinary_upload";
     const cloudinary = await uploadCloudinaryAsset({
       bytes,
       fileName,
@@ -81,6 +85,8 @@ export async function POST(request: Request) {
       organizationId: identity.organizationId,
       assetId: id,
     });
+    cloudinaryUploaded = true;
+    phase = "database_persist";
     const sql = getV9Sql();
     const inserted = await sql`
       WITH asset AS (
@@ -106,7 +112,7 @@ export async function POST(request: Request) {
         SELECT ${identity.organizationId}, ${identity.userId}, 'file.uploaded',
           'file_asset', asset.id::text,
           jsonb_build_object('file_name', asset.file_name, 'mime_type', asset.mime_type,
-            'size_bytes', asset.size_bytes, 'scope_kind', ${scope}, 'category', ${category})
+            'size_bytes', asset.size_bytes, 'scope_kind', ${scope}::text, 'category', ${category}::text)
         FROM asset
         RETURNING id
       )
@@ -121,9 +127,27 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
     });
   } catch (error) {
-    console.error("[file-upload] Upload failed", error instanceof Error ? error.name : "UnknownError");
+    const candidateCode =
+      error && typeof error === "object" && "code" in error ? error.code : null;
+    const databaseCode =
+      typeof candidateCode === "string" && /^[A-Z0-9]{5}$/.test(candidateCode)
+        ? candidateCode
+        : null;
+    const errorType = error instanceof Error ? error.name : "UnknownError";
+    console.error("[file-upload] Upload failed", {
+      phase,
+      errorType,
+      databaseCode: databaseCode ?? "unavailable",
+      cloudinaryUploaded,
+    });
+    if (cloudinaryUploaded && phase === "database_persist") {
+      return fail(
+        "Berkas sudah diterima penyimpanan Cloudinary, tetapi metadata aplikasi belum tersimpan. Jangan unggah ulang berkas yang sama; administrator perlu memulihkan pencatatannya.",
+        502,
+      );
+    }
     return fail(error instanceof Error && error.message.includes("not configured")
       ? "Layanan penyimpanan belum dikonfigurasi oleh administrator."
-      : "Unggahan gagal. Periksa berkas dan koneksi, lalu coba kembali.", 502);
+      : "Unggahan gagal pada tahap pengiriman ke penyimpanan. Periksa berkas dan koneksi, lalu coba kembali.", 502);
   }
 }
