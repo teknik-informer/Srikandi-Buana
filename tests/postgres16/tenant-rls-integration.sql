@@ -227,8 +227,8 @@ BEGIN
   SELECT count(*) INTO visible_count
   FROM v9.role_assignments
   WHERE user_id='40000000-0000-4000-8000-000000000004';
-  IF visible_count <> 1 THEN
-    RAISE EXCEPTION 'Password-verified login context should see its own active role assignment.';
+  IF visible_count <> 2 THEN
+    RAISE EXCEPTION 'Password-verified login context should see both active role assignments on its own account.';
   END IF;
 
   INSERT INTO v9.sessions (user_id, token_hash, expires_at)
