@@ -959,8 +959,8 @@ assert.ok(
   "The cashier/POS surface must use product wording and keep its data-source status explicit.",
 );
 assert.ok(
-  studioHome.includes('status: "Daftar modul"') &&
-  studioHome.includes('status: "Daftar dashboard"') &&
+  studioHome.includes('status: "Modul domain live"') &&
+  studioHome.includes('status: "Dashboard aktif"') &&
   studioApplications.includes("Daftar rute aplikasi inti") &&
   !/Katalog route|daftar demo/i.test(studioApplications) &&
   fieldNavigation.includes('label: "Produk"') &&
