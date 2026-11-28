@@ -241,7 +241,8 @@ BEGIN
     'b9000000-0000-4000-8000-00000000000b',
     current_date,
     'QA reversal lifecycle',
-    'f1100000-0000-4000-8000-000000000110'
+    'f1100000-0000-4000-8000-000000000110',
+    'f5100000-0000-4000-8000-000000000510'
   );
   IF created_count <> 1 THEN
     RAISE EXCEPTION 'Expected exactly one eligible reversal draft; got %.', created_count;
@@ -257,7 +258,8 @@ BEGIN
     'b9000000-0000-4000-8000-00000000000b',
     current_date,
     'QA duplicate reversal must be rejected',
-    'f1100000-0000-4000-8000-000000000110'
+    'f1100000-0000-4000-8000-000000000110',
+    'f5110000-0000-4000-8000-000000000511'
   );
   IF duplicate_count <> 0 THEN
     RAISE EXCEPTION 'A second reversal of the same original journal was accepted.';
@@ -352,39 +354,70 @@ SELECT count(*) AS reversal_post_audit_rows FROM audit;
 COMMIT;
 
 DO $reversal_assertions$
-DECLARE original_row record; reversal_row record; line_mismatch_count integer;
+DECLARE
+  original_row record;
+  reversal_row record;
+  original_line_count integer;
+  reversal_line_count integer;
+  line_mismatch_count integer;
 BEGIN
   SELECT total_debit, total_credit INTO original_row
   FROM v9.finance_journals
-  WHERE id = 'b9000000-0000-4000-8000-00000000000b';
+  WHERE id = 'b9000000-0000-4000-8000-00000000000b'
+    AND organization_id = v9.get_public_organization_id();
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'The original posted journal was not visible to the test context.';
+  END IF;
 
   SELECT total_debit, total_credit, status, reversal_of_id INTO reversal_row
   FROM v9.finance_journals
-  WHERE id = 'f5100000-0000-4000-8000-000000000510';
+  WHERE id = 'f5100000-0000-4000-8000-000000000510'
+    AND organization_id = v9.get_public_organization_id();
 
-  IF reversal_row.status <> 'posted'
-    OR reversal_row.reversal_of_id <> 'b9000000-0000-4000-8000-00000000000b'::uuid
-    OR reversal_row.total_debit <> original_row.total_credit
-    OR reversal_row.total_credit <> original_row.total_debit
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'The reversal journal was not created at its deterministic test ID.';
+  END IF;
+
+  IF reversal_row.status IS DISTINCT FROM 'posted'
+    OR reversal_row.reversal_of_id IS DISTINCT FROM 'b9000000-0000-4000-8000-00000000000b'::uuid
+    OR reversal_row.total_debit IS DISTINCT FROM original_row.total_credit
+    OR reversal_row.total_credit IS DISTINCT FROM original_row.total_debit
   THEN
     RAISE EXCEPTION 'Posted reversal header does not exactly reverse its original journal.';
   END IF;
 
-  SELECT count(*) INTO line_mismatch_count
+  SELECT count(*)::integer INTO original_line_count
+  FROM v9.finance_journal_lines
+  WHERE journal_id = 'b9000000-0000-4000-8000-00000000000b'
+    AND organization_id = v9.get_public_organization_id();
+
+  SELECT count(*)::integer INTO reversal_line_count
+  FROM v9.finance_journal_lines
+  WHERE journal_id = 'f5100000-0000-4000-8000-000000000510'
+    AND organization_id = v9.get_public_organization_id();
+
+  SELECT count(*)::integer INTO line_mismatch_count
   FROM v9.finance_journal_lines AS original_line
-  FULL JOIN v9.finance_journal_lines AS reversal_line
+  LEFT JOIN v9.finance_journal_lines AS reversal_line
     ON reversal_line.journal_id = 'f5100000-0000-4000-8000-000000000510'
+    AND reversal_line.organization_id = original_line.organization_id
     AND reversal_line.line_number = original_line.line_number
     AND reversal_line.account_id = original_line.account_id
   WHERE original_line.journal_id = 'b9000000-0000-4000-8000-00000000000b'
+    AND original_line.organization_id = v9.get_public_organization_id()
     AND (
       reversal_line.id IS NULL
-      OR reversal_line.debit <> original_line.credit
-      OR reversal_line.credit <> original_line.debit
+      OR reversal_line.debit IS DISTINCT FROM original_line.credit
+      OR reversal_line.credit IS DISTINCT FROM original_line.debit
     );
 
-  IF line_mismatch_count <> 0 THEN
-    RAISE EXCEPTION 'Reversal lines do not swap every original debit/credit pair.';
+  IF original_line_count < 2
+    OR reversal_line_count <> original_line_count
+    OR line_mismatch_count <> 0
+  THEN
+    RAISE EXCEPTION 'Reversal lines do not exactly swap every original debit/credit pair: original %, reversal %, mismatches %.',
+      original_line_count, reversal_line_count, line_mismatch_count;
   END IF;
 END
 $reversal_assertions$;
