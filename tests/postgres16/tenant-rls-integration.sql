@@ -167,6 +167,71 @@ INSERT INTO v9.audit_events (
   'tenant-a'
 );
 
+-- Pre-authentication lookup and password-verified login context. The SQL
+-- test verifies database policy boundaries; password verification remains in
+-- the server action before login_user_id is ever supplied.
+BEGIN;
+SET LOCAL ROLE v9_app;
+SELECT set_config('v9.auth_flow', 'login', true);
+SELECT set_config('v9.login_email', 'tenant-rls-ci@invalid.example', true);
+SELECT set_config('v9.login_subject_hash', repeat('e',64), true);
+SELECT set_config('v9.login_ip_hash', repeat('f',64), true);
+DO $login_scope$
+DECLARE
+  visible_count integer;
+BEGIN
+  SELECT count(*) INTO visible_count
+  FROM v9.user_accounts
+  WHERE lower(email) = 'tenant-rls-ci@invalid.example';
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Pre-authentication lookup should see exactly the matching account.';
+  END IF;
+
+  SELECT count(*) INTO visible_count FROM v9.role_assignments;
+  IF visible_count <> 0 THEN
+    RAISE EXCEPTION 'Role assignments must remain hidden until password verification supplies login_user_id.';
+  END IF;
+
+  INSERT INTO v9.login_rate_limits (subject_hash, ip_hash, attempt_count)
+  VALUES (repeat('e',64), repeat('f',64), 0);
+
+  SELECT count(*) INTO visible_count
+  FROM v9.login_rate_limits
+  WHERE subject_hash=repeat('e',64) AND ip_hash=repeat('f',64);
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Login rate-limit context should see only its email/IP pair.';
+  END IF;
+
+  PERFORM set_config('v9.login_user_id', '40000000-0000-4000-8000-000000000004', true);
+
+  SELECT count(*) INTO visible_count
+  FROM v9.role_assignments
+  WHERE user_id='40000000-0000-4000-8000-000000000004';
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Password-verified login context should see its own active role assignment.';
+  END IF;
+
+  INSERT INTO v9.sessions (user_id, token_hash, expires_at)
+  VALUES (
+    '40000000-0000-4000-8000-000000000004',
+    repeat('9',64),
+    now() + interval '8 hours'
+  );
+
+  UPDATE v9.user_accounts
+  SET last_login_at=now()
+  WHERE id='40000000-0000-4000-8000-000000000004';
+  GET DIAGNOSTICS visible_count = ROW_COUNT;
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Password-verified login should update only its own account last_login_at.';
+  END IF;
+
+  DELETE FROM v9.login_rate_limits
+  WHERE subject_hash=repeat('e',64) AND ip_hash=repeat('f',64);
+END
+$login_scope$;
+COMMIT;
+
 -- Organization scope: positive on tenant A, negative on tenant B for SELECT,
 -- INSERT, UPDATE, DELETE, and audit side effects.
 BEGIN;
