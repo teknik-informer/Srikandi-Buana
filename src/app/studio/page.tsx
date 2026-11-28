@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Blocks, Building2, Database, GitBranch, Palette, Workflow } from "lucide-react";
-import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
+import { Badge, Card, CardHeader, Notice } from "@/components/ui";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { requireRoles } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Studio Pengelola" };
@@ -76,11 +78,15 @@ export default async function StudioHome() {
   await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <div className="pb-10">
-      <PageHeader
-        eyebrow="Studio Pengelola"
-        title="Beranda Studio"
-        description="Pusat kendali yang menunjukkan kemampuan nyata setiap builder. Status baca-saja, registry aktif, dan fitur yang belum memiliki penyimpanan dibedakan secara terbuka."
-        actions={<Link href="/" className="sb-btn sb-btn-outline">Lihat website publik</Link>}
+      <AppBanner
+        {...APP_IDENTITY.studio}
+        title="Studio Pengelola"
+        lead="Pusat kendali builder organisasi. Status baca-saja, registry aktif, dan fitur yang belum memiliki penyimpanan dijelaskan secara terbuka."
+        facts={[`${BUILDERS.length} area pengelolaan`, "Akses administrator"]}
+        actions={[
+          { href: "/studio/website", label: "Website Studio", primary: true },
+          { href: "/", label: "Lihat website publik" },
+        ]}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

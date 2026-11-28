@@ -6,11 +6,12 @@ import {
   CardHeader,
   EmptyState,
   Notice,
-  PageHeader,
   StatCard,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireIdentity } from "@/lib/session";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 
 interface FinanceOverview {
   account_count: number;
@@ -105,11 +106,19 @@ export async function FinanceDashboardSection() {
 
   return (
     <div className="pb-10">
-      <PageHeader
-        eyebrow="Keuangan Native"
-        title="Ringkasan keuangan"
-        description="Pusat pencatatan akuntansi organisasi. Saldo buku besar hanya berasal dari jurnal yang telah disetujui dan diposting."
-        actions={<Link href="/app/keuangan/jurnal" className="sb-btn sb-btn-primary">Buat jurnal</Link>}
+      <AppBanner
+        {...APP_IDENTITY.keuangan}
+        lead="Pusat pencatatan akuntansi organisasi. Saldo buku besar hanya berasal dari jurnal yang telah disetujui dan diposting."
+        facts={[
+          `${overview.active_account_count} akun aktif`,
+          `${overview.posted_journal_count} jurnal terposting`,
+          `${overview.submitted_journal_count} menunggu pemeriksaan`,
+          `${overview.draft_journal_count} draf jurnal`,
+        ]}
+        actions={[
+          { href: "/app/keuangan/jurnal", label: "Buat jurnal", primary: true },
+          { href: "/app/keuangan/buku-besar", label: "Buku besar" },
+        ]}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

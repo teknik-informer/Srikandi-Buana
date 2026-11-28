@@ -7,6 +7,8 @@ import { formatDateID, relativeID } from "@/lib/format";
 import { FIELDS_BY_SLUG } from "@/config/fields";
 import type { MemberAreaData } from "@/lib/member-area";
 import { MemberTrainingAction } from "@/components/member-training-action";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 
 const MEMBERSHIP_LABEL: Record<string, string> = {
   active: "Aktif",
@@ -39,20 +41,27 @@ export function AnggotaHomeClient({
 
   return (
     <div className="pb-10">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
-        <div>
-          <div className="sb-label mb-1.5">Portal Anggota · Data Organisasi</div>
-          <h1 className="font-display text-[25px] font-semibold leading-tight tracking-tight text-ink sm:text-[29px]">
-            Halo, {firstName}.
-          </h1>
-          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-muted">
-            Ringkasan keanggotaan, agenda, pelatihan, dan penugasan yang terhubung langsung dengan akun Anda.
-          </p>
-        </div>
-        <Link href="/app/anggota/profil" className="sb-btn sb-btn-primary min-h-[36px] !px-3 !text-[11.5px]">
-          <UserRound size={14} /> Profil saya
-        </Link>
-      </header>
+      <AppBanner
+        {...APP_IDENTITY.anggota}
+        title={`Halo, ${firstName}.`}
+        lead="Ringkasan keanggotaan, agenda, pelatihan, dan penugasan yang terhubung langsung dengan akun Anda."
+        badge={
+          <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
+            {memberActive ? "Anggota aktif" : profile ? "Status perlu ditinjau" : "Profil belum terhubung"}
+          </span>
+        }
+        facts={[
+          data.errors.includes("profile")
+            ? "Profil belum dapat dibaca"
+            : profile
+              ? "Keanggotaan " + (MEMBERSHIP_LABEL[profile.membershipStatus] ?? "belum tercatat").toLowerCase()
+              : "Profil anggota belum terhubung",
+          data.errors.includes("events") ? "Agenda belum dapat dimuat" : `${data.events.length} agenda mendatang`,
+          data.errors.includes("trainings") ? "Data pelatihan belum dapat dimuat" : `${trainingOpen.length} pelatihan dibuka`,
+          data.errors.includes("tasks") ? "Data tugas belum dapat dimuat" : `${openTasks.length} tugas aktif`,
+        ]}
+        actions={[{ href: "/app/anggota/profil", label: "Profil saya", primary: true }]}
+      />
 
       {data.errors.length > 0 ? (
         <div className="mb-4 space-y-2">

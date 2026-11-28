@@ -9,6 +9,8 @@ import { getIdentity, can } from "@/lib/session";
 import { canAccessApp } from "@/lib/app-access";
 import { Badge, Card, Notice } from "@/components/ui";
 import { AppIcon } from "@/components/brand";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 
 export const metadata: Metadata = { title: "Peta Bidang" };
 
@@ -138,47 +140,21 @@ export default async function BidangIndex() {
 
   return (
     <div className="pb-10">
-      <section className="relative isolate overflow-hidden rounded-[18px] bg-[#0f2c19]">
-        <img
-          src="/images/hero-kebun.jpg"
-          alt=""
-          aria-hidden
-          className="absolute inset-0 h-full w-full object-cover object-[58%_42%]"
-        />
-        <div
-          className="absolute inset-0 bg-[linear-gradient(96deg,rgba(8,35,20,0.97)_0%,rgba(11,43,25,0.94)_38%,rgba(13,49,28,0.66)_62%,rgba(15,55,32,0.24)_100%)]"
-          aria-hidden
-        />
-        <div className="relative px-5 py-5 sm:px-7 sm:py-6" data-contrast-bg="#0b2b18">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#dff0e2] ring-1 ring-inset ring-white/15">
-              Registry bidang organisasi
-            </span>
-            <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
-              {registryUnavailable ? "Status registry tidak tersedia" : enabledFields.length + " aplikasi bidang aktif dalam lingkup akun"}
-            </span>
-          </div>
-          <h1 className="mt-2.5 max-w-[24ch] font-display text-[25px] font-extrabold leading-[1.1] tracking-[-0.03em] text-white sm:text-[31px]">
-            Peta aplikasi bidang
-          </h1>
-          <p className="mt-2 max-w-[62ch] text-[13px] leading-relaxed text-[#cfe3d3]">
-            Identitas, mandat, dan status aplikasi diambil dari registry organisasi. Angka program dan tim dihitung dari catatan operasional yang tersimpan.
-          </p>
-          <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
-            {[
-              [registryUnavailable ? "—" : String(enabledFields.length), "aplikasi bidang aktif"],
-              [registryUnavailable ? "—" : String(configuredModuleCount), "modul terkonfigurasi"],
-              [registryUnavailable ? "—" : String(runningProgramCount), "program aktif"],
-              [String(activeApps.length), "aplikasi lintas bidang"],
-            ].map(([value, label]) => (
-              <div key={label} className="flex items-baseline gap-1.5">
-                <dt className="font-display text-[19px] font-extrabold text-white">{value}</dt>
-                <dd className="text-[11.5px] font-semibold text-[#cfe3d3]">{label}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+      <AppBanner
+        {...APP_IDENTITY.bidang}
+        badge={
+          <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
+            {registryUnavailable ? "Status registry tidak tersedia" : enabledFields.length + " aplikasi bidang aktif dalam lingkup akun"}
+          </span>
+        }
+        lead="Identitas, mandat, dan status aplikasi diambil dari registry organisasi. Angka program dan tim dihitung dari catatan operasional yang tersimpan."
+        facts={[
+          (registryUnavailable ? "—" : String(enabledFields.length)) + " aplikasi bidang aktif",
+          (registryUnavailable ? "—" : String(configuredModuleCount)) + " modul terkonfigurasi",
+          (registryUnavailable ? "—" : String(runningProgramCount)) + " program aktif",
+          String(activeApps.length) + " aplikasi lintas bidang",
+        ]}
+      />
 
       {registryUnavailable ? (
         <div className="mt-4">

@@ -6,12 +6,13 @@ import {
   CardHeader,
   EmptyState,
   Notice,
-  PageHeader,
   StatCard,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireIdentity } from "@/lib/session";
 import type { FieldDef } from "@/config/fields";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY, DEFAULT_IDENTITY } from "@/config/app-identity";
 
 interface FieldStats {
   member_count: number;
@@ -217,16 +218,23 @@ export async function FieldDashboard({ field }: { field: FieldDef }) {
 
   return (
     <div className="pb-10">
-      <PageHeader
-        eyebrow={field.name}
-        title={field.shortName}
-        description={field.mandate}
-        actions={
-          <>
-            <Link href={`${field.appHref}/rencana`} className="sb-btn sb-btn-outline">Rencana kerja</Link>
-            <Link href={`${field.appHref}/kegiatan`} className="sb-btn sb-btn-primary">Kegiatan</Link>
-          </>
+      <AppBanner
+        {...(APP_IDENTITY[field.slug] ?? DEFAULT_IDENTITY)}
+        facts={[
+          `${stats.member_count} anggota aktif bidang`,
+          `${stats.program_count} program tercatat`,
+          `${stats.scheduled_activity_count} kegiatan terjadwal`,
+          `${stats.open_task_count} tugas terbuka · ${stats.overdue_task_count} terlambat`,
+        ]}
+        badge={
+          <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
+            {field.appStatus === "aktif" ? "Aplikasi aktif" : `Status: ${field.appStatus}`}
+          </span>
         }
+        actions={[
+          { href: `${field.appHref}/rencana`, label: "Rencana kerja", primary: true },
+          { href: `${field.appHref}/kegiatan`, label: "Kegiatan" },
+        ]}
       />
 
       <Card className="mb-4">
