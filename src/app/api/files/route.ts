@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getIdentity, can } from "@/lib/session";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import {
-  MAX_FILE_BYTES, isAllowedFile, sanitizeStoredFileName, sha256Hex,
+  MAX_FILE_BYTES, getCloudinaryConfig, isAllowedFile, sanitizeStoredFileName, sha256Hex,
   uploadCloudinaryAsset, verifyFileSignature,
 } from "@/lib/cloudinary-files";
 
@@ -14,6 +14,30 @@ function fail(message: string, status: number) {
     status,
     headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
   });
+}
+
+export async function GET() {
+  const identity = await getIdentity();
+  if (!identity || !can(identity, "files:upload")) {
+    return fail("Akses pemeriksaan penyimpanan tidak diizinkan.", 403);
+  }
+
+  try {
+    getCloudinaryConfig();
+    return NextResponse.json({ ready: true }, {
+      headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+    });
+  } catch (error) {
+    const invalidConfiguration =
+      error instanceof Error && error.message.includes("invalid");
+    return NextResponse.json({
+      ready: false,
+      code: invalidConfiguration ? "invalid_configuration" : "not_configured",
+      error: "Layanan penyimpanan belum siap. Administrator perlu memeriksa konfigurasi Cloudinary.",
+    }, {
+      headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+    });
+  }
 }
 
 export async function POST(request: Request) {
