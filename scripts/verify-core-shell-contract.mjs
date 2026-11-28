@@ -315,19 +315,23 @@ const publicActivities = read("src/app/(public)/kegiatan/page.tsx");
 const publicProducts = read("src/app/(public)/produk/page.tsx");
 const publicPrograms = read("src/app/(public)/program/page.tsx");
 const publicNews = read("src/app/(public)/kabar/page.tsx");
+const publicRlsMigration = read("db/migrations/0044_tenant_row_level_security.sql");
 assert.ok(
-  publicDocuments.includes("document.status = 'final'") &&
-  publicDocuments.includes("document.visibility = 'publik'"),
-  "Public documents must be final and explicitly marked public.",
+  publicDocuments.includes("v9.get_public_documents") &&
+  publicRlsMigration.includes("document.status = 'final'") &&
+  publicRlsMigration.includes("document.visibility = 'publik'"),
+  "Public documents must use the allowlisted projection and remain final/public in the database.",
 );
 assert.ok(
-  publicActivities.includes("activity.open_to_public = true"),
-  "Public activity listings must require an explicit public-visibility flag.",
+  publicActivities.includes("v9.get_public_activities") &&
+  publicRlsMigration.includes("activity.open_to_public = true"),
+  "Public activity listings must use the allowlisted projection and require an explicit public-visibility flag.",
 );
 assert.ok(
-  publicProducts.includes("product.status = 'active'") &&
-  publicProducts.includes("product.publication_status = 'published'"),
-  "The public product catalogue must exclude inactive and unpublished products.",
+  publicProducts.includes("v9.get_public_products") &&
+  publicRlsMigration.includes("product.status = 'active'") &&
+  publicRlsMigration.includes("product.publication_status = 'published'"),
+  "The public product catalogue must use the allowlisted projection and exclude inactive/unpublished products.",
 );
 assert.ok(
   !publicPrograms.includes("@/data/operations") &&
