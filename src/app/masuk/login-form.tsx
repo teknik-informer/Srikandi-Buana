@@ -42,7 +42,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form className="login-form" onSubmit={submit} aria-busy={busy}>
+    <form className="login-form" method="post" onSubmit={submit} aria-busy={busy}>
       {notice && <p role="status" className="login-session-note">{notice}</p>}
       <label htmlFor="login-identity">Email atau nomor telepon</label>
       <input id="login-identity" name="identity" type="text" autoComplete="username" placeholder="Email atau nomor telepon" maxLength={180} required disabled={busy} />
