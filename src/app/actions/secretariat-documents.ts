@@ -836,14 +836,14 @@ export async function saveGeneratedSecretariatDocument(formData: FormData): Prom
             ) END,
           jsonb_build_object(
             'reference_no', next_revision.reference_no,
-            'template_code', ${template.code},
-            'template_name', ${template.name},
+            'template_code', ${template.code}::text,
+            'template_name', ${template.name}::text,
             'title', next_revision.title,
             'revision_no', generation.revision_no,
-            'content_sha256', ${contentSha256},
+            'content_sha256', ${contentSha256}::text,
             'status', next_revision.status,
-            'source_reference', ${sourceReference},
-            'source_field_key', ${resolvedSourceFieldKey}
+            'source_reference', ${sourceReference}::text,
+            'source_field_key', ${resolvedSourceFieldKey}::text
           )
         FROM next_revision
         INNER JOIN generation ON generation.document_id = next_revision.id
