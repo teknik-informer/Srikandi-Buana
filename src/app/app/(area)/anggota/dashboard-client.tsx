@@ -54,7 +54,7 @@ export function AnggotaHomeClient({
           data.errors.includes("profile")
             ? "Profil belum dapat dibaca"
             : profile
-              ? "Keanggotaan " + (MEMBERSHIP_LABEL[profile.membershipStatus] ?? "belum tercatat").toLowerCase()
+              ? "Keanggotaan " + (MEMBERSHIP_LABEL[profile.membershipStatus ?? ""] ?? "belum tercatat").toLowerCase()
               : "Profil anggota belum terhubung",
           data.errors.includes("events") ? "Agenda belum dapat dimuat" : `${data.events.length} agenda mendatang`,
           data.errors.includes("trainings") ? "Data pelatihan belum dapat dimuat" : `${trainingOpen.length} pelatihan dibuka`,
