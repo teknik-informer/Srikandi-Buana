@@ -35,6 +35,8 @@ assert.match(upload, /request\.headers\.get\("origin"\)/);
 assert.match(upload, /content-length/);
 assert.match(upload, /v9\.file_assets/);
 assert.match(upload, /file\.uploaded/);
+assert.ok(upload.includes("'scope_kind', ${scope}::text"), "JSONB audit scope values must have an explicit SQL type.");
+assert.ok(upload.includes("'category', ${category}::text"), "JSONB audit category values must have an explicit SQL type.");
 assert.match(download, /canReadAsset/);
 assert.match(download, /Content-Disposition/);
 assert.ok(download.includes("linked.revision_no !== linked.latest_revision"));
