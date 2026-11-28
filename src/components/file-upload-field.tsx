@@ -12,6 +12,7 @@ interface FileUploadFieldProps {
   category?: string;
   accept?: string;
   refreshOnSuccess?: boolean;
+  onUploaded?: (assetId: string) => void;
 }
 
 export function FileUploadField({
@@ -22,6 +23,7 @@ export function FileUploadField({
   category = "document",
   accept = ".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx,.pptx,.mp4",
   refreshOnSuccess = false,
+  onUploaded,
 }: FileUploadFieldProps) {
   const router = useRouter();
   const [assetId, setAssetId] = useState("");
@@ -42,6 +44,7 @@ export function FileUploadField({
       const payload = await response.json() as { id?: string; error?: string; message?: string };
       if (!response.ok || !payload.id) throw new Error(payload.error || "Unggahan gagal.");
       setAssetId(payload.id);
+      onUploaded?.(payload.id);
       setState("success");
       setMessage(payload.message || "Berkas berhasil diunggah.");
       if (refreshOnSuccess) router.refresh();

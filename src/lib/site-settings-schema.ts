@@ -33,10 +33,12 @@ export interface PublicProfileContent {
   sourcePreservedInArchive: boolean;
 }
 
+export type PublicHeroVariant = "cinematic" | "split" | "editorial" | "minimal";
+
 export interface PublicSiteSettings {
   schemaVersion: 1;
   identity: { siteName: string; tagline: string; logoUrl: string; creditName: string; creditLine: string };
-  hero: { eyebrow: string; title: string; subtitle: string; description: string; primaryLabel: string; primaryHref: string; secondaryLabel: string; secondaryHref: string };
+  hero: { variant: PublicHeroVariant; imageUrl: string; imageAssetId: string; imageAlt: string; eyebrow: string; title: string; subtitle: string; description: string; primaryLabel: string; primaryHref: string; secondaryLabel: string; secondaryHref: string };
   contact: { email: string; phone: string; whatsapp: string; address: string; officeHours: string };
   announcement: { enabled: boolean; text: string };
   features: Record<SiteFeatureKey, boolean>;
@@ -92,6 +94,7 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
   schemaVersion: 1,
   identity: { siteName: ORG.shortName, tagline: ORG.tagline, logoUrl: "/brand/wordmark-alpha.png", creditName: ORG.shortName, creditLine: "" },
   hero: {
+    variant: "cinematic", imageUrl: "/images/hero-pemanen.jpg", imageAssetId: "", imageAlt: "Aktivitas pertanian dan kebersamaan anggota Srikandi Buana",
     eyebrow: "Kelompok Wanita Tani", title: ORG.shortName, subtitle: "Bersama, Berkarya, Berdaya",
     description: "Ruang kerja bersama untuk mengelola organisasi, memperkuat kegiatan pertanian, dan mengembangkan kapasitas anggota secara bertahap.",
     primaryLabel: "Minat bergabung", primaryHref: "/gabung", secondaryLabel: "Lihat profil", secondaryHref: "/profil",
@@ -141,7 +144,21 @@ export function normalizePublicSiteSettings(input: unknown, profileContentInput?
   const value = (isRecord(input) ? input : {}) as Partial<PublicSiteSettings>;
   const base = DEFAULT_PUBLIC_SITE_SETTINGS;
   const identity = { ...base.identity, ...(isRecord(value.identity) ? value.identity : {}) };
-  const hero = { ...base.hero, ...(isRecord(value.hero) ? value.hero : {}) };
+  const rawHero = isRecord(value.hero) ? value.hero : {};
+  const allowedHeroVariants = new Set(["cinematic", "split", "editorial", "minimal"]);
+  const hero = {
+    ...base.hero,
+    ...rawHero,
+    variant: allowedHeroVariants.has(String(rawHero.variant)) ? rawHero.variant : base.hero.variant,
+    imageUrl: typeof rawHero.imageUrl === "string" && rawHero.imageUrl.length <= 500 &&
+      ((rawHero.imageUrl.startsWith("/") && !rawHero.imageUrl.startsWith("//")) ||
+       /^https:\/\/\S+$/i.test(rawHero.imageUrl))
+      ? rawHero.imageUrl : base.hero.imageUrl,
+    imageAssetId: typeof rawHero.imageAssetId === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawHero.imageAssetId)
+      ? rawHero.imageAssetId : "",
+    imageAlt: typeof rawHero.imageAlt === "string" ? rawHero.imageAlt.slice(0, 180) : base.hero.imageAlt,
+  };
   const contact = { ...base.contact, ...(isRecord(value.contact) ? value.contact : {}) };
   const announcement = { ...base.announcement, ...(isRecord(value.announcement) ? value.announcement : {}) };
   const features = { ...base.features, ...(isRecord(value.features) ? value.features : {}) };

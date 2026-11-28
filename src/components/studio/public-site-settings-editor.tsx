@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Plus, Trash2, Save, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import { savePublicSiteSettings, type SaveSiteSettingsState } from "@/app/actions/public-site-settings";
+import { FileUploadField } from "@/components/file-upload-field";
 import {
   SITE_FEATURE_LABELS, SITE_HOME_LABELS,
   type PublicSiteSettings, type SiteFeatureKey, type SiteHomeSectionKey,
@@ -202,9 +203,38 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
         </div>
       </section>
       <section className="rounded-xl border border-line bg-white p-4">
-        <h2 className="text-[13px] font-bold text-ink">Konten utama beranda</h2>
-        <p className="mb-4 mt-1 text-[10.5px] text-muted">Perbarui pesan utama tanpa mengganti struktur visual halaman.</p>
+        <h2 className="text-[13px] font-bold text-ink">Konten & visual Hero beranda</h2>
+        <p className="mb-4 mt-1 text-[10.5px] text-muted">Pilih satu dari empat komposisi Hero. Gaya sinematik tetap menjadi standar awal; pilihan baru tersimpan sebagai konfigurasi situs.</p>
         <div className="grid gap-3">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold text-ink2">Gaya Hero</span>
+            <select value={settings.hero.variant} onChange={(event) => patchHero({ variant: event.target.value as PublicSiteSettings["hero"]["variant"] })} className="sb-input w-full">
+              <option value="cinematic">01 · Cinematic — foto latar penuh (default)</option>
+              <option value="split">02 · Split — teks dan foto berdampingan</option>
+              <option value="editorial">03 · Editorial — tipografi dan foto berbingkai</option>
+              <option value="minimal">04 · Minimal — ringkas, bersih, fokus pesan</option>
+            </select>
+          </label>
+          <div className="rounded-xl border border-line bg-paper/70 p-3">
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-ink2"><ImageIcon size={14} /> Foto banner</div>
+            <div className="relative mb-3 aspect-[16/5] overflow-hidden rounded-lg bg-[#12351f]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={settings.hero.imageAssetId ? `/api/files/${settings.hero.imageAssetId}?disposition=inline` : settings.hero.imageUrl} alt={settings.hero.imageAlt} className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+              <div className="absolute bottom-2 left-3 text-[10px] font-semibold text-white">Pratinjau foto Hero</div>
+            </div>
+            <FileUploadField name="hero_banner_asset_id" label="Ganti foto banner (JPG, PNG, atau WebP)" scopeKind="organization" category="public-site-banner" accept="image/jpeg,image/png,image/webp" onUploaded={(assetId) => patchHero({ imageAssetId: assetId })} />
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <Field label="Path/URL foto cadangan" value={settings.hero.imageUrl} onChange={(imageUrl) => patchHero({ imageUrl, imageAssetId: "" })} maxLength={500} placeholder="/images/hero-pemanen.jpg" />
+              <Field label="Teks alternatif foto" value={settings.hero.imageAlt} onChange={(imageAlt) => patchHero({ imageAlt })} maxLength={180} />
+            </div>
+            {settings.hero.imageAssetId ? (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#cfe6d3] bg-[#f2faf3] px-3 py-2">
+                <span className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-[#17662f]"><CheckCircle2 size={13} /> Foto unggahan terpilih. Simpan pengaturan untuk menerbitkannya.</span>
+                <button type="button" onClick={() => patchHero({ imageAssetId: "" })} className="text-[10.5px] font-semibold text-[#17662f] underline">Gunakan foto cadangan</button>
+              </div>
+            ) : null}
+          </div>
           <Field label="Eyebrow" value={settings.hero.eyebrow} onChange={(eyebrow) => patchHero({ eyebrow })} maxLength={100} />
           <Field label="Judul utama" value={settings.hero.title} onChange={(title) => patchHero({ title })} maxLength={140} />
           <Field label="Subjudul" value={settings.hero.subtitle} onChange={(subtitle) => patchHero({ subtitle })} maxLength={180} />
