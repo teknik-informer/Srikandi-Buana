@@ -758,6 +758,7 @@ CREATE POLICY sessions_scope ON v9.sessions
   WITH CHECK (
     user_id = (SELECT actor.user_id FROM v9._request_actor() AS actor LIMIT 1)
     OR user_id = v9._login_user_id()
+    OR token_hash = NULLIF(current_setting('v9.session_token_hash', true), '')
   );
 
 CREATE POLICY login_rate_limits_scope ON v9.login_rate_limits
@@ -1024,6 +1025,19 @@ BEGIN
   END LOOP;
 END
 $grants$;
+
+-- Session revocation is the only runtime mutation to an existing session.
+-- A cookie-bound revoke remains possible after its own row is marked revoked,
+-- but the request cannot rewrite session ownership or expiry.
+REVOKE UPDATE ON TABLE v9.sessions FROM v9_app;
+REVOKE UPDATE (revoked_at) ON TABLE v9.sessions FROM v9_app;
+GRANT UPDATE (revoked_at) ON TABLE v9.sessions TO v9_app;
+
+-- A share token can increment its own download counter only. Authorized
+-- tenant users can revoke links, but neither path can rewrite token/asset/expiry.
+REVOKE UPDATE ON TABLE v9.file_share_links FROM v9_app;
+REVOKE UPDATE (download_count, revoked_at) ON TABLE v9.file_share_links FROM v9_app;
+GRANT UPDATE (download_count, revoked_at) ON TABLE v9.file_share_links TO v9_app;
 
 INSERT INTO v9.schema_migrations (name, checksum)
 VALUES ('0044_tenant_row_level_security.sql', 'sha256:tenant-row-level-security-v1')
