@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { getV9PublicShareSql, rowsFromResult } from "@/lib/db";
 import {
   attachmentDisposition, fetchCloudinaryAsset, sha256Hex, type StoredFileAsset,
 } from "@/lib/cloudinary-files";
@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return unavailable();
 
   try {
-    const sql = getV9Sql();
+    const sql = getV9PublicShareSql(sha256Hex(token));
     const consumed = await sql`
       WITH permitted AS (
         UPDATE v9.file_share_links AS link
