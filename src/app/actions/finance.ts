@@ -1235,118 +1235,15 @@ export async function createFinanceReversalJournal(formData: FormData): Promise<
   try {
     const sql = getV9Sql();
     const result = await sql`
-      WITH original AS MATERIALIZED (
-        SELECT
-          journal.id,
-          journal.organization_id,
-          journal.reference_no,
-          journal.description,
-          journal.budget_id
-        FROM v9.finance_journals AS journal
-        WHERE journal.id = ${originalJournalId}
-          AND journal.organization_id = ${identity.organizationId}
-          AND journal.status = 'posted'
-          AND journal.source_type <> 'reversal'
-          AND NOT EXISTS (
-            SELECT 1
-            FROM v9.finance_journals AS existing_reversal
-            WHERE existing_reversal.reversal_of_id = journal.id
-              AND existing_reversal.organization_id = journal.organization_id
-          )
-        FOR UPDATE
-      ),
-      original_lines AS MATERIALIZED (
-        SELECT
-          line.account_id,
-          line.line_number,
-          line.memo,
-          line.debit,
-          line.credit
-        FROM v9.finance_journal_lines AS line
-        INNER JOIN original
-          ON original.id = line.journal_id
-          AND original.organization_id = line.organization_id
-      ),
-      inserted AS (
-        INSERT INTO v9.finance_journals (
-          organization_id, journal_date, description, source_type,
-          source_reference, budget_id, idempotency_key, status, reversal_of_id, created_by
-        )
-        SELECT
-          original.organization_id,
-          ${reversalDate}::date,
-          'Pembalik ' || original.reference_no || ': ' || ${reason},
-          'reversal',
-          original.reference_no,
-          original.budget_id,
-          ${randomUUID()},
-          'draft',
-          original.id,
-          ${identity.userId}
-        FROM original
-        WHERE (SELECT count(*) FROM original_lines) >= 2
-        RETURNING id, organization_id, reference_no, journal_date,
-          description, status, reversal_of_id
-      ),
-      inserted_lines AS (
-        INSERT INTO v9.finance_journal_lines (
-          organization_id, journal_id, account_id, line_number, memo, debit, credit
-        )
-        SELECT
-          inserted.organization_id,
-          inserted.id,
-          original_lines.account_id,
-          original_lines.line_number,
-          concat_ws(' · ', 'Pembalik', NULLIF(original_lines.memo, '')),
-          original_lines.credit,
-          original_lines.debit
-        FROM inserted
-        CROSS JOIN original_lines
-        RETURNING journal_id, debit, credit
-      ),
-      totals AS (
-        SELECT
-          journal_id,
-          sum(debit)::numeric(18,2) AS debit_total,
-          sum(credit)::numeric(18,2) AS credit_total,
-          count(*)::int AS line_count
-        FROM inserted_lines
-        GROUP BY journal_id
-      ),
-      updated AS (
-        UPDATE v9.finance_journals AS journal
-        SET
-          total_debit = totals.debit_total,
-          total_credit = totals.credit_total,
-          updated_at = now()
-        FROM inserted
-        INNER JOIN totals ON totals.journal_id = inserted.id
-        WHERE journal.id = inserted.id
-          AND journal.organization_id = inserted.organization_id
-          AND totals.line_count = (SELECT count(*) FROM original_lines)
-        RETURNING journal.id, journal.organization_id, journal.reference_no,
-          journal.journal_date, journal.description, journal.status,
-          journal.total_debit, journal.total_credit, journal.reversal_of_id
-      ),
-      audit AS (
-        INSERT INTO v9.audit_events (
-          organization_id, actor_user_id, action, entity_type, entity_id, after_state
-        )
-        SELECT
-          organization_id,
-          ${identity.userId},
-          'finance_journal.reversal_draft_created',
-          'finance_journal',
-          id::text,
-          jsonb_build_object('reference_no', reference_no, 'journal_date', journal_date,
-            'description', description, 'status', status, 'total_debit', total_debit,
-            'total_credit', total_credit, 'reversal_of_id', reversal_of_id)
-        FROM updated
-        RETURNING id
-      )
-      SELECT updated.id::text AS id, updated.reference_no
-      FROM updated
-      INNER JOIN audit ON true
+      SELECT
+        reversal.id::text AS id,
+        reversal.reference_no
+      FROM v9.create_finance_reversal_draft(
+        ${originalJournalId}::uuid,
+        ${reversalDate}::date,
+        ${reason},
+        ${identity.userId}::uuid
+      ) AS reversal
     `;
     created = rowsFromResult<MutationRow>(result)[0];
   } catch (reasonError) {
