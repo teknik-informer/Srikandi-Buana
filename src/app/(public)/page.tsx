@@ -100,7 +100,7 @@ export default async function HomePage() {
         sql`
           SELECT field_key, name, short_name, mandate
           FROM v9.get_public_fields()
-          ORDER BY field_key
+          ORDER BY display_order, name
           LIMIT 8
         `,
         settings.home.products && settings.features.productCatalogue ? sql`
