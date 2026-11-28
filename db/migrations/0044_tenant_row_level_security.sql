@@ -865,6 +865,8 @@ DECLARE
   v_function regprocedure;
 BEGIN
   FOREACH v_function IN ARRAY ARRAY[
+    'v9._request_actor()'::regprocedure,
+    'v9._login_user_id()'::regprocedure,
     'v9._tenant_row_visible(uuid,text,uuid,uuid,uuid,uuid)'::regprocedure,
     'v9._can_manage_organization(uuid)'::regprocedure,
     'v9._person_row_visible(uuid)'::regprocedure,
