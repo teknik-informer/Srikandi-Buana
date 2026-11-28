@@ -220,6 +220,10 @@ BEGIN
 
   PERFORM set_config('v9.login_user_id', '40000000-0000-4000-8000-000000000004', true);
 
+  IF v9._login_user_id() IS DISTINCT FROM '40000000-0000-4000-8000-000000000004'::uuid THEN
+    RAISE EXCEPTION 'Password-verified login context resolver returned an unexpected account identifier.';
+  END IF;
+
   SELECT count(*) INTO visible_count
   FROM v9.role_assignments
   WHERE user_id='40000000-0000-4000-8000-000000000004';
