@@ -15,11 +15,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
     const result = await sql
       `SELECT setting_key, setting_value
        FROM v9.system_settings
-       WHERE organization_id = (
-         SELECT id FROM v9.organizations
-         WHERE slug = 'srikandi-buana' AND status = 'active'
-         LIMIT 1
-       )
+       WHERE organization_id = v9.get_public_organization_id()
          AND setting_key IN ('public_site', 'public_profile_content')
          AND visibility = 'public'
        ORDER BY CASE setting_key WHEN 'public_site' THEN 0 ELSE 1 END`;
