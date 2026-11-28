@@ -39,7 +39,7 @@ INSERT INTO v9.sessions (id, user_id, token_hash, expires_at)
 VALUES (
   'b8400000-0000-4000-8000-000000000840',
   'b8200000-0000-4000-8000-000000000820',
-  repeat('f',64),
+  repeat('b',64),
   now() + interval '2 hours'
 )
 ON CONFLICT (id) DO NOTHING;
@@ -175,7 +175,7 @@ ON CONFLICT (id) DO NOTHING;
 
 BEGIN;
 SET LOCAL ROLE v9_app;
-SELECT set_config('v9.session_token_hash', repeat('f',64), true);
+SELECT set_config('v9.session_token_hash', repeat('b',64), true);
 
 DO $actor_identity$
 DECLARE actor record;
