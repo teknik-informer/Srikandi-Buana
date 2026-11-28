@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Bell, ChevronDown, ChevronRight, LogOut, Menu, Plus, Search, X, Check,
   Settings, Mail, FileText, ListChecks, BarChart3, Activity, Target,
-  ClipboardCheck, CalendarDays, Users, Network, SlidersHorizontal, Home,
+  ClipboardCheck, CalendarDays, Users, Network, SlidersHorizontal, Home, LockKeyhole,
   CircleHelp, ArrowUpRight, ArrowRight, Facebook, Instagram, Youtube,
 } from "lucide-react";
 import { APPS, type AppKey } from "@/config/apps";
@@ -298,28 +298,46 @@ export function AppShell({
                   <div className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_28px_60px_-24px_rgba(15,26,43,0.45)] animate-rise">
                     <div className="flex items-center justify-between border-b border-line px-3.5 py-2">
                       <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted2">Ganti aplikasi</span>
-                      <span className="text-[10px] text-muted2">{availableApps.length} tersedia</span>
+                      <span className="text-[10px] text-muted2">{availableApps.filter((candidate) => !candidate.comingSoon).length} aktif · {availableApps.filter((candidate) => candidate.comingSoon).length} segera hadir</span>
                     </div>
                     <ul className="max-h-[min(62dvh,420px)] overflow-y-auto p-1.5">
                       {availableApps.map((a) => {
                         const active = a.key === activeApp;
                         return (
                           <li key={a.key}>
-                            <Link
-                              href={a.href}
-                              className={`flex items-center gap-2.5 rounded-[9px] px-2 py-1.5 transition ${
-                                active ? "bg-[#eaf6ec] ring-1 ring-inset ring-[#cfe6d3]" : "hover:bg-paper"
-                              }`}
-                            >
-                              <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[7px] ${active ? "bg-[#127e2f] text-white" : "bg-surface2 text-ink2"}`}>
-                                <AppIcon name={a.icon} size={13} />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[12px] font-semibold text-ink">{a.short}</span>
-                                <span className="block truncate text-[10px] text-muted">{a.audience}</span>
-                              </span>
-                              {active ? <Check size={13} className="shrink-0 text-[#127e2f]" /> : null}
-                            </Link>
+                            {a.comingSoon ? (
+                              <div
+                                aria-disabled="true"
+                                className="flex cursor-not-allowed items-center gap-2.5 rounded-[9px] px-2 py-1.5 opacity-75"
+                              >
+                                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] bg-surface2 text-muted2">
+                                  <AppIcon name={a.icon} size={13} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-[12px] font-semibold text-muted">{a.short}</span>
+                                  <span className="block truncate text-[10px] text-muted2">{a.audience}</span>
+                                </span>
+                                <span className="inline-flex shrink-0 items-center gap-1 text-[9.5px] font-semibold text-muted2">
+                                  <LockKeyhole size={11} /> Segera Hadir
+                                </span>
+                              </div>
+                            ) : (
+                              <Link
+                                href={a.href}
+                                className={`flex items-center gap-2.5 rounded-[9px] px-2 py-1.5 transition ${
+                                  active ? "bg-[#eaf6ec] ring-1 ring-inset ring-[#cfe6d3]" : "hover:bg-paper"
+                                }`}
+                              >
+                                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[7px] ${active ? "bg-[#127e2f] text-white" : "bg-surface2 text-ink2"}`}>
+                                  <AppIcon name={a.icon} size={13} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-[12px] font-semibold text-ink">{a.short}</span>
+                                  <span className="block truncate text-[10px] text-muted">{a.audience}</span>
+                                </span>
+                                {active ? <Check size={13} className="shrink-0 text-[#127e2f]" /> : null}
+                              </Link>
+                            )}
                           </li>
                         );
                       })}
