@@ -85,7 +85,7 @@ assert.ok(
 assert.ok(
   builder.includes("Setelah disimpan, aplikasi membuka naskah untuk pemeriksaan") &&
   builder.includes('existing ? "Simpan revisi & lanjutkan" : "Simpan draf & lanjutkan"') &&
-  actions.includes('redirect(`/app/sekretariat/dokumen/\u0024{saved.id}/cetak?result=\u0024{saved.operation}`)') &&
+  actions.includes("redirect(`/app/sekretariat/dokumen/${saved.id}/cetak?result=${saved.operation}`)") &&
   printPage.includes("Langkah berikutnya") &&
   printPage.includes("Periksa, cetak, lalu finalkan naskah") &&
   printPage.includes("Finalkan setelah diperiksa"),
