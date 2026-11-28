@@ -51,6 +51,9 @@ assert.match(migration, /FORCE ROW LEVEL SECURITY/i, "FORCE RLS must be explicit
 assert.match(migration, /CREATE POLICY/i, "RLS policy definitions must be included.");
 assert.match(migration, /External viewers have no database access to operational tenant tables/, "External viewer roles must remain deny-by-default until scoped grants exist.");
 assert.match(migration, /government_viewer', 'ngo_viewer', 'partner_viewer/, "Government, NGO and partner viewer roles must be denied operational tenant policies.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_organization_id\(\)/, "Public settings and public intake must resolve the tenant through an allowlisted organization ID helper.");
+assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_organization\(\)/, "Public organization identity must be returned through a fixed projection.");
+assert.match(migration, /id = \(SELECT actor\.organization_id/, "Organization base-table SELECT must be limited to an authenticated current actor or verified login context.");
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_fields\(\)/, "Public field registry must be exposed via an allowlisted projection.");
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_products\(/, "Public product data must be projected through a fixed column allow-list.");
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_activities\(/, "Public activity data must be limited to explicitly open events.");
