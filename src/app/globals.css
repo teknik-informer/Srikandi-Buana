@@ -6,6 +6,7 @@
 @import "../styles/presets/brutalist.css";
 @import "../styles/presets/soft-pop.css";
 @import "../styles/presets/tangerine.css";
+@import "../styles/presets/srikandi.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -207,14 +208,8 @@ These serve as the fallback; there is no separate default.css file. */
   html[data-font="geistMono"] body {
     --font-sans: var(--font-geist-mono);
   }
-  html[data-font="geistPixelSquare"] body {
-    --font-sans: var(--font-geist-pixel-square);
-  }
   html[data-font="jetBrainsMono"] body {
     --font-sans: var(--font-jetbrains-mono);
-  }
-  html[data-font="geistSerif"] body {
-    --font-sans: var(--font-geist-serif);
   }
   html[data-font="notoSerif"] body {
     --font-sans: var(--font-noto-serif);

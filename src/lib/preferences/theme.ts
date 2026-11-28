@@ -43,6 +43,14 @@ export const THEME_PRESET_OPTIONS = [
       dark: "oklch(0.64 0.17 36.44)",
     },
   },
+  {
+    label: "Srikandi",
+    value: "srikandi",
+    primary: {
+      light: "oklch(0.5191 0.1477 146.85)",
+      dark: "oklch(0.6288 0.1674 148.50)",
+    },
+  },
 ] as const;
 
 export const THEME_PRESET_VALUES = THEME_PRESET_OPTIONS.map((p) => p.value);
