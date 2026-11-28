@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowUpRight, GitBranch, ShieldCheck } from "lucide-react";
-import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
+import { Badge, Card, CardHeader, Notice, PageHeader, ComingSoonBadge } from "@/components/ui";
 
 import { requireRoles } from "@/lib/session";
 
@@ -30,7 +30,7 @@ export default async function RilisStudio() {
         eyebrow="Release Manager"
         title="Rilis, pratinjau & riwayat"
         description="Status build dan deployment diperiksa pada pipeline rilis. Halaman ini tidak menampilkan riwayat rilis contoh atau mengklaim publikasi yang belum dikonfirmasi."
-        actions={<Badge tone="neutral">Integrasi CI/CD</Badge>}
+        actions={<div className="flex flex-wrap items-center gap-2"><Badge tone="success">Integrasi CI/CD</Badge><ComingSoonBadge label="Approval & rollback" /></div>}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -70,7 +70,7 @@ export default async function RilisStudio() {
         </Card>
 
         <div className="space-y-4">
-          <Notice tone="warning" title="Riwayat konfigurasi belum disimpan di Studio">
+          <Notice tone="warning" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Approval & rollback" /> Riwayat konfigurasi belum disimpan di Studio</span>}>
             Belum ada tabel release registry, approval konfigurasi, atau rollback metadata yang dikelola oleh Studio. Riwayat commit dan deployment berada pada GitHub dan Vercel. Tidak ada status rilis yang dibuat dari daftar contoh.
           </Notice>
           <Notice tone="info" title="Rollback berbeda dari migrasi data">
