@@ -4,6 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
 import {
+  DESIGN_THEME_PRESETS,
+  isHexColor,
   normalizeDesignTheme,
   validateDesignTheme,
   type DesignThemeSettings,
@@ -27,9 +29,30 @@ export async function saveDesignTheme(
 
   let theme: DesignThemeSettings;
   try {
-    theme = normalizeDesignTheme(JSON.parse(raw));
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, message: "Konfigurasi tema harus berupa objek pengaturan yang valid." };
+    }
+    const source = parsed as { presetId?: unknown; radius?: unknown; colors?: unknown };
+    const sourceColors = source.colors;
+    if (!sourceColors || typeof sourceColors !== "object" || Array.isArray(sourceColors)) {
+      return { ok: false, message: "Palet warna tema tidak lengkap." };
+    }
+    const colors = sourceColors as Record<string, unknown>;
+    const requiredColors = ["primary", "accent", "canvas", "surface", "card", "border", "ink", "muted"] as const;
+    if (requiredColors.some((key) => !isHexColor(colors[key]))) {
+      return { ok: false, message: "Setiap warna harus menggunakan format HEX enam digit." };
+    }
+    if (source.radius !== "sharp" && source.radius !== "balanced" && source.radius !== "soft") {
+      return { ok: false, message: "Karakter sudut komponen tidak valid." };
+    }
+    if (typeof source.presetId !== "string" ||
+        (source.presetId !== "custom" && !DESIGN_THEME_PRESETS.some((preset) => preset.presetId === source.presetId))) {
+      return { ok: false, message: "Preset tema tidak dikenal. Pilih salah satu preset yang tersedia." };
+    }
+    theme = normalizeDesignTheme(parsed);
   } catch {
-    return { ok: false, message: "Konfigurasi tema tidak dapat dibaca. Periksa kembali pilihan warna." };
+    return { ok: false, message: "Konfigurasi tema tidak dapat dibaca. Periksa kembali isinya." };
   }
 
   const invalid = validateDesignTheme(theme);
