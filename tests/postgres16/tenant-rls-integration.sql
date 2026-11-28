@@ -66,7 +66,8 @@ BEGIN
   INNER JOIN pg_namespace n ON n.oid=c.relnamespace
   WHERE n.nspname='v9' AND NOT t.tgisinternal;
 
-  SELECT count(DISTINCT p.tablename), array_agg(c.relname ORDER BY c.relname)
+  SELECT count(DISTINCT p.tablename),
+         array_agg(DISTINCT c.relname ORDER BY c.relname) FILTER (WHERE p.tablename IS NULL)
     INTO policy_table_count, no_policy_tables
   FROM pg_class c
   INNER JOIN pg_namespace n ON n.oid=c.relnamespace
