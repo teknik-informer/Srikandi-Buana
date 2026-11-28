@@ -20,6 +20,10 @@ const portal = read("../src/app/portal/page.tsx");
 const notifications = read("../src/app/app/(launcher)/notifikasi/notifikasi-client.tsx");
 const fieldNav = read("../src/config/field-nav.ts");
 const fieldSection = read("../src/components/field-section.tsx");
+const cashBank = read("../src/app/app/(area)/keuangan/kas-bank/page.tsx");
+const receivables = read("../src/app/app/(area)/keuangan/piutang-utang/page.tsx");
+const accountingSettings = read("../src/app/app/(area)/keuangan/pengaturan/page.tsx");
+const pos = read("../src/app/app/(area)/pos/page.tsx");
 
 assert.match(ui, /export function ComingSoonBadge/);
 assert.match(ui, /<LockKeyhole/);
@@ -72,5 +76,25 @@ for (const marker of ["Form Builder", "Relasi dokumen bidang", "Anggaran formal 
 }
 assert.match(shell, /notices\.length === 0/);
 assert.match(shell, /LockKeyhole size=\{8\}/);
+
+assert.match(cashBank, /ComingSoonBadge/);
+assert.match(cashBank, /Rekonsiliasi bank/);
+assert.match(cashBank, /belum mencocokkan mutasi rekening koran/);
+assert.match(receivables, /ComingSoonBadge/);
+assert.match(receivables, /Sub-ledger invoice/);
+assert.match(receivables, /belum mencatat invoice/);
+assert.match(accountingSettings, /ComingSoonBadge/);
+for (const feature of [
+  "Periode fiskal",
+  "Import mutasi bank",
+  "Sub-ledger invoice",
+  "Pengembalian dana",
+  "Posting jurnal penjualan POS",
+]) {
+  assert.ok(accountingSettings.includes(feature), "Missing pending accounting marker: " + feature);
+}
+assert.match(pos, /ComingSoonBadge/);
+assert.match(pos, /Posting otomatis ke buku besar/);
+assert.match(pos, /Kuitansi pembayaran terpisah dari jurnal penjualan/);
 
 console.log("Coming Soon / locked feature indicators: PASS");
