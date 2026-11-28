@@ -44,22 +44,9 @@ export default async function ProfilPage() {
           LIMIT 1
         `,
         sql`
-          SELECT
-            application.field_key,
-            application.name,
-            application.short_name,
-            application.mandate,
-            unit.name AS unit_name
-          FROM v9.field_applications AS application
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = application.organization_id
-          LEFT JOIN v9.organization_units AS unit
-            ON unit.id = application.unit_id
-            AND unit.organization_id = application.organization_id
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND application.is_enabled = true
-          ORDER BY application.display_order, application.name
+          SELECT field_key, name, short_name, mandate, unit_name
+          FROM v9.get_public_fields()
+          ORDER BY field_key
         `,
       ]);
       return {
