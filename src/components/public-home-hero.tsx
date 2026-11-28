@@ -43,7 +43,7 @@ export function PublicHomeHero({ settings }: { settings: PublicSiteSettings }) {
           <div className="relative z-10 max-w-[620px]">{copy}</div>
           <div className="relative min-h-[280px] overflow-hidden rounded-[24px] border border-white/15 shadow-[0_30px_70px_-35px_rgba(0,0,0,.8)] sm:min-h-[360px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover" fetchPriority="high" />
+            <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: hero.imagePositionX + "% " + hero.imagePositionY + "%" }} fetchPriority="high" />
             <div className="absolute inset-0 bg-gradient-to-tr from-[#092718]/25 via-transparent to-white/10" />
           </div>
         </div>
@@ -61,7 +61,7 @@ export function PublicHomeHero({ settings }: { settings: PublicSiteSettings }) {
           </div>
           <div className="relative min-h-[300px] overflow-hidden rounded-[22px] border-[8px] border-white shadow-[0_18px_45px_-28px_rgba(14,39,24,.45)] sm:min-h-[440px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover" fetchPriority="high" />
+            <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: hero.imagePositionX + "% " + hero.imagePositionY + "%" }} fetchPriority="high" />
             <div className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1.5 text-[9.5px] font-bold uppercase tracking-[.18em] text-[#164126]">Srikandi Buana</div>
           </div>
         </div>
@@ -78,7 +78,7 @@ export function PublicHomeHero({ settings }: { settings: PublicSiteSettings }) {
             <div className="flex flex-col justify-center px-6 py-9 sm:px-10 sm:py-12">{copy}</div>
             <div className="relative min-h-[190px] lg:min-h-[360px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover" fetchPriority="high" />
+              <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: hero.imagePositionX + "% " + hero.imagePositionY + "%" }} fetchPriority="high" />
               <div className="absolute inset-0 bg-gradient-to-r from-[#10341f]/35 to-transparent" />
             </div>
           </div>
@@ -90,7 +90,7 @@ export function PublicHomeHero({ settings }: { settings: PublicSiteSettings }) {
   return (
     <section className="relative isolate flex min-h-[430px] flex-col overflow-hidden bg-[#0b2b18] sm:min-h-[480px] lg:min-h-[540px]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover object-[68%_38%] sm:object-[64%_40%] lg:object-[62%_42%]" fetchPriority="high" decoding="async" />
+      <img src={image} alt={hero.imageAlt} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: hero.imagePositionX + "% " + hero.imagePositionY + "%" }} fetchPriority="high" decoding="async" />
       <div className="absolute inset-0 bg-[linear-gradient(96deg,rgba(6,28,16,0.94)_0%,rgba(7,32,18,0.88)_34%,rgba(8,38,21,0.62)_52%,rgba(9,44,24,0.14)_72%,rgba(9,44,24,0)_100%)]" aria-hidden />
       <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(to_bottom,rgba(4,20,11,0.55),rgba(4,20,11,0))]" aria-hidden />
       <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(to_top,rgba(6,30,17,0.62),rgba(6,30,17,0))]" aria-hidden />
