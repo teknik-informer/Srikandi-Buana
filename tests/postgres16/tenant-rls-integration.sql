@@ -365,6 +365,26 @@ INSERT INTO v9.people (id, full_name, status)
 VALUES ('35000000-0000-4000-8000-000000000035', 'CI-only Other Member', 'active')
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO v9.user_accounts (
+  id, person_id, email, password_hash, status, email_verified_at,
+  must_change_password, legacy_auth_eligible
+) VALUES
+  ('41000000-0000-4000-8000-000000000041',
+   '35000000-0000-4000-8000-000000000035',
+   'community-author@invalid.example',
+   'ci-only-unused-credential',
+   'active', now(), false, false),
+  ('42000000-0000-4000-8000-000000000042',
+   '43000000-0000-4000-8000-000000000043',
+   'other-tenant-author@invalid.example',
+   'ci-only-unused-credential',
+   'active', now(), false, false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.people (id, full_name, status)
+VALUES ('43000000-0000-4000-8000-000000000043', 'CI-only Other Tenant Person', 'active')
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO v9.memberships (
   id, organization_id, person_id, member_number, status, valid_from
 ) VALUES
@@ -377,6 +397,45 @@ INSERT INTO v9.memberships (
    '35000000-0000-4000-8000-000000000035',
    'CI-MEMBER-002', 'active', current_date)
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.memberships (
+  id, organization_id, person_id, member_number, status, valid_from
+) VALUES (
+  '44000000-0000-4000-8000-000000000044',
+  '20000000-0000-4000-8000-000000000002',
+  '43000000-0000-4000-8000-000000000043',
+  'CI-OTHER-001', 'active', current_date
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create a real pending community topic for the second active member. The
+-- owner/migration fixture inserts it; the authorized organization moderator
+-- then publishes it using the existing transition trigger.
+INSERT INTO v9.member_community_topics (
+  id, organization_id, membership_id, author_user_id, updated_by,
+  title, body, status
+) VALUES (
+  '45000000-0000-4000-8000-000000000045',
+  v9.get_public_organization_id(),
+  '37000000-0000-4000-8000-000000000037',
+  '41000000-0000-4000-8000-000000000041',
+  '41000000-0000-4000-8000-000000000041',
+  'Topik Komunitas CI',
+  'Isi topik komunitas khusus untuk uji kebijakan tenant dan tampilan nama.',
+  'pending'
+)
+ON CONFLICT (id) DO NOTHING;
+
+BEGIN;
+SET LOCAL ROLE v9_app;
+SELECT set_config('v9.session_token_hash', repeat('a', 64), true);
+UPDATE v9.member_community_topics
+SET status='published',
+    moderated_by='40000000-0000-4000-8000-000000000004',
+    moderated_at=now(),
+    updated_by='40000000-0000-4000-8000-000000000004'
+WHERE id='45000000-0000-4000-8000-000000000045';
+COMMIT;
 
 UPDATE v9.role_assignments
 SET role_key='member', scope_kind='organization', scope_unit_id=NULL
@@ -399,6 +458,30 @@ BEGIN
   SELECT count(*) INTO person_count FROM v9.people;
   IF person_count <> 1 THEN
     RAISE EXCEPTION 'A member must not read another member personal record; saw % people.', person_count;
+  END IF;
+
+  SELECT count(*) INTO person_count
+  FROM v9.user_accounts
+  WHERE id <> '40000000-0000-4000-8000-000000000004';
+  IF person_count <> 0 THEN
+    RAISE EXCEPTION 'A member must not read another account or password hash; saw % rows.', person_count;
+  END IF;
+
+  SELECT count(*) INTO person_count
+  FROM v9.member_community_topics
+  WHERE id='45000000-0000-4000-8000-000000000045'
+    AND status='published';
+  IF person_count <> 1 THEN
+    RAISE EXCEPTION 'Active members must retain read access to published community topics.';
+  END IF;
+
+  IF v9.get_member_community_author_name('41000000-0000-4000-8000-000000000041')
+      IS DISTINCT FROM 'CI-only Other Member' THEN
+    RAISE EXCEPTION 'Community author projection should return only the same-tenant published author name.';
+  END IF;
+
+  IF v9.get_member_community_author_name('42000000-0000-4000-8000-000000000042') IS NOT NULL THEN
+    RAISE EXCEPTION 'Community author projection must not resolve an account from another organization.';
   END IF;
 
   UPDATE v9.memberships
