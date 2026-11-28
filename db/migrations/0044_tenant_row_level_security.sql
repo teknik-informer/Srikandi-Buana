@@ -575,7 +575,7 @@ CREATE POLICY tenant_scope_agriculture_cycles ON v9.agriculture_cycles
 CREATE POLICY organizations_read_scope ON v9.organizations
   FOR SELECT TO v9_app
   USING (
-    v9._tenant_row_visible(id, NULL, NULL, NULL, NULL, NULL)
+    id = (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
     OR v9._login_organization_visible(id)
     OR (slug = 'srikandi-buana' AND status = 'active')
   );
