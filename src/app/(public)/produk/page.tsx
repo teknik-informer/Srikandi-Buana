@@ -46,25 +46,10 @@ export default async function ProdukPage({
     async () => {
       const sql = getV9Sql();
       const result = await sql`
-        SELECT
-          product.id::text AS id,
-          product.slug,
-          product.product_name,
-          product.category_label,
-          product.unit_label,
-          product.selling_price::text AS selling_price,
-          product.producer_label,
-          product.description
-        FROM v9.business_products AS product
-        INNER JOIN v9.organizations AS organization
-          ON organization.id = product.organization_id
-        WHERE organization.slug = 'srikandi-buana'
-          AND organization.status = 'active'
-          AND product.field_key = 'usaha'
-          AND product.status = 'active'
-          AND product.publication_status = 'published'
-        ORDER BY product.category_label NULLS LAST, product.product_name
-        LIMIT 200
+        SELECT id::text AS id, slug, product_name, category_label,
+          unit_label, selling_price::text AS selling_price,
+          producer_label, description
+        FROM v9.get_public_products(NULL, NULL, NULL, 200)
       `;
       return rowsFromResult<PublicProduct>(result);
     },
