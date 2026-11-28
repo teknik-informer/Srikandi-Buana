@@ -47,6 +47,63 @@ function sameInterests(a: string[], b: string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function AccountSecurityCard() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function savePassword() {
+    if (pending) return;
+    setError(null);
+    setMessage(null);
+    setPending(true);
+    try {
+      const result = await changeOwnPassword({ currentPassword, newPassword, confirmPassword });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setMessage(result.message);
+    } catch {
+      setError("Pengaturan keamanan belum dapat disimpan. Periksa koneksi lalu coba kembali.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Keamanan akun" subtitle="Ganti kata sandi akun Anda. Perubahan akan mencabut sesi pada perangkat lain." action={<ShieldCheck size={14} className="text-muted2" />} />
+      <form onSubmit={(event) => { event.preventDefault(); void savePassword(); }} className="space-y-3 p-4">
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="current-account-password">Kata sandi saat ini</label>
+          <input id="current-account-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required maxLength={256} className="sb-input w-full" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="new-account-password">Kata sandi baru</label>
+          <input id="new-account-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
+          <p className="mt-1 text-[10px] text-muted2">Minimal 12 karakter.</p>
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="confirm-account-password">Ulangi kata sandi baru</label>
+          <input id="confirm-account-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
+        </div>
+        {error ? <p className="rounded-sb-sm border border-[var(--sb-danger)] bg-[var(--sb-danger-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-danger)]" role="alert">{error}</p> : null}
+        {message ? <p className="rounded-sb-sm border border-[var(--sb-success)] bg-[var(--sb-success-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-success)]" role="status">{message}</p> : null}
+        <button type="submit" disabled={pending || !currentPassword || !newPassword || !confirmPassword} className="sb-btn sb-btn-primary w-full justify-center disabled:cursor-wait disabled:opacity-60">
+          {pending ? "Memperbarui…" : "Perbarui kata sandi"}
+        </button>
+      </form>
+    </Card>
+  );
+}
+
 export function ProfilClient({
   profile,
   loadError,
@@ -69,12 +126,6 @@ export function ProfilClient({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [securityPending, setSecurityPending] = useState(false);
-  const [securityError, setSecurityError] = useState<string | null>(null);
-  const [securityMessage, setSecurityMessage] = useState<string | null>(null);
 
   const dirty = useMemo(
     () =>
@@ -115,28 +166,6 @@ export function ProfilClient({
     }
   }
 
-  async function savePassword() {
-    if (securityPending) return;
-    setSecurityError(null);
-    setSecurityMessage(null);
-    setSecurityPending(true);
-    try {
-      const result = await changeOwnPassword({ currentPassword, newPassword, confirmPassword });
-      if (!result.ok) {
-        setSecurityError(result.message);
-        return;
-      }
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setSecurityMessage(result.message);
-    } catch {
-      setSecurityError("Pengaturan keamanan belum dapat disimpan. Periksa koneksi lalu coba kembali.");
-    } finally {
-      setSecurityPending(false);
-    }
-  }
-
   function cancelChanges() {
     setPreferredName(saved.preferredName);
     setPhone(saved.phone);
@@ -157,6 +186,7 @@ export function ProfilClient({
           Layanan data anggota sedang tidak tersedia. Data tidak akan diganti dengan profil contoh.
           Muat ulang halaman setelah koneksi pulih.
         </Notice>
+        <div className="mt-4"><AccountSecurityCard /></div>
       </div>
     );
   }
@@ -172,6 +202,7 @@ export function ProfilClient({
           Akun Anda belum memiliki data orang yang terhubung di buku induk organisasi.
           Hubungi Sekretariat untuk pemeriksaan identitas akun.
         </Notice>
+        <div className="mt-4"><AccountSecurityCard /></div>
       </div>
     );
   }
@@ -302,29 +333,7 @@ export function ProfilClient({
             Anda dapat mengubah nama tampilan, kontak, desa, dan preferensi minat. Data legal dan keputusan keanggotaan hanya berubah melalui peran yang berwenang.
           </div>
 
-          <Card>
-            <CardHeader title="Keamanan akun" subtitle="Ganti kata sandi akun Anda. Perubahan akan mencabut sesi pada perangkat lain." action={<ShieldCheck size={14} className="text-muted2" />} />
-            <form onSubmit={(event) => { event.preventDefault(); void savePassword(); }} className="space-y-3 p-4">
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="current-account-password">Kata sandi saat ini</label>
-                <input id="current-account-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required maxLength={256} className="sb-input w-full" />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="new-account-password">Kata sandi baru</label>
-                <input id="new-account-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
-                <p className="mt-1 text-[10px] text-muted2">Minimal 12 karakter.</p>
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="confirm-account-password">Ulangi kata sandi baru</label>
-                <input id="confirm-account-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
-              </div>
-              {securityError ? <p className="rounded-sb-sm border border-[var(--sb-danger)] bg-[var(--sb-danger-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-danger)]" role="alert">{securityError}</p> : null}
-              {securityMessage ? <p className="rounded-sb-sm border border-[var(--sb-success)] bg-[var(--sb-success-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-success)]" role="status">{securityMessage}</p> : null}
-              <button type="submit" disabled={securityPending || !currentPassword || !newPassword || !confirmPassword} className="sb-btn sb-btn-primary w-full justify-center disabled:cursor-wait disabled:opacity-60">
-                {securityPending ? "Memperbarui…" : "Perbarui kata sandi"}
-              </button>
-            </form>
-          </Card>
+          <AccountSecurityCard />
 
           <div className="flex items-center gap-2 rounded-sb-sm border border-line bg-paper px-3.5 py-2.5 text-[11.5px] text-muted">
             <UserRound size={14} /> Masuk sebagai {profile.role} · {profile.scope}
