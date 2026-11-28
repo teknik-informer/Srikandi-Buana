@@ -111,7 +111,7 @@ INSERT INTO v9.business_orders (
     v9.get_public_organization_id(), 'usaha', 'QA-ORD-LIFE-INSUFFICIENT',
     'c5000000-0000-4000-8000-000000000005', 'QA Customer Tenant A',
     'c3000000-0000-4000-8000-000000000003', 'internal', current_date, 'draft',
-    'IDR', 70000, 0, 70000,
+    'IDR', 90000, 0, 90000,
     'b8200000-0000-4000-8000-000000000820',
     'b8200000-0000-4000-8000-000000000820'
   ),
@@ -153,7 +153,7 @@ INSERT INTO v9.business_order_items (
     'b8700000-0000-4000-8000-000000000870',
     'c1000000-0000-4000-8000-000000000001',
     'QA-BIZ-A-001', 'QA Product Tenant A', 'pcs',
-    7, 10000, 70000, 0
+    9, 10000, 90000, 0
   ),
   (
     'b8810000-0000-4000-8000-000000000881',
@@ -226,7 +226,7 @@ BEGIN
     SELECT 1 FROM v9.business_product_stock
     WHERE product_id = 'c1000000-0000-4000-8000-000000000001'
       AND warehouse_id = 'c3000000-0000-4000-8000-000000000003'
-      AND on_hand = 10 AND reserved = 4
+      AND on_hand = 12 AND reserved = 4
   ) THEN
     RAISE EXCEPTION 'The stock register did not increase reserved quantity by exactly two.';
   END IF;
@@ -321,9 +321,9 @@ BEGIN
     AND movement_type = 'sale'
     AND product_id = 'c1000000-0000-4000-8000-000000000001'
     AND quantity = 2
-    AND on_hand_before = 10
+    AND on_hand_before = 12
     AND on_hand_delta = -2
-    AND on_hand_after = 8;
+    AND on_hand_after = 10;
 
   IF movement_count <> 1 THEN
     RAISE EXCEPTION 'Fulfillment must create exactly one immutable sale movement with before/delta/after 10/-2/8; got %.', movement_count;
@@ -351,7 +351,7 @@ BEGIN
     SELECT 1 FROM v9.business_product_stock
     WHERE product_id = 'c1000000-0000-4000-8000-000000000001'
       AND warehouse_id = 'c3000000-0000-4000-8000-000000000003'
-      AND on_hand = 8 AND reserved = 2
+      AND on_hand = 10 AND reserved = 2
   ) THEN
     RAISE EXCEPTION 'Fulfillment did not reduce on-hand and reserved stock exactly once.';
   END IF;
@@ -376,7 +376,7 @@ BEGIN
     SELECT 1 FROM v9.business_product_stock
     WHERE product_id = 'c1000000-0000-4000-8000-000000000001'
       AND warehouse_id = 'c3000000-0000-4000-8000-000000000003'
-      AND on_hand = 8 AND reserved = 5
+      AND on_hand = 10 AND reserved = 5
   ) THEN
     RAISE EXCEPTION 'Cancellation fixture reservation was not created.';
   END IF;
@@ -424,7 +424,7 @@ BEGIN
     SELECT 1 FROM v9.business_product_stock
     WHERE product_id = 'c1000000-0000-4000-8000-000000000001'
       AND warehouse_id = 'c3000000-0000-4000-8000-000000000003'
-      AND on_hand = 8 AND reserved = 2
+      AND on_hand = 10 AND reserved = 2
   ) THEN
     RAISE EXCEPTION 'Cancellation did not return reserved quantity to its original balance.';
   END IF;
@@ -474,7 +474,7 @@ BEGIN
     SELECT 1 FROM v9.business_product_stock
     WHERE product_id = 'c1000000-0000-4000-8000-000000000001'
       AND warehouse_id = 'c3000000-0000-4000-8000-000000000003'
-      AND on_hand = 8 AND reserved = 2
+      AND on_hand = 10 AND reserved = 2
   ) THEN
     RAISE EXCEPTION 'An insufficient-stock order changed the stock register.';
   END IF;
@@ -508,7 +508,7 @@ BEGIN
     SELECT 1 FROM v9.business_product_stock
     WHERE product_id = 'c1000000-0000-4000-8000-000000000001'
       AND warehouse_id = 'c3000000-0000-4000-8000-000000000003'
-      AND on_hand = 8 AND reserved = 2
+      AND on_hand = 10 AND reserved = 2
   ) OR NOT EXISTS (
     SELECT 1 FROM v9.business_product_stock
     WHERE product_id = 'c1500000-0000-4000-8000-000000000150'
