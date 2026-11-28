@@ -65,10 +65,14 @@ BEGIN
   END IF;
 
   IF EXISTS (
-    SELECT 1 FROM pg_class c
-    JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname='v9' AND c.relkind='S'
-      AND NOT has_sequence_privilege('v9_app', c.oid, 'USAGE')
+    SELECT 1
+    FROM pg_sequences AS sequence_info
+    WHERE sequence_info.schemaname = 'v9'
+      AND NOT has_sequence_privilege(
+        'v9_app',
+        format('%I.%I', sequence_info.schemaname, sequence_info.sequencename),
+        'USAGE'
+      )
   ) THEN
     RAISE EXCEPTION 'v9_app is missing USAGE on a reference sequence.';
   END IF;
