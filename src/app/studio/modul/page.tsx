@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Network } from "lucide-react";
 import {
-  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
+  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, ComingSoonBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
@@ -60,7 +60,7 @@ export default async function ModulStudio() {
         eyebrow="Module & Extension Manager"
         title="Status aplikasi bidang"
         description="Status yang tersedia pada registry saat ini adalah status aplikasi bidang dan unit organisasi. Pengaturan on/off untuk modul anak tidak disimpan atau dikelola dari halaman ini."
-        actions={<Link href="/studio/aplikasi" className="sb-btn sb-btn-outline">Application Studio <ArrowRight size={13} /></Link>}
+        actions={<div className="flex flex-wrap items-center gap-2"><ComingSoonBadge label="Toggle submodul" /><Link href="/studio/aplikasi" className="sb-btn sb-btn-outline">Application Studio <ArrowRight size={13} /></Link></div>}
       />
 
       {unavailable ? (
@@ -102,7 +102,7 @@ export default async function ModulStudio() {
         <Notice tone="info" title="Nonaktifkan aplikasi tidak menghapus data">
           Status unit organisasi dan status aplikasi teknis adalah dua hal berbeda. Catatan historis tetap disimpan pada modul domain sesuai kebijakan retensi.
         </Notice>
-        <Notice tone="warning" title="Toggle submodul belum tersedia">
+        <Notice tone="warning" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Toggle submodul" /> Toggle submodul belum tersedia</span>}>
           Tidak ada tabel registry untuk sakelar Dashboard, Rencana, Program, Tugas, Dokumen, Anggaran, dan modul turunan. Tidak ada tombol aktif/nonaktif yang akan mengubah tampilan semu tanpa penyimpanan dan audit.
         </Notice>
       </div>
