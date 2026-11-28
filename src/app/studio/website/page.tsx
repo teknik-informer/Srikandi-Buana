@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, ToggleLeft, Menu, PanelsTopLeft } from "lucide-react";
-import { Badge, Card, CardHeader, PageHeader, StatCard } from "@/components/ui";
+import { Badge, Card, CardHeader, PageHeader, StatCard, ComingSoonBadge } from "@/components/ui";
 import { PublicSiteSettingsEditor } from "@/components/studio/public-site-settings-editor";
 import { PublicPoliciesEditor } from "@/components/studio/public-policies-editor";
 import { LoginPageContentEditor } from "@/components/studio/login-page-content-editor";
@@ -25,7 +25,7 @@ export default async function WebsiteStudio() {
         eyebrow="Website Studio"
         title="Pengaturan situs publik"
         description="Kelola identitas, konten utama, fitur publik, navigasi, footer, dan kanal komunikasi organisasi dari satu tempat."
-        actions={<Link href="/" className="sb-btn sb-btn-outline">Lihat website <ArrowUpRight size={13} /></Link>}
+        actions={<div className="flex flex-wrap items-center gap-2"><ComingSoonBadge label="CMS & revisi halaman" /><Link href="/" className="sb-btn sb-btn-outline">Lihat website <ArrowUpRight size={13} /></Link></div>}
       />
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <StatCard label="Fitur publik aktif" value={activeFeatures} note="Dari seluruh kontrol fitur" tone="success" icon={<ToggleLeft size={16} />} />

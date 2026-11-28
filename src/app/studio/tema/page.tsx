@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Palette, ShieldCheck } from "lucide-react";
-import { Badge, Card, CardHeader, PageHeader } from "@/components/ui";
+import { Badge, Card, CardHeader, PageHeader, ComingSoonBadge } from "@/components/ui";
 import { DesignThemeEditor } from "@/components/studio/design-theme-editor";
 import { getDesignThemeHistory, getDesignThemeSettings } from "@/lib/design-theme";
 import { requireRoles } from "@/lib/session";
@@ -20,7 +20,7 @@ export default async function TemaStudio() {
         eyebrow="Design & Theme Manager"
         title="Sistem desain organisasi"
         description="Atur palet, preset, dan karakter komponen untuk seluruh website publik serta ruang kerja Srikandi Buana. Setiap perubahan divalidasi dan tercatat."
-        actions={<Badge tone="success">Database & audit aktif</Badge>}
+        actions={<div className="flex flex-wrap items-center gap-2"><Badge tone="success">Theme Manager aktif</Badge><ComingSoonBadge label="Density per aplikasi" /></div>}
       />
       <Card>
         <CardHeader

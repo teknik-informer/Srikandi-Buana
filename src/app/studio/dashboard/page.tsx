@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, ChartNoAxesCombined, LayoutDashboard } from "lucide-react";
-import { Card, CardHeader, Notice } from "@/components/ui";
+import { Card, CardHeader, Notice, ComingSoonBadge } from "@/components/ui";
 import { AppBanner } from "@/components/dash-kit";
 import { APP_IDENTITY } from "@/config/app-identity";
 
@@ -42,7 +42,7 @@ export default async function DashboardStudio() {
         <CardHeader
           title="Dashboard yang tersedia"
           subtitle="Tautan ke halaman aktif, bukan daftar widget contoh"
-          action={<ChartNoAxesCombined size={16} className="text-muted2" />}
+          action={<div className="flex items-center gap-2"><ComingSoonBadge label="Widget Layout" /><ChartNoAxesCombined size={16} className="text-muted2" /></div>}
         />
         <div className="divide-y divide-line">
           {dashboards.map((dashboard) => (
@@ -58,7 +58,7 @@ export default async function DashboardStudio() {
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Notice tone="warning" title="Widget registry belum tersedia">
+        <Notice tone="warning" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Dashboard Builder" /> Widget registry belum tersedia</span>}>
           Belum ada tabel layout dashboard, konfigurasi widget, filter, atau audience per komponen. Tampilan dashboard saat ini dirakit pada halaman domain dan memakai query server sesuai hak akses.
         </Notice>
         <Card className="p-4">

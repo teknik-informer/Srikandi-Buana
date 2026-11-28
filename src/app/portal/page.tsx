@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
-import { Building2, ShieldCheck } from "lucide-react";
-import { Card, CardHeader, EmptyState, Notice, Badge } from "@/components/ui";
+import { Building2 } from "lucide-react";
+import { Card, CardHeader, EmptyState, Notice, Badge, ComingSoonBadge } from "@/components/ui";
 import { APP_IDENTITY } from "@/config/app-identity";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
@@ -58,6 +58,7 @@ export default async function PortalEksternal() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/12 px-3 py-1 text-[9.5px] font-bold uppercase tracking-[.16em] text-[#e4f2e6] ring-1 ring-inset ring-white/15">{audience.label}</span>
               <Badge tone="neutral">Akses terbatas</Badge>
+              <ComingSoonBadge label="Data sharing" />
             </div>
             <h1 className="mt-4 font-display text-[28px] font-extrabold leading-tight tracking-[-.03em] text-white sm:text-[36px]">{audience.title}</h1>
             <p className="mt-3 max-w-[62ch] text-[12.5px] leading-relaxed text-[#d6e8da] sm:text-[13.5px]">{audience.description}</p>
@@ -85,12 +86,12 @@ export default async function PortalEksternal() {
             <CardHeader
               title="Dataset yang dibagikan"
               subtitle="Hanya data dengan grant aktif dan cakupan penerima yang sesuai"
-              action={<ShieldCheck size={17} className="text-muted2" />}
+              action={<ComingSoonBadge label="Dataset berbagi" />}
             />
             <div className="p-5">
               <EmptyState
-                title="Belum ada dataset berbagi yang diaktifkan"
-                body="Registri grant berbagi data, persetujuan, tujuan penggunaan, dan masa berlaku belum tersedia pada skema operasional saat ini. Karena itu, daftar program, capaian, dan dokumen tidak ditampilkan di portal ini."
+                title="Dataset eksternal masih terkunci"
+                body="Registri grant berbagi data, persetujuan, tujuan penggunaan, field yang diizinkan, serta masa berlaku dan pencabutan belum tersedia. Tidak ada data program, capaian, anggota, atau dokumen yang dibagikan sebelum kontrol tersebut aktif."
               />
             </div>
           </Card>

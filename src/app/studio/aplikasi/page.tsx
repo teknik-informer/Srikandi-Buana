@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Network } from "lucide-react";
 import {
-  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
+  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, ComingSoonBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
@@ -61,7 +61,7 @@ export default async function AplikasiStudio() {
         eyebrow="Application Studio"
         title="Registry aplikasi bidang"
         description="Status aplikasi bidang berasal dari registry organisasi. Daftar rute aplikasi inti dikelola melalui rilis kode; pembuatan instance, penggandaan template, dan perubahan menu belum tersedia sebagai operasi tersimpan."
-        actions={<Link href="/studio/organisasi" className="sb-btn sb-btn-outline">Organization Studio <ArrowRight size={13} /></Link>}
+        actions={<div className="flex flex-wrap items-center gap-2"><ComingSoonBadge label="Template & cloning" /><Link href="/studio/organisasi" className="sb-btn sb-btn-outline">Organization Studio <ArrowRight size={13} /></Link></div>}
       />
 
       {unavailable ? (
@@ -104,7 +104,7 @@ export default async function AplikasiStudio() {
         <Card className="p-4">
           <h2 className="text-[12.5px] font-semibold text-ink">Aplikasi inti</h2>
           <p className="mt-1 text-[11px] leading-relaxed text-muted">
-            Pengurus, Sekretariat, Keuangan, Portal Anggota, POS, dan Portal Eksternal merupakan route aplikasi yang dikelola bersama codebase. Daftar ini tidak mewakili instance yang dapat dibuat atau dihapus dari layar ini.
+            Pengurus, Sekretariat, Keuangan, Portal Anggota, dan POS memiliki halaman operasional. Portal Eksternal tetap terkunci sampai registry grant berbagi data dan persetujuannya tersedia.
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {[
@@ -114,12 +114,16 @@ export default async function AplikasiStudio() {
               ["Anggota", "/app/anggota"],
               ["POS", "/app/pos"],
               ["Portal", "/portal"],
-            ].map(([name, href]) => (
+            ].map(([name, href]) => name === "Portal" ? (
+              <span key={href} className="inline-flex flex-wrap items-center gap-1 rounded-full border border-line bg-[#f6f7f8] px-2.5 py-1 text-[10.5px] font-semibold text-muted">
+                {name}<ComingSoonBadge label="Data sharing" />
+              </span>
+            ) : (
               <Link key={href} href={href} className="rounded-full border border-line bg-white px-2.5 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300">{name}</Link>
             ))}
           </div>
         </Card>
-        <Notice tone="warning" title="Template dan pengaturan instance belum dapat diubah">
+        <Notice tone="warning" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Template & cloning" /> Template dan pengaturan instance belum dapat diubah</span>}>
           Registry template, cloning aplikasi, susunan menu per instance, serta status modul turunan belum memiliki penyimpanan konfigurasi dan riwayat perubahan pada platform. Studio tidak menampilkan tombol seolah-olah perubahan tersebut sudah tersimpan.
         </Notice>
       </div>

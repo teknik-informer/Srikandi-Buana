@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Blocks, Building2, Database, GitBranch, Palette, Workflow } from "lucide-react";
-import { Badge, Card, CardHeader, Notice } from "@/components/ui";
+import { Badge, Card, CardHeader, Notice, ComingSoonBadge } from "@/components/ui";
 import { AppBanner } from "@/components/dash-kit";
 import { APP_IDENTITY } from "@/config/app-identity";
 import { requireRoles } from "@/lib/session";
@@ -12,64 +12,73 @@ const BUILDERS = [
   {
     name: "Website Studio",
     href: "/studio/website",
-    description: "Inventaris source halaman, block, dan mega menu. Pengeditan/publikasi dinamis belum tersimpan bersama.",
-    status: "Baca-saja",
+    description: "Editor identitas, Hero, banner, fitur publik, navigasi, footer, dan kebijakan sudah tersimpan. CMS halaman dan revisi konten masih disiapkan.",
+    status: "Editor aktif",
+    comingSoon: "CMS halaman & revisi",
     icon: <Blocks size={16} />,
   },
   {
     name: "Application Studio",
     href: "/studio/aplikasi",
-    description: "Registry empat aplikasi bidang dan status aktif yang tersimpan pada organisasi.",
+    description: "Registry aplikasi bidang aktif. Pengelolaan template, cloning, dan menu instance belum tersedia.",
     status: "Registry live",
+    comingSoon: "Template & cloning",
     icon: <Building2 size={16} />,
   },
   {
     name: "Data & Form Builder",
     href: "/studio/data",
-    description: "Akses modul operasional domain. Form Builder generik belum memiliki registry dan penyimpanan jawaban.",
-    status: "Daftar modul",
+    description: "Modul domain operasional tersedia. Pembuatan formulir generik dan versi skema masih disiapkan.",
+    status: "Modul domain live",
+    comingSoon: "Form Builder",
     icon: <Database size={16} />,
   },
   {
     name: "Dashboard Studio",
     href: "/studio/dashboard",
-    description: "Tautan dashboard operasional yang berjalan. Susunan widget dinamis belum tersimpan.",
-    status: "Daftar dashboard",
+    description: "Dashboard operasional dapat dibuka sesuai izin. Pengaturan grid, widget, dan tata letak per peran belum tersimpan.",
+    status: "Dashboard aktif",
+    comingSoon: "Widget Layout",
     icon: <Blocks size={16} />,
   },
   {
     name: "Workflow Studio",
     href: "/studio/workflow",
-    description: "Pemantauan antrean jurnal, pendaftaran, rencana kerja, dan pesanan sesuai permission.",
+    description: "Pemantauan antrean domain aktif. Definisi tahapan, approver, SLA, dan delegasi generik belum tersedia.",
     status: "Antrean live",
+    comingSoon: "Workflow Editor",
     icon: <Workflow size={16} />,
   },
   {
     name: "Organization Studio",
     href: "/studio/organisasi",
-    description: "Registry organisasi, unit, keanggotaan aktif, dan penugasan tim dari Neon.",
+    description: "Registry unit, anggota aktif, dan penugasan dapat dibaca. Editor perubahan struktur dan masa jabatan masih disiapkan.",
     status: "Registry live",
+    comingSoon: "Editor tata kelola",
     icon: <Building2 size={16} />,
   },
   {
     name: "Design & Theme",
     href: "/studio/tema",
-    description: "Referensi token visual source-controlled. Editor preset dan penyimpanan tema belum aktif.",
-    status: "Referensi",
+    description: "Preset, palet, radius, penyimpanan tema organisasi, dan audit perubahan telah aktif. Density per aplikasi belum tersedia.",
+    status: "Theme Manager aktif",
+    comingSoon: "Density per aplikasi",
     icon: <Palette size={16} />,
   },
   {
     name: "Module Manager",
     href: "/studio/modul",
-    description: "Status aplikasi dan unit bidang. Toggle submodul belum tersedia karena tidak ada registry-nya.",
+    description: "Status aplikasi dan unit bidang dibaca dari registry. Sakelar modul turunan belum memiliki penyimpanan.",
     status: "Registry live",
+    comingSoon: "Toggle submodul",
     icon: <Blocks size={16} />,
   },
   {
     name: "Release Manager",
     href: "/studio/rilis",
-    description: "Gerbang rilis dan tautan ke sistem CI/CD resmi GitHub Actions dan Vercel.",
-    status: "CI/CD",
+    description: "Gerbang rilis dan sumber CI/CD aktif. Approval konfigurasi dan metadata rollback belum disimpan di Studio.",
+    status: "CI/CD aktif",
+    comingSoon: "Approval & rollback",
     icon: <GitBranch size={16} />,
   },
 ];
@@ -94,7 +103,10 @@ export default async function StudioHome() {
           <Link key={builder.href} href={builder.href} className="group rounded-[14px] border border-line bg-white p-4 transition hover:border-primary-300 hover:shadow-[var(--sb-shadow)]">
             <div className="flex items-start justify-between gap-3">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-paper text-ink2">{builder.icon}</span>
-              <Badge tone={builder.status === "Registry live" || builder.status === "Antrean live" ? "success" : "neutral"}>{builder.status}</Badge>
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                <Badge tone={builder.status.toLowerCase().includes("aktif") || builder.status.includes("live") ? "success" : "neutral"}>{builder.status}</Badge>
+                {builder.comingSoon ? <ComingSoonBadge label={builder.comingSoon} /> : null}
+              </div>
             </div>
             <h2 className="mt-3 text-[12.5px] font-semibold text-ink group-hover:text-primary-800">{builder.name}</h2>
             <p className="mt-1 min-h-[48px] text-[10.5px] leading-relaxed text-muted">{builder.description}</p>
@@ -113,7 +125,7 @@ export default async function StudioHome() {
           </div>
         </Card>
         <Notice tone="warning" title="Batas editor konfigurasi">
-          Form Builder, Widget Layout Editor, Workflow Definition Registry, Theme Preset Storage, CMS page revisions, dan Release History belum seluruhnya memiliki model penyimpanan bersama. Menu Studio hanya menampilkan fitur yang memang terhubung, atau menjelaskan batas yang masih tersisa.
+          Label Segera Hadir menandai komponen yang belum mempunyai penyimpanan dan alur kerja lengkap. Registry operasional, Website Studio, Theme Manager, serta pemantauan antrean yang sudah aktif tetap dapat digunakan sesuai hak akses.
         </Notice>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Bell, ChevronDown, ChevronRight, LogOut, Menu, Plus, Search, X, Check,
   Settings, Mail, FileText, ListChecks, BarChart3, Activity, Target,
-  ClipboardCheck, CalendarDays, Users, Network, SlidersHorizontal, Home,
+  ClipboardCheck, CalendarDays, Users, Network, SlidersHorizontal, Home, LockKeyhole,
   CircleHelp, ArrowUpRight, ArrowRight, Facebook, Instagram, Youtube,
 } from "lucide-react";
 import { APPS, type AppKey } from "@/config/apps";
@@ -16,7 +16,7 @@ import { SearchProvider, SearchButton } from "@/components/search-dialog";
 import { logout } from "@/app/actions/auth";
 import type { DemoIdentity } from "@/lib/identity";
 
-interface NavItem { label: string; href: string; badge?: number }
+interface NavItem { label: string; href: string; badge?: number; comingSoon?: string }
 interface NavGroup { label?: string; items: NavItem[] }
 
 /* Icon per route — the reference sidebar shows a glyph on every row. */
@@ -145,10 +145,15 @@ export function AppShell({
                 type="button"
                 onClick={() => { setBell((v) => !v); setLauncher(false); setUser(false); }}
                 className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0d2b18]/55 text-white ring-1 ring-inset ring-white/20 hover:bg-[#0d2b18]/80"
-                aria-label={`Notifikasi${unread ? `, ${unread} belum dibaca` : ""}`}
+                aria-label={`Notifikasi${unread ? `, ${unread} belum dibaca` : ""}${notices.length === 0 ? ", segera hadir, layanan belum aktif" : ""}`}
                 aria-expanded={bell}
               >
                 <Bell size={16} />
+                {notices.length === 0 ? (
+                  <span className="absolute bottom-[2px] right-[2px] grid h-3.5 w-3.5 place-items-center rounded-full bg-[#e6e9ed] text-[#566273] ring-1 ring-[#14351f]" aria-hidden>
+                    <LockKeyhole size={8} />
+                  </span>
+                ) : null}
                 {unread > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--sb-accent-500)] px-1 text-[9.5px] font-bold text-[#241500]">
                     {unread}
@@ -159,7 +164,14 @@ export function AppShell({
                 <div className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,360px)]">
                   <div className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_28px_60px_-24px_rgba(15,26,43,0.4)] animate-rise">
                     <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-                      <span className="text-[12px] font-semibold text-ink">Notifikasi</span>
+                      <span className="flex items-center gap-2 text-[12px] font-semibold text-ink">
+                        Notifikasi
+                        {notices.length === 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f5f7] px-2 py-1 text-[9px] font-semibold text-[#566273]">
+                            <LockKeyhole size={9} /> Segera Hadir
+                          </span>
+                        ) : null}
+                      </span>
                       <div className="flex items-center gap-2">
                         <Link href="/app/notifikasi" className="text-[11px] font-semibold text-primary-700">Lihat semua</Link>
                       </div>
@@ -298,28 +310,46 @@ export function AppShell({
                   <div className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_28px_60px_-24px_rgba(15,26,43,0.45)] animate-rise">
                     <div className="flex items-center justify-between border-b border-line px-3.5 py-2">
                       <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted2">Ganti aplikasi</span>
-                      <span className="text-[10px] text-muted2">{availableApps.length} tersedia</span>
+                      <span className="text-[10px] text-muted2">{availableApps.filter((candidate) => !candidate.comingSoon).length} aktif · {availableApps.filter((candidate) => candidate.comingSoon).length} segera hadir</span>
                     </div>
                     <ul className="max-h-[min(62dvh,420px)] overflow-y-auto p-1.5">
                       {availableApps.map((a) => {
                         const active = a.key === activeApp;
                         return (
                           <li key={a.key}>
-                            <Link
-                              href={a.href}
-                              className={`flex items-center gap-2.5 rounded-[9px] px-2 py-1.5 transition ${
-                                active ? "bg-[#eaf6ec] ring-1 ring-inset ring-[#cfe6d3]" : "hover:bg-paper"
-                              }`}
-                            >
-                              <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[7px] ${active ? "bg-[#127e2f] text-white" : "bg-surface2 text-ink2"}`}>
-                                <AppIcon name={a.icon} size={13} />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[12px] font-semibold text-ink">{a.short}</span>
-                                <span className="block truncate text-[10px] text-muted">{a.audience}</span>
-                              </span>
-                              {active ? <Check size={13} className="shrink-0 text-[#127e2f]" /> : null}
-                            </Link>
+                            {a.comingSoon ? (
+                              <div
+                                aria-disabled="true"
+                                className="flex cursor-not-allowed items-center gap-2.5 rounded-[9px] px-2 py-1.5 opacity-75"
+                              >
+                                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] bg-surface2 text-muted2">
+                                  <AppIcon name={a.icon} size={13} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-[12px] font-semibold text-muted">{a.short}</span>
+                                  <span className="block truncate text-[10px] text-muted2">{a.audience}</span>
+                                </span>
+                                <span className="inline-flex shrink-0 items-center gap-1 text-[9.5px] font-semibold text-muted2">
+                                  <LockKeyhole size={11} /> Segera Hadir
+                                </span>
+                              </div>
+                            ) : (
+                              <Link
+                                href={a.href}
+                                className={`flex items-center gap-2.5 rounded-[9px] px-2 py-1.5 transition ${
+                                  active ? "bg-[#eaf6ec] ring-1 ring-inset ring-[#cfe6d3]" : "hover:bg-paper"
+                                }`}
+                              >
+                                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[7px] ${active ? "bg-[#127e2f] text-white" : "bg-surface2 text-ink2"}`}>
+                                  <AppIcon name={a.icon} size={13} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-[12px] font-semibold text-ink">{a.short}</span>
+                                  <span className="block truncate text-[10px] text-muted">{a.audience}</span>
+                                </span>
+                                {active ? <Check size={13} className="shrink-0 text-[#127e2f]" /> : null}
+                              </Link>
+                            )}
                           </li>
                         );
                       })}
@@ -360,6 +390,14 @@ export function AppShell({
                           {(item.badge ?? 0) > 0 ? (
                             <span className={`rounded-full px-1.5 text-[10px] font-bold ${active ? "bg-white/25 text-white" : "bg-[var(--sb-accent-500)] text-[#241500]"}`}>
                               {item.badge}
+                            </span>
+                          ) : item.comingSoon ? (
+                            <span
+                              title={item.comingSoon + " · Segera Hadir"}
+                              aria-label={item.comingSoon + " · Segera Hadir"}
+                              className={active ? "text-white" : "text-muted2"}
+                            >
+                              <LockKeyhole size={12} />
                             </span>
                           ) : active ? null : (
                             <ChevronRight size={12} className="text-muted2 opacity-0 transition group-hover:opacity-100" />

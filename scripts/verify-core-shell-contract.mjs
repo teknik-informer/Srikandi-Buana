@@ -288,7 +288,8 @@ const notificationClient = read("src/app/app/(launcher)/notifikasi/notifikasi-cl
 assert.ok(
   externalPortal.includes("requireRoles") &&
   externalPortal.includes("await requireRoles") &&
-  externalPortal.includes("Belum ada dataset berbagi yang diaktifkan") &&
+  externalPortal.includes("Dataset eksternal masih terkunci") &&
+  externalPortal.includes("Registri grant berbagi data") &&
   !externalPortal.includes("@/data/operations") &&
   !externalPortal.includes("@/data/organization") &&
   !externalPortal.includes("Grant data-sharing") &&
@@ -958,8 +959,8 @@ assert.ok(
   "The cashier/POS surface must use product wording and keep its data-source status explicit.",
 );
 assert.ok(
-  studioHome.includes('status: "Daftar modul"') &&
-  studioHome.includes('status: "Daftar dashboard"') &&
+  studioHome.includes('status: "Modul domain live"') &&
+  studioHome.includes('status: "Dashboard aktif"') &&
   studioApplications.includes("Daftar rute aplikasi inti") &&
   !/Katalog route|daftar demo/i.test(studioApplications) &&
   fieldNavigation.includes('label: "Produk"') &&
