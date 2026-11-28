@@ -81,8 +81,9 @@ assert.match(migration, /audit_events_read_scope/, "Audit reads must be restrict
 assert.match(migration, /file_share_links_public_token_read/, "Anonymous download counter updates need a matching token-scoped SELECT policy.");
 assert.match(migration, /member_community_topics_published_read/, "Active members must retain read access to published community topics.");
 assert.match(migration, /member_community_replies_published_read/, "Active members must retain read access to published community replies.");
-assert.match(migration, /_community_membership_visible/, "Community author membership reads must be scoped to published content.");
-assert.match(migration, /_community_person_visible/, "Community author names must be visible only for published content.");
+assert.match(migration, /get_member_community_author_name/, "Community author display must use a minimal safe name projection, not broad people/account row access.");
+assert.doesNotMatch(migration, /CREATE POLICY (memberships_community_author_read|people_community_author_read)/, "Community display must not expose membership or people rows to other members.");
+assert.doesNotMatch(migration, /_account_row_visible/, "Organization admins must not read other users' password_hash rows.");
 assert.match(migration, /row_value\.source_field_key/, "Field-scoped secretariat document child access must retain the source field key.");
 assert.match(migration, /_tenant_row_visible\(organization_id, source_field_key, NULL, created_by/, "Field-scoped secretariat document reads and writes must remain visible to their field.");
 
