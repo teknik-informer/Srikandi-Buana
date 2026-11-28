@@ -40,6 +40,32 @@ BEGIN
       table_count, rls_count, force_count;
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'v9.field_applications'::regclass
+      AND conname = 'field_applications_pkey'
+      AND contype = 'p'
+      AND pg_get_constraintdef(oid) = 'PRIMARY KEY (organization_id, field_key)'
+  ) THEN
+    RAISE EXCEPTION 'Field application identity must be unique by organization and field key.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'v9.field_applications'::regclass
+      AND conname = 'field_applications_route_key'
+      AND contype = 'u'
+      AND pg_get_constraintdef(oid) = 'UNIQUE (route)'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'v9.field_applications'::regclass
+      AND conname = 'field_applications_organization_id_route_key'
+      AND contype = 'u'
+      AND pg_get_constraintdef(oid) = 'UNIQUE (organization_id, route)'
+  ) THEN
+    RAISE EXCEPTION 'Field application routes must be unique within an organization, not globally.';
+  END IF;
+
   SELECT count(*) INTO owned_by_runtime
   FROM pg_class c
   JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -282,8 +308,8 @@ INSERT INTO v9.field_applications (
 ) VALUES
   ('ci-pertanian', v9.get_public_organization_id(), '70000000-0000-4000-8000-000000000007', 'Pertanian CI', 'Pertanian', '/ci/pertanian', 'CI fixture only', 1),
   ('ci-usaha', v9.get_public_organization_id(), '80000000-0000-4000-8000-000000000008', 'Usaha CI', 'Usaha', '/ci/usaha', 'CI fixture only', 2),
-  ('usaha', v9.get_public_organization_id(), '80000000-0000-4000-8000-000000000008', 'Usaha Tenant A', 'Usaha', '/qa/tenant-a/usaha', 'CI tenant-scoped field application', 3),
-  ('usaha', '20000000-0000-4000-8000-000000000002', '81000000-0000-4000-8000-000000000011', 'Usaha Tenant B', 'Usaha', '/qa/tenant-b/usaha', 'CI tenant-scoped field application', 3)
+  ('usaha', v9.get_public_organization_id(), '80000000-0000-4000-8000-000000000008', 'Usaha Tenant A', 'Usaha', '/app/bidang/usaha', 'CI tenant-scoped field application', 3),
+  ('usaha', '20000000-0000-4000-8000-000000000002', '81000000-0000-4000-8000-000000000011', 'Usaha Tenant B', 'Usaha', '/app/bidang/usaha', 'CI tenant-scoped field application', 3)
 ON CONFLICT (field_key, organization_id) DO NOTHING;
 
 -- Same fixed field_key is provisioned independently for both CI tenants.
