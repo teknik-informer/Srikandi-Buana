@@ -664,3 +664,32 @@ The user explicitly approved application of `db/migrations/0045_tenant_scope_fie
 No business row was inserted, updated, or deleted by the migration. No RLS policy, role, grant, owner, Vercel variable, deployment, or Production database was changed. Migrations 0046 and 0047 remain unapplied on live QA.
 
 **Current gate status:** the live-QA schema gate for migration 0045 is complete. Issue #90 remains open for legitimate-persona Preview UAT, screen-level POS/Finance and export/share/download tests, remaining end-to-end application behavior, independent security review, and release/rollback/observability evidence. PR #92 remains Draft/Open/Unmerged.
+
+
+### 12.16 Live Neon QA execution of migrations 0046 and 0047 — 28 Nov 2026
+
+The user explicitly approved applying migrations 0046 and 0047 to the same QA branch used for 0045. This is a QA-only approval; it does not authorize Production migration, deployment, or merging PR #92.
+
+**Target:** Neon project `holy-night-99324539`; branch `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx`; parent `br-mute-meadow-b4rhx1mn); state `ready`, `default=false`, `primary=false`; database `neondb`; PostgreSQL `18.7 (3190d2f)`. Migration/verification connection: `neondb_owner`; runtime role remains `v9_app`.
+
+**Execution:** both committed migration files were fetched from `feat/issue-90-tenant-rls-qa-20261128`. Preflight found no existing ledger records for either migration and confirmed the app actions call the corresponding new functions. Four statements from 0046 and thirteen from 0047 were applied in one Neon SQL transaction (17 statements total); every statement completed without error.
+
+- `0046_finance_reversal_draft_transaction.sql`: checksum `sha256:v9-finance-reversal-draft-transaction-20261128`; ledger timestamp `2026-11-28T12:18:46.489Z`.
+- `0047_business_order_stock_lifecycle_transaction.sql`: checksum `sha256:v9-business-order-stock-lifecycle-transaction-20261128`; ledger timestamp `2026-11-28T12:18:46.489Z`.
+
+**Postflight evidence from read-only catalog queries:**
+
+- Both exact migration filenames and checksums are present in `v9.schema_migrations`; the 0045 record remains intact.
+- Five new functions are present: `create_finance_reversal_draft`, `_business_order_actor_organization`, `confirm_business_order`, `fulfill_business_order`, and `cancel_business_order`.
+- All five are owned by `neondb_owner`, have `prosecdef=false` (`SECURITY INVOKER`), and use fixed `search_path=pg_catalog, v9`.
+- `v9_app` has EXECUTE on all five functions; PUBLIC has no EXECUTE on them.
+- `relrowsecurity=true` and `relforcerowsecurity=true` remain on all eight checked finance/business/stock/movement/audit tables.
+- Current database and migration verification identity were confirmed as `neondb` and `neondb_owner`, respectively.
+
+The two migrations install function definitions, function ACLs, and migration ledger records. They do not rewrite existing business rows; no journal, order, stock, or user data was changed by the migration transaction.
+
+**Recovery limitation:** no Neon snapshot or child backup branch exists. The earlier snapshot operation failed because this is a non-root branch, and child-branch creation failed because the project branch limit was exceeded. No unrelated branch was deleted or modified. The limitation is retained in the runbook.
+
+**Boundaries:** only QA branch `br-snowy-forest-b46i5pqx` / database `neondb` was changed. No Production SQL, data, Vercel environment, Production deployment, PR merge, table ownership, or RLS policy definition was changed. Function EXECUTE grants were scoped only to the five newly created functions.
+
+**Remaining gate status:** the migration 0046/0047 schema gate is complete on QA. Preview browser UAT with legitimate personas, full screen-level Finance/POS and export/share/download tests, broad cross-tenant side-effect tests, independent security review, and release/rollback/observability sign-off remain open. PR #92 is still Draft/Open/Unmerged; Issue #90 remains Open.
