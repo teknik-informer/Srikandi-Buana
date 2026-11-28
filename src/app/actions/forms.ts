@@ -1,6 +1,6 @@
 "use server";
 
-import { getV9Sql } from "@/lib/db";
+import { getV9PublicInterestSql } from "@/lib/db";
 
 export interface JoinState {
   ok: boolean;
@@ -75,7 +75,7 @@ export async function submitJoinInterest(
   }
 
   try {
-    const sql = getV9Sql();
+    const sql = getV9PublicInterestSql();
     const queryResult = await sql`
       WITH organization AS MATERIALIZED (
         SELECT id
