@@ -489,19 +489,21 @@ PostgreSQL 16 integration fixtures now cover six organization-scoped finance rel
 | Finance relation | A/B isolation assertions |
 |---|---|
 | `finance_accounts` | A sees only its two COA accounts; B account hidden; cross-tenant update affects zero rows; cross-tenant insert rejected; same-tenant update succeeds |
-| `finance_cash_accounts` | A sees only its cash register; delete against B register affects zero rows |
+| `finance_cash_accounts` | A sees only its cash register; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
 | `finance_journals` | A sees only its draft journal; cross-tenant update affects zero rows; cross-tenant insert rejected; same-tenant update succeeds |
-| `finance_journal_lines` | A sees only its own line; cross-tenant delete affects zero rows |
-| `finance_budgets` | A sees only its own draft budget |
-| `finance_budget_lines` | A sees only its own line; cross-tenant delete affects zero rows; same-tenant update succeeds |
+| `finance_journal_lines` | A sees only its own line; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
+| `finance_budgets` | A sees only its own draft budget; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
+| `finance_budget_lines` | A sees only its own line; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
 
 These fixtures are inserted by the CI migration owner into disposable PostgreSQL 16. Under `SET LOCAL ROLE v9_app` with the tenant-A verified session context, the assertions test database RLS rather than application query filters. The test exercises both deny behavior and positive tenant-A mutations. It does not yet prove every lifecycle transition, finance journal post/reversal trigger, budget approval/close transition, contribution allocation, or the application/browser finance UI.
 
 Historical exact-head GitHub Actions run #987 passed on commit `5bae5db980ce39bf9c539b13825cfbb7eeddbcf7`. The finance-only fixture was revalidated on exact-head run #1001 at commit `d393e5d03b02a7076f8a11d23ab5ca1344e15dbf`.
 
-The latest exact-head run #1009 passed on commit `4e13344399464eeb3c36cc1b22d1b0b68c5c9273`. PostgreSQL 16 tenant integration, organization regression, core workspace/RLS contract, TypeScript validation and Next.js production build all completed successfully. The same run includes the extended business order/item/payment fixtures and the revised tenant-scoped field-application identity migration.
+The latest exact-head run #1015 passed on commit `9a5474319e919795bc759fb46ef9f58832d20c28`. PostgreSQL 16 tenant integration, organization regression, core workspace/RLS contract, TypeScript validation and Next.js production build all completed successfully. The run includes all six finance relations, order/item/payment boundary fixtures, the revised tenant-scoped field-application identity migration, and payment receipt guard assertions.
 
-The finance boundary assertions remain deliberately narrower than a full finance lifecycle test: cross-tenant row visibility and selected UPDATE/DELETE/INSERT paths are denied, while same-tenant account, journal and budget-line updates succeed. Posting/reversal, period close/reopen, budget approval/close, contribution allocation and payment-journal linkage remain separate lifecycle gates.
+For each of the six finance relations, the fixture now has an A/B visibility assertion, at least one cross-tenant UPDATE or DELETE attempt that must affect zero rows (plus the explicit finance-account and journal INSERT denials), and a positive same-tenant mutation. The assertions execute as `v9_app` with the tenant-A verified transaction context; fixture setup is done by the disposable CI migration owner.
+
+The remaining finance gaps are lifecycle-specific, not basic row-boundary coverage: journal post/reversal, period close/reopen, budget approval/close, contribution allocation, and receipt-to-posted-journal linkage remain separate tests. The Browser/Finance UI is not declared UAT-complete.
 
 ### 12.8 Field application tenant identity and route migration
 
@@ -512,7 +514,7 @@ Migration `0045_tenant_scope_field_application_identity.sql` is now part of this
 
 The migration preserves `UNIQUE (field_key, organization_id)` for the existing operational foreign keys. It aborts if an incoming foreign key still references only `field_key`. Read-only inspection of the live QA branch also found zero incoming foreign keys to `route`. The UI and field action paths inspected use `identity.organizationId` when loading the module row, so a shared route remains resolved inside the authenticated organization.
 
-The PostgreSQL 16 runner applies migration 0045 twice. Its two-tenant fixture now provisions the same fixed key `usaha` **and the same route** `/app/bidang/usaha` for both organizations. The inventory contract asserts the composite primary key, the tenant-scoped route unique constraint, and absence of the former global route unique. Exact-head run #1009 on commit `4e13344399464eeb3c36cc1b22d1b0b68c5c9273` passed this migration/idempotence and same-route fixture, along with both CI jobs.
+The PostgreSQL 16 runner applies migration 0045 twice. Its two-tenant fixture now provisions the same fixed key `usaha` **and the same route** `/app/bidang/usaha` for both organizations. The inventory contract asserts the exact composite primary key, the tenant-scoped route unique constraint, absence of the former global route unique, and the expected 0045 ledger checksum. Exact-head run #1015 on commit `9a5474319e919795bc759fb46ef9f58832d20c28` passed the migration/idempotence and same-route fixture, along with both CI jobs.
 
 The live Neon QA branch `br-snowy-forest-b46i5pqx` has **not** yet applied migration 0045. Read-only catalog inspection on that branch confirms:
 - current primary key is still `PRIMARY KEY (field_key)`;
@@ -533,7 +535,7 @@ Payment receipts are introduced later by `0031_business_order_payment_receipts.s
 
 The payment guard validates a fulfilled order, an active IDR cash/bank register mapped to an active postable debit-normal asset account, no overpayment, immutable receipt details, and one-time linkage to a posted `sale` journal whose totals and cash-account debit match the receipt. The order/receipt composite foreign keys bind organization and field identity across the order, cash account and journal. The separate `business_inventory_movements_immutable` trigger rejects updates/deletes of recorded stock movements.
 
-The expanded PostgreSQL 16 fixture seeds both organizations' order items and unlinked payment receipts. Under tenant A and tenant B runtime contexts it checks order, order-item and payment-receipt read isolation. Tenant A also attempts cross-tenant order/item/payment UPDATE/DELETE and cross-tenant order/item INSERT; these operations must affect zero rows or be rejected. Positive same-tenant order-item UPDATE and payment-receipt INSERT are exercised; the latter runs through the payment guard using a fulfilled tenant-A order and active tenant-A cash register. The exact-head run #1009 listed above passed.
+The expanded PostgreSQL 16 fixture seeds both organizations' order items and unlinked payment receipts. Under tenant A and tenant B runtime contexts it checks order, order-item and payment-receipt read isolation. Tenant A also attempts cross-tenant order/item/payment UPDATE/DELETE and cross-tenant order/item INSERT; these operations must affect zero rows or be rejected. Positive same-tenant order-item UPDATE and payment-receipt INSERT are exercised; the latter runs through the payment guard using a fulfilled tenant-A order and active tenant-A cash register. The fixture also verifies that overpayment is rejected, receipt details are immutable after recording, and receipts cannot be deleted. The 0045 schema-migration checksum is asserted. Exact-head run #1015 listed above passed.
 
 Remaining business-order gates are not inferred as complete from those database assertions:
 - the application CTEs for confirm/reserve, fulfil/deduct-and-record-sale, cancel/release-reservation and POS payment need end-to-end regression/UAT with legitimate users;
