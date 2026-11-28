@@ -83,6 +83,16 @@ assert.ok(
 );
 
 assert.ok(
+  builder.includes("Setelah disimpan, aplikasi membuka naskah untuk pemeriksaan") &&
+  builder.includes('existing ? "Simpan revisi & lanjutkan" : "Simpan draf & lanjutkan"') &&
+  actions.includes('redirect(`/app/sekretariat/dokumen/\u0024{saved.id}/cetak?result=\u0024{saved.operation}`)') &&
+  printPage.includes("Langkah berikutnya") &&
+  printPage.includes("Periksa, cetak, lalu finalkan naskah") &&
+  printPage.includes("Finalkan setelah diperiksa"),
+  "Saving a generated draft must take the user to its review page and expose the next review, print, and finalization steps."
+);
+
+assert.ok(
   printPage.includes('requireIdentity("secretariat:read")') &&
   printPage.includes("identity.organizationId") &&
   printPage.includes('document.status <> \'arsip\'') &&
