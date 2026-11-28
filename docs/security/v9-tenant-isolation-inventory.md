@@ -481,3 +481,28 @@ This sweep establishes that guard calls exist in the action modules. It does **n
 - verify user/organization/unit/parent IDs are always derived from or checked against the authenticated identity, not trusted from client-supplied values;
 - add negative tests that invoke each action as an authenticated but unauthorized role, and confirm no row changes or audit/outbox/trigger side effects occur;
 - preserve the two intentional unauthenticated paths only under their narrow transaction contexts and ensure the login helper is not reusable for general application reads.
+
+### 12.7 CI cross-organization Finance boundary expansion — 28 November 2026
+
+PostgreSQL 16 integration fixtures now cover six organization-scoped finance relations without depending on `field_applications`:
+
+| Finance relation | A/B isolation assertions |
+|---|---|
+| `finance_accounts` | A sees only its two COA accounts; B account hidden; cross-tenant update affects zero rows; cross-tenant insert rejected; same-tenant update succeeds |
+| `finance_cash_accounts` | A sees only its cash register; delete against B register affects zero rows |
+| `finance_journals` | A sees only its draft journal; cross-tenant update affects zero rows; cross-tenant insert rejected; same-tenant update succeeds |
+| `finance_journal_lines` | A sees only its own line; cross-tenant delete affects zero rows |
+| `finance_budgets` | A sees only its own draft budget |
+| `finance_budget_lines` | A sees only its own line; cross-tenant delete affects zero rows; same-tenant update succeeds |
+
+These fixtures are inserted by the CI migration owner into disposable PostgreSQL 16. Under `SET LOCAL ROLE v9_app` with the tenant-A verified session context, the assertions test database RLS rather than application query filters. The test exercises both deny behavior and positive tenant-A mutations. It does not yet prove every lifecycle transition, finance journal post/reversal trigger, budget approval/close transition, contribution allocation, or the application/browser finance UI.
+
+Exact-head GitHub Actions run #987 passed on commit `5bae5db980ce39bf9c539b13825cfbb7eeddbcf7`: PostgreSQL 16 RLS integration, organization regression, core workspace/RLS contract, TypeScript validation and Next.js production build.
+
+### 12.8 Field application key limitation relevant to multi-tenant field fixtures
+
+Read-only inspection of QA branch `br-snowy-forest-b46i5pqx` confirms `v9.field_applications.field_key` remains the table primary key, while a further unique constraint exists for `(field_key, organization_id)`. That combination means the same field key cannot be instantiated for two organizations at the same time. The live QA branch currently has four enabled keys (`organisasi`, `pelatihan`, `pertanian`, `usaha`) for the Srikandi Buana organization only.
+
+This is not evidence of a current cross-organization data leak. It is a schema-level limitation for testing/using the same named field module across multiple tenants. Finance boundary tests above deliberately avoid the issue. Before claiming multi-tenant field-domain readiness, assess a separate QA-only schema migration to use a tenant-scoped primary/unique key and update all dependent foreign keys and queries. Do not apply such a change to Production without its own reviewed migration/rollback plan and explicit authorization.
+
+Issue #90 remains open for remaining domain-specific negative tests, finance lifecycle and side-effect coverage, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
