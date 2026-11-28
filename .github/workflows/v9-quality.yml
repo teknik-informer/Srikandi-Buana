@@ -7,6 +7,7 @@ on:
       - feat/v9-operational-core
       - feat/v9.2-production-integration
       - feat/v9.2-profile-content-studio
+      - feat/issue-90-tenant-rls-qa-20261128
   pull_request:
     branches:
       - v9-rebuild
@@ -23,6 +24,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  tenant-rls-postgres16:
+    name: Tenant RLS PostgreSQL 16 integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: srikandi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d srikandi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+
+      - name: Apply V9 migrations and run PostgreSQL 16 RLS integration
+        run: bash scripts/run-tenant-rls-postgres16.sh
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/srikandi
+
   validate:
     name: Typecheck and production build
     runs-on: ubuntu-latest
