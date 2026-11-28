@@ -96,7 +96,7 @@ export async function GET(
           id: publicFile.asset_id,
           organization_id: publicFile.organization_id,
           uploaded_by: null,
-          category: "secretariat-document",
+          category: "document",
           scope_kind: "organization",
           scope_ref: null,
           file_name: publicFile.file_name,
