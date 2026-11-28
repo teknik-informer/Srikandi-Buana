@@ -9,6 +9,7 @@ import {
   Notice,
   PageHeader,
   StatCard,
+  ComingSoonBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireIdentity } from "@/lib/session";
@@ -126,7 +127,7 @@ export default async function PiutangUtangPage() {
         eyebrow="Keuangan · Posisi pihak ketiga"
         title="Piutang & utang"
         description="Posisi akun piutang dan kewajiban berdasarkan saldo normal dari jurnal terposting. Bukan daftar invoice atau penagihan individual."
-        actions={<Link href="/app/keuangan/neraca-saldo" className="sb-btn sb-btn-outline">Neraca saldo</Link>}
+        actions={<div className="flex flex-wrap items-center gap-2"><ComingSoonBadge label="Sub-ledger invoice" /><Link href="/app/keuangan/neraca-saldo" className="sb-btn sb-btn-outline">Neraca saldo</Link></div>}
       />
 
       {unavailable ? (
