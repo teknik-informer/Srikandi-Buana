@@ -29,6 +29,8 @@ export interface AppDef {
   group: "inti" | "bidang" | "pendukung";
   badge?: string;
   requiresRole?: string[];
+  /** True when the app route is visible for transparency but not yet available. */
+  comingSoon?: boolean;
 }
 
 export const APPS: AppDef[] = [
@@ -163,9 +165,10 @@ export const APPS: AppDef[] = [
     short: "Portal Eksternal",
     href: "/portal",
     audience: "Pemerintah, NGO, mitra",
-    description: "Akses terbatas pada data dan laporan yang dibagikan.",
+    description: "Portal kolaborasi eksternal. Akses dataset menunggu registry grant berbagi data dan persetujuan.",
     icon: "globe",
     group: "pendukung",
+    comingSoon: true,
   },
 ];
 
