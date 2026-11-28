@@ -609,6 +609,7 @@ BEGIN
       ('field_team_assignments', 'v9._tenant_row_visible(organization_id, field_key, membership_id, created_by, NULL::uuid, NULL::uuid)'),
       ('field_workplans', 'v9._tenant_row_visible(organization_id, field_key, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
       ('finance_accounts', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
+      ('finance_cash_accounts', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
       ('finance_budget_lines', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, NULL::uuid, NULL::uuid, NULL::uuid)'),
       ('finance_budgets', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
       ('finance_cash_accounts', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
