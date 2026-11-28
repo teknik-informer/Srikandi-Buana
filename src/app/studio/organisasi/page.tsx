@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Building2, Network, ShieldCheck, Users } from "lucide-react";
 import {
-  Avatar, Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
+  Avatar, Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, ComingSoonBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
@@ -219,7 +219,7 @@ export default async function OrganisasiStudio() {
         eyebrow="Organization Studio"
         title="Registry unit & struktur organisasi"
         description="Sumber data organisasi, unit resmi, keanggotaan aktif, dan penugasan bidang yang telah dicatat. Halaman ini bersifat baca-saja; keputusan pengangkatan tetap mengikuti dokumen organisasi."
-        actions={<Badge tone="neutral">Registry live</Badge>}
+        actions={<div className="flex flex-wrap items-center gap-2"><Badge tone="success">Registry live</Badge><ComingSoonBadge label="Editor tata kelola" /></div>}
       />
 
       {unavailable ? (
@@ -351,7 +351,7 @@ export default async function OrganisasiStudio() {
             <Notice tone="warning" title="Status organisasi berbeda dari status aplikasi">
               Unit organisasi yang aktif adalah bagian dari registry kelembagaan. Mengaktifkan atau menonaktifkan aplikasi bidang tidak mengesahkan, membubarkan, atau mengubah status unit secara hukum.
             </Notice>
-            <Notice tone="info" title="Batas kewenangan Studio">
+            <Notice tone="info" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Editor tata kelola" /> Batas kewenangan Studio</span>}>
               Halaman ini tidak mengedit unit, jabatan, periode, atau penugasan. Pengangkatan dan perubahan susunan membutuhkan keputusan resmi, persetujuan berwenang, pencatatan audit, serta pengujian alur sebelum tombol perubahan diaktifkan.
             </Notice>
           </div>
