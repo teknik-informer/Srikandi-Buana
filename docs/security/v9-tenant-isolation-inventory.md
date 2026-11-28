@@ -215,10 +215,12 @@ These are CI fixtures in a temporary PostgreSQL 16 service. They are not inserte
 ## 8. Updated execution status
 
 - Current branch PR: [#92 — QA tenant RLS and transaction-bound request context](https://github.com/teknik-informer/Srikandi-Buana/pull/92), still Draft and not merged.
-- Exact-head CI on each latest commit remains the release gate. PostgreSQL 16 integration has already passed prior revisions; the latest public-projection revision is awaiting its full exact-head result.
-- Neon QA branch `phase1-integration-rehearsal` remains unchanged: migration `0044` has **not** yet been applied there.
-- Vercel Preview for the latest exact commit still needs to be redeployed and its admin-only database identity probe checked before applying migration to QA.
-- Production remains unchanged.
+- Exact-head CI on commit `8a45052079e2d0f731b9b34e742c909614a57f8c` passed: organization regression, core shell contract, tenant RLS contract, TypeScript, Next.js production build, and PostgreSQL 16 integration.
+- The Neon QA branch already contained a prior RLS v1 application. The owner-visible ledger showed checksum `sha256:tenant-row-level-security-v1`; the apparent missing ledger row from the `v9_app` read was caused by the intentional default-deny policy on `schema_migrations`.
+- QA migration v2 was applied atomically to `phase1-integration-rehearsal` (`br-snowy-forest-b46i5pqx`) after an explicit branch/database/principal/baseline preflight. The ledger now records `sha256:tenant-row-level-security-v2-transaction-context-privacy-policy-20261128`.
+- Post-migration owner and runtime-role checks are recorded in Section 11. Production remains unchanged.
+- Exact-head Vercel Preview is READY at [admin-dashboard-2gm3l2g61-teknik-informer.vercel.app](https://admin-dashboard-2gm3l2g61-teknik-informer.vercel.app), commit `8a45052079e2d0f731b9b34e742c909614a57f8c`.
+- **Still pending:** execute the admin-only Preview database diagnostics endpoint from a valid authenticated Preview admin session, verify `safeForTenantUat=true`, and run operational browser UAT. CI, migration success and Vercel READY do not replace this proof.
 
 
 ## 9. Public organization identity boundary
@@ -246,3 +248,74 @@ The response exposes only:
 It never returns or logs synthetic emails, HMAC values, session hashes, connection strings or credentials. `safeForTenantUat` is true only when the live deployment uses `v9_app` on the exact QA branch `br-snowy-forest-b46i5pqx`, has no owner/BYPASS/DDL privilege, does not own tenant tables, and both context probes pass.
 
 This probe has been implemented and must be executed in a signed-in Preview admin session before Issue #91 is closed. It is not replaced by PostgreSQL 16 CI or a Vercel READY status.
+
+
+
+## 11. QA migration v2 and exact-head Preview evidence — 28 November 2026
+
+### 11.1 Upgrade history and preflight
+
+The QA branch was not an untouched database. Before the v2 reconciliation, the owner-visible ledger contained `0044_tenant_row_level_security.sql` with checksum `sha256:tenant-row-level-security-v1` (applied at `2026-11-28T08:09:42.825Z`). RLS and FORCE RLS were already active on the 63 V9 tables. The legacy v1 policy set still contained broad SECURITY DEFINER helpers for account, membership and person row visibility.
+
+An early check as `v9_app` returned zero rows from `schema_migrations`; this was not evidence that the migration had not run. `schema_migrations` is intentionally default-deny for the runtime role. The migration history was verified as `neondb_owner` before proceeding.
+
+The v2 application was executed in one transaction against only Neon branch `br-snowy-forest-b46i5pqx`:
+- preflight verified `current_setting('neon.branch_id')`, database `neondb`, migration principal `neondb_owner`, 63 tables, 63 RLS flags, 63 FORCE RLS flags and the expected v1 ledger checksum;
+- the preflight required all three legacy helpers to exist before replacing them;
+- migration statements completed atomically; no Production connection or target was used.
+
+### 11.2 Post-migration database state
+
+| Check | QA result |
+|---|---:|
+| V9 tables | 63 |
+| RLS enabled | 63 / 63 |
+| FORCE RLS enabled | 63 / 63 |
+| Tables with policies | 61 |
+| Tables without policies | 2: `bootstrap_state`, `schema_migrations` |
+| Policy count | 78 |
+| Legacy broad community/account policies | 0 |
+| Legacy SECURITY DEFINER helpers | 0 |
+| Safe `get_member_community_author_name(uuid)` projection | Present |
+| Existing triggers / trigger functions | 22 / 21 |
+| Sequences / views | 21 / 0 |
+| QA audit-event row count | 1; unchanged by migration |
+
+The ledger now records `sha256:tenant-row-level-security-v2-transaction-context-privacy-policy-20261128`, applied at `2026-11-28T09:52:20.199Z`.
+
+The new community author projection is SECURITY DEFINER with pinned `search_path`, owned by `neondb_owner`, executable by `v9_app` only and not executable by `PUBLIC`. It resolves only a name display value, requires an active membership in the actor's organization, and limits ordinary member visibility to authors of published content. Moderators can resolve same-tenant authors of content/reports they are authorized to moderate. Raw `people`, `memberships` or `user_accounts` rows are not made visible to other members for display convenience.
+
+### 11.3 Runtime principal and least privilege (direct Neon QA connection)
+
+| Check | Result |
+|---|---|
+| `current_user` | `v9_app` |
+| `session_user` | `v9_app` |
+| Database / Neon branch | `neondb` / `br-snowy-forest-b46i5pqx` |
+| PostgreSQL | 18.7 on Neon QA |
+| SUPERUSER / BYPASSRLS | false / false |
+| CREATEROLE / CREATEDB | false / false |
+| Member of `neondb_owner` / can SET that role | false / false |
+| CREATE on schema `v9` / CREATE on database | false / false |
+| Owns V9 tenant tables | false |
+
+This direct Neon connection check verifies the QA database principal and privilege map. The Preview-only route `/api/studio/diagnostics/database` also performs the same runtime check through the deployed application and includes concurrent transaction-context isolation probes. That route has **not yet been executed in a signed-in Preview admin session**, so the Vercel request path remains a separate acceptance gate.
+
+### 11.4 CI and Preview evidence
+
+- PR #92 remains Draft and unmerged.
+- Exact-head commit: `8a45052079e2d0f731b9b34e742c909614a57f8c`.
+- GitHub Actions run #957: success, including PostgreSQL 16 tenant RLS integration and TypeScript/production build.
+- The PostgreSQL 16 runner deliberately creates the legacy v1 helper/policy state, upgrades it to v2, runs migration a second time to verify idempotence, and then asserts the policy inventory and cross-tenant tests.
+- Vercel deployment `dpl_BZT23Nsp97EdveRfbghCJKwGQogu` is READY and maps to the exact branch and SHA above. Build events contain `Deployment completed` and `Build Completed`.
+- Vercel Preview runtime log query for the deployment returned no log records in the last 30 minutes and no error/fatal records in its query window. This means no logs were returned, not that authenticated feature flows were tested.
+
+### 11.5 Remaining Issue #90 gates
+
+1. A valid authorized administrator must sign in to the exact Preview URL and request `/api/studio/diagnostics/database`; require `safeForTenantUat=true`, `current_user=session_user=v9_app`, exact QA branch ID and successful concurrency probes.
+2. Perform browser UAT on Preview, with legitimate provisioned accounts only, for login/logout/session revocation, profile/account self-service, membership, Secretariat, file upload/download/share, public banner and public projections, field/agriculture, training, inventory/POS, Finance, search, reporting and exports.
+3. Test actual application request paths and trigger side effects after RLS on QA. The PostgreSQL 16 CI suite is a strong database regression gate but does not replace end-to-end UAT against Neon/Preview.
+4. Independent security review must inspect helper functions, grants, role ownership, report/export queries, operational search and the full table/query/action inventory.
+5. Update this document and Issue #66 with each domain's evidence. Keep Issue #90 open until the authenticated Preview probe and required UAT/security review gates are complete.
+
+No Production SQL, role, grant, RLS, schema, environment, SSO, domain, alias or deployment operation was performed.
