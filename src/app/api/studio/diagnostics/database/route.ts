@@ -29,7 +29,7 @@ export async function GET() {
   }
 
   const identity = await getIdentity();
-  if (!identity || !["platform_admin", "organization_admin"].includes(identity.roleKey)) {
+  if (!identity || !["platform_admin", "organization_admin", "chair"].includes(identity.roleKey)) {
     return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
