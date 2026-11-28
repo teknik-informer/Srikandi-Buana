@@ -693,15 +693,16 @@ INSERT INTO v9.training_sessions (
   ('a5000000-0000-4000-8000-0000000000a5',
    (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
    'pelatihan', 'CI-TRAINING-OPEN', 'Pelatihan publik QA',
-   current_date + 5, 'registration_open', '40000000-0000-4000-8000-000000000004'),
+   current_date + 5, 'registration_open', '40000000-0000-4000-8000-000000000004');
+
 INSERT INTO v9.training_sessions (
   id, organization_id, field_key, reference_no, title,
   session_date, status, completed_at, created_by
 ) VALUES (
-  'a7000000-0000-4000-8000-0000000000a7',
+  'a6000000-0000-4000-8000-0000000000a6',
   (SELECT id FROM v9.organizations WHERE slug='srikandi-buana'),
-  'pelatihan', 'CI-TRAINING-COMPLETE-2', 'Pelatihan selesai kedua QA',
-  current_date - 7, 'completed', now(), '40000000-0000-4000-8000-000000000004'
+  'pelatihan', 'CI-TRAINING-COMPLETE', 'Pelatihan selesai QA',
+  current_date - 5, 'completed', now(), '40000000-0000-4000-8000-000000000004'
 );
 
 INSERT INTO v9.training_enrollments (
