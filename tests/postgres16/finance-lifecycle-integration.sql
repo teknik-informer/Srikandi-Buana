@@ -227,119 +227,39 @@ audit AS (
 SELECT count(*) AS baseline_post_audit_rows FROM audit;
 COMMIT;
 
--- Create a reversal only from the posted, non-reversal original and only once.
+-- The database function creates the zero-total draft, copies every line,
+-- computes totals in a later PL/pgSQL statement, and records the audit event.
 BEGIN;
 SET LOCAL ROLE v9_app;
 SELECT set_config('v9.session_token_hash', repeat('c', 64), true);
 
-WITH original AS MATERIALIZED (
-  SELECT journal.id, journal.organization_id, journal.reference_no,
-    journal.description, journal.budget_id
-  FROM v9.finance_journals AS journal
-  WHERE journal.id = 'b9000000-0000-4000-8000-00000000000b'
-    AND journal.organization_id = v9.get_public_organization_id()
-    AND journal.status = 'posted'
-    AND journal.source_type <> 'reversal'
-    AND NOT EXISTS (
-      SELECT 1 FROM v9.finance_journals AS reversal
-      WHERE reversal.reversal_of_id = journal.id
-        AND reversal.organization_id = journal.organization_id
-    )
-  FOR UPDATE
-),
-original_lines AS MATERIALIZED (
-  SELECT line.account_id, line.line_number, line.memo, line.debit, line.credit
-  FROM v9.finance_journal_lines AS line
-  INNER JOIN original
-    ON original.id = line.journal_id
-    AND original.organization_id = line.organization_id
-),
-inserted AS (
-  INSERT INTO v9.finance_journals (
-    id, organization_id, journal_date, description, source_type,
-    source_reference, budget_id, idempotency_key, reversal_of_id, created_by
-  )
-  SELECT
-    'f5100000-0000-4000-8000-000000000510',
-    original.organization_id,
+DO $reversal_create$
+DECLARE created_count integer;
+BEGIN
+  SELECT count(*)::integer INTO created_count
+  FROM v9.create_finance_reversal_draft(
+    'b9000000-0000-4000-8000-00000000000b',
     current_date,
-    'Pembalik ' || original.reference_no || ': QA reversal lifecycle',
-    'reversal',
-    original.reference_no,
-    original.budget_id,
-    'qa-lifecycle-reversal-001',
-    original.id,
+    'QA reversal lifecycle',
     'f1100000-0000-4000-8000-000000000110'
-  FROM original
-  WHERE (SELECT count(*) FROM original_lines) >= 2
-  RETURNING id, organization_id, reference_no
-),
-inserted_lines AS (
-  INSERT INTO v9.finance_journal_lines (
-    organization_id, journal_id, account_id, line_number, memo, debit, credit
-  )
-  SELECT
-    inserted.organization_id,
-    inserted.id,
-    original_lines.account_id,
-    original_lines.line_number,
-    concat_ws(' · ', 'Pembalik', NULLIF(original_lines.memo, '')),
-    original_lines.credit,
-    original_lines.debit
-  FROM inserted
-  CROSS JOIN original_lines
-  RETURNING journal_id, debit, credit
-),
-totals AS (
-  SELECT journal_id,
-    sum(debit)::numeric(18,2) AS debit_total,
-    sum(credit)::numeric(18,2) AS credit_total
-  FROM inserted_lines
-  GROUP BY journal_id
-),
-updated AS (
-  UPDATE v9.finance_journals AS journal
-  SET total_debit = totals.debit_total,
-      total_credit = totals.credit_total,
-      updated_at = now()
-  FROM inserted
-  INNER JOIN totals ON totals.journal_id = inserted.id
-  WHERE journal.id = inserted.id
-    AND journal.organization_id = inserted.organization_id
-  RETURNING journal.id, journal.organization_id, journal.reference_no,
-    journal.total_debit, journal.total_credit, journal.reversal_of_id
-),
-audit AS (
-  INSERT INTO v9.audit_events (
-    organization_id, actor_user_id, action, entity_type, entity_id, after_state
-  )
-  SELECT organization_id, 'f1100000-0000-4000-8000-000000000110',
-    'finance_journal.reversal_draft_created', 'finance_journal', id::text,
-    jsonb_build_object('reference_no', reference_no, 'total_debit', total_debit,
-      'total_credit', total_credit, 'reversal_of_id', reversal_of_id)
-  FROM updated
-  RETURNING id
-)
-SELECT count(*) AS reversal_created_rows FROM audit;
+  );
+  IF created_count <> 1 THEN
+    RAISE EXCEPTION 'Expected exactly one eligible reversal draft; got %.', created_count;
+  END IF;
+END
+$reversal_create$;
 
 DO $reversal_once$
-DECLARE duplicate_rejected boolean := false;
+DECLARE duplicate_count integer;
 BEGIN
-  BEGIN
-    INSERT INTO v9.finance_journals (
-      organization_id, journal_date, description, source_type,
-      source_reference, idempotency_key, reversal_of_id, created_by
-    ) VALUES (
-      v9.get_public_organization_id(), current_date,
-      'Duplicate QA reversal must fail', 'reversal',
-      'QA-FIN-A-001', 'qa-lifecycle-reversal-duplicate',
-      'b9000000-0000-4000-8000-00000000000b',
-      'f1100000-0000-4000-8000-000000000110'
-    );
-  EXCEPTION WHEN unique_violation THEN
-    duplicate_rejected := true;
-  END;
-  IF NOT duplicate_rejected THEN
+  SELECT count(*)::integer INTO duplicate_count
+  FROM v9.create_finance_reversal_draft(
+    'b9000000-0000-4000-8000-00000000000b',
+    current_date,
+    'QA duplicate reversal must be rejected',
+    'f1100000-0000-4000-8000-000000000110'
+  );
+  IF duplicate_count <> 0 THEN
     RAISE EXCEPTION 'A second reversal of the same original journal was accepted.';
   END IF;
 END
