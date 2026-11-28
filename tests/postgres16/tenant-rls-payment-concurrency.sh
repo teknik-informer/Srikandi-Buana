@@ -89,6 +89,17 @@ SQL
 BEGIN;
 SET LOCAL ROLE v9_app;
 SELECT set_config('v9.session_token_hash', repeat('f',64), true);
+SELECT
+  current_user,
+  actor.user_id AS actor_user_id,
+  actor.organization_id AS actor_organization_id,
+  actor.role_key AS actor_role,
+  v9.get_public_organization_id() AS resolved_public_organization_id,
+  (SELECT count(*) FROM v9.business_orders
+    WHERE id = 'e7000000-0000-4000-8000-000000000007') AS visible_race_order_count,
+  (SELECT status FROM v9.business_orders
+    WHERE id = 'e7000000-0000-4000-8000-000000000007') AS visible_race_order_status
+FROM v9._request_actor() AS actor;
 INSERT INTO v9.business_order_payments (
   organization_id, field_key, order_id, cash_account_id,
   payment_date, amount, received_by, idempotency_key
