@@ -504,39 +504,75 @@ SET search_path = pg_catalog, v9
 AS $function$
 DECLARE actor record;
 DECLARE display_name text;
+DECLARE author_membership_id uuid;
 BEGIN
   SELECT * INTO actor FROM v9._request_actor() LIMIT 1;
   IF actor.user_id IS NULL OR actor.organization_id IS NULL THEN
     RETURN NULL;
   END IF;
 
-  IF actor.user_id <> p_user_id
-     AND actor.role_key NOT IN ('platform_admin', 'organization_admin', 'chair', 'secretary')
-     AND NOT (
-       v9._active_community_member(actor.organization_id)
-       AND (
-         EXISTS (
-           SELECT 1
-           FROM v9.member_community_topics AS topic
-           WHERE topic.organization_id = actor.organization_id
-             AND topic.author_user_id = p_user_id
-             AND topic.status = 'published'
-         )
-         OR EXISTS (
-           SELECT 1
-           FROM v9.member_community_replies AS reply
-           INNER JOIN v9.member_community_topics AS topic
-             ON topic.id = reply.topic_id
-             AND topic.organization_id = reply.organization_id
-           WHERE reply.organization_id = actor.organization_id
-             AND reply.author_user_id = p_user_id
-             AND reply.status = 'published'
-             AND topic.status = 'published'
-         )
-       )
-     )
-  THEN
+  -- A name is resolvable only for an account linked to a membership in the
+  -- actor's organization. Never resolve an arbitrary UUID from another tenant.
+  SELECT membership.id
+    INTO author_membership_id
+  FROM v9.user_accounts AS account
+  INNER JOIN v9.memberships AS membership
+    ON membership.person_id = account.person_id
+   AND membership.organization_id = actor.organization_id
+  WHERE account.id = p_user_id
+    AND membership.status = 'active'
+    AND (membership.valid_from IS NULL OR membership.valid_from <= current_date)
+    AND (membership.valid_until IS NULL OR membership.valid_until >= current_date)
+  ORDER BY membership.created_at DESC
+  LIMIT 1;
+
+  IF p_user_id <> actor.user_id AND author_membership_id IS NULL THEN
     RETURN NULL;
+  END IF;
+
+  IF p_user_id <> actor.user_id THEN
+    IF actor.role_key IN ('platform_admin', 'organization_admin', 'chair', 'secretary') THEN
+      -- Moderators may identify authors only when they have a content row in
+      -- this organization, including pending content that needs moderation.
+      IF NOT EXISTS (
+        SELECT 1
+        FROM v9.member_community_topics AS topic
+        WHERE topic.organization_id = actor.organization_id
+          AND topic.author_user_id = p_user_id
+      ) AND NOT EXISTS (
+        SELECT 1
+        FROM v9.member_community_replies AS reply
+        WHERE reply.organization_id = actor.organization_id
+          AND reply.author_user_id = p_user_id
+      ) THEN
+        RETURN NULL;
+      END IF;
+    ELSE
+      -- Ordinary active members can identify only contributors to published
+      -- topics/replies in their own organization.
+      IF actor.membership_id IS NULL OR (
+        NOT EXISTS (
+          SELECT 1
+          FROM v9.member_community_topics AS topic
+          WHERE topic.organization_id = actor.organization_id
+            AND topic.author_user_id = p_user_id
+            AND topic.status = 'published'
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM v9.member_community_replies AS reply
+          INNER JOIN v9.member_community_topics AS topic
+            ON topic.id = reply.topic_id
+           AND topic.organization_id = reply.organization_id
+          WHERE reply.organization_id = actor.organization_id
+            AND reply.author_user_id = p_user_id
+            AND reply.status = 'published'
+            AND topic.status = 'published'
+        )
+      ) THEN
+        RETURN NULL;
+      END IF;
+    END IF;
   END IF;
 
   SELECT COALESCE(
@@ -546,9 +582,13 @@ BEGIN
   )
   INTO display_name
   FROM v9.user_accounts AS account
-  LEFT JOIN v9.people AS person
+  INNER JOIN v9.memberships AS membership
+    ON membership.person_id = account.person_id
+   AND membership.organization_id = actor.organization_id
+  INNER JOIN v9.people AS person
     ON person.id = account.person_id
   WHERE account.id = p_user_id
+    AND membership.id = author_membership_id
   LIMIT 1;
 
   RETURN display_name;
