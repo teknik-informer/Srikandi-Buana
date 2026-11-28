@@ -387,6 +387,14 @@ INSERT INTO v9.business_order_payments (
   ('cc000000-0000-4000-8000-00000000000c', '20000000-0000-4000-8000-000000000002', 'usaha', 'c8000000-0000-4000-8000-000000000008', 'b4000000-0000-4000-8000-00000000000b', 5000, '40000000-0000-4000-8000-000000000008', 'd2000000-0000-4000-8000-000000000002')
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO v9.business_inventory_movements (
+  id, organization_id, field_key, product_id, warehouse_id, movement_type,
+  quantity, on_hand_before, on_hand_delta, on_hand_after, source_reference, note, recorded_by
+) VALUES
+  ('d5000000-0000-4000-8000-000000000005', v9.get_public_organization_id(), 'usaha', 'c1000000-0000-4000-8000-000000000001', 'c3000000-0000-4000-8000-000000000003', 'receipt', 1, 0, 1, 1, 'QA-RLS-A', 'Tenant A immutable movement fixture', '40000000-0000-4000-8000-000000000004'),
+  ('d6000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000002', 'usaha', 'c2000000-0000-4000-8000-000000000002', 'c4000000-0000-4000-8000-000000000004', 'receipt', 1, 0, 1, 1, 'QA-RLS-B', 'Tenant B immutable movement fixture', '40000000-0000-4000-8000-000000000008')
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO v9.field_programs (
   id, organization_id, field_key, reference_no, title, objective,
   period_start, period_end, status, created_by
@@ -617,6 +625,9 @@ BEGIN
   SELECT count(*) INTO visible_count FROM v9.business_order_payments
   WHERE id IN ('cb000000-0000-4000-8000-00000000000b', 'cc000000-0000-4000-8000-00000000000c');
   IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its payment receipt; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_inventory_movements
+  WHERE id IN ('d5000000-0000-4000-8000-000000000005', 'd6000000-0000-4000-8000-000000000006');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its stock movement; saw %.', visible_count; END IF;
 
   UPDATE v9.business_products SET product_name = 'Unauthorized product change'
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND sku = 'QA-BIZ-B-001';
@@ -663,6 +674,28 @@ BEGIN
     AND id = 'cc000000-0000-4000-8000-00000000000c';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant payment DELETE affected % rows.', changed_count; END IF;
+  UPDATE v9.business_inventory_movements SET note = 'Unauthorized stock movement edit'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002'
+    AND id = 'd6000000-0000-4000-8000-000000000006';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant stock movement UPDATE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.business_inventory_movements
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002'
+    AND id = 'd6000000-0000-4000-8000-000000000006';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant stock movement DELETE affected % rows.', changed_count; END IF;
+  BEGIN
+    INSERT INTO v9.business_inventory_movements (
+      organization_id, field_key, product_id, warehouse_id, movement_type,
+      quantity, on_hand_before, on_hand_delta, on_hand_after, recorded_by
+    ) VALUES (
+      '20000000-0000-4000-8000-000000000002', 'usaha',
+      'c2000000-0000-4000-8000-000000000002', 'c4000000-0000-4000-8000-000000000004',
+      'adjustment_in', 1, 0, 1, 1, '40000000-0000-4000-8000-000000000004'
+    );
+    RAISE EXCEPTION 'Cross-tenant inventory movement INSERT was not rejected by RLS.';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
 
   BEGIN
     INSERT INTO v9.business_products (organization_id, field_key, sku, slug, product_name, unit_label, status, publication_status, track_stock, created_by, updated_by)
@@ -727,6 +760,35 @@ BEGIN
     'b3000000-0000-4000-8000-00000000000b',
     1000, '40000000-0000-4000-8000-000000000004',
     'd3000000-0000-4000-8000-000000000003'
+  );
+  BEGIN
+    UPDATE v9.business_inventory_movements SET note = 'Unauthorized own-row edit'
+    WHERE id = 'd5000000-0000-4000-8000-000000000005';
+    RAISE EXCEPTION 'Inventory movement immutability trigger did not reject an update.';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'Inventory movements are immutable. Record a correcting movement instead.' THEN
+      RAISE;
+    END IF;
+  END;
+
+  BEGIN
+    DELETE FROM v9.business_inventory_movements
+    WHERE id = 'd5000000-0000-4000-8000-000000000005';
+    RAISE EXCEPTION 'Inventory movement immutability trigger did not reject a delete.';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'Inventory movements are immutable. Record a correcting movement instead.' THEN
+      RAISE;
+    END IF;
+  END;
+
+  INSERT INTO v9.business_inventory_movements (
+    organization_id, field_key, product_id, warehouse_id, movement_type,
+    quantity, on_hand_before, on_hand_delta, on_hand_after, source_reference, note, recorded_by
+  ) VALUES (
+    v9.get_public_organization_id(), 'usaha',
+    'c1000000-0000-4000-8000-000000000001', 'c3000000-0000-4000-8000-000000000003',
+    'sale', 1, 2, -1, 1, 'QA-ORD-A-001', 'Tenant A sale movement fixture',
+    '40000000-0000-4000-8000-000000000004'
   );
 
   BEGIN
@@ -904,6 +966,9 @@ BEGIN
   SELECT count(*) INTO visible_count FROM v9.business_order_payments
   WHERE id IN ('cb000000-0000-4000-8000-00000000000b', 'cc000000-0000-4000-8000-00000000000c');
   IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its payment receipt; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_inventory_movements
+  WHERE id IN ('d5000000-0000-4000-8000-000000000005', 'd6000000-0000-4000-8000-000000000006');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its stock movement; saw %.', visible_count; END IF;
   UPDATE v9.business_products SET product_name = 'QA Product Tenant B Updated'
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND sku = 'QA-BIZ-B-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
