@@ -46,79 +46,18 @@ export default async function PelatihanPage() {
       const sql = getV9Sql();
       const [openResult, completedResult] = await Promise.all([
         sql`
-          SELECT
-            session.id::text AS id,
-            session.reference_no,
-            session.title,
-            session.topic,
-            session.session_date::text AS session_date,
-            to_char(session.start_time, 'HH24:MI') AS start_time,
-            to_char(session.end_time, 'HH24:MI') AS end_time,
-            session.location,
-            session.trainer_label,
-            session.max_participants,
-            (
-              SELECT count(*)::int
-              FROM v9.training_enrollments AS enrollment
-              WHERE enrollment.session_id = session.id
-                AND enrollment.organization_id = session.organization_id
-                AND enrollment.registration_status IN ('registered','confirmed')
-            ) AS registered_count,
-            (
-              SELECT count(*)::int
-              FROM v9.training_enrollments AS enrollment
-              WHERE enrollment.session_id = session.id
-                AND enrollment.organization_id = session.organization_id
-                AND enrollment.attendance_status = 'hadir'
-            ) AS present_count,
-            session.description
-          FROM v9.training_sessions AS session
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = session.organization_id
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND session.field_key = 'pelatihan'
-            AND session.status = 'registration_open'
-            AND session.session_date >= current_date
-          ORDER BY session.session_date, session.start_time NULLS FIRST
-          LIMIT 50
+          SELECT id::text AS id, reference_no, title, topic,
+            session_date::text AS session_date, start_time, end_time,
+            location, trainer_label, max_participants,
+            registered_count, present_count, description
+          FROM v9.get_public_training_sessions(false, 50)
         `,
         sql`
-          SELECT
-            session.id::text AS id,
-            session.reference_no,
-            session.title,
-            session.topic,
-            session.session_date::text AS session_date,
-            to_char(session.start_time, 'HH24:MI') AS start_time,
-            to_char(session.end_time, 'HH24:MI') AS end_time,
-            session.location,
-            session.trainer_label,
-            session.max_participants,
-            (
-              SELECT count(*)::int
-              FROM v9.training_enrollments AS enrollment
-              WHERE enrollment.session_id = session.id
-                AND enrollment.organization_id = session.organization_id
-                AND enrollment.registration_status IN ('registered','confirmed')
-            ) AS registered_count,
-            (
-              SELECT count(*)::int
-              FROM v9.training_enrollments AS enrollment
-              WHERE enrollment.session_id = session.id
-                AND enrollment.organization_id = session.organization_id
-                AND enrollment.attendance_status = 'hadir'
-            ) AS present_count,
-            session.description
-          FROM v9.training_sessions AS session
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = session.organization_id
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND session.field_key = 'pelatihan'
-            AND session.status = 'completed'
-          ORDER BY session.session_date DESC
-          LIMIT 20
+          SELECT id::text AS id, reference_no, title, topic,
+            session_date::text AS session_date, start_time, end_time,
+            location, trainer_label, max_participants,
+            registered_count, present_count, description
+          FROM v9.get_public_training_sessions(true, 20)
         `,
       ]);
       return {
