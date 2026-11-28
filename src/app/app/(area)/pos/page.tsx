@@ -8,6 +8,7 @@ import {
   CardHeader,
   EmptyState,
   Notice,
+  ComingSoonBadge,
 } from "@/components/ui";
 import { AppBanner } from "@/components/dash-kit";
 import { APP_IDENTITY } from "@/config/app-identity";
@@ -303,7 +304,7 @@ export default async function PosPage({
     <div className="pb-10">
       <AppBanner
         {...APP_IDENTITY.pos}
-        badge={<Badge tone="info">Pesanan POS</Badge>}
+        badge={<span className="flex flex-wrap items-center gap-2"><Badge tone="info">Pesanan POS</Badge><ComingSoonBadge label="Posting otomatis ke buku besar" /></span>}
         facts={[
           customers.length + " pelanggan aktif",
           products.length + " produk aktif",
@@ -317,7 +318,7 @@ export default async function PosPage({
       />
 
       <div className="mt-4">
-        <Notice tone="info" title="Kuitansi pembayaran terpisah dari jurnal penjualan">
+        <Notice tone="info" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Posting otomatis" /> Kuitansi pembayaran terpisah dari jurnal penjualan</span>}>
           Setelah pesanan terpenuhi, kasir dapat mencatat penerimaan penuh atau cicilan ke register kas/bank aktif.
           Kuitansi tidak mengubah saldo buku besar. Bendahara tetap membuat, memeriksa, dan memposting jurnal penjualan
           sebelum penerimaan diakui pada laporan keuangan.
