@@ -149,7 +149,7 @@ export function normalizePublicSiteSettings(input: unknown, profileContentInput?
   const hero = {
     ...base.hero,
     ...rawHero,
-    variant: allowedHeroVariants.has(String(rawHero.variant)) ? rawHero.variant : base.hero.variant,
+    variant: (allowedHeroVariants.has(String(rawHero.variant)) ? rawHero.variant : base.hero.variant) as PublicHeroVariant,
     imageUrl: typeof rawHero.imageUrl === "string" && rawHero.imageUrl.length <= 500 &&
       ((rawHero.imageUrl.startsWith("/") && !rawHero.imageUrl.startsWith("//")) ||
        /^https:\/\/\S+$/i.test(rawHero.imageUrl))
