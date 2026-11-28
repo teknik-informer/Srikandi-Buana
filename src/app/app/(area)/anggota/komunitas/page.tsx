@@ -224,7 +224,7 @@ export default async function KomunitasPage({
           topic.moderation_note,
           topic.created_at::text AS created_at,
           topic.author_user_id::text AS author_user_id,
-          COALESCE(person.full_name, account.email) AS author_name,
+          v9.get_member_community_author_name(topic.author_user_id) AS author_name,
           (
             SELECT count(*)::int
             FROM v9.member_community_replies AS reply
@@ -233,10 +233,6 @@ export default async function KomunitasPage({
               AND reply.status = 'published'
           ) AS reply_count
         FROM v9.member_community_topics AS topic
-        INNER JOIN v9.user_accounts AS account
-          ON account.id = topic.author_user_id
-        LEFT JOIN v9.people AS person
-          ON person.id = account.person_id
         WHERE topic.organization_id = ${identity.organizationId}
           AND (
             topic.status = 'published'
@@ -257,16 +253,12 @@ export default async function KomunitasPage({
           reply.moderation_note,
           reply.created_at::text AS created_at,
           reply.author_user_id::text AS author_user_id,
-          COALESCE(person.full_name, account.email) AS author_name
+          v9.get_member_community_author_name(reply.author_user_id) AS author_name
         FROM v9.member_community_replies AS reply
         INNER JOIN v9.member_community_topics AS topic
           ON topic.id = reply.topic_id
           AND topic.organization_id = reply.organization_id
           AND topic.status = 'published'
-        INNER JOIN v9.user_accounts AS account
-          ON account.id = reply.author_user_id
-        LEFT JOIN v9.people AS person
-          ON person.id = account.person_id
         WHERE reply.organization_id = ${identity.organizationId}
           AND (
             reply.status = 'published'
@@ -291,11 +283,9 @@ export default async function KomunitasPage({
             topic.moderation_note,
             topic.created_at::text AS created_at,
             topic.author_user_id::text AS author_user_id,
-            COALESCE(person.full_name, account.email) AS author_name,
+            v9.get_member_community_author_name(topic.author_user_id) AS author_name,
             0::int AS reply_count
           FROM v9.member_community_topics AS topic
-          INNER JOIN v9.user_accounts AS account ON account.id = topic.author_user_id
-          LEFT JOIN v9.people AS person ON person.id = account.person_id
           WHERE topic.organization_id = ${identity.organizationId}
             AND topic.status = 'pending'
           ORDER BY topic.created_at
@@ -310,14 +300,12 @@ export default async function KomunitasPage({
             reply.moderation_note,
             reply.created_at::text AS created_at,
             reply.author_user_id::text AS author_user_id,
-            COALESCE(person.full_name, account.email) AS author_name
+            v9.get_member_community_author_name(reply.author_user_id) AS author_name
           FROM v9.member_community_replies AS reply
           INNER JOIN v9.member_community_topics AS topic
             ON topic.id = reply.topic_id
             AND topic.organization_id = reply.organization_id
             AND topic.status = 'published'
-          INNER JOIN v9.user_accounts AS account ON account.id = reply.author_user_id
-          LEFT JOIN v9.people AS person ON person.id = account.person_id
           WHERE reply.organization_id = ${identity.organizationId}
             AND reply.status = 'pending'
           ORDER BY reply.created_at
@@ -331,33 +319,20 @@ export default async function KomunitasPage({
             report.reason,
             report.details,
             report.created_at::text AS created_at,
-            COALESCE(reporter.full_name, reporter_account.email) AS reporter_name,
+            v9.get_member_community_author_name(report.reporter_user_id) AS reporter_name,
             topic.title AS target_title,
             COALESCE(reply.body, topic.body) AS target_body,
-            COALESCE(topic_author.full_name, topic_author_account.email,
-              reply_author.full_name, reply_author_account.email) AS target_author
+            COALESCE(
+              v9.get_member_community_author_name(topic.author_user_id),
+              v9.get_member_community_author_name(reply.author_user_id)
+            ) AS target_author
           FROM v9.member_community_reports AS report
           LEFT JOIN v9.member_community_topics AS topic
             ON topic.id = report.topic_id
             AND topic.organization_id = report.organization_id
-          LEFT JOIN v9.user_accounts AS topic_author_account
-            ON topic_author_account.id = topic.author_user_id
-          LEFT JOIN v9.people AS topic_author
-            ON topic_author.id = topic_author_account.person_id
           LEFT JOIN v9.member_community_replies AS reply
             ON reply.id = report.reply_id
             AND reply.organization_id = report.organization_id
-          LEFT JOIN v9.user_accounts AS reply_author_account
-            ON reply_author_account.id = reply.author_user_id
-          LEFT JOIN v9.people AS reply_author
-            ON reply_author.id = reply_author_account.person_id
-          INNER JOIN v9.memberships AS reporter_membership
-            ON reporter_membership.id = report.reporter_membership_id
-            AND reporter_membership.organization_id = report.organization_id
-          INNER JOIN v9.people AS reporter
-            ON reporter.id = reporter_membership.person_id
-          INNER JOIN v9.user_accounts AS reporter_account
-            ON reporter_account.id = report.reporter_user_id
           WHERE report.organization_id = ${identity.organizationId}
             AND report.status = 'open'
           ORDER BY report.created_at
