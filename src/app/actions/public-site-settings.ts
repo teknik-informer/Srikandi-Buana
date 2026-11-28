@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireIdentity } from "@/lib/session";
+import { can, requireIdentity } from "@/lib/session";
 import { normalizePublicSiteSettings, type PublicSiteSettings, type SiteMenuGroup, type SiteFooterGroup } from "@/lib/site-settings-schema";
 
 export interface SaveSiteSettingsState { ok: boolean; message: string; }
@@ -19,6 +19,8 @@ function validateSettings(settings: PublicSiteSettings): string | null {
     ["Nama situs", settings.identity.siteName, 100],
     ["Tagline", settings.identity.tagline, 180],
     ["Eyebrow beranda", settings.hero.eyebrow, 100],
+    ["URL foto Hero", settings.hero.imageUrl, 500],
+    ["Teks alternatif foto Hero", settings.hero.imageAlt, 180],
     ["Label tombol utama", settings.hero.primaryLabel, 80],
     ["Label tombol kedua", settings.hero.secondaryLabel, 80],
     ["Logo", settings.identity.logoUrl, 500],
@@ -57,6 +59,9 @@ function validateSettings(settings: PublicSiteSettings): string | null {
     return "Pengaturan tampilan situs tidak valid.";
   }
   if (!validHref(settings.identity.logoUrl)) return "Alamat logo harus berupa path situs atau URL HTTPS.";
+  if (!(["cinematic", "split", "editorial", "minimal"] as string[]).includes(settings.hero.variant)) return "Gaya Hero tidak valid.";
+  if (!(settings.hero.imageUrl.startsWith("/") && !settings.hero.imageUrl.startsWith("//")) && !/^https:\/\/[^\s]+$/i.test(settings.hero.imageUrl)) return "Foto Hero harus berupa path situs atau URL HTTPS.";
+  if (settings.hero.imageAssetId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(settings.hero.imageAssetId)) return "Referensi foto Hero tidak valid.";
   if (settings.contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.contact.email)) return "Format email situs tidak valid.";
   if (!validHref(settings.hero.primaryHref) || !validHref(settings.hero.secondaryHref)) return "Tautan tombol beranda tidak valid.";
   if (!Array.isArray(settings.navigation.groups) || settings.navigation.groups.length > 16) return "Jumlah kelompok menu tidak valid.";
@@ -105,6 +110,29 @@ export async function savePublicSiteSettings(
   }
   const invalid = validateSettings(settings);
   if (invalid) return { ok: false, message: invalid };
+
+  if (settings.hero.imageAssetId) {
+    if (!can(identity, "files:manage")) {
+      return { ok: false, message: "Akun ini tidak berwenang menerbitkan foto banner organisasi." };
+    }
+    try {
+      const sql = getV9Sql();
+      const asset = rowsFromResult<{ id: string }>(await sql`
+        SELECT id::text AS id
+        FROM v9.file_assets
+        WHERE id = ${settings.hero.imageAssetId}
+          AND organization_id = ${identity.organizationId}
+          AND status = 'active'
+          AND scope_kind = 'organization'
+          AND category = 'public-site-banner'
+          AND mime_type IN ('image/jpeg', 'image/png', 'image/webp')
+        LIMIT 1
+      `)[0];
+      if (!asset) return { ok: false, message: "Foto banner tidak ditemukan, bukan berkas gambar yang didukung, atau bukan milik organisasi." };
+    } catch {
+      return { ok: false, message: "Foto banner belum dapat diverifikasi. Pengaturan sebelumnya tetap berlaku." };
+    }
+  }
 
   try {
     const sql = getV9Sql();
@@ -158,6 +186,7 @@ export async function savePublicSiteSettings(
   }
 
   revalidatePath("/", "layout");
+  revalidatePath("/api/public-site/banner");
   revalidatePath("/profil");
   revalidatePath("/galeri");
   revalidatePath("/studio/website");
