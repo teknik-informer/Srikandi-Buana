@@ -688,6 +688,13 @@ INSERT INTO v9.system_settings (
 )
 ON CONFLICT (organization_id, setting_key)
 DO UPDATE SET setting_value=EXCLUDED.setting_value, visibility='public';
+INSERT INTO v9.system_settings (
+  organization_id, setting_key, setting_value, visibility, updated_by
+) VALUES
+  ((SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'login_page_content', '{"schemaVersion":1}'::jsonb, 'public', '40000000-0000-4000-8000-000000000004'),
+  ((SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'public_policies', '{"enabled":true}'::jsonb, 'public', '40000000-0000-4000-8000-000000000004')
+ON CONFLICT (organization_id, setting_key)
+DO UPDATE SET setting_value=EXCLUDED.setting_value, visibility='public';
 
 BEGIN;
 SET LOCAL ROLE v9_app;
@@ -715,6 +722,14 @@ BEGIN
   WHERE setting_key='qa_private';
   IF private_asset_count <> 0 THEN
     RAISE EXCEPTION 'Private organization settings must not be visible without a tenant session.';
+  END IF;
+
+  SELECT count(*) INTO private_asset_count
+  FROM v9.system_settings
+  WHERE setting_key IN ('login_page_content','public_policies')
+    AND visibility='public';
+  IF private_asset_count <> 2 THEN
+    RAISE EXCEPTION 'Explicitly public login and policy settings should remain readable.';
   END IF;
 END
 $public_banner$;
