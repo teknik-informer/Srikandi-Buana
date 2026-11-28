@@ -124,6 +124,28 @@ BEGIN
       OR (p_person_id IS NOT NULL AND p_person_id = actor.person_id);
   END IF;
 
+  -- Field coordinator/staff roles are always restricted to their assigned
+  -- unit, even when a legacy import left scope_kind='organization'.
+  IF actor.role_key IN ('field_coordinator', 'field_staff') THEN
+    IF actor.scope_unit_id IS NULL THEN
+      RETURN false;
+    END IF;
+    IF p_unit_id IS NOT NULL AND p_unit_id = actor.scope_unit_id THEN
+      RETURN true;
+    END IF;
+    IF p_field_key IS NOT NULL AND EXISTS (
+      SELECT 1
+      FROM v9.field_applications AS app
+      WHERE app.organization_id = actor.organization_id
+        AND app.unit_id = actor.scope_unit_id
+        AND app.field_key = p_field_key
+        AND app.is_enabled = true
+    ) THEN
+      RETURN true;
+    END IF;
+    RETURN false;
+  END IF;
+
   IF actor.scope_kind = 'organization' THEN
     RETURN true;
   ELSIF actor.scope_kind = 'unit' THEN
