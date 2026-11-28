@@ -444,3 +444,38 @@ The page/layout scan confirmed these server-side guard points:
 The effective role permission map remains centralized in `src/lib/session.ts` and `src/lib/identity.ts`, with server identity resolved from `user_accounts`, `role_assignments`, organization, membership and field application data. The UI/layout gates are not a replacement for each server action's own permission check or database RLS. The remaining security review must verify that every mutation action validates its exact permission, active role, scope and parent-child ownership server-side, and that page-level reads do not return data before/after an unauthorized route redirect.
 
 **Coverage caution:** these checks prove guard calls exist at the listed route boundaries. They do not yet demonstrate every legitimate role can perform its allowed actions, nor that unauthorized roles are denied for every direct action endpoint. Add role-specific negative tests for each action/route family to close that gap.
+### 12.6 Server-action identity and permission guard sweep
+
+A separate import/call scan covered all 27 action modules. The source files generally import `requireIdentity`, `requireRoles` and/or `can` from `src/lib/session.ts`; the deliberate unauthenticated paths are login/logout and public membership-interest intake. The action families observed are:
+
+| Action family | Source-level guard evidence |
+|---|---|
+| Account settings | `requireIdentity()`; password/account update is designed for the current identity only |
+| Agriculture | `requireIdentity` plus `field:pertanian:manage` / `field:pertanian:activity:write` checks |
+| Business catalog/inventory | `requireIdentity` plus `field:usaha:manage` / `field:usaha:activity:write` checks |
+| Business orders | `requireIdentity`, `field:usaha:activity:write` and `can()` checks |
+| Business partners/opportunities/agreements | `requireIdentity` plus `field:usaha:manage` checks |
+| Finance | `requireIdentity("finance:read")` plus action-specific `can()` checks |
+| Field operations | `requireIdentity`, `requireRoles` and `can()` checks; action permissions vary by lifecycle transition |
+| Field team | `requireIdentity` plus `can()`-based scope checks |
+| Management tasks | `requireIdentity("organization:tasks:write")` |
+| Member profile | `requireIdentity()`; profile mutation remains self-bound |
+| Member tasks / training | `requireIdentity("member:self")` |
+| Member community | `requireIdentity("member:self")` plus moderation `can()` checks |
+| Membership management | `requireIdentity("membership:activate")` |
+| Membership-interest decision | `requireIdentity("field:organisasi:review")` |
+| Design theme | `requireRoles` restricted action path |
+| Login page content / public policies / public-site settings | `requireIdentity("cms:publish")` |
+| Secretariat documents / letters / meetings | Specific write permissions for document, letter, meeting, minutes and attendance actions |
+| Training operations | `requireIdentity`, `field:pelatihan:manage` / `field:pelatihan:activity:write`, and `can()` checks |
+| Workplan approvals | `requireIdentity("organization:read")` plus `can()` approval checks |
+| Login/logout | Purpose-specific pre-authentication and current-session revocation helpers; no pre-existing identity is expected for login |
+| Public membership-interest form | Anonymous narrow `getV9PublicInterestSql` context and fixed submit policy; does not create an account or activate membership |
+
+The effective permission catalogue is produced from the database-resolved role in `src/lib/session.ts`; `src/lib/identity.ts` evaluates exact/wildcard grants. The demo identity catalogue is empty (`DEMO_ACCOUNTS: never[]`) in this source version.
+
+This sweep establishes that guard calls exist in the action modules. It does **not** prove each individual exported function is guarded by the correct specific permission, that guard execution precedes every data read/write, or that no caller passes untrusted IDs that are not revalidated against parent/tenant scope. Remaining follow-up:
+- inspect the first executable statements of every exported action, including dynamic permission construction and role allowlists;
+- verify user/organization/unit/parent IDs are always derived from or checked against the authenticated identity, not trusted from client-supplied values;
+- add negative tests that invoke each action as an authenticated but unauthorized role, and confirm no row changes or audit/outbox/trigger side effects occur;
+- preserve the two intentional unauthenticated paths only under their narrow transaction contexts and ensure the login helper is not reusable for general application reads.
