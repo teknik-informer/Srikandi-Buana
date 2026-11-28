@@ -538,3 +538,51 @@ If any statement fails, the transaction must roll back in full. Re-run the pre-m
 The four existing rows and their routes remained intact (`organisasi`, `pelatihan`, `pertanian`, `usaha`). No business row was inserted, updated, or deleted by this migration.
 
 **Boundaries:** Only Neon QA migration 0045 was applied. Migrations 0046 and 0047 remain unapplied on live QA. Production database, Vercel environment variables, Production deployment, roles/grants, table ownership, RLS policy definitions, and business data were not changed. PR #92 remains Draft/Open/Unmerged; Issue #90 remains Open pending remaining Preview UAT and security gates.
+
+
+## 9. Live QA execution record — migrations 0046 and 0047 — 28 Nov 2026
+
+**Approval:** The user explicitly approved applying migrations 0046 and 0047 to the same exact QA target used for migration 0045. This approval is limited to this QA branch/database and does not authorize Production changes, PR merge, or deployment.
+
+**Target immediately before execution:**
+
+- Neon project: `holy-night-99324539`.
+- QA branch: `phase1-integration-rehearsal-20261116`, ID `br-snowy-forest-b46i5pqx`.
+- Parent: `br-mute-meadow-b4rhx1mn`; branch state `ready`; `default=false`; `primary=false`.
+- Database: `neondb`; PostgreSQL `18.7 (3190d2f)`.
+- Migration connection: `neondb_owner`; the application runtime role remains `v9_app`.
+- Before execution, neither 0046 nor 0047 had a row in `v9.schema_migrations`. The application action source on the same repository branch referenced the expected reversal and business-order function signatures.
+
+**Execution:**
+
+- Applied `db/migrations/0046_finance_reversal_draft_transaction.sql` and `db/migrations/0047_business_order_stock_lifecycle_transaction.sql`.
+- The SQL was split at statement boundaries outside quoted strings and dollar-quoted function bodies. Four statements from 0046 and thirteen statements from 0047 (17 total) were passed to one Neon SQL transaction.
+- Transaction result: all 17 statements completed; no SQL error.
+- Both ledger rows have `applied_at = 2026-11-28T12:18:46.489Z`.
+- 0046 checksum: `sha256:v9-finance-reversal-draft-transaction-20261128`.
+- 0047 checksum: `sha256:v9-business-order-stock-lifecycle-transaction-20261128`.
+
+**Postflight results:**
+
+| Check | Result |
+|---|---|
+| 0045 ledger | Exact filename/checksum retained |
+| 0046 ledger | Exact filename/checksum present |
+| 0047 ledger | Exact filename/checksum present |
+| 0046 function | `v9.create_finance_reversal_draft(uuid,date,text,uuid,uuid)` present |
+| 0047 helper | `v9._business_order_actor_organization(uuid)` present |
+| 0047 order functions | `confirm_business_order`, `fulfill_business_order`, and `cancel_business_order` present |
+| Function security | All five new functions have `prosecdef=false` (`SECURITY INVOKER`) |
+| Function search path | All five use `search_path=pg_catalog, v9` |
+| Runtime grants | `v9_app` has EXECUTE on all five functions |
+| Public grants | PUBLIC has no EXECUTE on all five functions |
+| RLS / FORCE RLS | Both remain enabled on the eight finance, business-order, stock, movement and audit tables checked |
+| Database identity | `neondb`, connected as `neondb_owner` for migration verification |
+
+The migration creates/replaces functions and records migration metadata; it does not rewrite business rows. No business transaction, stock quantity, journal, or user record was modified by these migrations.
+
+**Recovery limitation:** the previously recorded Neon limitation still applies: snapshot creation was rejected for this non-root QA branch, and a child backup branch could not be created because the project branch limit was exceeded. No snapshot or backup branch is claimed to exist. No unrelated branch was deleted or modified.
+
+**Scope boundaries:** only migrations 0046 and 0047 were applied to the QA branch above. No Production database/schema, Production Vercel environment, deployment, merge, table ownership, RLS policy definition, or existing business data was changed. Function EXECUTE ACLs were added only for the new functions: grant to `v9_app`, revoke from PUBLIC.
+
+**Remaining gates:** legitimate-persona Preview browser UAT, full UI-level Finance/POS and export/share/download regression, wider cross-tenant negative testing for every applicable action and side effect, independent security review, and release/rollback/observability sign-off remain open. PR #92 remains Draft/Open/Unmerged; Issue #90 remains Open.
