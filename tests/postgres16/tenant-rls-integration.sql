@@ -174,6 +174,43 @@ INSERT INTO v9.sessions (
   repeat('a', 64),
   now() + interval '8 hours'
 )
+INSERT INTO v9.people (id, full_name, status)
+VALUES ('30000000-0000-4000-8000-000000000007', 'CI-only Other Tenant Administrator', 'active')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.user_accounts (
+  id, person_id, email, password_hash, status, email_verified_at, legacy_auth_eligible
+) VALUES (
+  '40000000-0000-4000-8000-000000000008',
+  '30000000-0000-4000-8000-000000000007',
+  'tenant-rls-other-ci@invalid.example',
+  'ci-only-unused-credential',
+  'active',
+  now(),
+  false
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.role_assignments (
+  id, organization_id, user_id, role_key, scope_kind, is_active, valid_from
+) VALUES (
+  '50000000-0000-4000-8000-000000000009',
+  '20000000-0000-4000-8000-000000000002',
+  '40000000-0000-4000-8000-000000000008',
+  'organization_admin',
+  'organization',
+  true,
+  now() - interval '1 hour'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.sessions (id, user_id, token_hash, expires_at)
+VALUES (
+  '60000000-0000-4000-8000-00000000000a',
+  '40000000-0000-4000-8000-000000000008',
+  repeat('b', 64),
+  now() + interval '8 hours'
+)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.system_settings (
@@ -234,15 +271,55 @@ INSERT INTO v9.organization_units (
   id, organization_id, unit_key, name, unit_type, mandate
 ) VALUES
   ('70000000-0000-4000-8000-000000000007', v9.get_public_organization_id(), 'ci-pertanian', 'Bidang Pertanian CI', 'field', 'CI fixture only'),
-  ('80000000-0000-4000-8000-000000000008', v9.get_public_organization_id(), 'ci-usaha', 'Bidang Usaha CI', 'field', 'CI fixture only')
+  ('80000000-0000-4000-8000-000000000008', v9.get_public_organization_id(), 'ci-usaha', 'Bidang Usaha CI', 'field', 'CI fixture only'),
+  ('81000000-0000-4000-8000-000000000011', '20000000-0000-4000-8000-000000000002', 'qa-usaha', 'Bidang Usaha Tenant B', 'field', 'Tenant B fixture only')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.field_applications (
   field_key, organization_id, unit_id, name, short_name, route, mandate, display_order
 ) VALUES
   ('ci-pertanian', v9.get_public_organization_id(), '70000000-0000-4000-8000-000000000007', 'Pertanian CI', 'Pertanian', '/ci/pertanian', 'CI fixture only', 1),
-  ('ci-usaha', v9.get_public_organization_id(), '80000000-0000-4000-8000-000000000008', 'Usaha CI', 'Usaha', '/ci/usaha', 'CI fixture only', 2)
-ON CONFLICT (field_key) DO NOTHING;
+  ('ci-usaha', v9.get_public_organization_id(), '80000000-0000-4000-8000-000000000008', 'Usaha CI', 'Usaha', '/ci/usaha', 'CI fixture only', 2),
+  ('usaha', v9.get_public_organization_id(), '80000000-0000-4000-8000-000000000008', 'Usaha Tenant A', 'Usaha', '/qa/tenant-a/usaha', 'CI tenant-scoped field application', 3),
+  ('usaha', '20000000-0000-4000-8000-000000000002', '81000000-0000-4000-8000-000000000011', 'Usaha Tenant B', 'Usaha', '/qa/tenant-b/usaha', 'CI tenant-scoped field application', 3)
+ON CONFLICT (field_key, organization_id) DO NOTHING;
+
+-- Same fixed field_key is provisioned independently for both CI tenants.
+INSERT INTO v9.business_products (
+  id, organization_id, field_key, reference_no, sku, slug, product_name,
+  product_kind, unit_label, selling_price, status, publication_status, track_stock, created_by, updated_by
+) VALUES
+  ('c1000000-0000-4000-8000-000000000001', v9.get_public_organization_id(), 'usaha', 'QA-PRD-A-001', 'QA-BIZ-A-001', 'qa-product-tenant-a', 'QA Product Tenant A', 'physical', 'pcs', 10000, 'active', 'private', true, '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004'),
+  ('c2000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 'usaha', 'QA-PRD-B-001', 'QA-BIZ-B-001', 'qa-product-tenant-b', 'QA Product Tenant B', 'physical', 'pcs', 20000, 'active', 'private', true, '40000000-0000-4000-8000-000000000008', '40000000-0000-4000-8000-000000000008')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.business_warehouses (
+  id, organization_id, field_key, reference_no, warehouse_code, warehouse_name, status, created_by, updated_by
+) VALUES
+  ('c3000000-0000-4000-8000-000000000003', v9.get_public_organization_id(), 'usaha', 'QA-WH-A-001', 'QA-WH-A', 'QA Warehouse Tenant A', 'active', '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004'),
+  ('c4000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000002', 'usaha', 'QA-WH-B-001', 'QA-WH-B', 'QA Warehouse Tenant B', 'active', '40000000-0000-4000-8000-000000000008', '40000000-0000-4000-8000-000000000008')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.business_product_stock (product_id, warehouse_id, organization_id, field_key, on_hand, reserved, updated_by)
+VALUES
+  ('c1000000-0000-4000-8000-000000000001', 'c3000000-0000-4000-8000-000000000003', v9.get_public_organization_id(), 'usaha', 10, 2, '40000000-0000-4000-8000-000000000004'),
+  ('c2000000-0000-4000-8000-000000000002', 'c4000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000002', 'usaha', 20, 3, '40000000-0000-4000-8000-000000000008')
+ON CONFLICT (product_id, warehouse_id) DO NOTHING;
+
+INSERT INTO v9.business_customers (
+  id, organization_id, field_key, reference_no, customer_type, customer_name, status, created_by, updated_by
+) VALUES
+  ('c5000000-0000-4000-8000-000000000005', v9.get_public_organization_id(), 'usaha', 'QA-CUS-A-001', 'individual', 'QA Customer Tenant A', 'active', '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004'),
+  ('c6000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000002', 'usaha', 'QA-CUS-B-001', 'individual', 'QA Customer Tenant B', 'active', '40000000-0000-4000-8000-000000000008', '40000000-0000-4000-8000-000000000008')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.business_orders (
+  id, organization_id, field_key, reference_no, customer_id, customer_name_snapshot,
+  warehouse_id, status, created_by, updated_by
+) VALUES
+  ('c7000000-0000-4000-8000-000000000007', v9.get_public_organization_id(), 'usaha', 'QA-ORD-A-001', 'c5000000-0000-4000-8000-000000000005', 'QA Customer Tenant A', 'c3000000-0000-4000-8000-000000000003', 'draft', '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004'),
+  ('c8000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000002', 'usaha', 'QA-ORD-B-001', 'c6000000-0000-4000-8000-000000000006', 'QA Customer Tenant B', 'c4000000-0000-4000-8000-000000000004', 'draft', '40000000-0000-4000-8000-000000000008', '40000000-0000-4000-8000-000000000008')
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.field_programs (
   id, organization_id, field_key, reference_no, title, objective,
