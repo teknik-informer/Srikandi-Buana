@@ -11,7 +11,8 @@ CREATE OR REPLACE FUNCTION v9.create_finance_reversal_draft(
   p_original_journal_id uuid,
   p_reversal_date date,
   p_reason text,
-  p_actor_user_id uuid
+  p_actor_user_id uuid,
+  p_reversal_journal_id uuid DEFAULT gen_random_uuid()
 )
 RETURNS TABLE (
   id uuid,
@@ -46,6 +47,7 @@ BEGIN
     OR p_reversal_date IS NULL
     OR p_reason IS NULL
     OR length(btrim(p_reason)) NOT BETWEEN 3 AND 400
+    OR p_reversal_journal_id IS NULL
   THEN
     RAISE EXCEPTION 'A reversal requires an eligible journal, date, and reason.';
   END IF;
@@ -87,6 +89,7 @@ BEGIN
   -- The insert guard requires an empty zero-total draft. Keep this as a
   -- separate statement before the lines are copied and totals are calculated.
   INSERT INTO v9.finance_journals AS created_journal (
+    id,
     organization_id,
     journal_date,
     description,
@@ -98,6 +101,7 @@ BEGIN
     reversal_of_id,
     created_by
   ) VALUES (
+    p_reversal_journal_id,
     original.organization_id,
     p_reversal_date,
     'Pembalik ' || original.reference_no || ': ' || btrim(p_reason),
@@ -210,8 +214,8 @@ BEGIN
 END;
 $finance_reversal_create$;
 
-REVOKE ALL ON FUNCTION v9.create_finance_reversal_draft(uuid, date, text, uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION v9.create_finance_reversal_draft(uuid, date, text, uuid) TO v9_app;
+REVOKE ALL ON FUNCTION v9.create_finance_reversal_draft(uuid, date, text, uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION v9.create_finance_reversal_draft(uuid, date, text, uuid, uuid) TO v9_app;
 
 INSERT INTO v9.schema_migrations (name, checksum)
 VALUES (
