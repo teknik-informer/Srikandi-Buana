@@ -183,6 +183,54 @@ INSERT INTO v9.system_settings (
   ('20000000-0000-4000-8000-000000000002', 'qa_private', '{"tenant":"B"}'::jsonb, 'private', NULL)
 ON CONFLICT (organization_id, setting_key) DO NOTHING;
 
+-- Finance fixtures intentionally use only organization_id scope; they do not
+-- depend on field_applications.field_key (whose primary key is global).
+INSERT INTO v9.finance_accounts (
+  id, organization_id, account_code, account_name, account_type, normal_balance,
+  group_label, is_postable, status, created_by
+) VALUES
+  ('b1000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'QA-100', 'QA Cash Asset A', 'aset', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
+  ('b1000000-0000-4000-8000-00000000000c', v9.get_public_organization_id(), 'QA-200', 'QA Expense A', 'beban', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
+  ('b2000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'QB-100', 'QA Cash Asset B', 'aset', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
+  ('b2000000-0000-4000-8000-00000000000c', '20000000-0000-4000-8000-000000000002', 'QB-200', 'QA Expense B', 'beban', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.finance_cash_accounts (
+  id, organization_id, ledger_account_id, account_kind, display_name, status, created_by
+) VALUES
+  ('b3000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'b1000000-0000-4000-8000-00000000000b', 'cash', 'Kas QA Tenant A', 'draft', '40000000-0000-4000-8000-000000000004'),
+  ('b4000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'b2000000-0000-4000-8000-00000000000b', 'cash', 'Kas QA Tenant B', 'draft', '40000000-0000-4000-8000-000000000004')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.finance_budgets (
+  id, organization_id, budget_code, title, fiscal_year, period_start, period_end, created_by
+) VALUES
+  ('b5000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'QA-BUD-A', 'QA Budget Tenant A', 2026, current_date, current_date + 30, '40000000-0000-4000-8000-000000000004'),
+  ('b6000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'QA-BUD-B', 'QA Budget Tenant B', 2026, current_date, current_date + 30, '40000000-0000-4000-8000-000000000004')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.finance_budget_lines (
+  id, organization_id, budget_id, line_number, account_id, description, planned_amount
+) VALUES
+  ('b7000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'b5000000-0000-4000-8000-00000000000b', 1, 'b1000000-0000-4000-8000-00000000000c', 'QA expense budget line A', 1000),
+  ('b8000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'b6000000-0000-4000-8000-00000000000b', 1, 'b2000000-0000-4000-8000-00000000000c', 'QA expense budget line B', 2000)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.finance_journals (
+  id, organization_id, reference_no, journal_date, description, source_type, idempotency_key, created_by
+) VALUES
+  ('b9000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'QA-FIN-A-001', current_date, 'QA tenant isolation journal A', 'manual', 'qa-finance-tenant-a-001', '40000000-0000-4000-8000-000000000004'),
+  ('ba000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'QA-FIN-B-001', current_date, 'QA tenant isolation journal B', 'manual', 'qa-finance-tenant-b-001', '40000000-0000-4000-8000-000000000004')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.finance_journal_lines (
+  id, organization_id, journal_id, account_id, line_number, memo, debit, credit
+) VALUES
+  ('bb000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'b9000000-0000-4000-8000-00000000000b', 'b1000000-0000-4000-8000-00000000000b', 1, 'QA line A', 100, 0),
+  ('bc000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'ba000000-0000-4000-8000-00000000000b', 'b2000000-0000-4000-8000-00000000000b', 1, 'QA line B', 100, 0)
+ON CONFLICT (id) DO NOTHING;
+
+ON CONFLICT (organization_id, setting_key) DO NOTHING;
 INSERT INTO v9.organization_units (
   id, organization_id, unit_key, name, unit_type, mandate
 ) VALUES
@@ -400,6 +448,85 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN
     NULL;
   END;
+  -- Finance domain: verify organization boundary across six joined ledger/register
+  -- tables using the same runtime principal, without field-app scope dependencies.
+  SELECT count(*) INTO visible_count FROM v9.finance_accounts
+  WHERE account_code IN ('QA-100', 'QA-200', 'QB-100', 'QB-200');
+  IF visible_count <> 2 THEN
+    RAISE EXCEPTION 'Tenant A should see only its two finance accounts; saw %.', visible_count;
+  END IF;
+  SELECT count(*) INTO visible_count FROM v9.finance_cash_accounts
+  WHERE display_name IN ('Kas QA Tenant A', 'Kas QA Tenant B');
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Tenant A should see only its cash register; saw %.', visible_count;
+  END IF;
+  SELECT count(*) INTO visible_count FROM v9.finance_budgets
+  WHERE budget_code IN ('QA-BUD-A', 'QA-BUD-B');
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Tenant A should see only its budget; saw %.', visible_count;
+  END IF;
+  SELECT count(*) INTO visible_count FROM v9.finance_budget_lines
+  WHERE id IN ('b7000000-0000-4000-8000-00000000000b', 'b8000000-0000-4000-8000-00000000000b');
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Tenant A should see only its budget line; saw %.', visible_count;
+  END IF;
+  SELECT count(*) INTO visible_count FROM v9.finance_journals
+  WHERE reference_no IN ('QA-FIN-A-001', 'QA-FIN-B-001');
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Tenant A should see only its journal; saw %.', visible_count;
+  END IF;
+  SELECT count(*) INTO visible_count FROM v9.finance_journal_lines
+  WHERE id IN ('bb000000-0000-4000-8000-00000000000b', 'bc000000-0000-4000-8000-00000000000b');
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Tenant A should see only its journal line; saw %.', visible_count;
+  END IF;
+
+  UPDATE v9.finance_accounts SET account_name = 'Intrusion' 
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND account_code = 'QB-100';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant finance account UPDATE affected % rows.', changed_count; END IF;
+  UPDATE v9.finance_journals SET description = 'Intrusion'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND reference_no = 'QA-FIN-B-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant finance journal UPDATE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.finance_cash_accounts
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'b4000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant cash register DELETE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.finance_budget_lines
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'b8000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant budget-line DELETE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.finance_journal_lines
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'bc000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant journal-line DELETE affected % rows.', changed_count; END IF;
+
+  BEGIN
+    INSERT INTO v9.finance_accounts (organization_id, account_code, account_name, account_type, normal_balance, group_label, status, created_by)
+    VALUES ('20000000-0000-4000-8000-000000000002', 'QB-999', 'Unauthorized account', 'aset', 'debit', 'QA fixture', 'active', '40000000-0000-4000-8000-000000000004');
+    RAISE EXCEPTION 'Cross-tenant finance account INSERT was not rejected by RLS.';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO v9.finance_journals (organization_id, journal_date, description, source_type, idempotency_key, created_by)
+    VALUES ('20000000-0000-4000-8000-000000000002', current_date, 'Unauthorized journal', 'manual', 'qa-cross-tenant-journal', '40000000-0000-4000-8000-000000000004');
+    RAISE EXCEPTION 'Cross-tenant finance journal INSERT was not rejected by RLS.';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  UPDATE v9.finance_accounts SET account_name = 'QA Cash Asset A Updated'
+  WHERE organization_id = v9.get_public_organization_id() AND account_code = 'QA-100';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance account UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.finance_journals SET description = 'QA tenant isolation journal A updated'
+  WHERE organization_id = v9.get_public_organization_id() AND reference_no = 'QA-FIN-A-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance journal UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.finance_budget_lines SET planned_amount = 1200
+  WHERE organization_id = v9.get_public_organization_id() AND id = 'b7000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance budget-line UPDATE should affect one row; affected %.', changed_count; END IF;
 END
 $organization_scope$;
 COMMIT;
