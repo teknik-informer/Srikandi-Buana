@@ -571,7 +571,8 @@ RETURNS TABLE (
   name text,
   short_name text,
   mandate text,
-  unit_name text
+  unit_name text,
+  display_order integer
 )
 LANGUAGE sql
 STABLE
@@ -583,7 +584,8 @@ AS $function$
     application.name,
     application.short_name,
     application.mandate,
-    unit.name AS unit_name
+    unit.name AS unit_name,
+    application.display_order
   FROM v9.field_applications AS application
   INNER JOIN v9.organizations AS organization
     ON organization.id = application.organization_id
