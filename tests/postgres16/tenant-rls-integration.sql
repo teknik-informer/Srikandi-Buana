@@ -448,10 +448,11 @@ END
 $external_scope$;
 COMMIT;
 
--- Field role scope is enforced by role_key even though the legacy assignment retains scope_kind='organization'.
+-- Field coordinator role uses the schema-valid unit scope and cannot
+-- read or write another field in the same organization.
 UPDATE v9.role_assignments
 SET role_key='field_coordinator',
-    scope_kind='organization',
+    scope_kind='unit',
     scope_unit_id='70000000-0000-4000-8000-000000000007'
 WHERE id='50000000-0000-4000-8000-000000000005';
 
