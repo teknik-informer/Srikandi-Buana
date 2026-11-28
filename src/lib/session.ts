@@ -166,8 +166,10 @@ export async function getIdentity(): Promise<AppIdentity | null> {
   if (!row) return null;
 
   const roleLabel = ROLE_LABEL[row.role_key] ?? "Pengguna";
-  const scope =
-    row.scope_kind === "self"
+  const isFieldRole = row.role_key === "field_coordinator" || row.role_key === "field_staff";
+  const scope = isFieldRole
+    ? row.unit_name ?? "Lingkup bidang belum ditetapkan"
+    : row.scope_kind === "self"
       ? "Data pribadi"
       : row.scope_kind === "unit"
         ? row.unit_name ?? "Unit organisasi"
