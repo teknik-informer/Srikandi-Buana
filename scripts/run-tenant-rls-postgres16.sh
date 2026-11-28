@@ -15,7 +15,7 @@ $$;
 SQL
 
 migration_dir="db/migrations"
-mapfile -t migrations < <(find "$migration_dir" -maxdepth 1 -type f -name '*.sql' ! -name '0044_tenant_row_level_security.sql' | sort)
+mapfile -t migrations < <(find "$migration_dir" -maxdepth 1 -type f -name '*.sql' ! -name '0044_tenant_row_level_security.sql' ! -name '0045_tenant_scope_field_application_identity.sql' | sort)
 
 for migration in "${migrations[@]}"; do
   psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f "$migration"
@@ -50,4 +50,6 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/postgres16/tenant-rls-legacy
 # Apply twice to prove the upgrade is safe and the v2 state remains idempotent.
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0044_tenant_row_level_security.sql
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0044_tenant_row_level_security.sql
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0045_tenant_scope_field_application_identity.sql
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0045_tenant_scope_field_application_identity.sql
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/postgres16/tenant-rls-integration.sql
