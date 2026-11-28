@@ -612,7 +612,7 @@ BEGIN
       ('finance_cash_accounts', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
       ('finance_budget_lines', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, NULL::uuid, NULL::uuid, NULL::uuid)'),
       ('finance_budgets', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
-      ('finance_cash_accounts', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
+
       ('finance_contribution_allocations', 'v9._tenant_row_visible(organization_id, NULL::text, membership_id, created_by, NULL::uuid, NULL::uuid)'),
       ('finance_journal_lines', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, NULL::uuid, NULL::uuid, NULL::uuid)'),
       ('finance_journals', 'v9._tenant_row_visible(organization_id, NULL::text, NULL::uuid, created_by, NULL::uuid, NULL::uuid)'),
