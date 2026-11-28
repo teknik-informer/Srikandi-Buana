@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { getIdentity } from "@/lib/session";
-import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { getV9LoginSql, getV9Sql, rowsFromResult } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+interface RuntimeContextProbe {
+  current_user: string;
+  database_name: string;
+  neon_branch_id: string | null;
+  login_email: string;
+  login_subject_hash: string;
+  login_ip_hash: string;
+  session_context_empty: boolean;
+}
 
 interface RuntimeDatabaseRow {
   current_user: string;
@@ -35,6 +45,64 @@ export async function GET() {
 
   try {
     const sql = getV9Sql();
+
+    // Exercise the actual Neon HTTP transaction wrapper with two concurrent,
+    // synthetic pre-auth contexts. Only a boolean is returned; test values are
+    // deterministic invalid-domain data and are never logged or persisted.
+    const probeA = getV9LoginSql({
+      email: "tenant-context-a@invalid.example",
+      subjectHash: "a".repeat(64),
+      ipHash: "1".repeat(64),
+    });
+    const probeB = getV9LoginSql({
+      email: "tenant-context-b@invalid.example",
+      subjectHash: "b".repeat(64),
+      ipHash: "2".repeat(64),
+    });
+    const [contextAResult, contextBResult, sessionContextResult] = await Promise.all([
+      probeA`
+        SELECT current_user::text AS current_user,
+          current_database()::text AS database_name,
+          NULLIF(current_setting('neon.branch_id', true), '') AS neon_branch_id,
+          current_setting('v9.login_email', true) AS login_email,
+          current_setting('v9.login_subject_hash', true) AS login_subject_hash,
+          current_setting('v9.login_ip_hash', true) AS login_ip_hash,
+          NULLIF(current_setting('v9.session_token_hash', true), '') IS NULL AS session_context_empty
+      `,
+      probeB`
+        SELECT current_user::text AS current_user,
+          current_database()::text AS database_name,
+          NULLIF(current_setting('neon.branch_id', true), '') AS neon_branch_id,
+          current_setting('v9.login_email', true) AS login_email,
+          current_setting('v9.login_subject_hash', true) AS login_subject_hash,
+          current_setting('v9.login_ip_hash', true) AS login_ip_hash,
+          NULLIF(current_setting('v9.session_token_hash', true), '') IS NULL AS session_context_empty
+      `,
+      sql`
+        SELECT NULLIF(current_setting('v9.session_token_hash', true), '') IS NOT NULL
+          AS session_context_present
+      `,
+    ]);
+    const contextA = rowsFromResult<RuntimeContextProbe>(contextAResult)[0];
+    const contextB = rowsFromResult<RuntimeContextProbe>(contextBResult)[0];
+    const sessionContext = rowsFromResult<{ session_context_present: boolean }>(sessionContextResult)[0];
+    const concurrencyProbePassed = Boolean(
+      contextA &&
+      contextB &&
+      contextA.current_user === contextB.current_user &&
+      contextA.current_user === "v9_app" &&
+      contextA.database_name === contextB.database_name &&
+      contextA.neon_branch_id === contextB.neon_branch_id &&
+      contextA.login_email === "tenant-context-a@invalid.example" &&
+      contextB.login_email === "tenant-context-b@invalid.example" &&
+      contextA.login_subject_hash === "a".repeat(64) &&
+      contextB.login_subject_hash === "b".repeat(64) &&
+      contextA.login_ip_hash === "1".repeat(64) &&
+      contextB.login_ip_hash === "2".repeat(64) &&
+      contextA.session_context_empty === true &&
+      contextB.session_context_empty === true
+    );
+
     const result = await sql`
       SELECT
         current_user::text AS current_user,
@@ -67,7 +135,14 @@ export async function GET() {
       {
         environment: "preview",
         runtime: row,
+        concurrency: {
+          transactionContextIsolation: concurrencyProbePassed,
+          sessionContextPresent: sessionContext?.session_context_present === true,
+        },
         safeForTenantUat:
+          concurrencyProbePassed &&
+          sessionContext?.session_context_present === true &&
+          row.neon_branch_id === "br-snowy-forest-b46i5pqx" &&
           row.current_user !== "neondb_owner" &&
           row.session_user !== "neondb_owner" &&
           !row.is_superuser &&
