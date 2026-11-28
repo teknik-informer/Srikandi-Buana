@@ -830,6 +830,7 @@ $function$;
 
 CREATE OR REPLACE FUNCTION v9.get_public_document_file(p_document_id uuid)
 RETURNS TABLE (
+  organization_id uuid,
   file_name text,
   mime_type text,
   size_bytes bigint,
@@ -849,6 +850,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, v9
 AS $function$
   SELECT
+    document.organization_id,
     file.file_name,
     file.mime_type,
     file.size_bytes::bigint,
