@@ -174,6 +174,8 @@ INSERT INTO v9.sessions (
   repeat('a', 64),
   now() + interval '8 hours'
 )
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO v9.people (id, full_name, status)
 VALUES ('30000000-0000-4000-8000-000000000007', 'CI-only Other Tenant Administrator', 'active')
 ON CONFLICT (id) DO NOTHING;
