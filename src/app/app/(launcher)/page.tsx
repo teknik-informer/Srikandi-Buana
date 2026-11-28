@@ -9,7 +9,7 @@ import { FIELDS_BY_SLUG } from "@/config/fields";
 import { AppIcon, FieldMark } from "@/components/brand";
 import { AppBanner } from "@/components/dash-kit";
 import { APP_IDENTITY } from "@/config/app-identity";
-import { Badge, Card, CardHeader, StatCard, StatusBadge, Notice } from "@/components/ui";
+import { Badge, Card, CardHeader, StatCard, StatusBadge, Notice, ComingSoonBadge } from "@/components/ui";
 import { formatDateID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Beranda Aplikasi" };
@@ -284,6 +284,7 @@ export default async function AppHome() {
   const accessibleApps = APPS.filter((app) =>
     app.group !== "bidang" && app.key !== "launcher" && canAccessApp(identity, app.key),
   );
+  const accessibleAppCount = accessibleApps.filter((app) => !app.comingSoon).length;
   const activeTaskCount = tasks[0]?.total_open_count ?? 0;
   const overdueTaskCount = tasks[0]?.overdue_count ?? 0;
   const pendingApprovalCount = approvalSources.reduce((total, source) => total + source.count, 0);
@@ -307,7 +308,7 @@ export default async function AppHome() {
     ...(taskScope && !tasksUnavailable ? [activeTaskCount + " tugas terbuka"] : []),
     ...(canReadAnyApprovals && !approvalsUnavailable ? [pendingApprovalCount + " persetujuan menunggu"] : []),
     ...(canReadPrograms && !programsUnavailable && programs ? [Number(programs.active_count) + " program aktif"] : []),
-    (accessibleApps.length + accessibleFields.length) + " aplikasi dapat diakses",
+    (accessibleAppCount + accessibleFields.length) + " aplikasi dapat diakses",
   ];
 
   return (
@@ -369,7 +370,7 @@ export default async function AppHome() {
         {!taskScope && !canReadAnyApprovals && !canReadPrograms && !agendaScope ? (
           <StatCard
             label="Aplikasi tersedia"
-            value={String(accessibleApps.length + accessibleFields.length)}
+            value={String(accessibleAppCount + accessibleFields.length)}
             note="Akses mengikuti peran dan lingkup akun"
             tone="success"
           />
@@ -385,7 +386,25 @@ export default async function AppHome() {
               action={<Link href="/app/bidang" className="text-[12px] font-semibold text-primary-700">Peta bidang →</Link>}
             />
             <div className="grid gap-2 p-3 sm:grid-cols-2">
-              {accessibleApps.length ? accessibleApps.map((app) => (
+              {accessibleApps.length ? accessibleApps.map((app) => app.comingSoon ? (
+                <div
+                  key={app.key}
+                  aria-disabled="true"
+                  className="flex cursor-not-allowed items-start gap-3 rounded-sb-sm border border-dashed border-line bg-[#f6f7f8] p-3 opacity-80"
+                >
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#eceff2] text-muted2">
+                    <AppIcon name={app.icon} size={16} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-muted">
+                      {app.name}
+                      {app.badge ? <Badge tone="neutral">{app.badge}</Badge> : null}
+                    </span>
+                    <span className="mt-0.5 block text-[11.5px] leading-snug text-muted2">{app.description}</span>
+                    <span className="mt-2 inline-flex"><ComingSoonBadge /></span>
+                  </span>
+                </div>
+              ) : (
                 <Link key={app.key} href={app.href} className="group flex items-start gap-3 rounded-sb-sm border border-line bg-white p-3 transition hover:border-primary-300 hover:bg-primary-50/40">
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-primary-100 text-primary-800">
                     <AppIcon name={app.icon} size={16} />
