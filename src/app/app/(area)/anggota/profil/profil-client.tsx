@@ -8,10 +8,13 @@ import { Badge, Card, CardHeader, Avatar, Notice } from "@/components/ui";
 import { Btn, Field, TextInput } from "@/components/act";
 import { formatDateID } from "@/lib/format";
 import { updateMemberProfile } from "@/app/actions/member-profile";
+import { changeOwnPassword } from "@/app/actions/account-settings";
 
 export interface MemberProfileData {
   personId: string;
   legalName: string;
+  email: string;
+  lastLoginAt: string | null;
   preferredName: string;
   phone: string;
   village: string;
@@ -66,6 +69,12 @@ export function ProfilClient({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [securityPending, setSecurityPending] = useState(false);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+  const [securityMessage, setSecurityMessage] = useState<string | null>(null);
 
   const dirty = useMemo(
     () =>
@@ -103,6 +112,28 @@ export function ProfilClient({
       setError("Profil belum dapat disimpan. Periksa koneksi lalu coba kembali.");
     } finally {
       setPending(false);
+    }
+  }
+
+  async function savePassword() {
+    if (securityPending) return;
+    setSecurityError(null);
+    setSecurityMessage(null);
+    setSecurityPending(true);
+    try {
+      const result = await changeOwnPassword({ currentPassword, newPassword, confirmPassword });
+      if (!result.ok) {
+        setSecurityError(result.message);
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSecurityMessage(result.message);
+    } catch {
+      setSecurityError("Pengaturan keamanan belum dapat disimpan. Periksa koneksi lalu coba kembali.");
+    } finally {
+      setSecurityPending(false);
     }
   }
 
@@ -241,6 +272,8 @@ export function ProfilClient({
             <dl className="divide-y divide-line text-[12.5px]">
               {[
                 ["Nama legal", profile.legalName],
+                ["Email akun", profile.email],
+                ["Masuk terakhir", profile.lastLoginAt ? new Date(profile.lastLoginAt.replace(" ", "T") + "Z").toLocaleString("id-ID") : "Belum tercatat"],
                 ["Nomor anggota", profile.memberNumber ?? "Belum diterbitkan"],
                 ["Peran akun", profile.role],
                 ["Lingkup akses", profile.scope],
@@ -268,6 +301,30 @@ export function ProfilClient({
             <div className="mb-0.5 flex items-center gap-1.5 font-semibold"><ShieldCheck size={14} /> Pemisahan data</div>
             Anda dapat mengubah nama tampilan, kontak, desa, dan preferensi minat. Data legal dan keputusan keanggotaan hanya berubah melalui peran yang berwenang.
           </div>
+
+          <Card>
+            <CardHeader title="Keamanan akun" subtitle="Ganti kata sandi akun Anda. Perubahan akan mencabut sesi pada perangkat lain." action={<ShieldCheck size={14} className="text-muted2" />} />
+            <form onSubmit={(event) => { event.preventDefault(); void savePassword(); }} className="space-y-3 p-4">
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="current-account-password">Kata sandi saat ini</label>
+                <input id="current-account-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required maxLength={256} className="sb-input w-full" />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="new-account-password">Kata sandi baru</label>
+                <input id="new-account-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
+                <p className="mt-1 text-[10px] text-muted2">Minimal 12 karakter.</p>
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="confirm-account-password">Ulangi kata sandi baru</label>
+                <input id="confirm-account-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
+              </div>
+              {securityError ? <p className="rounded-sb-sm border border-[var(--sb-danger)] bg-[var(--sb-danger-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-danger)]" role="alert">{securityError}</p> : null}
+              {securityMessage ? <p className="rounded-sb-sm border border-[var(--sb-success)] bg-[var(--sb-success-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-success)]" role="status">{securityMessage}</p> : null}
+              <button type="submit" disabled={securityPending || !currentPassword || !newPassword || !confirmPassword} className="sb-btn sb-btn-primary w-full justify-center disabled:cursor-wait disabled:opacity-60">
+                {securityPending ? "Memperbarui…" : "Perbarui kata sandi"}
+              </button>
+            </form>
+          </Card>
 
           <div className="flex items-center gap-2 rounded-sb-sm border border-line bg-paper px-3.5 py-2.5 text-[11.5px] text-muted">
             <UserRound size={14} /> Masuk sebagai {profile.role} · {profile.scope}
