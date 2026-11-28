@@ -693,3 +693,28 @@ The two migrations install function definitions, function ACLs, and migration le
 **Boundaries:** only QA branch `br-snowy-forest-b46i5pqx` / database `neondb` was changed. No Production SQL, data, Vercel environment, Production deployment, PR merge, table ownership, or RLS policy definition was changed. Function EXECUTE grants were scoped only to the five newly created functions.
 
 **Remaining gate status:** the migration 0046/0047 schema gate is complete on QA. Preview browser UAT with legitimate personas, full screen-level Finance/POS and export/share/download tests, broad cross-tenant side-effect tests, independent security review, and release/rollback/observability sign-off remain open. PR #92 is still Draft/Open/Unmerged; Issue #90 remains Open.
+
+
+### 12.17 Authenticated Preview runtime identity verification — 28 Nov 2026
+
+The user supplied the JSON result returned by the authenticated Preview-only database diagnostic endpoint while signed in with an existing authorized administrator account.
+
+**Runtime proof from that Preview session:**
+
+- `environment=preview`.
+- `current_user=session_user=v9_app`.
+- Database `neondb`, PostgreSQL `18.7 (3190d2f)`.
+- Branch ID `br-snowy-forest-b46i5pqx`, endpoint ID `ep-icy-scene-b4f8rk0x`.
+- `is_superuser=false`; `bypasses_rls=false`.
+- `can_create_role=false`; `can_create_database=false`.
+- `owns_tenant_tables=false`; `member_of_owner_role=false`; `can_set_owner_role=false`.
+- `can_create_in_schema=false`; `can_create_database_objects=false`.
+- `transactionContextIsolation=true`.
+- `requestSessionContextPresent=true`.
+- `safeForTenantUat=true`.
+
+The exact-target and least-privilege runtime principal acceptance gate is now complete for the authenticated Preview request. Independent read-only catalog checks on the same QA branch found 61 tenant/domain tables with RLS enabled on 61/61 and FORCE RLS enabled on 61/61. The two documented system tables remain default-deny.
+
+**Interpretation:** the runtime diagnostic proves target pinning, application-role identity, absence of elevated role/DDL privileges, and transaction-local isolation for the tested session. It is not evidence that the entire UI CRUD surface, all downloads/exports/shares, Finance/POS business workflows, or all negative cross-tenant paths passed. Those functional acceptance tests remain open.
+
+No credentials, session tokens, connection URLs, organization data, or table contents were shared in the diagnostic result. The read-only probe made no database or application data changes.
