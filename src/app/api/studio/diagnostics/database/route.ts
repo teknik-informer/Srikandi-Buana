@@ -64,7 +64,7 @@ export async function GET() {
       subjectHash: "b".repeat(64),
       ipHash: "2".repeat(64),
     });
-    const [contextAResult, contextBResult, sessionContextResult] = await Promise.all([
+    const [contextAResult, contextBResult, requestSessionContextResult] = await Promise.all([
       probeA`
         SELECT current_user::text AS current_user,
           session_user::text AS session_user,
@@ -77,6 +77,7 @@ export async function GET() {
       `,
       probeB`
         SELECT current_user::text AS current_user,
+          session_user::text AS session_user,
           current_database()::text AS database_name,
           NULLIF(current_setting('neon.branch_id', true), '') AS neon_branch_id,
           current_setting('v9.login_email', true) AS login_email,
@@ -91,7 +92,7 @@ export async function GET() {
     ]);
     const contextA = rowsFromResult<RuntimeContextProbe>(contextAResult)[0];
     const contextB = rowsFromResult<RuntimeContextProbe>(contextBResult)[0];
-    const sessionContext = rowsFromResult<{ session_context_present: boolean }>(sessionContextResult)[0];
+    const requestSessionContext = rowsFromResult<{ session_context_present: boolean }>(requestSessionContextResult)[0];
     const concurrencyProbePassed = Boolean(
       contextA &&
       contextB &&
@@ -149,11 +150,11 @@ export async function GET() {
         runtime: row,
         concurrency: {
           transactionContextIsolation: concurrencyProbePassed,
-          sessionContextPresent: sessionContext?.session_context_present === true,
+          requestSessionContextPresent: requestSessionContext?.session_context_present === true,
         },
         safeForTenantUat:
           concurrencyProbePassed &&
-          sessionContext?.session_context_present === true &&
+          requestSessionContext?.session_context_present === true &&
           row.current_user === "v9_app" &&
           row.session_user === "v9_app" &&
           row.neon_branch_id === "br-snowy-forest-b46i5pqx" &&
