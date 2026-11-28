@@ -19,6 +19,11 @@ export interface DesignThemeSettings {
   colors: DesignThemeColors;
 }
 
+export interface DesignThemeHistoryItem {
+  changedAt: string;
+  presetName: string;
+}
+
 export const DESIGN_THEME_PRESETS: readonly DesignThemeSettings[] = [
   {
     schemaVersion: 1,
