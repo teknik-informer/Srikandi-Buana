@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { BrandStage } from "@/components/brand-stage";
+import { getPublicDesignThemeVariables } from "@/lib/design-theme";
 import "./globals.css";
 
 /**
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   },
   description:
     "Kelompok Wanita Tani Srikandi Buana, Desa Ngadimulyo, Kedu, Temanggung. Profil, program, pelatihan, produk anggota, dan layanan organisasi.",
-  metadataBase: new URL("https://srikandi-buana-v9.vercel.app"),
+  metadataBase: new URL("https://srikandi-buana.vercel.app"),
   /**
    * Icon set carried over from the previous production site, unchanged — same
    * files, same sizes, same theme colour, so installed apps and browser tabs
@@ -39,8 +40,8 @@ export const metadata: Metadata = {
     ],
     apple: [
       { url: "/apple-touch-icon.png", sizes: "180x180" },
-      { url: "/icons/apple-touch-152.png", sizes: "152x152" },
-      { url: "/icons/apple-touch-167.png", sizes: "167x167" },
+      { url: "/icons/apple-touch-152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icons/apple-touch-167.png", sizes: "167x167", type: "image/png" },
     ],
     other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#123d32" }],
   },
@@ -62,9 +63,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const designThemeVariables = await getPublicDesignThemeVariables();
+
   return (
-    <html lang="id" className={jakarta.variable}>
+    <html
+      lang="id"
+      className={jakarta.variable}
+      style={designThemeVariables as React.CSSProperties}
+    >
       <body className="font-sans">
         <BrandStage />
         {children}
