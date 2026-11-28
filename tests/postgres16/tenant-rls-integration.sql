@@ -21,6 +21,10 @@ DECLARE
   owner_member boolean;
   view_count integer;
   sequence_count integer;
+  trigger_function_count integer;
+  trigger_count integer;
+  policy_table_count integer;
+  no_policy_tables text[];
 BEGIN
   SELECT count(*),
          count(*) FILTER (WHERE c.relrowsecurity),
@@ -54,6 +58,33 @@ BEGIN
   SELECT count(*) INTO sequence_count
   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
   WHERE n.nspname='v9' AND c.relkind='S';
+
+  SELECT count(DISTINCT t.tgfoid), count(*)
+    INTO trigger_function_count, trigger_count
+  FROM pg_trigger t
+  INNER JOIN pg_class c ON c.oid=t.tgrelid
+  INNER JOIN pg_namespace n ON n.oid=c.relnamespace
+  WHERE n.nspname='v9' AND NOT t.tgisinternal;
+
+  SELECT count(DISTINCT p.tablename), array_agg(c.relname ORDER BY c.relname)
+    INTO policy_table_count, no_policy_tables
+  FROM pg_class c
+  INNER JOIN pg_namespace n ON n.oid=c.relnamespace
+  LEFT JOIN pg_policies p
+    ON p.schemaname=n.nspname AND p.tablename=c.relname
+  WHERE n.nspname='v9' AND c.relkind='r'
+  GROUP BY n.nspname;
+
+  IF policy_table_count <> 61
+     OR no_policy_tables IS DISTINCT FROM ARRAY['bootstrap_state','schema_migrations']::text[] THEN
+    RAISE EXCEPTION 'Expected policies on 61 tenant tables and only two documented default-deny exceptions; covered %, exceptions %.',
+      policy_table_count, no_policy_tables;
+  END IF;
+
+  IF trigger_function_count <> 21 OR trigger_count <> 22 THEN
+    RAISE EXCEPTION 'Unexpected domain trigger inventory: functions %, triggers %.',
+      trigger_function_count, trigger_count;
+  END IF;
 
   IF owned_by_runtime <> 0 OR runtime_superuser OR runtime_bypass
      OR runtime_create_role OR runtime_create_db OR owner_member THEN
