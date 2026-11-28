@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Database, FileText } from "lucide-react";
-import { Card, CardHeader, EmptyState, Notice, PageHeader } from "@/components/ui";
+import { Card, CardHeader, EmptyState, Notice, PageHeader, ComingSoonBadge } from "@/components/ui";
 
 import { requireRoles } from "@/lib/session";
 
@@ -24,7 +24,8 @@ export default async function DataStudio() {
       <PageHeader
         eyebrow="Data & Form Builder"
         title="Struktur data & formulir"
-        description="Akses ke modul domain yang sudah menyimpan data ke organisasi. Builder formulir generik tidak ditampilkan sebagai aktif sebelum definisi, versi, validasi, dan penyimpanan jawabannya tersedia."
+        description="Modul pendataan per domain tetap dapat digunakan. Pembuat formulir generik belum aktif karena registry, versi skema, validasi, dan penyimpanan jawabannya belum tersedia."
+        actions={<ComingSoonBadge label="Form Builder" />}
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
@@ -48,7 +49,7 @@ export default async function DataStudio() {
         </Card>
 
         <div className="space-y-4">
-          <Notice tone="warning" title="Form Builder generik belum diaktifkan">
+          <Notice tone="warning" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Form Builder" /> Form Builder generik belum diaktifkan</span>}>
             Belum ada registry form, versi form, skema jawaban, aturan validasi konfiguratif, atau ekspor dinamis yang tersimpan per organisasi. Data operasional yang tersedia tetap menggunakan form domain dengan validasi server.
           </Notice>
           <Card className="p-4">
