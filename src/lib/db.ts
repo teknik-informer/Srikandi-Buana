@@ -76,7 +76,7 @@ function contextualSql(
     apply(target, _thisArg, args: Parameters<V9Sql>) {
       return (async () => {
         const context = await resolveContext();
-        const query = Reflect.apply(target, target, args) as Promise<unknown>;
+        const query = Reflect.apply(target, target, args) as ReturnType<V9Sql>;
         const contextQuery = target`
           SELECT
             set_config('v9.session_token_hash', ${context.sessionTokenHash ?? ""}, true),
