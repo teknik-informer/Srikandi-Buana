@@ -497,12 +497,39 @@ PostgreSQL 16 integration fixtures now cover six organization-scoped finance rel
 
 These fixtures are inserted by the CI migration owner into disposable PostgreSQL 16. Under `SET LOCAL ROLE v9_app` with the tenant-A verified session context, the assertions test database RLS rather than application query filters. The test exercises both deny behavior and positive tenant-A mutations. It does not yet prove every lifecycle transition, finance journal post/reversal trigger, budget approval/close transition, contribution allocation, or the application/browser finance UI.
 
-Exact-head GitHub Actions run #987 passed on commit `5bae5db980ce39bf9c539b13825cfbb7eeddbcf7`: PostgreSQL 16 RLS integration, organization regression, core workspace/RLS contract, TypeScript validation and Next.js production build.
+Historical exact-head GitHub Actions run #987 passed on commit `5bae5db980ce39bf9c539b13825cfbb7eeddbcf7`. The finance-only fixture was revalidated on exact-head run #1001 at commit `d393e5d03b02a7076f8a11d23ab5ca1344e15dbf`; both PostgreSQL 16 integration and TypeScript/production build jobs passed.
 
-### 12.8 Field application key limitation relevant to multi-tenant field fixtures
+The finance boundary assertions remain deliberately narrower than a full finance lifecycle test: cross-tenant row visibility and selected UPDATE/DELETE/INSERT paths are denied, while same-tenant account, journal and budget-line updates succeed. Posting/reversal, period close/reopen, budget approval/close, contribution allocation and payment-journal linkage remain separate lifecycle gates.
 
-Read-only inspection of QA branch `br-snowy-forest-b46i5pqx` confirms `v9.field_applications.field_key` remains the table primary key, while a further unique constraint exists for `(field_key, organization_id)`. That combination means the same field key cannot be instantiated for two organizations at the same time. The live QA branch currently has four enabled keys (`organisasi`, `pelatihan`, `pertanian`, `usaha`) for the Srikandi Buana organization only.
+### 12.8 Field application tenant identity migration and live QA status
 
-This is not evidence of a current cross-organization data leak. It is a schema-level limitation for testing/using the same named field module across multiple tenants. Finance boundary tests above deliberately avoid the issue. Before claiming multi-tenant field-domain readiness, assess a separate QA-only schema migration to use a tenant-scoped primary/unique key and update all dependent foreign keys and queries. Do not apply such a change to Production without its own reviewed migration/rollback plan and explicit authorization.
+Migration `0045_tenant_scope_field_application_identity.sql` is now part of this PR branch. It changes the `field_applications` primary key from `PRIMARY KEY (field_key)` to `PRIMARY KEY (organization_id, field_key)`, while retaining the composite unique key `(field_key, organization_id)` required by existing operational foreign keys. It aborts if any incoming foreign key still references only `field_key`; it does not rewrite or delete tenant rows.
 
-Issue #90 remains open for remaining domain-specific negative tests, finance lifecycle and side-effect coverage, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
+The PostgreSQL 16 runner applies migration 0045 twice before the integration fixtures. Exact-head run #1003 on commit `f72e9a2ccf23b3dcefa74ac1c57f49f15d7c5ece` passed, including this migration/idempotence path and the two-tenant fixtures that install the same `usaha` field key for both organizations.
+
+The live Neon QA branch `br-snowy-forest-b46i5pqx` has **not** yet applied migration 0045. Read-only catalog inspection on that branch confirms:
+- current primary key is still `PRIMARY KEY (field_key)`;
+- required composite unique `(field_key, organization_id)` exists;
+- there are zero incoming single-column foreign keys to `field_key`; all inspected incoming operational foreign keys are composite;
+- four current field-application rows belong to one organization;
+- `schema_migrations` has no ledger row for migration 0045.
+
+Therefore the migration is CI-tested and its live-QA preconditions are satisfied, but the same field key still cannot be provisioned for a second organization on the live QA branch until 0045 is applied there. This is a schema readiness gap, not evidence of a current cross-tenant data leak. No Production schema was changed.
+
+### 12.9 Business orders, payment receipts and trigger boundary review
+
+Migration `0016_business_sales_orders.sql` creates `business_customers`, `business_orders` and `business_order_items`, adds tenant/field-scoped composite foreign keys, and extends the inventory movement type check to include `sale`. **It does not define a business-order trigger.** The order and order-item lifecycle is implemented by transactional server-action CTEs in `src/app/actions/business-orders.ts`.
+
+Payment receipts are introduced later by `0031_business_order_payment_receipts.sql`. Its `business_order_payments_guard` is a BEFORE INSERT/UPDATE/DELETE trigger. Migration `0033_business_order_payment_concurrency_guard.sql` adds an organization/order-scoped transaction advisory lock before recalculating cumulative payment. The live QA catalog confirms the trigger exists and `protect_business_order_payment()` is SECURITY INVOKER, so reads it performs are still subject to the current `v9_app` RLS context.
+
+The payment guard validates a fulfilled order, an active IDR cash/bank register mapped to an active postable debit-normal asset account, no overpayment, immutable receipt details, and one-time linkage to a posted `sale` journal whose totals and cash-account debit match the receipt. The order/receipt composite foreign keys bind organization and field identity across the order, cash account and journal. The separate `business_inventory_movements_immutable` trigger rejects updates/deletes of recorded stock movements.
+
+The expanded PostgreSQL 16 fixture now seeds both organizations' order items and unlinked payment receipts. Under tenant A and tenant B runtime contexts it checks order-item and payment-receipt read isolation. Tenant A also attempts cross-tenant order/item/payment UPDATE/DELETE and cross-tenant order/item INSERT; these operations must affect zero rows or be rejected. Positive same-tenant order-item UPDATE and payment-receipt INSERT are exercised; the latter runs through the payment guard using a fulfilled tenant-A order and active tenant-A cash register. Exact-head run #1003 passed both PostgreSQL 16 and TypeScript/production build jobs.
+
+Remaining business-order gates are not inferred as complete from those database assertions:
+- the application CTEs for confirm/reserve, fulfil/deduct-and-record-sale, cancel/release-reservation and POS payment need end-to-end regression/UAT with legitimate users;
+- concurrent receipt submissions must be tested against the advisory-lock/overpayment guard, not only sequential inserts;
+- the one-time receipt-to-posted-journal linkage branch and matching journal-line invariants need a positive and negative integration test;
+- stock movement immutability and audit/no-side-effect expectations need explicit coverage.
+
+Issue #90 remains open for the live-QA migration 0045 application gate, remaining finance and business lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
