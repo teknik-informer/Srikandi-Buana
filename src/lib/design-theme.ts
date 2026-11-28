@@ -24,7 +24,7 @@ export async function getDesignThemeSettings(organizationId: string): Promise<De
     const result = await sql`
       SELECT setting_value
       FROM v9.system_settings
-      WHERE organization_id = ``organizationId``
+      WHERE organization_id = ${organizationId}
         AND setting_key = 'design_theme'
         AND visibility IN ('public', 'internal')
       LIMIT 1
@@ -44,7 +44,7 @@ export async function getDesignThemeHistory(organizationId: string): Promise<Des
         to_char(occurred_at AT TIME ZONE 'Asia/Jakarta', 'DD Mon YYYY, HH24:MI') AS changed_at,
         COALESCE(after_state->>'presetName', 'Tema khusus') AS preset_name
       FROM v9.audit_events
-      WHERE organization_id = ``organizationId``
+      WHERE organization_id = ${organizationId}
         AND action = 'design_theme.settings.updated'
         AND entity_type = 'system_setting'
         AND entity_id = 'design_theme'
