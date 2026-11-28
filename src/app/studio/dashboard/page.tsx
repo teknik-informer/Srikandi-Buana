@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, ChartNoAxesCombined, LayoutDashboard } from "lucide-react";
-import { Card, CardHeader, Notice, PageHeader } from "@/components/ui";
+import { Card, CardHeader, Notice } from "@/components/ui";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 
 import { requireRoles } from "@/lib/session";
 
@@ -21,10 +23,19 @@ export default async function DashboardStudio() {
   await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <div className="pb-10">
-      <PageHeader
-        eyebrow="Dashboard Builder"
+      <AppBanner
+        {...APP_IDENTITY.studio}
+        eyebrow="Studio Pengelola · Dashboard Builder"
         title="Dashboard organisasi"
-        description="Halaman dashboard operasional yang sudah terpasang dan dapat dibuka sesuai kewenangan. Pengaturan grid dan widget per peran belum menjadi konfigurasi dinamis yang tersimpan."
+        lead="Indeks dashboard operasional yang sudah terpasang dan dapat dibuka sesuai kewenangan. Pengaturan grid dan widget per peran belum menjadi konfigurasi dinamis yang tersimpan."
+        facts={[
+          `${dashboards.length} dashboard terdaftar`,
+          "Akses mengikuti kewenangan akun",
+          "Konfigurasi widget masih dikendalikan kode",
+        ]}
+        actions={[
+          { href: "/app", label: "Buka Beranda Aplikasi", primary: true },
+        ]}
       />
 
       <Card>

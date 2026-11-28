@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { Building2, ShieldCheck } from "lucide-react";
-import { Card, CardHeader, EmptyState, Notice, PageHeader, Badge } from "@/components/ui";
+import { Card, CardHeader, EmptyState, Notice, Badge } from "@/components/ui";
+import { AppBanner } from "@/components/dash-kit";
+import { APP_IDENTITY } from "@/config/app-identity";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { requireRoles } from "@/lib/session";
 
@@ -43,16 +45,17 @@ export default async function PortalEksternal() {
 
   return (
     <div className="sb-shell py-10">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="sb-label">
-          {organization?.short_name ?? "Srikandi Buana"} · Portal Eksternal
-        </span>
-        <Badge tone="neutral">Akses terbatas</Badge>
-      </div>
-      <PageHeader
-        eyebrow="Portal pemerintah, NGO & mitra"
-        title="Ruang berbagi data organisasi"
-        description="Portal ini hanya menampilkan dataset yang memiliki persetujuan berbagi, penerima, tujuan penggunaan, dan masa akses yang tercatat."
+      <AppBanner
+        {...APP_IDENTITY.portal}
+        badge={<Badge tone="neutral">Akses terbatas</Badge>}
+        lead="Portal ini hanya menampilkan dataset yang memiliki persetujuan berbagi, penerima, tujuan penggunaan, dan masa akses yang tercatat."
+        facts={[
+          organizationUnavailable
+            ? "Identitas organisasi belum dapat diverifikasi"
+            : organization?.short_name ?? "Srikandi Buana",
+          "Akses mengikuti peran akun",
+          "Data dibatasi oleh persetujuan berbagi",
+        ]}
       />
 
       {organizationUnavailable ? (
