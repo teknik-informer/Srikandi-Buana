@@ -17,7 +17,7 @@ assert.doesNotMatch(db, /\b(?:SET|RESET)\s+(?:ROLE|SESSION|search_path)\b/i, "Se
 assert.match(db, /getV9AuthenticatedLoginSql/, "Login writes must use the post-password-verification context.");
 assert.match(auth, /getV9LoginSql\(loginContext\)/, "Credential lookup must use the isolated login scope.");
 assert.match(auth, /getV9AuthenticatedLoginSql\(\{ \.\.\.loginContext, userId: account\.id \}\)/, "Session creation must be bound to the password-verified account.");
-assert.match(interest, /getV9PublicInterestSql\(\)/, "Public membership-interest writes must use their narrow context.");
+assert.match(interest, /getV9PublicInterestSql\(\{ name: rateName, phone: ratePhone \}\)/, "Public membership-interest writes must use their narrow context.");
 assert.match(share, /getV9PublicShareSql\(sha256Hex\(token\)\)/, "Public file delivery must be bound to a single hashed share token.");
 assert.match(probe, /VERCEL_ENV !== "preview"/, "Runtime database diagnostics must be Preview-only.");
 assert.match(probe, /bypasses_rls|rolbypassrls/, "Runtime probe must report RLS bypass capability.");
