@@ -734,3 +734,6 @@ No credentials, session tokens, connection URLs, organization data, or table con
 **Evidence:** commit `bff57cc9bec71de57632af02537c71a183af0df9`; GitHub Actions run #1103 passed the PostgreSQL 16 RLS integration, regression/contract checks, TypeScript validation, and Next.js production build. Exact Preview deployment `dpl_AgS2rD7YuNCg2ru2xMtxobBAMHy5` is READY at https://admin-dashboard-o59wr0vx9-teknik-informer.vercel.app. Public-route smoke checks passed, protected module routes presented the sign-in surface without an application session, and no Preview runtime error/fatal records were returned for the latest 30-minute query.
 
 **Not yet accepted:** an authenticated user retest of tab switching and post-save continuation is still required. The deployment smoke test does not substitute for browser UAT with the user's authenticated session. No QA business data or database state was changed. Production remains untouched, and PR #92 remains Draft/Open/Unmerged pending all independent security and UAT gates.
+
+
+**Additional navigation correction:** an outgoing letter with a linked generated document now opens that document’s `/app/sekretariat/dokumen/{document_id}/cetak` review/print page from “Buka naskah”; only a letter without a linked document opens the `TPL-KEL` Generator. The source-integration contract checks this distinction.
