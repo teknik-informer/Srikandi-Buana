@@ -88,6 +88,10 @@ assert.match(migration, /DROP FUNCTION IF EXISTS v9\._account_row_visible\(uuid\
 assert.match(migration, /DROP FUNCTION IF EXISTS v9\._community_membership_visible\(uuid\)/, "Legacy membership-row SECURITY DEFINER helper must be removed.");
 assert.match(migration, /DROP FUNCTION IF EXISTS v9\._community_person_visible\(uuid\)/, "Legacy person-row SECURITY DEFINER helper must be removed.");
 assert.match(migration, /ON CONFLICT \(name\) DO UPDATE[\s\S]*SET checksum = EXCLUDED\.checksum/, "Reapplication must update the migration ledger checksum.");
+assert.match(migration, /DROP FUNCTION IF EXISTS v9\._account_row_visible\(uuid\)/, "The migration must remove the legacy account visibility helper.");
+assert.match(migration, /DROP FUNCTION IF EXISTS v9\._community_membership_visible\(uuid\)/, "The migration must remove the legacy community membership helper.");
+assert.match(migration, /DROP FUNCTION IF EXISTS v9\._community_person_visible\(uuid\)/, "The migration must remove the legacy community person helper.");
+
 
 assert.match(migration, /row_value\.source_field_key/, "Field-scoped secretariat document child access must retain the source field key.");
 assert.match(migration, /_tenant_row_visible\(organization_id, source_field_key, NULL, created_by/, "Field-scoped secretariat document reads and writes must remain visible to their field.");
