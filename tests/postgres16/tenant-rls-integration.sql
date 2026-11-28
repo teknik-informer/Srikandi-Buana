@@ -25,6 +25,7 @@ DECLARE
   trigger_count integer;
   policy_table_count integer;
   no_policy_tables text[];
+  migration_checksum text;
 BEGIN
   SELECT count(*),
          count(*) FILTER (WHERE c.relrowsecurity),
@@ -85,6 +86,15 @@ BEGIN
   IF trigger_function_count <> 21 OR trigger_count <> 22 THEN
     RAISE EXCEPTION 'Unexpected domain trigger inventory: functions %, triggers %.',
       trigger_function_count, trigger_count;
+  END IF;
+
+  SELECT checksum INTO migration_checksum
+  FROM v9.schema_migrations
+  WHERE name = '0044_tenant_row_level_security.sql';
+
+  IF migration_checksum IS DISTINCT FROM
+     'sha256:tenant-row-level-security-v2-transaction-context-privacy-policy-20261128' THEN
+    RAISE EXCEPTION 'The V9 RLS migration ledger checksum was not upgraded; found %.', migration_checksum;
   END IF;
 
   IF to_regprocedure('v9._account_row_visible(uuid)') IS NOT NULL
