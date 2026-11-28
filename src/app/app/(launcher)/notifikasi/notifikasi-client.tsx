@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { BellRing, CheckCheck, ShieldCheck } from "lucide-react";
-import { Card, CardHeader, Notice, PageHeader } from "@/components/ui";
+import { BellRing, CheckCheck, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Card, CardHeader, Notice, PageHeader, ComingSoonBadge } from "@/components/ui";
 
 interface NotificationShortcut {
   label: string;
@@ -13,18 +13,19 @@ export function NotifikasiClient({ shortcuts }: { shortcuts: NotificationShortcu
       <PageHeader
         eyebrow="Pusat Notifikasi"
         title="Notifikasi"
-        description="Pemberitahuan personal akan muncul setelah sumber peristiwa organisasi dan status baca per akun tersedia."
+        description="Kotak notifikasi personal belum diaktifkan. Pintasan di bawah mengarah langsung ke modul operasional yang benar-benar tersedia."
+        actions={<ComingSoonBadge label="Pusat notifikasi" />}
       />
 
       <Card>
         <CardHeader
           title="Pusat notifikasi organisasi"
           subtitle="Fitur sedang disiapkan untuk penyimpanan server dan akses per pengguna"
-          action={<BellRing size={17} className="text-muted2" />}
+          action={<ComingSoonBadge />}
         />
         <div className="px-5 py-10 text-center">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-paper text-muted2">
-            <BellRing size={21} />
+            <LockKeyhole size={21} />
           </div>
           <h2 className="mt-3 text-[13.5px] font-semibold text-ink">
             Notifikasi operasional belum diaktifkan
