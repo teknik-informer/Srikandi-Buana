@@ -561,6 +561,328 @@ AS $function$
   )
 $function$;
 
+-- Explicit public projections. These SECURITY DEFINER functions are the
+-- only tokenless read path for operational data shown on the public website.
+-- They return a fixed column allow-list and never expose member, cost, inventory,
+-- enrollment, audit, or document-internal metadata.
+CREATE OR REPLACE FUNCTION v9.get_public_fields()
+RETURNS TABLE (
+  field_key text,
+  name text,
+  short_name text,
+  mandate text,
+  unit_name text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT
+    application.field_key,
+    application.name,
+    application.short_name,
+    application.mandate,
+    unit.name AS unit_name
+  FROM v9.field_applications AS application
+  INNER JOIN v9.organizations AS organization
+    ON organization.id = application.organization_id
+  LEFT JOIN v9.organization_units AS unit
+    ON unit.id = application.unit_id
+    AND unit.organization_id = application.organization_id
+    AND unit.is_active = true
+  WHERE organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+    AND application.is_enabled = true
+  ORDER BY application.display_order, application.name
+$function$;
+
+CREATE OR REPLACE FUNCTION v9.get_public_products(
+  p_slug text DEFAULT NULL,
+  p_category text DEFAULT NULL,
+  p_exclude_id uuid DEFAULT NULL,
+  p_limit integer DEFAULT 200
+)
+RETURNS TABLE (
+  id uuid,
+  slug text,
+  reference_no text,
+  product_name text,
+  category_label text,
+  product_kind text,
+  unit_label text,
+  selling_price numeric,
+  producer_label text,
+  description text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT
+    product.id,
+    product.slug,
+    product.reference_no,
+    product.product_name,
+    product.category_label,
+    product.product_kind,
+    product.unit_label,
+    product.selling_price,
+    product.producer_label,
+    product.description
+  FROM v9.business_products AS product
+  INNER JOIN v9.organizations AS organization
+    ON organization.id = product.organization_id
+  WHERE organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+    AND product.field_key = 'usaha'
+    AND product.status = 'active'
+    AND product.publication_status = 'published'
+    AND (p_slug IS NULL OR product.slug = p_slug)
+    AND (p_category IS NULL OR product.category_label = p_category)
+    AND (p_exclude_id IS NULL OR product.id <> p_exclude_id)
+  ORDER BY product.category_label NULLS LAST, product.product_name
+  LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 200), 200))
+$function$;
+
+CREATE OR REPLACE FUNCTION v9.get_public_activities(
+  p_field_key text DEFAULT NULL,
+  p_completed boolean DEFAULT false,
+  p_limit integer DEFAULT 100
+)
+RETURNS TABLE (
+  id uuid,
+  reference_no text,
+  title text,
+  field_name text,
+  activity_date date,
+  start_time text,
+  end_time text,
+  location text,
+  description text,
+  status text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT
+    activity.id,
+    activity.reference_no,
+    activity.title,
+    application.short_name,
+    activity.activity_date,
+    to_char(activity.start_time, 'HH24:MI'),
+    to_char(activity.end_time, 'HH24:MI'),
+    activity.location,
+    activity.description,
+    activity.status
+  FROM v9.field_activities AS activity
+  INNER JOIN v9.organizations AS organization
+    ON organization.id = activity.organization_id
+  INNER JOIN v9.field_applications AS application
+    ON application.organization_id = activity.organization_id
+    AND application.field_key = activity.field_key
+    AND application.is_enabled = true
+  WHERE organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+    AND activity.open_to_public = true
+    AND (p_field_key IS NULL OR activity.field_key = p_field_key)
+    AND (
+      (p_completed = true
+        AND activity.status = 'completed'
+        AND activity.activity_date <= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+      OR
+      (p_completed = false
+        AND activity.status IN ('scheduled','in_progress')
+        AND activity.activity_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date)
+    )
+  ORDER BY
+    CASE WHEN p_completed THEN activity.activity_date END DESC,
+    CASE WHEN NOT p_completed THEN activity.activity_date END ASC,
+    activity.start_time NULLS FIRST
+  LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 100), 100))
+$function$;
+
+CREATE OR REPLACE FUNCTION v9.get_public_training_sessions(
+  p_completed boolean DEFAULT false,
+  p_limit integer DEFAULT 50
+)
+RETURNS TABLE (
+  id uuid,
+  reference_no text,
+  title text,
+  topic text,
+  session_date date,
+  start_time text,
+  end_time text,
+  location text,
+  trainer_label text,
+  max_participants integer,
+  registered_count integer,
+  present_count integer,
+  description text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT
+    session.id,
+    session.reference_no,
+    session.title,
+    session.topic,
+    session.session_date,
+    to_char(session.start_time, 'HH24:MI'),
+    to_char(session.end_time, 'HH24:MI'),
+    session.location,
+    session.trainer_label,
+    session.max_participants,
+    (
+      SELECT count(*)::integer
+      FROM v9.training_enrollments AS enrollment
+      WHERE enrollment.session_id = session.id
+        AND enrollment.organization_id = session.organization_id
+        AND enrollment.registration_status IN ('registered','confirmed')
+    ),
+    (
+      SELECT count(*)::integer
+      FROM v9.training_enrollments AS enrollment
+      WHERE enrollment.session_id = session.id
+        AND enrollment.organization_id = session.organization_id
+        AND enrollment.attendance_status = 'hadir'
+    ),
+    session.description
+  FROM v9.training_sessions AS session
+  INNER JOIN v9.organizations AS organization
+    ON organization.id = session.organization_id
+  WHERE organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+    AND session.field_key = 'pelatihan'
+    AND (
+      (p_completed = true AND session.status = 'completed')
+      OR (p_completed = false
+        AND session.status = 'registration_open'
+        AND session.session_date >= current_date)
+    )
+  ORDER BY
+    CASE WHEN p_completed THEN session.session_date END DESC,
+    CASE WHEN NOT p_completed THEN session.session_date END ASC,
+    session.start_time NULLS FIRST
+  LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 50), 50))
+$function$;
+
+CREATE OR REPLACE FUNCTION v9.get_public_documents(
+  p_category text DEFAULT NULL,
+  p_limit integer DEFAULT 200
+)
+RETURNS TABLE (
+  document_id uuid,
+  reference_no text,
+  number text,
+  title text,
+  category text,
+  document_date date,
+  owner_label text,
+  file_name text,
+  size_bytes integer
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT
+    document.id,
+    document.reference_no,
+    document.number,
+    document.title,
+    document.category,
+    document.document_date,
+    document.owner_label,
+    latest_file.file_name,
+    latest_file.size_bytes
+  FROM v9.secretariat_documents AS document
+  INNER JOIN v9.organizations AS organization
+    ON organization.id = document.organization_id
+  INNER JOIN LATERAL (
+    SELECT file.file_name, file.size_bytes
+    FROM v9.secretariat_document_files AS file
+    LEFT JOIN v9.file_assets AS asset
+      ON asset.id = file.asset_id
+      AND asset.organization_id = document.organization_id
+    WHERE file.document_id = document.id
+      AND (file.asset_id IS NULL OR asset.status = 'active')
+    ORDER BY file.revision_no DESC
+    LIMIT 1
+  ) AS latest_file ON true
+  WHERE organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+    AND document.status = 'final'
+    AND document.visibility = 'publik'
+    AND (p_category IS NULL OR lower(document.category) = p_category)
+  ORDER BY document.document_date DESC, document.created_at DESC
+  LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 200), 200))
+$function$;
+
+CREATE OR REPLACE FUNCTION v9.get_public_document_file(p_document_id uuid)
+RETURNS TABLE (
+  file_name text,
+  mime_type text,
+  size_bytes bigint,
+  base64 text,
+  asset_id uuid,
+  cloudinary_asset_id text,
+  cloudinary_public_id text,
+  cloudinary_resource_type text,
+  cloudinary_delivery_type text,
+  cloudinary_version bigint,
+  cloudinary_format text,
+  asset_status text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT
+    file.file_name,
+    file.mime_type,
+    file.size_bytes::bigint,
+    CASE WHEN file.file_data IS NOT NULL THEN encode(file.file_data, 'base64') ELSE NULL END,
+    file.asset_id,
+    asset.cloudinary_asset_id,
+    asset.cloudinary_public_id,
+    asset.cloudinary_resource_type,
+    asset.cloudinary_delivery_type,
+    asset.cloudinary_version,
+    asset.cloudinary_format,
+    asset.status
+  FROM v9.secretariat_documents AS document
+  INNER JOIN v9.organizations AS organization
+    ON organization.id = document.organization_id
+  INNER JOIN LATERAL (
+    SELECT *
+    FROM v9.secretariat_document_files AS latest
+    WHERE latest.document_id = document.id
+    ORDER BY latest.revision_no DESC
+    LIMIT 1
+  ) AS file ON true
+  LEFT JOIN v9.file_assets AS asset
+    ON asset.id = file.asset_id
+    AND asset.organization_id = document.organization_id
+  WHERE document.id = p_document_id
+    AND organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+    AND document.status = 'final'
+    AND document.visibility = 'publik'
+    AND (file.asset_id IS NULL OR asset.status = 'active')
+  LIMIT 1
+$function$;
+
 -- Inventory and enforce RLS on every audited V9 table. Tables without an
 -- explicit policy below remain default-deny for v9_app.
 DO $rls$
@@ -1015,6 +1337,12 @@ BEGIN
     'v9._share_document_allowed(uuid)'::regprocedure,
     'v9._public_banner_asset(uuid)'::regprocedure,
     'v9._public_interest_context()'::regprocedure,
+    'v9.get_public_fields()'::regprocedure,
+    'v9.get_public_products(text,text,uuid,integer)'::regprocedure,
+    'v9.get_public_activities(text,boolean,integer)'::regprocedure,
+    'v9.get_public_training_sessions(boolean,integer)'::regprocedure,
+    'v9.get_public_documents(text,integer)'::regprocedure,
+    'v9.get_public_document_file(uuid)'::regprocedure,
     'v9._active_community_member(uuid)'::regprocedure,
     'v9._community_membership_visible(uuid)'::regprocedure,
     'v9._community_person_visible(uuid)'::regprocedure,
