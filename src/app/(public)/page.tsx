@@ -98,62 +98,21 @@ export default async function HomePage() {
           LIMIT 1
         `,
         sql`
-          SELECT
-            application.field_key,
-            application.name,
-            application.short_name,
-            application.mandate
-          FROM v9.field_applications AS application
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = application.organization_id
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND application.is_enabled = true
-          ORDER BY application.display_order, application.name
+          SELECT field_key, name, short_name, mandate
+          FROM v9.get_public_fields()
+          ORDER BY field_key
           LIMIT 8
         `,
         settings.home.products && settings.features.productCatalogue ? sql`
-          SELECT
-            product.id::text AS id,
-            product.slug,
-            product.product_name,
-            product.category_label,
-            product.unit_label,
-            product.selling_price::text AS selling_price,
-            product.producer_label,
-            product.description
-          FROM v9.business_products AS product
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = product.organization_id
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND product.field_key = 'usaha'
-            AND product.status = 'active'
-            AND product.publication_status = 'published'
-          ORDER BY product.category_label NULLS LAST, product.product_name
-          LIMIT 4
+          SELECT id::text AS id, slug, product_name, category_label,
+            unit_label, selling_price::text AS selling_price,
+            producer_label, description
+          FROM v9.get_public_products(NULL, NULL, NULL, 4)
         ` : Promise.resolve([]),
         settings.home.activities && settings.features.activities ? sql`
-          SELECT
-            activity.id::text AS id,
-            activity.title,
-            application.short_name AS field_name,
-            activity.activity_date::text AS activity_date,
-            to_char(activity.start_time, 'HH24:MI') AS start_time,
-            activity.location
-          FROM v9.field_activities AS activity
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = activity.organization_id
-          INNER JOIN v9.field_applications AS application
-            ON application.organization_id = activity.organization_id
-            AND application.field_key = activity.field_key
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND activity.open_to_public = true
-            AND activity.status IN ('scheduled','in_progress')
-            AND activity.activity_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
-          ORDER BY activity.activity_date, activity.start_time NULLS FIRST
-          LIMIT 3
+          SELECT id::text AS id, title, field_name, activity_date::text AS activity_date,
+            start_time, location
+          FROM v9.get_public_activities(NULL, false, 3)
         ` : Promise.resolve([]),
       ]);
       return {
