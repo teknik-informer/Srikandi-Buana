@@ -5,7 +5,7 @@ export interface FieldNavGroup {
   items: { label: string; href: string; comingSoon?: string }[];
 }
 
-const SECTIONS: { key: string; label: string; group: string }[] = [
+const SECTIONS: { key: string; label: string; group: string; comingSoon?: string }[] = [
   { key: "", label: "Dashboard Bidang", group: "Ringkasan" },
   { key: "profil-mandat", label: "Profil & Mandat", group: "Ringkasan" },
   { key: "rencana", label: "Rencana Kerja", group: "Perencanaan" },
