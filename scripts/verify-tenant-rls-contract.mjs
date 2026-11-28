@@ -22,6 +22,9 @@ assert.match(share, /getV9PublicShareSql\(sha256Hex\(token\)\)/, "Public file de
 assert.match(probe, /VERCEL_ENV !== "preview"/, "Runtime database diagnostics must be Preview-only.");
 assert.match(probe, /bypasses_rls|rolbypassrls/, "Runtime probe must report RLS bypass capability.");
 assert.match(probe, /owns_tenant_tables/, "Runtime probe must report table ownership.");
+assert.match(probe, /getV9LoginSql/, "Preview diagnostics must run two concurrent, isolated Neon HTTP transaction contexts.");
+assert.match(probe, /transactionContextIsolation/, "Preview diagnostics must return only the boolean result of context isolation.");
+assert.match(probe, /neon_branch_id === "br-snowy-forest-b46i5pqx"/, "Tenant UAT safety must be bound to the expected sanitized Neon QA branch.");
 
 const expectedTables = [
   "agriculture_cycles","agriculture_harvests","agriculture_plots","agriculture_visits",
