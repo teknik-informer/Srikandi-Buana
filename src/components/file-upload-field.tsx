@@ -40,6 +40,12 @@ export function FileUploadField({
     form.set("category", category);
     setState("uploading");
     try {
+      const readinessResponse = await fetch("/api/files", { method: "GET", cache: "no-store" });
+      const readiness = await readinessResponse.json() as { ready?: boolean; error?: string };
+      if (!readinessResponse.ok || readiness.ready !== true) {
+        throw new Error(readiness.error || "Layanan penyimpanan belum siap.");
+      }
+
       const response = await fetch("/api/files", { method: "POST", body: form, cache: "no-store" });
       const payload = await response.json() as { id?: string; error?: string; message?: string };
       if (!response.ok || !payload.id) throw new Error(payload.error || "Unggahan gagal.");
