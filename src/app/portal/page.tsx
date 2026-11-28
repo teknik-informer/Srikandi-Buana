@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
-import { Building2, ShieldCheck } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { Card, CardHeader, EmptyState, Notice, Badge, ComingSoonBadge } from "@/components/ui";
 import { APP_IDENTITY } from "@/config/app-identity";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
