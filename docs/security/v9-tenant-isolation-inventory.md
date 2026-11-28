@@ -343,3 +343,61 @@ Source file `src/lib/db.ts` reads only `process.env.V9_DATABASE_URL`, throws whe
 Exact source-contract commit `23dfc5b1f52ee7d4ea7cab7a04fa95294437cb11` passed GitHub Actions run #969: PostgreSQL 16 RLS integration, organization regressions, core workspace/tenant RLS contract checks, TypeScript validation, and Next.js production build. The deployed application code remains commit `7cca12a9b0d782eb3479f6156a5dd07707c63a28` in Vercel deployment `dpl_7djs6LSUfbWvENH7kPfQcptf786V`, state READY. The later commit added only source contract assertions/documentation; no runtime code changed after deployment.
 
 Issue #91's narrow runtime-principal/Preview-target proof is complete. This does not close Issue #90: the comprehensive query/action inventory, all negative cross-tenant operation and side-effect tests, operational domain regressions, authenticated Preview UAT across legitimate personas, and independent security review remain open.
+## 12. Source-level server action and route relation sweep — 28 November 2026
+
+A source scan was run against the exact PR branch tree at commit `385ab790498315ebf6e7a1952ad95f7114c70a4d`. It enumerated 27 files under `src/app/actions`, the file/share/public APIs, the operational search loader, and the POS page. The following is a **relation-reference inventory**: table names were extracted from SQL clauses and normalized against the audited 63-table inventory. It is useful for finding query families, but it is not yet a complete query AST, route-caller, trigger-side-effect or authorization proof.
+
+| Server action file | V9 relations referenced by SQL | Primary operation family |
+|---|---|---|
+| `account-settings.ts` | `user_accounts`, `sessions`, `audit_events` | Self password change, session revocation, audit |
+| `auth.ts` | `organizations`, `user_accounts`, `role_assignments`, `field_applications`, `login_rate_limits`, `sessions` | Login lookup, rate limit, verified session creation and logout |
+| `agriculture.ts` | `field_applications`, `memberships`, `people`, `agriculture_plots`, `agriculture_cycles`, `agriculture_visits`, `agriculture_harvests`, `audit_events` | Plot/cycle lifecycle, visits and harvest recording |
+| `business-catalog.ts` | `field_applications`, `business_products`, `business_warehouses`, `business_product_stock`, `business_inventory_movements`, `audit_events` | Product catalog, warehouses and stock movements |
+| `business-inventory.ts` | `field_applications`, `business_products`, `business_warehouses`, `business_product_stock`, `business_inventory_movements`, `audit_events` | Inventory/catalog actions; overlapping export names need caller-path confirmation |
+| `business-orders.ts` | `field_applications`, `business_products`, `business_customers`, `business_warehouses`, `business_orders`, `business_order_items`, `business_product_stock`, `business_inventory_movements`, `business_order_payments`, `finance_cash_accounts`, `audit_events` | Order lifecycle, stock reservation/release, payment/cash-account linkage |
+| `business.ts` | `field_applications`, `business_partners`, `business_opportunities`, `business_agreements`, `business_milestones`, `audit_events` | Partners, opportunity, agreement and milestone lifecycle |
+| `finance.ts` | `finance_accounts`, `finance_cash_accounts`, `finance_journals`, `finance_journal_lines`, `finance_budgets`, `finance_budget_lines`, `finance_contribution_allocations`, `finance_periods`, `business_order_payments`, `audit_events` | COA/cash, journal draft-submit-review-post-reversal, budgets, allocations and periods |
+| `field-operations.ts` | `field_applications`, `field_workplans`, `field_programs`, `field_program_indicators`, `field_activities`, `field_tasks`, `audit_events` | Workplan/program/indicator/activity/task lifecycle and approvals |
+| `field-team.ts` | `field_applications`, `memberships`, `field_team_assignments`, `audit_events` | Field team proposal, approval and end assignment |
+| `workplan-approvals.ts` | `field_workplans`, `audit_events` | Submitted workplan approval |
+| `management-tasks.ts` | `user_accounts`, `people`, `memberships`, `field_applications`, `field_tasks`, `audit_events` | Create/reassign/status change for management tasks |
+| `member-profile.ts` | `user_accounts`, `people`, `person_interests`, `audit_events` | Self profile and interest update |
+| `member-tasks.ts` | `user_accounts`, `people`, `memberships`, `field_tasks`, `audit_events` | Member self-task status |
+| `member-training.ts` | `user_accounts`, `people`, `memberships`, `training_sessions`, `training_enrollments`, `audit_events` | Member self-enrollment |
+| `member-community.ts` | `user_accounts`, `people`, `memberships`, `member_community_topics`, `member_community_replies`, `member_community_reports`, `audit_events` | Topic/reply/report and moderation lifecycle |
+| `membership.ts` | `organizations`, `membership_interests`, `people`, `memberships`, `audit_events` | Membership-interest decision and activation |
+| `membership-management.ts` | `memberships`, `audit_events` | Membership status updates |
+| `forms.ts` | `organizations`, `membership_interests`, `outbox_events` | Public membership-interest intake and event outbox |
+| `secretariat-documents.ts` | `organizations`, `file_assets`, `secretariat_documents`, `secretariat_document_files`, `secretariat_document_generations`, `secretariat_meetings`, `secretariat_minutes`, `secretariat_letters`, `field_activities`, `field_programs`, `audit_events` | Register/update/revision/finalize/archive/generated documents |
+| `secretariat-letters.ts` | `organizations`, `secretariat_letters`, `audit_events` | Letter register and disposition transitions |
+| `secretariat-meetings.ts` | `organizations`, `organization_units`, `secretariat_meetings`, `secretariat_minutes`, `secretariat_meeting_decisions`, `secretariat_meeting_attendance`, `memberships`, `people`, `audit_events` | Meeting, minutes, revision, decisions and attendance |
+| `training.ts` | `field_applications`, `field_programs`, `training_sessions`, `training_enrollments`, `training_assessments`, `training_certificates`, `memberships`, `people`, `audit_events` | Sessions, enrollment, attendance, assessment, certificate issue/revoke |
+| `public-site-settings.ts` | `system_settings`, `file_assets`, `audit_events` | Public-site/profile settings and exact banner asset association |
+| `public-policies.ts` | `system_settings`, `audit_events` | Public policy content settings |
+| `login-page-content.ts` | `system_settings`, `audit_events` | Login page content settings |
+| `design-theme.ts` | `system_settings`, `audit_events` | Design/theme configuration |
+
+### 12.1 API, search and direct page query paths
+
+| Path | V9 relations / projection | Operation and boundary to verify |
+|---|---|---|
+| `src/app/api/files/route.ts` | `file_assets`, `audit_events` | Upload metadata registration and audit |
+| `src/app/api/files/[id]/route.ts` | `file_assets`, `secretariat_documents`, `secretariat_document_files` | Authenticated file lookup/download |
+| `src/app/api/files/[id]/share/route.ts` | `file_assets`, `file_share_links`, `secretariat_documents`, `secretariat_document_files`, `audit_events` | Link create/revoke/read; token, expiry, revocation, download limit and eligible final/public revision |
+| `src/app/api/files/share/[token]/route.ts` | `file_share_links`, `file_assets`, `secretariat_documents`, `secretariat_document_files` | Anonymous single-token download through `getV9PublicShareSql` |
+| `src/app/api/public-site/banner/[id]/route.ts` | `file_assets` | Exact configured active public banner projection |
+| `src/app/api/secretariat/documents/[id]/file/route.ts` | `secretariat_documents`, `secretariat_document_files`, `file_assets`, `get_public_document_file` | Internal authorized file delivery vs final/public projection |
+| `src/lib/operational-search.ts` via `src/app/api/search/route.ts` | `agriculture_plots`, `business_products`, `field_programs`, `finance_journals`, `memberships`, `people`, `secretariat_documents` | Cross-domain search; every joined relation must inherit the correct tenant and role scope |
+| `src/app/app/(area)/pos/page.tsx` | `field_applications`, `business_customers`, `business_orders`, `business_order_payments`, `business_products`, `business_warehouses`, `finance_cash_accounts`, `finance_journals` | Direct authenticated POS reads through `getV9Sql`; order/payment side effects are handled by business-order actions |
+| `src/app/api/studio/diagnostics/database/route.ts` | PostgreSQL catalog and `current_setting` metadata | Preview-only admin diagnostic; no tenant row payload |
+
+### 12.2 Coverage gaps exposed by the sweep
+
+1. **Relation sweep is not a complete query inventory.** It identifies named table references in SQL text but does not prove every conditional SQL branch, dynamically assembled query, nested CTE, view/function/trigger side effect or every caller/route-to-action mapping.
+2. **Duplicate action surface:** `business-catalog.ts` and `business-inventory.ts` expose overlapping action names and table families. Their caller references, dead-code status and permission contracts must be resolved before classifying a single implementation as the authoritative mutation path.
+3. **POS direct reads:** the POS page queries business/order/finance tables directly through `getV9Sql`; query-level permission checks, tenant predicates, row policy behavior and read consistency with the business-order mutation transaction need explicit regression evidence.
+4. **Finance downstream effects:** journal posting/reversal, cash-account linkage, contribution allocation, budget/period lock and linked business-order payment flows need explicit trigger/ledger invariant tests under the runtime role, not only general tenant-policy assertions.
+5. **Exports and documents:** the inventory still needs an enumerated mapping of each generator/report/export endpoint to its source rows, visibility rule, file revision, audit event and no-cross-tenant download result.
+6. **Operational callers/personas:** this source sweep does not prove the browser routes and all legitimate roles can complete their expected CRUD flows after QA RLS. Authenticated Preview UAT for each legitimately provisioned persona remains open.
+
+The source relation map is an incremental deliverable, not a completion claim. Issue #90 remains open until these gaps have direct test/runtime evidence and independent review.
