@@ -544,3 +544,11 @@ Remaining business-order gates are not inferred as complete from those database 
 - the one-time receipt-to-posted-journal linkage branch and matching journal-line invariants still need positive and negative integration tests;
 - audit/no-side-effect expectations and the application/browser Finance/POS experience still need explicit coverage.
 Issue #90 remains open for the live-QA migration 0045 application gate, remaining finance and business lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
+
+### 12.10 Migration 0045 execution readiness and recovery plan
+
+A dedicated operator runbook is now committed at `docs/security/migration-0045-qa-runbook.md`. It contains the exact QA target identity, preflight assertions, transactional apply sequence, post-migration catalog checks, acceptance conditions, rollback SQL, rollback blockers, and explicit QA/Production boundaries.
+
+A fresh read-only check on 28 Nov 2026 reconfirmed that the QA branch is `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx`, state `ready`, non-default and non-primary, with PostgreSQL 18.7. The live catalog remains pre-migration: `PRIMARY KEY (field_key)`, `UNIQUE (route)`, the retained composite `UNIQUE (field_key, organization_id)`, no 0045 ledger row, and 17 incoming operational foreign keys, all composite. Four rows exist across one organization, with no NULL identity/route values and no duplicate tenant-scoped key or route groups.
+
+This is a prepared and reviewed runbook, **not migration execution approval**. Migration 0045 remains unapplied on live QA. Apply only after separate explicit approval naming this exact QA branch and migration. The runbook's rollback is conditional: it must abort if any duplicate `field_key` or `route` values across organizations exist, because the former global unique constraints could not then be restored safely. No Production operation is authorized.
