@@ -738,6 +738,17 @@ DECLARE
   result_columns text;
 BEGIN
   SELECT count(*) INTO field_count
+  FROM v9.get_public_organization();
+  IF field_count <> 1 THEN
+    RAISE EXCEPTION 'Public organization projection should return one active identity record.';
+  END IF;
+
+  SELECT count(*) INTO field_count FROM v9.organizations;
+  IF field_count <> 0 THEN
+    RAISE EXCEPTION 'Anonymous runtime must not directly SELECT the organizations base table.';
+  END IF;
+
+  SELECT count(*) INTO field_count
   FROM v9.get_public_fields()
   WHERE field_key='ci-pertanian';
   IF field_count <> 1 THEN
