@@ -524,6 +524,73 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN
     NULL;
   END;
+  -- Field application and business domain share the fixed field_key 'usaha'.
+  -- Both tenants must resolve their own application and business records.
+  SELECT count(*) INTO visible_count FROM v9.field_applications WHERE field_key = 'usaha';
+  IF visible_count <> 1 THEN
+    RAISE EXCEPTION 'Tenant A should see only its own usaha field application; saw %.', visible_count;
+  END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_products
+  WHERE sku IN ('QA-BIZ-A-001', 'QA-BIZ-B-001');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its business product; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_warehouses
+  WHERE warehouse_code IN ('QA-WH-A', 'QA-WH-B');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its warehouse; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_product_stock
+  WHERE product_id IN ('c1000000-0000-4000-8000-000000000001', 'c2000000-0000-4000-8000-000000000002');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its stock record; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_customers
+  WHERE reference_no IN ('QA-CUS-A-001', 'QA-CUS-B-001');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its customer; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_orders
+  WHERE reference_no IN ('QA-ORD-A-001', 'QA-ORD-B-001');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its order; saw %.', visible_count; END IF;
+
+  UPDATE v9.business_products SET product_name = 'Unauthorized product change'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND sku = 'QA-BIZ-B-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant product UPDATE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.business_product_stock
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND product_id = 'c2000000-0000-4000-8000-000000000002';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant stock DELETE affected % rows.', changed_count; END IF;
+  UPDATE v9.business_warehouses SET warehouse_name = 'Unauthorized warehouse change'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND warehouse_code = 'QA-WH-B';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant warehouse UPDATE affected % rows.', changed_count; END IF;
+  UPDATE v9.business_customers SET customer_name = 'Unauthorized customer change'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND reference_no = 'QA-CUS-B-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant customer UPDATE affected % rows.', changed_count; END IF;
+  UPDATE v9.business_orders SET customer_note = 'Unauthorized order change'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND reference_no = 'QA-ORD-B-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant order UPDATE affected % rows.', changed_count; END IF;
+
+  BEGIN
+    INSERT INTO v9.business_products (organization_id, field_key, sku, slug, product_name, unit_label, status, publication_status, track_stock, created_by, updated_by)
+    VALUES ('20000000-0000-4000-8000-000000000002', 'usaha', 'QA-BIZ-UNAUTH', 'qa-product-unauthorized', 'Unauthorized business product', 'pcs', 'draft', 'private', true, '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004');
+    RAISE EXCEPTION 'Cross-tenant business product INSERT was not rejected by RLS.';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  UPDATE v9.business_products SET product_name = 'QA Product Tenant A Updated'
+  WHERE organization_id = v9.get_public_organization_id() AND sku = 'QA-BIZ-A-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant product UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.business_product_stock SET on_hand = 12
+  WHERE organization_id = v9.get_public_organization_id() AND product_id = 'c1000000-0000-4000-8000-000000000001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant stock UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.business_customers SET customer_name = 'QA Customer Tenant A Updated'
+  WHERE organization_id = v9.get_public_organization_id() AND reference_no = 'QA-CUS-A-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant customer UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.business_orders SET customer_note = 'Tenant A internal note'
+  WHERE organization_id = v9.get_public_organization_id() AND reference_no = 'QA-ORD-A-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant order UPDATE should affect one row; affected %.', changed_count; END IF;
+
   -- Finance domain: verify organization boundary across six joined ledger/register
   -- tables using the same runtime principal, without field-app scope dependencies.
   SELECT count(*) INTO visible_count FROM v9.finance_accounts
@@ -605,6 +672,35 @@ BEGIN
   IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance budget-line UPDATE should affect one row; affected %.', changed_count; END IF;
 END
 $organization_scope$;
+COMMIT;
+
+BEGIN;
+DO $other_organization_scope$
+DECLARE visible_count integer; changed_count integer;
+BEGIN
+  SET LOCAL ROLE v9_app;
+  PERFORM set_config('v9.session_token_hash', repeat('b', 64), true);
+  IF (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
+     <> '20000000-0000-4000-8000-000000000002'::uuid THEN
+    RAISE EXCEPTION 'Second CI administrator did not resolve to organization B.';
+  END IF;
+  SELECT count(*) INTO visible_count FROM v9.field_applications WHERE field_key = 'usaha';
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its own usaha field application; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_products WHERE sku IN ('QA-BIZ-A-001', 'QA-BIZ-B-001');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its business product; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_orders WHERE reference_no IN ('QA-ORD-A-001', 'QA-ORD-B-001');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its order; saw %.', visible_count; END IF;
+  UPDATE v9.business_products SET product_name = 'QA Product Tenant B Updated'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND sku = 'QA-BIZ-B-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Tenant B same-tenant product UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.business_products SET product_name = 'Unauthorized tenant A change'
+  WHERE organization_id = v9.get_public_organization_id() AND sku = 'QA-BIZ-A-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Tenant B cross-tenant product UPDATE affected % rows.', changed_count; END IF;
+END
+$other_organization_scope$;
+
 COMMIT;
 
 DELETE FROM v9.role_assignments
