@@ -292,7 +292,11 @@ function Inner({
                   <td className="whitespace-nowrap">
                     {canGenerateDocuments && letter.direction === "keluar" ? (
                       <Link
-                        href={"/app/sekretariat/template/TPL-KEL?source_letter_id=" + letter.id}
+                        href={
+                          letter.document_id
+                            ? `/app/sekretariat/dokumen/${letter.document_id}/cetak`
+                            : `/app/sekretariat/template/TPL-KEL?source_letter_id=${letter.id}`
+                        }
                         className="font-semibold text-primary-700 hover:underline"
                       >
                         {letter.document_id ? "Buka naskah" : "Susun naskah"}
