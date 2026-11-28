@@ -167,6 +167,22 @@ INSERT INTO v9.audit_events (
   'tenant-a'
 );
 
+-- A user may have multiple active roles. Match the application's deterministic
+-- precedence: organization_admin outranks chair; only the resolved role is
+-- used by the database context and by src/lib/session.ts.
+INSERT INTO v9.role_assignments (
+  id, organization_id, user_id, role_key, scope_kind, is_active, valid_from
+) VALUES (
+  '51000000-0000-4000-8000-000000000051',
+  v9.get_public_organization_id(),
+  '40000000-0000-4000-8000-000000000004',
+  'chair',
+  'organization',
+  true,
+  now() - interval '30 minutes'
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- Pre-authentication lookup and password-verified login context. The SQL
 -- test verifies database policy boundaries; password verification remains in
 -- the server action before login_user_id is ever supplied.
@@ -245,6 +261,10 @@ DECLARE
 BEGIN
   IF current_user <> 'v9_app' THEN
     RAISE EXCEPTION 'The test query is not executing as v9_app.';
+  END IF;
+
+  IF (SELECT actor.role_key FROM v9._request_actor() AS actor LIMIT 1) <> 'organization_admin' THEN
+    RAISE EXCEPTION 'Database role resolution must match application precedence for multiple active roles.';
   END IF;
 
   SELECT count(*) INTO visible_count
@@ -331,6 +351,9 @@ BEGIN
 END
 $organization_scope$;
 COMMIT;
+
+DELETE FROM v9.role_assignments
+WHERE id='51000000-0000-4000-8000-000000000051';
 
 -- Member role regression: the legacy role import sets scope_kind='organization'
 -- even for members. Database RLS must still enforce self scope.
@@ -421,10 +444,10 @@ END
 $external_scope$;
 COMMIT;
 
--- Unit scope: the same disposable CI principal is narrowed to one field.
+-- Field role scope is enforced by role_key even though the legacy assignment retains scope_kind='organization'.
 UPDATE v9.role_assignments
 SET role_key='field_coordinator',
-    scope_kind='unit',
+    scope_kind='organization',
     scope_unit_id='70000000-0000-4000-8000-000000000007'
 WHERE id='50000000-0000-4000-8000-000000000005';
 
