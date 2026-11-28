@@ -543,15 +543,15 @@ Remaining business-order gates are not inferred as complete from those database 
 - application CTEs for confirm/reserve, fulfil/deduct-and-record-sale, cancel/release-reservation and POS payment need end-to-end regression/UAT with legitimate users;
 - database-level positive and negative receipt-to-posted-journal linkage is now covered by the finance lifecycle fixture; application action/browser wiring and audit/no-side-effect behavior remain to be verified end to end;
 - the application/browser Finance/POS experience, exports/downloads/share mappings and operational evidence still need explicit coverage.
-Issue #90 remains open for the live-QA migration 0045 application gate, application lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
+Issue #90 remains open for application lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping, independent security review, and release/rollback/observability evidence. Migration 0045 has since been applied to the QA branch; see Section 12.15.
 
 ### 12.10 Migration 0045 execution readiness and recovery plan
 
 A dedicated operator runbook is now committed at `docs/security/migration-0045-qa-runbook.md`. It contains the exact QA target identity, preflight assertions, transactional apply sequence, post-migration catalog checks, acceptance conditions, rollback SQL, rollback blockers, and explicit QA/Production boundaries.
 
-A fresh read-only check on 28 Nov 2026 reconfirmed that the QA branch is `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx`, state `ready`, non-default and non-primary, with PostgreSQL 18.7. The live catalog remains pre-migration: `PRIMARY KEY (field_key)`, `UNIQUE (route)`, the retained composite `UNIQUE (field_key, organization_id)`, no 0045 ledger row, and 17 incoming operational foreign keys, all composite. Four rows exist across one organization, with no NULL identity/route values and no duplicate tenant-scoped key or route groups.
+The pre-migration read-only check on 28 Nov 2026 recorded the QA branch as `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx`, state `ready`, non-default and non-primary, with PostgreSQL 18.7. At that preflight moment the catalog had `PRIMARY KEY (field_key)`, `UNIQUE (route)`, the retained composite `UNIQUE (field_key, organization_id)`, no 0045 ledger row, and 17 incoming operational foreign keys, all composite. Four rows existed across one organization, with no NULL identity/route values and no duplicate tenant-scoped key or route groups.
 
-This is a prepared and reviewed runbook, **not migration execution approval**. Migration 0045 remains unapplied on live QA. Apply only after separate explicit approval naming this exact QA branch and migration. The runbook's rollback is conditional: it must abort if any duplicate `field_key` or `route` values across organizations exist, because the former global unique constraints could not then be restored safely. No Production operation is authorized.
+The runbook has since been executed after explicit user approval. Live QA application and postflight evidence are recorded in Section 12.15. The runbook retains the conditional rollback: it must abort if any duplicate `field_key` or `route` values across organizations exist, because the former global unique constraints could not then be restored safely. No Production operation is authorized.
 
 
 ### 12.11 Finance lifecycle and reversal transaction correction
@@ -583,7 +583,7 @@ The PostgreSQL 16 log explicitly records:
 
 The overpayment error emitted by the second concurrent session is the expected negative-test outcome; the runner confirms the committed single-receipt final state and exits successfully. This run is evidence for the exact commit above only. It does not apply any migration to live Neon QA or Production, and it is not browser UAT or an independent security review.
 
-PR #92 remains Draft/Open/Unmerged. Issue #90 remains Open. Migration 0045 remains unapplied on live QA pending explicit authorization for the exact target branch and migration.
+At the time of run #1060, migration 0045 had not yet been applied to live QA; that status was superseded by the explicitly approved execution recorded in Section 12.15. PR #92 remains Draft/Open/Unmerged. Issue #90 remains Open.
 
 
 ### 12.13 Business order stock lifecycle transaction and exact-head validation — run #1078
@@ -627,6 +627,40 @@ The PostgreSQL 16 log explicitly records all four results:
 
 The business-order CI session token is isolated from the other test fixtures; no CI session token or test user is a production credential. The expected overpayment rejection in the concurrency log remains the deliberate negative-test result, and the runner exits successfully after checking exactly one committed receipt.
 
-Migrations 0046 and 0047 are included and exercised by the disposable CI migration sequence only. **Neither migration has been applied to live Neon QA or Production.** Migration 0045 also remains unapplied on live QA; its dedicated preflight and rollback runbook is already documented in Section 12.10 and still requires separate explicit authorization naming the exact QA branch and migration.
+Migrations 0046 and 0047 are included and exercised by the disposable CI migration sequence only. **Neither migration has been applied to live Neon QA or Production.** Migration 0045 was applied to live QA later under explicit authorization; see Section 12.15.
 
-This run validates database behavior, application compilation and build contracts. It does not substitute for legitimate-persona Preview browser UAT, live-QA migration approval, a full screen-level POS/Finance/export/share/download test, independent security review, or the release/rollback/observability sign-off. PR #92 remains Draft/Open/Unmerged and Issue #90 remains Open.
+This run validates database behavior, application compilation and build contracts. It does not substitute for legitimate-persona Preview browser UAT, a full screen-level POS/Finance/export/share/download test, independent security review, or the release/rollback/observability sign-off. PR #92 remains Draft/Open/Unmerged and Issue #90 remains Open.
+
+
+### 12.15 Live Neon QA execution of migration 0045 — 28 Nov 2026
+
+The user explicitly approved application of `db/migrations/0045_tenant_scope_field_application_identity.sql` to the exact QA branch identified in this issue. The approval did not authorize migrations 0046/0047, Production changes, deployment, or merging PR #92.
+
+**Verified target immediately before execution:**
+
+- Neon project `holy-night-99324539`.
+- Branch `phase1-integration-rehearsal-20261116`, ID `br-snowy-forest-b46i5pqx`.
+- Parent `br-mute-meadow-b4rhx1mn`; state `ready`; `default=false`; `primary=false`.
+- Database `neondb`; PostgreSQL `18.7 (3190d2f)`.
+- Migration connection identity: `neondb_owner`; this did not alter application runtime role `v9_app`.
+
+**Preflight:** the live schema still had the old primary key and global route unique; the composite operational unique was present; 17 incoming FKs were all composite with zero single-column `field_key` FKs; four rows existed across one organization; zero NULL identity/route values and zero duplicate tenant-scoped key/route pairs; no 0045 ledger row.
+
+**Recovery-point limitation:** Neon rejected a snapshot because the target is a non-root branch. Creation of a child backup branch was also rejected because the project branch limit was exceeded. No unrelated branch was deleted or changed. The operator proceeded after recording this limitation because the migration was run as one atomic transaction, the complete preflight passed, and the migration changes constraints plus its ledger row without rewriting business records. Any SQL error would have rolled back both statements. This must not be misreported as a snapshot or backup branch having been created.
+
+**Execution:** the exact committed migration DO block and migration-ledger upsert were executed together in one Neon SQL transaction against `br-snowy-forest-b46i5pqx` / `neondb`. Both statements returned successfully. Ledger timestamp: `2026-11-28T12:11:26.112Z`. Ledger checksum: `sha256:v9-tenant-scoped-field-application-identity-route-20261128`.
+
+**Postflight:** read-only catalog queries on the same branch confirmed:
+
+- Primary key: `PRIMARY KEY (organization_id, field_key)`.
+- Preserved operational unique: `UNIQUE (field_key, organization_id)`.
+- New route unique: `UNIQUE (organization_id, route)`; old global `UNIQUE (route)` absent.
+- Exact 0045 filename and checksum recorded in `v9.schema_migrations`.
+- All 17 incoming foreign keys remain; single-column `field_key` FK count remains zero.
+- Zero NULL tenant-identity/route rows and zero duplicate `(organization_id, field_key)` or `(organization_id, route)` groups.
+- Four field-application rows remain; all four existing rows and their routes (`organisasi`, `pelatihan`, `pertanian`, `usaha`) remain intact.
+- `v9.field_applications` still has `relrowsecurity=true` and `relforcerowsecurity=true`; existing `field_applications_read_scope` policy is still present.
+
+No business row was inserted, updated, or deleted by the migration. No RLS policy, role, grant, owner, Vercel variable, deployment, or Production database was changed. Migrations 0046 and 0047 remain unapplied on live QA.
+
+**Current gate status:** the live-QA schema gate for migration 0045 is complete. Issue #90 remains open for legitimate-persona Preview UAT, screen-level POS/Finance and export/share/download tests, remaining end-to-end application behavior, independent security review, and release/rollback/observability evidence. PR #92 remains Draft/Open/Unmerged.
