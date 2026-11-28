@@ -51,58 +51,16 @@ export default async function KegiatanPage({
       const sql = getV9Sql();
       const [upcomingResult, pastResult] = await Promise.all([
         sql`
-          SELECT
-            activity.id::text AS id,
-            activity.reference_no,
-            activity.title,
-            application.short_name AS field_name,
-            activity.activity_date::text AS activity_date,
-            to_char(activity.start_time, 'HH24:MI') AS start_time,
-            to_char(activity.end_time, 'HH24:MI') AS end_time,
-            activity.location,
-            activity.description,
-            activity.status
-          FROM v9.field_activities AS activity
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = activity.organization_id
-          INNER JOIN v9.field_applications AS application
-            ON application.organization_id = activity.organization_id
-            AND application.field_key = activity.field_key
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND activity.open_to_public = true
-            AND activity.status IN ('scheduled','in_progress')
-            AND activity.activity_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
-            AND (${selectedField} = '' OR activity.field_key = ${selectedField})
-          ORDER BY activity.activity_date, activity.start_time NULLS FIRST
-          LIMIT 100
+          SELECT id::text AS id, reference_no, title, field_name,
+            activity_date::text AS activity_date, start_time, end_time,
+            location, description, status
+          FROM v9.get_public_activities(NULLIF(${selectedField}, ''), false, 100)
         `,
         sql`
-          SELECT
-            activity.id::text AS id,
-            activity.reference_no,
-            activity.title,
-            application.short_name AS field_name,
-            activity.activity_date::text AS activity_date,
-            to_char(activity.start_time, 'HH24:MI') AS start_time,
-            to_char(activity.end_time, 'HH24:MI') AS end_time,
-            activity.location,
-            activity.description,
-            activity.status
-          FROM v9.field_activities AS activity
-          INNER JOIN v9.organizations AS organization
-            ON organization.id = activity.organization_id
-          INNER JOIN v9.field_applications AS application
-            ON application.organization_id = activity.organization_id
-            AND application.field_key = activity.field_key
-          WHERE organization.slug = 'srikandi-buana'
-            AND organization.status = 'active'
-            AND activity.open_to_public = true
-            AND activity.status = 'completed'
-            AND activity.activity_date <= (now() AT TIME ZONE 'Asia/Jakarta')::date
-            AND (${selectedField} = '' OR activity.field_key = ${selectedField})
-          ORDER BY activity.activity_date DESC
-          LIMIT 50
+          SELECT id::text AS id, reference_no, title, field_name,
+            activity_date::text AS activity_date, start_time, end_time,
+            location, description, status
+          FROM v9.get_public_activities(NULLIF(${selectedField}, ''), true, 50)
         `,
       ]);
       return {
