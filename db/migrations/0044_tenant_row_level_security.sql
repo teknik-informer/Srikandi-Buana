@@ -979,6 +979,77 @@ BEGIN
 END
 $rls$;
 
+-- Make this migration rerunnable without deleting policies owned by
+-- unrelated migrations. Only this migration's namespace is replaced.
+DO $drop_existing_policies$
+DECLARE policy_row record;
+BEGIN
+  FOR policy_row IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'v9'
+      AND (
+        policyname LIKE 'tenant_scope_%'
+        OR policyname = ANY (ARRAY[
+          'organizations_read_scope',
+          'organization_units_read_scope',
+          'organization_units_write_scope',
+          'field_applications_read_scope',
+          'memberships_read_scope',
+          'memberships_write_scope',
+          'memberships_community_author_read',
+          'people_scope',
+          'people_community_author_read',
+          'role_assignments_read_scope',
+          'user_accounts_read_scope',
+          'user_accounts_update_scope',
+          'sessions_scope',
+          'login_rate_limits_scope',
+          'membership_interests_read_scope',
+          'membership_interests_update_scope',
+          'membership_interests_public_insert',
+          'membership_interests_public_rate_limit_read',
+          'system_settings_tenant_read',
+          'system_settings_public_read',
+          'system_settings_write_scope',
+          'file_assets_tenant_scope',
+          'file_assets_public_banner_read',
+          'file_assets_public_share_read',
+          'file_share_links_tenant_scope',
+          'file_share_links_public_token_read',
+          'file_share_links_public_token_update',
+          'secretariat_documents_tenant_scope',
+          'secretariat_documents_public_share_read',
+          'secretariat_document_files_tenant_scope',
+          'secretariat_document_files_public_share_read',
+          'secretariat_document_generations_tenant_scope',
+          'secretariat_letters_tenant_scope',
+          'secretariat_meetings_tenant_scope',
+          'secretariat_minutes_tenant_scope',
+          'secretariat_meeting_attendance_tenant_scope',
+          'secretariat_meeting_decisions_tenant_scope',
+          'training_enrollments_tenant_scope',
+          'training_assessments_tenant_scope',
+          'training_certificates_tenant_scope',
+          'outbox_events_insert_scope',
+          'audit_events_insert_scope',
+          'audit_events_read_scope',
+          'member_community_topics_published_read',
+          'member_community_replies_published_read',
+          'finance_cash_accounts_scope'
+        ]::text[])
+      )
+  LOOP
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON %I.%I',
+      policy_row.policyname,
+      policy_row.schemaname,
+      policy_row.tablename
+    );
+  END LOOP;
+END
+$drop_existing_policies$;
+
 -- Direct organization/field/member scoped operational tables.
 DO $policies$
 DECLARE item record;
