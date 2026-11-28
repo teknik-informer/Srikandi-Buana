@@ -96,11 +96,7 @@ export async function getLoginPageContent(): Promise<LoginPageContent> {
     const result = await sql`
       SELECT setting_value
       FROM v9.system_settings
-      WHERE organization_id = (
-        SELECT id FROM v9.organizations
-        WHERE slug = 'srikandi-buana' AND status = 'active'
-        LIMIT 1
-      )
+      WHERE organization_id = v9.get_public_organization_id()
         AND setting_key = 'login_page_content'
         AND visibility = 'public'
       LIMIT 1
