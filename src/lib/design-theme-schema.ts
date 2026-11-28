@@ -124,8 +124,10 @@ export function normalizeDesignTheme(value: unknown): DesignThemeSettings {
   const sourceColors = source.colors && typeof source.colors === "object"
     ? source.colors as Record<string, unknown>
     : {};
-  const presetId = typeof source.presetId === "string" ? source.presetId : DEFAULT_DESIGN_THEME.presetId;
-  const preset = DESIGN_THEME_PRESETS.find((item) => item.presetId === presetId) ?? DEFAULT_DESIGN_THEME;
+  const requestedPresetId = typeof source.presetId === "string" ? source.presetId : DEFAULT_DESIGN_THEME.presetId;
+  const matchedPreset = DESIGN_THEME_PRESETS.find((item) => item.presetId === requestedPresetId);
+  const isCustom = requestedPresetId === "custom" || !matchedPreset;
+  const preset = matchedPreset ?? DEFAULT_DESIGN_THEME;
   const colors = { ...preset.colors };
   for (const key of Object.keys(colors) as Array<keyof DesignThemeColors>) {
     if (isHexColor(sourceColors[key])) colors[key] = (sourceColors[key] as string).toLowerCase();
@@ -135,8 +137,8 @@ export function normalizeDesignTheme(value: unknown): DesignThemeSettings {
 
   return {
     schemaVersion: 1,
-    presetId: preset.presetId,
-    presetName: preset.presetName,
+    presetId: isCustom ? "custom" : preset.presetId,
+    presetName: isCustom ? "Tema khusus" : preset.presetName,
     radius,
     colors,
   };
