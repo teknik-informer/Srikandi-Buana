@@ -219,3 +219,16 @@ These are CI fixtures in a temporary PostgreSQL 16 service. They are not inserte
 - Neon QA branch `phase1-integration-rehearsal` remains unchanged: migration `0044` has **not** yet been applied there.
 - Vercel Preview for the latest exact commit still needs to be redeployed and its admin-only database identity probe checked before applying migration to QA.
 - Production remains unchanged.
+
+
+## 9. Public organization identity boundary
+
+The `organizations` base table no longer has an anonymous public-row policy. Its SELECT policy is restricted to the authenticated actor's current organization or an organization proven by the password-verified login context.
+
+Public routes and settings use two fixed security-definer functions:
+- `get_public_organization()`: returns only the public identity fields required by the homepage, profile and contact pages (legal name, short name, active status, legal status and address).
+- `get_public_organization_id()`: returns the active Srikandi organization UUID for server-side public settings, public interest intake and the matching outbox event policy.
+
+The public website settings, policy and login-copy loaders no longer resolve the organization by selecting `v9.organizations` directly. The public banner endpoint relies on the precise `file_assets_public_banner_read` row policy and selects only fields needed for server-side Cloudinary delivery.
+
+PostgreSQL 16 integration additionally asserts that anonymous `v9_app` cannot directly SELECT any organization row, while `get_public_organization()` returns the approved public identity.
