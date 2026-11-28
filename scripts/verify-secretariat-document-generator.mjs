@@ -51,6 +51,11 @@ assert.ok(
   actions.includes("contentSha256") &&
   actions.includes("'secretariat_document.generated'") &&
   actions.includes("'secretariat_document.content_revision_created'") &&
+  actions.includes("'template_code', ${template.code}::text") &&
+  actions.includes("'template_name', ${template.name}::text") &&
+  actions.includes("'content_sha256', ${contentSha256}::text") &&
+  actions.includes("'source_reference', ${sourceReference}::text") &&
+  actions.includes("'source_field_key', ${resolvedSourceFieldKey}::text") &&
   actions.includes("AND document.visibility <> 'publik'"),
   "Generated content must be validated, organization-scoped, checksum-protected, and audited; public documents follow the attachment review path.",
 );
