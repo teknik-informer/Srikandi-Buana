@@ -96,7 +96,7 @@ export const DESIGN_THEME_PRESETS: readonly DesignThemeSettings[] = [
     radius: "soft",
     colors: {
       primary: "#5b5d2a",
-      accent: "#c17a24",
+      accent: "#d3a34f",
       canvas: "#faf8f3",
       surface: "#f0ece3",
       card: "#ffffff",
