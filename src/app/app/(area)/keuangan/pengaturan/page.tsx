@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 import {
   Badge,
   Card,
   CardHeader,
   Notice,
   PageHeader,
+  ComingSoonBadge,
 } from "@/components/ui";
 import { requireIdentity } from "@/lib/session";
 
@@ -49,6 +50,8 @@ const pendingControls = [
   "Sub-ledger invoice, piutang/utang per pihak, termin, dan umur tagihan.",
   "Import mutasi bank, pencocokan rekening koran, dan status rekonsiliasi.",
   "Alur lampiran bukti transaksi dan persetujuan laporan keuangan formal.",
+  "Pengembalian dana, pembalikan penerimaan, dan sengketa transaksi POS.",
+  "Posting jurnal penjualan POS secara otomatis setelah pembayaran disahkan.",
 ];
 
 export default async function KeuanganPengaturanPage() {
@@ -99,15 +102,15 @@ export default async function KeuanganPengaturanPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader
-              title="Belum tersedia"
-              subtitle="Tidak ditampilkan sebagai kontrol aktif"
-              action={<LockKeyhole size={15} className="text-muted2" />}
+              title="Komponen lanjutan"
+              subtitle="Belum tersedia pada versi operasional saat ini"
+              action={<ComingSoonBadge label="Kontrol akuntansi" />}
             />
             <div className="divide-y divide-line">
               {pendingControls.map((item) => (
-                <div key={item} className="px-4 py-3 text-[11.5px] leading-relaxed text-muted">
-                  <div className="mb-1"><Badge tone="warning">Belum diaktifkan</Badge></div>
-                  {item}
+                <div key={item} className="flex items-start gap-3 px-4 py-3 text-[11.5px] leading-relaxed text-muted">
+                  <span className="mt-0.5"><ComingSoonBadge /></span>
+                  <span>{item}</span>
                 </div>
               ))}
             </div>
