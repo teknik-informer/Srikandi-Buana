@@ -675,11 +675,11 @@ $organization_scope$;
 COMMIT;
 
 BEGIN;
+SET LOCAL ROLE v9_app;
+SELECT set_config('v9.session_token_hash', repeat('b', 64), true);
 DO $other_organization_scope$
 DECLARE visible_count integer; changed_count integer;
 BEGIN
-  SET LOCAL ROLE v9_app;
-  PERFORM set_config('v9.session_token_hash', repeat('b', 64), true);
   IF (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
      <> '20000000-0000-4000-8000-000000000002'::uuid THEN
     RAISE EXCEPTION 'Second CI administrator did not resolve to organization B.';
