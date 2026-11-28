@@ -114,6 +114,16 @@ BEGIN
     RETURN false;
   END IF;
 
+  -- The legacy import intentionally preserves role assignments with
+  -- scope_kind='organization'. That is not authority for a member: members
+  -- remain self-scoped even when their legacy scope column says organization.
+  IF actor.role_key = 'member' THEN
+    RETURN
+      (p_user_id IS NOT NULL AND p_user_id = actor.user_id)
+      OR (p_membership_id IS NOT NULL AND p_membership_id = actor.membership_id)
+      OR (p_person_id IS NOT NULL AND p_person_id = actor.person_id);
+  END IF;
+
   IF actor.scope_kind = 'organization' THEN
     RETURN true;
   ELSIF actor.scope_kind = 'unit' THEN
