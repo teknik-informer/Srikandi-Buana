@@ -189,10 +189,10 @@ INSERT INTO v9.finance_accounts (
   id, organization_id, account_code, account_name, account_type, normal_balance,
   group_label, is_postable, status, created_by
 ) VALUES
-  ('b1000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'QA-100', 'QA Cash Asset A', 'aset', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
-  ('b1000000-0000-4000-8000-00000000000c', v9.get_public_organization_id(), 'QA-200', 'QA Expense A', 'beban', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
-  ('b2000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'QB-100', 'QA Cash Asset B', 'aset', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
-  ('b2000000-0000-4000-8000-00000000000c', '20000000-0000-4000-8000-000000000002', 'QB-200', 'QA Expense B', 'beban', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004')
+  ('b1000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), '910-001', 'QA Cash Asset A', 'aset', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
+  ('b1000000-0000-4000-8000-00000000000c', v9.get_public_organization_id(), '910-002', 'QA Expense A', 'beban', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
+  ('b2000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', '920-001', 'QA Cash Asset B', 'aset', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004'),
+  ('b2000000-0000-4000-8000-00000000000c', '20000000-0000-4000-8000-000000000002', '920-002', 'QA Expense B', 'beban', 'debit', 'QA fixture', true, 'active', '40000000-0000-4000-8000-000000000004')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.finance_cash_accounts (
@@ -451,7 +451,7 @@ BEGIN
   -- Finance domain: verify organization boundary across six joined ledger/register
   -- tables using the same runtime principal, without field-app scope dependencies.
   SELECT count(*) INTO visible_count FROM v9.finance_accounts
-  WHERE account_code IN ('QA-100', 'QA-200', 'QB-100', 'QB-200');
+  WHERE account_code IN ('910-001', '910-002', '920-001', '920-002');
   IF visible_count <> 2 THEN
     RAISE EXCEPTION 'Tenant A should see only its two finance accounts; saw %.', visible_count;
   END IF;
@@ -482,7 +482,7 @@ BEGIN
   END IF;
 
   UPDATE v9.finance_accounts SET account_name = 'Intrusion' 
-  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND account_code = 'QB-100';
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND account_code = '920-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant finance account UPDATE affected % rows.', changed_count; END IF;
   UPDATE v9.finance_journals SET description = 'Intrusion'
@@ -516,7 +516,7 @@ BEGIN
   END;
 
   UPDATE v9.finance_accounts SET account_name = 'QA Cash Asset A Updated'
-  WHERE organization_id = v9.get_public_organization_id() AND account_code = 'QA-100';
+  WHERE organization_id = v9.get_public_organization_id() AND account_code = '910-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance account UPDATE should affect one row; affected %.', changed_count; END IF;
   UPDATE v9.finance_journals SET description = 'QA tenant isolation journal A updated'
