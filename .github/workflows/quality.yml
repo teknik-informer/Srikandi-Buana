@@ -7,6 +7,20 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: srikandi_cas_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d srikandi_cas_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -19,6 +33,16 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Atomic CAS PostgreSQL integration tests
+        run: npm run test:record-cas-postgres
+        env:
+          PG_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/srikandi_cas_test
+      - name: Atomic CAS application-domain PostgreSQL integration tests
+        run: npm run test:record-cas-postgres-domain
+        env:
+          PG_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/srikandi_cas_test
       - name: Production dependency security gate
         run: npm audit --omit=dev --audit-level=low
       - name: Full dependency security gate

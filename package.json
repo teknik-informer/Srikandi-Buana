@@ -42,7 +42,10 @@
     "test:qa-members": "node scripts/verify-qa-member-lab.mjs",
     "test:architect-full-access": "node scripts/verify-architect-full-access.mjs",
     "test:smart-attendance": "node scripts/verify-smart-attendance.mjs",
-    "test:v14-integration": "node scripts/verify-v14-integration.mjs"
+    "test:v14-integration": "node scripts/verify-v14-integration.mjs",
+    "test:record-cas-postgres": "node tests/record-cas-postgres.integration.mjs",
+    "test:record-cas-postgres-domain": "node tests/record-cas-postgres-domain.integration.mjs",
+    "prebuild": "node scripts/verify-roles.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
