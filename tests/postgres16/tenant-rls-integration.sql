@@ -138,23 +138,23 @@ ON CONFLICT (organization_id, setting_key) DO NOTHING;
 INSERT INTO v9.organization_units (
   id, organization_id, unit_key, name, unit_type, mandate
 ) VALUES
-  ('70000000-0000-4000-8000-000000000007', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'pertanian', 'Bidang Pertanian CI', 'field', 'CI fixture only'),
-  ('80000000-0000-4000-8000-000000000008', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'usaha', 'Bidang Usaha CI', 'field', 'CI fixture only')
+  ('70000000-0000-4000-8000-000000000007', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'ci-pertanian', 'Bidang Pertanian CI', 'field', 'CI fixture only'),
+  ('80000000-0000-4000-8000-000000000008', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'ci-usaha', 'Bidang Usaha CI', 'field', 'CI fixture only')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.field_applications (
   field_key, organization_id, unit_id, name, short_name, route, mandate, display_order
 ) VALUES
-  ('pertanian', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), '70000000-0000-4000-8000-000000000007', 'Pertanian CI', 'Pertanian', '/ci/pertanian', 'CI fixture only', 1),
-  ('usaha', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), '80000000-0000-4000-8000-000000000008', 'Usaha CI', 'Usaha', '/ci/usaha', 'CI fixture only', 2)
+  ('ci-pertanian', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), '70000000-0000-4000-8000-000000000007', 'Pertanian CI', 'Pertanian', '/ci/pertanian', 'CI fixture only', 1),
+  ('ci-usaha', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), '80000000-0000-4000-8000-000000000008', 'Usaha CI', 'Usaha', '/ci/usaha', 'CI fixture only', 2)
 ON CONFLICT (field_key) DO NOTHING;
 
 INSERT INTO v9.field_programs (
   id, organization_id, field_key, reference_no, title, objective,
   period_start, period_end, status, created_by
 ) VALUES
-  ('90000000-0000-4000-8000-000000000009', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'pertanian', 'CI-PROG-001', 'Program Pertanian QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004'),
-  ('a0000000-0000-4000-8000-00000000000a', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'usaha', 'CI-PROG-002', 'Program Usaha QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004')
+  ('90000000-0000-4000-8000-000000000009', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'ci-pertanian', 'CI-PROG-001', 'Program Pertanian QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004'),
+  ('a0000000-0000-4000-8000-00000000000a', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'ci-usaha', 'CI-PROG-002', 'Program Usaha QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.audit_events (
@@ -301,7 +301,7 @@ BEGIN
       organization_id, field_key, reference_no, title,
       period_start, period_end, status, created_by
     ) VALUES (
-      (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'usaha', 'CI-PROG-003',
+      (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'ci-usaha', 'CI-PROG-003',
       'Unauthorized cross-field program', current_date, current_date+1,
       'planned', '40000000-0000-4000-8000-000000000004'
     );
@@ -332,7 +332,7 @@ BEGIN
     'CI Applicant',
     '08123456789',
     'Alamat QA khusus pengujian',
-    'pertanian',
+    'ci-pertanian',
     'baru',
     'submitted',
     'ci-privacy-consent-v1',
