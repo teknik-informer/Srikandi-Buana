@@ -10,6 +10,9 @@ const probe = read("../src/app/api/studio/diagnostics/database/route.ts");
 const migration = read("../db/migrations/0044_tenant_row_level_security.sql");
 
 assert.match(db, /target\.transaction\(\[contextQuery, query\]\)/, "Every tagged query must share a transaction with its request context.");
+assert.match(db, /process\.env\.V9_DATABASE_URL\?\.trim\(\)/, "The V9 runtime helper must read only the explicitly configured V9_DATABASE_URL.");
+assert.match(db, /if \(!connectionString\) \{\s*throw new Error\("V9_DATABASE_URL is not configured\."\)/, "The V9 runtime helper must fail closed when its environment-specific database URL is missing.");
+assert.doesNotMatch(db, /process\.env\.(?:DATABASE_URL|PREVIEW_DATABASE_URL)\b/, "The V9 runtime helper must not fall back to generic or alternate database URLs.");
 assert.match(db, /set_config\('v9\.session_token_hash',[\s\S]*?, true\)/, "Session context must use transaction-local set_config.");
 assert.match(db, /createHash\("sha256"\)/, "The session token must be hashed in the server runtime.");
 assert.match(db, /jar\.get\(SESSION_COOKIE\)/, "The request context must read the existing opaque session cookie.");
