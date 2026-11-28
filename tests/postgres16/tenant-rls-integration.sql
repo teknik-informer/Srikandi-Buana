@@ -485,7 +485,7 @@ BEGIN
     'CI Applicant',
     '08123456789',
     'Alamat QA khusus pengujian',
-    'ci-pertanian',
+    'pertanian',
     'baru',
     'submitted',
     'ci-privacy-consent-v1',
