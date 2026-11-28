@@ -619,6 +619,53 @@ END
 $public_banner$;
 COMMIT;
 
+-- Logout can revoke exactly the current cookie-bound session. The same
+-- public session context cannot rewrite expiry or owner columns.
+BEGIN;
+SET LOCAL ROLE v9_app;
+SELECT set_config('v9.session_token_hash', repeat('a',64), true);
+DO $session_revoke$
+DECLARE
+  changed_count integer;
+BEGIN
+  UPDATE v9.sessions
+  SET revoked_at = now()
+  WHERE token_hash = repeat('a',64);
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN
+    RAISE EXCEPTION 'Current session revocation should update exactly one row; changed %.', changed_count;
+  END IF;
+
+  BEGIN
+    UPDATE v9.sessions
+    SET expires_at = now() + interval '30 days'
+    WHERE token_hash = repeat('a',64);
+    RAISE EXCEPTION 'Runtime must not be able to rewrite session expiry.';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END
+$session_revoke$;
+COMMIT;
+
+-- A share token can increment only its own counter, not change its expiry.
+BEGIN;
+SET LOCAL ROLE v9_app;
+SELECT set_config('v9.share_token_hash', repeat('b',64), true);
+DO $share_column_guard$
+BEGIN
+  BEGIN
+    UPDATE v9.file_share_links
+    SET expires_at = now() + interval '30 days'
+    WHERE token_hash = repeat('b',64);
+    RAISE EXCEPTION 'Public share token must not rewrite link expiry.';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END
+$share_column_guard$;
+COMMIT;
+
 -- A transaction-local context must disappear when a transaction ends.
 BEGIN;
 SET LOCAL ROLE v9_app;
