@@ -75,7 +75,7 @@ export async function submitJoinInterest(
   }
 
   try {
-    const sql = getV9PublicInterestSql();
+    const sql = getV9PublicInterestSql({ name: rateName, phone: ratePhone });
     const queryResult = await sql`
       WITH organization AS MATERIALIZED (
         SELECT id
