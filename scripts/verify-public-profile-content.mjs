@@ -11,6 +11,7 @@ const editor = read("src/components/studio/public-site-settings-editor.tsx");
 const profile = read("src/app/(public)/profil/page.tsx");
 const gallery = read("src/app/(public)/galeri/page.tsx");
 const home = read("src/app/(public)/page.tsx");
+const homeHero = read("src/components/public-home-hero.tsx");
 assert.ok(schema.includes("interface PublicProfileContent") && schema.includes("profileContent: PublicProfileContent"), "Typed profile content model is required.");
 assert.ok(schema.includes("legacyHeroFileId") && schema.includes("legacyLogoFileId") && schema.includes("sourcePreservedInArchive"), "Legacy asset provenance must survive normalization.");
 assert.ok(service.includes("setting_key IN ('public_site', 'public_profile_content')") && service.includes('row.setting_key === "public_profile_content"'), "Both public settings records must be read.");
@@ -18,5 +19,5 @@ assert.ok(action.includes("'public_profile_content'") && action.includes("public
 assert.ok(editor.includes('{ id: "profil", label: "Profil & galeri" }') && editor.includes("addMission") && editor.includes("deleteMission") && editor.includes("Keterangan visual hero"), "Studio must provide profile, mission and gallery CRUD.");
 assert.ok(profile.includes("profileContent.vision") && profile.includes("profileContent.missions") && profile.includes("safeMapUrl"), "Public profile must render saved content and safe map links.");
 assert.ok(gallery.includes("profileContent.galleryIntro"), "Gallery must render its configurable introduction.");
-assert.ok(home.includes("profileContent.heroCredit"), "Hero visual credit must render from saved settings.");
+assert.ok(home.includes("<PublicHomeHero settings={settings} />") && homeHero.includes("settings.profileContent.heroCredit"), "Hero visual credit must render from saved settings through the shared Hero component.");
 console.log("Public profile content, Website Studio CRUD, rendering and audit contract: PASS");
