@@ -178,3 +178,44 @@ External roles may still receive an explicitly public website/banner projection 
 8. Independent security review, idempotent migration/rollback procedure and a separate explicit Production approval remain required.
 
 Issue #90 remains open until these gates have evidence. Issue #66 remains the parent capability gap matrix and is not to be closed while any capability gap or evidence item is outstanding.
+
+
+## 7. Public website data under database RLS
+
+Public website routes no longer SELECT operational tables directly. The following `SECURITY DEFINER` projections were added to migration `0044_tenant_row_level_security.sql`; each pins `search_path = pg_catalog, v9`, is revoked from `PUBLIC`, and is granted to `v9_app` only:
+
+| Projection | Public output | Source predicate / boundary |
+|---|---|---|
+| `get_public_fields()` | Field key, names, mandate and active unit name | Active Srikandi organization, enabled field applications, active unit join |
+| `get_public_products(text,text,uuid,integer)` | Public catalogue columns only | Active organization, `field_key='usaha'`, `status='active'`, `publication_status='published'`; capped limit and optional slug/category/exclusion |
+| `get_public_activities(text,boolean,integer)` | Event title, date/time, field label, location and description | `open_to_public=true`, enabled field application, allowed upcoming/completed states, active Srikandi organization |
+| `get_public_training_sessions(boolean,integer)` | Session schedule and aggregate registered/present counts | Only registration-open upcoming sessions or completed sessions; no participant identity or enrollment rows returned |
+| `get_public_documents(text,integer)` | Public archive metadata and latest file name/size | Final document, `visibility='publik'`, active Srikandi organization; inactive/missing Cloudinary asset excluded |
+| `get_public_document_file(uuid)` | Latest public file bytes/asset delivery metadata | Exact document ID must resolve to an active organization document, final/public classification and latest active file revision |
+
+Public loaders updated to use these functions:
+- Home, activity listing, organization profile and training listing
+- Product catalogue, product details and related products
+- Public document listing
+- Tokenless download of final/public documents
+
+The public download API retains the authenticated internal-document path for authorized Secretariat users. Anonymous access only succeeds through `get_public_document_file`; an internal, limited, draft or archived document does not qualify.
+
+**Important distinction:** the projections preserve the fields the existing public site intentionally displays. They do not create a general row-level grant on `business_products`, `training_enrollments`, `secretariat_documents`, `secretariat_document_files` or `file_assets`. Direct base-table reads remain default-deny for anonymous `v9_app`.
+
+PostgreSQL 16 CI integration now includes disposable-only projection fixtures proving:
+- enabled field registry and explicitly public activity projection;
+- published products returned, draft/private products excluded;
+- training counts are aggregate-only and participant names/membership IDs are not part of the function return schema;
+- final/public documents and latest public file revision returned;
+- direct anonymous SELECT on products, training enrollments and Secretariat documents returns no rows.
+
+These are CI fixtures in a temporary PostgreSQL 16 service. They are not inserted into the Neon QA rehearsal branch or Production.
+
+## 8. Updated execution status
+
+- Current branch PR: [#92 — QA tenant RLS and transaction-bound request context](https://github.com/teknik-informer/Srikandi-Buana/pull/92), still Draft and not merged.
+- Exact-head CI on each latest commit remains the release gate. PostgreSQL 16 integration has already passed prior revisions; the latest public-projection revision is awaiting its full exact-head result.
+- Neon QA branch `phase1-integration-rehearsal` remains unchanged: migration `0044` has **not** yet been applied there.
+- Vercel Preview for the latest exact commit still needs to be redeployed and its admin-only database identity probe checked before applying migration to QA.
+- Production remains unchanged.
