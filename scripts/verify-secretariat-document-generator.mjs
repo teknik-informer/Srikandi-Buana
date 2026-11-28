@@ -105,6 +105,14 @@ assert.ok(
 );
 
 assert.ok(
+  printPage.includes("Perbaiki / buat revisi") &&
+  printPage.includes("Koreksi disimpan sebagai versi baru; versi sebelumnya tetap tercatat.") &&
+  printPage.includes("archiveSecretariatDocument") &&
+  printPage.includes("Pindahkan draf ke arsip"),
+  "The generated document review page must clearly expose safe correction and draft-archiving actions.",
+);
+
+assert.ok(
   printActions.includes('"use client"') &&
   printActions.includes("window.print()"),
   "The print control must open the browser print dialog for paper or PDF output.",
