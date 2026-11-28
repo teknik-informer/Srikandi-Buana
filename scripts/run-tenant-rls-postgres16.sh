@@ -53,3 +53,4 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0044_tenant_row_leve
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0045_tenant_scope_field_application_identity.sql
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0045_tenant_scope_field_application_identity.sql
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/postgres16/tenant-rls-integration.sql
+bash tests/postgres16/tenant-rls-payment-concurrency.sh
