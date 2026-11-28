@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileCheck2, FileEdit, LockKeyhole } from "lucide-react";
+import { Archive, ArrowLeft, FileCheck2, FileEdit, LockKeyhole } from "lucide-react";
 import { Badge, Card, Notice } from "@/components/ui";
 import { DocumentPrintButton } from "@/components/secretariat-document-print-actions";
-import { finalizeSecretariatDocument } from "@/app/actions/secretariat-documents";
+import { archiveSecretariatDocument, finalizeSecretariatDocument } from "@/app/actions/secretariat-documents";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, requireIdentity } from "@/lib/session";
 import { formatDateID } from "@/lib/format";
@@ -107,7 +107,7 @@ export default async function SecretariatGeneratedDocumentPage({
               href={`/app/sekretariat/template/${document.template_code}?document_id=${document.id}`}
               className="sb-btn sb-btn-outline"
             >
-              <FileEdit size={14} /> Buat revisi
+              <FileEdit size={14} /> Perbaiki / buat revisi
             </Link>
           ) : null}
           <DocumentPrintButton />
@@ -133,9 +133,9 @@ export default async function SecretariatGeneratedDocumentPage({
           <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="sb-label mb-1">Langkah berikutnya</div>
-              <h2 className="text-[13px] font-semibold text-ink">Periksa, cetak, lalu finalkan naskah</h2>
+              <h2 className="text-[13px] font-semibold text-ink">Periksa, koreksi, cetak, lalu finalkan naskah</h2>
               <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-muted">
-                Periksa seluruh isi dan nomor resmi. Cetak atau simpan sebagai PDF untuk proses tanda tangan. Finalisasi hanya dilakukan setelah mendapat persetujuan yang berwenang.
+                Bila ada kesalahan redaksi, nomor, tanggal, atau susunan isi, pilih “Perbaiki / buat revisi” di bagian atas. Koreksi disimpan sebagai versi baru; versi sebelumnya tetap tercatat. Cetak atau simpan sebagai PDF setelah isi benar, lalu finalkan setelah disetujui pihak berwenang.
               </p>
             </div>
             {canFinalize ? (
@@ -148,6 +148,14 @@ export default async function SecretariatGeneratedDocumentPage({
             ) : (
               <p className="max-w-[220px] text-[10.5px] text-muted">Finalisasi memerlukan kewenangan Sekretariat atau Ketua.</p>
             )}
+            {canWrite ? (
+              <form action={archiveSecretariatDocument} className="shrink-0">
+                <input type="hidden" name="document_id" value={document.id} />
+                <button type="submit" className="sb-btn sb-btn-outline">
+                  <Archive size={14} /> Pindahkan draf ke arsip
+                </button>
+              </form>
+            ) : null}
           </div>
         </Card>
       ) : null}
