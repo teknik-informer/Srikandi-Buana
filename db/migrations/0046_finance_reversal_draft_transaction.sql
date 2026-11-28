@@ -86,7 +86,7 @@ BEGIN
 
   -- The insert guard requires an empty zero-total draft. Keep this as a
   -- separate statement before the lines are copied and totals are calculated.
-  INSERT INTO v9.finance_journals (
+  INSERT INTO v9.finance_journals AS created_journal (
     organization_id,
     journal_date,
     description,
@@ -109,7 +109,7 @@ BEGIN
     original.id,
     actor.user_id
   )
-  RETURNING v9.finance_journals.id, v9.finance_journals.reference_no
+  RETURNING created_journal.id, created_journal.reference_no
   INTO created_journal_id, created_reference_no;
 
   INSERT INTO v9.finance_journal_lines (
