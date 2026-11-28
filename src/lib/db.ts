@@ -25,6 +25,8 @@ interface V9RequestContext {
   loginIpHash?: string;
   loginUserId?: string;
   shareTokenHash?: string;
+  publicInterestName?: string;
+  publicInterestPhone?: string;
 }
 
 /**
@@ -83,7 +85,9 @@ function contextualSql(
             set_config('v9.login_subject_hash', ${context.loginSubjectHash ?? ""}, true),
             set_config('v9.login_ip_hash', ${context.loginIpHash ?? ""}, true),
             set_config('v9.login_user_id', ${context.loginUserId ?? ""}, true),
-            set_config('v9.share_token_hash', ${context.shareTokenHash ?? ""}, true)
+            set_config('v9.share_token_hash', ${context.shareTokenHash ?? ""}, true),
+            set_config('v9.public_interest_name', ${context.publicInterestName ?? ""}, true),
+            set_config('v9.public_interest_phone', ${context.publicInterestPhone ?? ""}, true)
         `;
         const [, result] = await target.transaction([contextQuery, query]);
         return result;
@@ -127,9 +131,11 @@ export function getV9AuthenticatedLoginSql(
 }
 
 /** Narrow unauthenticated insert scope for the public membership-interest form. */
-export function getV9PublicInterestSql(): V9Sql {
+export function getV9PublicInterestSql(context: { name: string; phone: string }): V9Sql {
   return contextualSql(getRawV9Sql(), async () => ({
     authFlow: "public-interest",
+    publicInterestName: context.name.trim().toLowerCase(),
+    publicInterestPhone: context.phone.replace(/\\D/g, ""),
   }));
 }
 
