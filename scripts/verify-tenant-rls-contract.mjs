@@ -50,7 +50,7 @@ assert.match(migration, /ENABLE ROW LEVEL SECURITY/i, "RLS must be enabled.");
 assert.match(migration, /FORCE ROW LEVEL SECURITY/i, "FORCE RLS must be explicitly evaluated and applied.");
 assert.match(migration, /CREATE POLICY/i, "RLS policy definitions must be included.");
 assert.match(migration, /SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, v9/i, "Policy helpers must pin search_path.");
-assert.match(migration, /_share_token_hash/i, "Public share access must be token-scoped.");
+assert.match(migration, /current_setting\('v9\.share_token_hash', true\)/, "Public share access must be token-scoped to the transaction-local hashed token.");
 assert.match(migration, /_public_banner_asset/i, "Public banner access must be narrowly scoped.");
 assert.match(migration, /_public_interest_context/i, "Public membership submissions must have a dedicated policy context.");
 
