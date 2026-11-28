@@ -329,3 +329,17 @@ Source inspection found a deterministic defect in the diagnostic itself: the sec
 The fix adds `session_user` to the second probe and a source-contract assertion that both concurrent probes compare this identity. Exact-head GitHub Actions run #965 passed on `7cca12a9b0d782eb3479f6156a5dd07707c63a28`, including PostgreSQL 16 integration, core shell contracts, TypeScript and production build.
 
 A new Vercel Preview deployment was then created from that exact commit: `dpl_7djs6LSUfbWvENH7kPfQcptf786V` (`admin-dashboard-o5nnxtvo1-teknik-informer.vercel.app`). Its final READY state and a fresh authenticated diagnostic response are still required. The earlier user-submitted JSON remains evidence for the previous deployment only.
+
+### 11.7 Authenticated runtime proof and Preview environment binding — 28 November 2026
+
+The user returned the authenticated diagnostic response from the exact READY Preview deployment after sign-in. The response reports `environment=preview`; `current_user=session_user=v9_app`; database `neondb`; PostgreSQL 18.7; Neon branch `br-snowy-forest-b46i5pqx`; and endpoint `ep-icy-scene-b4f8rk0x`. All elevated capability flags are false: SUPERUSER, BYPASSRLS, CREATEROLE, CREATEDB, tenant table ownership, membership in `neondb_owner`, ability to SET `neondb_owner`, CREATE on schema `v9`, and CREATE on database.
+
+The corrected live probes return `transactionContextIsolation=true` and `requestSessionContextPresent=true`, with `safeForTenantUat=true`. This confirms two concurrent pre-auth contexts observe isolated transaction-local values and the authenticated request has its own cookie-derived context inside its query transaction.
+
+Read-only Vercel project environment metadata was inspected with decryption disabled. The `V9_DATABASE_URL` variable pinned to Preview branch `feat/issue-90-tenant-rls-qa-20261128` has a non-secret configuration comment identifying the dedicated `v9_app` credential and Neon QA branch `br-snowy-forest-b46i5pqx`. A separate `V9_DATABASE_URL` entry targets Production. No environment variable values were decrypted or displayed. The Preview runtime's returned Neon branch ID independently confirms the connection actually used by the request.
+
+Source file `src/lib/db.ts` reads only `process.env.V9_DATABASE_URL`, throws when it is absent, and does not fall back to `DATABASE_URL` or `PREVIEW_DATABASE_URL`. The static contract now explicitly asserts this fail-closed/no-fallback behavior.
+
+Exact source-contract commit `23dfc5b1f52ee7d4ea7cab7a04fa95294437cb11` passed GitHub Actions run #969: PostgreSQL 16 RLS integration, organization regressions, core workspace/tenant RLS contract checks, TypeScript validation, and Next.js production build. The deployed application code remains commit `7cca12a9b0d782eb3479f6156a5dd07707c63a28` in Vercel deployment `dpl_7djs6LSUfbWvENH7kPfQcptf786V`, state READY. The later commit added only source contract assertions/documentation; no runtime code changed after deployment.
+
+Issue #91's narrow runtime-principal/Preview-target proof is complete. This does not close Issue #90: the comprehensive query/action inventory, all negative cross-tenant operation and side-effect tests, operational domain regressions, authenticated Preview UAT across legitimate personas, and independent security review remain open.
