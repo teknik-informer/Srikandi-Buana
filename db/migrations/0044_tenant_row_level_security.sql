@@ -817,7 +817,7 @@ CREATE POLICY system_settings_tenant_read ON v9.system_settings
 CREATE POLICY system_settings_public_read ON v9.system_settings
   FOR SELECT TO v9_app
   USING (
-    setting_key IN ('public_site', 'public_profile_content')
+    setting_key IN ('public_site', 'public_profile_content', 'login_page_content', 'public_policies')
     AND visibility = 'public'
     AND organization_id = (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana' AND status = 'active' LIMIT 1)
   );
