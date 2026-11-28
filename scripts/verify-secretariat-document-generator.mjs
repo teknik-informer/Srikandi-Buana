@@ -87,7 +87,7 @@ assert.ok(
   builder.includes('existing ? "Simpan revisi & lanjutkan" : "Simpan draf & lanjutkan"') &&
   actions.includes("redirect(`/app/sekretariat/dokumen/${saved.id}/cetak?result=${saved.operation}`)") &&
   printPage.includes("Langkah berikutnya") &&
-  printPage.includes("Periksa, cetak, lalu finalkan naskah") &&
+  printPage.includes("Periksa, koreksi, cetak, lalu finalkan naskah") &&
   printPage.includes("Finalkan setelah diperiksa"),
   "Saving a generated draft must take the user to its review page and expose the next review, print, and finalization steps."
 );
