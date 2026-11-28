@@ -144,6 +144,16 @@ export const APP_IDENTITY: Record<string, AppIdentity> = {
     imageAlt: "Dua anggota Srikandi Buana menjemur biji kopi di rumah jemur",
   },
 
+  portal: {
+    pill: "Portal Eksternal",
+    eyebrow: "Pemerintah · NGO · Mitra",
+    title: "Ruang berbagi data organisasi",
+    lead:
+      "Akses eksternal yang terbatas dan berbasis peran. Informasi hanya dapat dibagikan melalui persetujuan, tujuan penggunaan, dan masa akses yang tercatat.",
+    image: "/images/komunitas.jpg",
+    imageAlt: "Pengurus dan anggota Srikandi Buana membahas catatan organisasi bersama",
+  },
+
   studio: {
     pill: "Studio",
     eyebrow: "Studio Pengelola",

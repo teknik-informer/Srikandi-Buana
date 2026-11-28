@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { ArrowRight, Database, FileText } from "lucide-react";
 import { Card, CardHeader, EmptyState, Notice, PageHeader } from "@/components/ui";
 
+import { requireRoles } from "@/lib/session";
+
 export const metadata: Metadata = { title: "Data & Form Builder" };
 
 const operationalModules = [
@@ -15,7 +17,8 @@ const operationalModules = [
   { label: "Jurnal Keuangan", description: "Pencatatan akuntansi melalui jurnal berpasangan", href: "/app/keuangan/jurnal" },
 ];
 
-export default function DataStudio() {
+export default async function DataStudio() {
+  await requireRoles(["platform_admin", "organization_admin"]);
   return (
     <div className="pb-10">
       <PageHeader

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getIdentity } from "@/lib/session";
 import { LoginForm } from "@/components/login-form";
+import { getLoginPageContent } from "@/lib/login-page-content";
 
 export const metadata: Metadata = {
   title: "Masuk",
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 export default async function MasukPage() {
   const identity = await getIdentity();
   if (identity) redirect(identity.home);
+  const content = await getLoginPageContent();
 
   return (
     <div className="relative min-h-dvh bg-[#0b2417] [@media(min-height:520px)]:h-dvh [@media(min-height:520px)]:overflow-hidden">
@@ -63,7 +65,7 @@ export default async function MasukPage() {
             href="/"
             className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold text-white/85 ring-1 ring-inset ring-white/25 transition hover:bg-white/10 hover:text-white"
           >
-            ← <span className="hidden sm:inline">Kembali ke </span>Website
+            ← <span className="hidden sm:inline">{content.backLinkLabel} </span>Website
           </Link>
         </div>
 
@@ -72,30 +74,23 @@ export default async function MasukPage() {
           <div className="hidden lg:block">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#dff0e2] ring-1 ring-inset ring-white/20">
               <span className="h-1.5 w-1.5 rounded-full bg-[#7ddc93]" />
-              Ruang kerja internal
+              {content.leftEyebrow}
             </span>
-            <h1 className="mt-5 font-display text-[40px] leading-[1.06] font-extrabold tracking-[-0.03em] text-white xl:text-[46px]">
-              Satu platform,
-              <br />
-              banyak pengalaman aplikasi.
+            <h1 className="mt-5 whitespace-pre-line font-display text-[40px] leading-[1.06] font-extrabold tracking-[-0.03em] text-white xl:text-[46px]">
+              {content.leftTitle}
             </h1>
             <p className="mt-4 max-w-md text-[14px] leading-relaxed text-[#cfe3d3]">
-              Pengurus mengelola organisasi, bidang menjalankan pekerjaan, anggota berpartisipasi,
-              mitra menerima akses yang dibagikan — semuanya di atas satu sumber data.
+              {content.leftDescription}
             </p>
             <ul className="mt-7 space-y-3">
-              {[
-                ["Identitas & cakupan akses terpusat", "Satu akun, kewenangan berbeda per aplikasi."],
-                ["Keuangan native", "Tanpa aplikasi akuntansi eksternal; jurnal lewat posting service."],
-                ["Studio Pengelola", "Website, form, dashboard, dan workflow dikelola sendiri."],
-              ].map(([t, d]) => (
-                <li key={t} className="flex items-start gap-3">
+              {content.highlights.map((item) => (
+                <li key={item.id} className="flex items-start gap-3">
                   <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#7ddc93]/20 text-[#9ae8ac] ring-1 ring-inset ring-[#7ddc93]/30">
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden><path d="M2.5 6.2 4.9 8.6 9.5 3.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[13px] font-semibold text-white">{t}</span>
-                    <span className="block text-[11.5px] leading-snug text-[#a9c9b1]">{d}</span>
+                    <span className="block text-[13px] font-semibold text-white">{item.title}</span>
+                    <span className="block text-[11.5px] leading-snug text-[#a9c9b1]">{item.description}</span>
                   </span>
                 </li>
               ))}
@@ -104,21 +99,21 @@ export default async function MasukPage() {
 
           {/* the form card — compact: 8 role names live behind the picker */}
           <div className="w-full max-w-[480px] justify-self-end rounded-[18px] border border-white/15 bg-white/[0.98] p-4 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.65)] backdrop-blur sm:p-6">
-            <div className="sb-label mb-1.5">Masuk ke ekosistem</div>
+            <div className="sb-label mb-1.5">{content.cardEyebrow}</div>
             <h2 className="font-display text-[23px] font-extrabold leading-tight tracking-[-0.02em] text-ink sm:text-[26px]">
-              Selamat datang kembali.
+              {content.cardTitle}
             </h2>
             <p className="mt-1 text-[12.5px] text-muted">
-              Masukkan surel akun Anda. Hak akses ditentukan dari penugasan organisasi.
+              {content.cardDescription}
             </p>
-            <LoginForm />
+            <LoginForm content={content} />
             <p className="mt-3 border-t border-line pt-2.5 text-[10.5px] leading-snug text-muted2">
-              Sesi menggunakan cookie HttpOnly. Peran dan cakupan akses diperiksa dari penugasan organisasi di server.
+              {content.securityNote}
             </p>
           </div>
         </div>
 
-        <p className="shrink-0 text-center text-[10.5px] text-white/55">Akses terbatas untuk pengguna yang memiliki akun dan penugasan aktif.</p>
+        <p className="shrink-0 text-center text-[10.5px] text-white/55">{content.footerNote}</p>
       </div>
     </div>
   );

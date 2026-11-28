@@ -22,7 +22,9 @@ function safeErrorName(reason: unknown): string {
 
 /** Update only self-editable member profile fields; legal identity and membership are immutable here. */
 export async function updateMemberProfile(input: MemberProfileInput): Promise<ProfileMutationResult> {
-  const identity = await requireIdentity("member:self");
+  // Any authenticated account may edit its own contact/preferences. The SQL below
+  // binds the write target to identity.userId; no client-supplied person ID is trusted.
+  const identity = await requireIdentity();
 
   const preferredName = String(input?.preferredName ?? "").trim().replace(/\s+/g, " ");
   const phone = String(input?.phone ?? "").trim();
@@ -125,6 +127,7 @@ export async function updateMemberProfile(input: MemberProfileInput): Promise<Pr
       return { ok: false, message: "Data profil tidak ditemukan pada akun ini. Hubungi Sekretariat." };
     }
 
+    revalidatePath("/app/profil");
     revalidatePath("/app/anggota/profil");
     revalidatePath("/app/anggota");
     return { ok: true, message: "Profil berhasil disimpan pada data organisasi." };

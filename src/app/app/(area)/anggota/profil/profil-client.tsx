@@ -8,10 +8,13 @@ import { Badge, Card, CardHeader, Avatar, Notice } from "@/components/ui";
 import { Btn, Field, TextInput } from "@/components/act";
 import { formatDateID } from "@/lib/format";
 import { updateMemberProfile } from "@/app/actions/member-profile";
+import { changeOwnPassword } from "@/app/actions/account-settings";
 
 export interface MemberProfileData {
   personId: string;
   legalName: string;
+  email: string;
+  lastLoginAt: string | null;
   preferredName: string;
   phone: string;
   village: string;
@@ -42,6 +45,63 @@ function sameInterests(a: string[], b: string[]): boolean {
   const left = [...a].sort();
   const right = [...b].sort();
   return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function AccountSecurityCard() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function savePassword() {
+    if (pending) return;
+    setError(null);
+    setMessage(null);
+    setPending(true);
+    try {
+      const result = await changeOwnPassword({ currentPassword, newPassword, confirmPassword });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setMessage(result.message);
+    } catch {
+      setError("Pengaturan keamanan belum dapat disimpan. Periksa koneksi lalu coba kembali.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Keamanan akun" subtitle="Ganti kata sandi akun Anda. Perubahan akan mencabut sesi pada perangkat lain." action={<ShieldCheck size={14} className="text-muted2" />} />
+      <form onSubmit={(event) => { event.preventDefault(); void savePassword(); }} className="space-y-3 p-4">
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="current-account-password">Kata sandi saat ini</label>
+          <input id="current-account-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required maxLength={256} className="sb-input w-full" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="new-account-password">Kata sandi baru</label>
+          <input id="new-account-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
+          <p className="mt-1 text-[10px] text-muted2">Minimal 12 karakter.</p>
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold text-ink2" htmlFor="confirm-account-password">Ulangi kata sandi baru</label>
+          <input id="confirm-account-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={256} className="sb-input w-full" />
+        </div>
+        {error ? <p className="rounded-sb-sm border border-[var(--sb-danger)] bg-[var(--sb-danger-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-danger)]" role="alert">{error}</p> : null}
+        {message ? <p className="rounded-sb-sm border border-[var(--sb-success)] bg-[var(--sb-success-bg)] px-3 py-2 text-[11.5px] text-[var(--sb-success)]" role="status">{message}</p> : null}
+        <button type="submit" disabled={pending || !currentPassword || !newPassword || !confirmPassword} className="sb-btn sb-btn-primary w-full justify-center disabled:cursor-wait disabled:opacity-60">
+          {pending ? "Memperbarui…" : "Perbarui kata sandi"}
+        </button>
+      </form>
+    </Card>
+  );
 }
 
 export function ProfilClient({
@@ -119,13 +179,14 @@ export function ProfilClient({
     return (
       <div className="pb-10">
         <header className="mb-5 border-b border-line pb-4">
-          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <div className="sb-label mb-1.5">Akun & profil</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
         </header>
         <Notice tone="danger" title="Profil belum dapat dimuat">
           Layanan data anggota sedang tidak tersedia. Data tidak akan diganti dengan profil contoh.
           Muat ulang halaman setelah koneksi pulih.
         </Notice>
+        <div className="mt-4"><AccountSecurityCard /></div>
       </div>
     );
   }
@@ -134,13 +195,14 @@ export function ProfilClient({
     return (
       <div className="pb-10">
         <header className="mb-5 border-b border-line pb-4">
-          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <div className="sb-label mb-1.5">Akun & profil</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
         </header>
         <Notice tone="warning" title="Data anggota belum terhubung">
           Akun Anda belum memiliki data orang yang terhubung di buku induk organisasi.
           Hubungi Sekretariat untuk pemeriksaan identitas akun.
         </Notice>
+        <div className="mt-4"><AccountSecurityCard /></div>
       </div>
     );
   }
@@ -152,7 +214,7 @@ export function ProfilClient({
     <div className="pb-10">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
         <div>
-          <div className="sb-label mb-1.5">Portal Anggota</div>
+          <div className="sb-label mb-1.5">Akun & profil</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-ink sm:text-[27px]">Profil saya</h1>
           <p className="mt-1.5 max-w-2xl text-[13.5px] text-muted">
             Data tampilan dan kontak dapat Anda perbarui. Identitas legal serta status keanggotaan resmi tetap dikelola Sekretariat.
@@ -241,6 +303,8 @@ export function ProfilClient({
             <dl className="divide-y divide-line text-[12.5px]">
               {[
                 ["Nama legal", profile.legalName],
+                ["Email akun", profile.email],
+                ["Masuk terakhir", profile.lastLoginAt ? new Date(profile.lastLoginAt.replace(" ", "T") + "Z").toLocaleString("id-ID") : "Belum tercatat"],
                 ["Nomor anggota", profile.memberNumber ?? "Belum diterbitkan"],
                 ["Peran akun", profile.role],
                 ["Lingkup akses", profile.scope],
@@ -268,6 +332,8 @@ export function ProfilClient({
             <div className="mb-0.5 flex items-center gap-1.5 font-semibold"><ShieldCheck size={14} /> Pemisahan data</div>
             Anda dapat mengubah nama tampilan, kontak, desa, dan preferensi minat. Data legal dan keputusan keanggotaan hanya berubah melalui peran yang berwenang.
           </div>
+
+          <AccountSecurityCard />
 
           <div className="flex items-center gap-2 rounded-sb-sm border border-line bg-paper px-3.5 py-2.5 text-[11.5px] text-muted">
             <UserRound size={14} /> Masuk sebagai {profile.role} · {profile.scope}

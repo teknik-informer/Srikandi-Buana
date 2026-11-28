@@ -5,7 +5,7 @@ import {
   Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { can, requireIdentity } from "@/lib/session";
+import { can, requireRoles } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Workflow Builder" };
 
@@ -51,7 +51,7 @@ function countLabel(value: number | undefined): string {
 }
 
 export default async function WorkflowStudio() {
-  const identity = await requireIdentity("organization:read");
+  const identity = await requireRoles(["platform_admin", "organization_admin"]);
   const canReadFinance = can(identity, "finance:read");
   const canReadMembership = can(identity, "field:organisasi:review");
   const canReadWorkplans = can(identity, "approval:read") || can(identity, "organization:team:approve");

@@ -1,15 +1,16 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Plus, Trash2, Save, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import { savePublicSiteSettings, type SaveSiteSettingsState } from "@/app/actions/public-site-settings";
+import { FileUploadField } from "@/components/file-upload-field";
 import {
   SITE_FEATURE_LABELS, SITE_HOME_LABELS,
   type PublicSiteSettings, type SiteFeatureKey, type SiteHomeSectionKey,
   type SiteMenuGroup, type SiteMenuItem, type SiteFooterGroup, type SiteSocialPlatform,
 } from "@/lib/site-settings-schema";
 
-type Tab = "umum" | "fitur" | "navigasi" | "footer" | "sosial";
+type Tab = "umum" | "profil" | "fitur" | "navigasi" | "footer" | "sosial";
 const emptyResult: SaveSiteSettingsState = { ok: false, message: "" };
 const makeId = (prefix: string) => prefix + "-" + Math.random().toString(36).slice(2, 9);
 
@@ -63,6 +64,14 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
     setSettings((s) => ({ ...s, hero: { ...s.hero, ...patch } }));
   const patchContact = (patch: Partial<PublicSiteSettings["contact"]>) =>
     setSettings((s) => ({ ...s, contact: { ...s.contact, ...patch } }));
+  const patchProfileContent = (patch: Partial<PublicSiteSettings["profileContent"]>) =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, ...patch } }));
+  const patchMission = (index: number, value: string) =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, missions: s.profileContent.missions.map((mission, i) => i === index ? value : mission) } }));
+  const addMission = () =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, missions: [...s.profileContent.missions, ""] } }));
+  const deleteMission = (index: number) =>
+    setSettings((s) => ({ ...s, profileContent: { ...s.profileContent, missions: s.profileContent.missions.filter((_, i) => i !== index) } }));
 
   function patchGroup(index: number, patch: Partial<SiteMenuGroup>) {
     setSettings((s) => {
@@ -170,7 +179,7 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
   }
 
   const tabs: Array<{ id: Tab; label: string }> = [
-    { id: "umum", label: "Identitas & beranda" }, { id: "fitur", label: "Fitur situs" },
+    { id: "umum", label: "Identitas & beranda" }, { id: "profil", label: "Profil & galeri" }, { id: "fitur", label: "Fitur situs" },
     { id: "navigasi", label: "Navigasi" }, { id: "footer", label: "Footer" }, { id: "sosial", label: "Kontak & sosial" },
   ];
 
@@ -194,9 +203,50 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
         </div>
       </section>
       <section className="rounded-xl border border-line bg-white p-4">
-        <h2 className="text-[13px] font-bold text-ink">Konten utama beranda</h2>
-        <p className="mb-4 mt-1 text-[10.5px] text-muted">Perbarui pesan utama tanpa mengganti struktur visual halaman.</p>
+        <h2 className="text-[13px] font-bold text-ink">Konten & visual Hero beranda</h2>
+        <p className="mb-4 mt-1 text-[10.5px] text-muted">Pilih satu dari empat komposisi Hero. Gaya sinematik tetap menjadi standar awal; pilihan baru tersimpan sebagai konfigurasi situs.</p>
         <div className="grid gap-3">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold text-ink2">Gaya Hero</span>
+            <select value={settings.hero.variant} onChange={(event) => patchHero({ variant: event.target.value as PublicSiteSettings["hero"]["variant"] })} className="sb-input w-full">
+              <option value="cinematic">01 · Cinematic — foto latar penuh (default)</option>
+              <option value="split">02 · Split — teks dan foto berdampingan</option>
+              <option value="editorial">03 · Editorial — tipografi dan foto berbingkai</option>
+              <option value="minimal">04 · Minimal — ringkas, bersih, fokus pesan</option>
+            </select>
+          </label>
+          <div className="rounded-xl border border-line bg-paper/70 p-3">
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-ink2"><ImageIcon size={14} /> Foto banner</div>
+            <div className="relative mb-3 aspect-[16/5] overflow-hidden rounded-lg bg-[#12351f]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={settings.hero.imageAssetId ? `/api/files/${settings.hero.imageAssetId}?disposition=inline` : settings.hero.imageUrl} alt={settings.hero.imageAlt} className="h-full w-full object-cover" style={{ objectPosition: settings.hero.imagePositionX + "% " + settings.hero.imagePositionY + "%" }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+              <div className="absolute bottom-2 left-3 text-[10px] font-semibold text-white">Pratinjau foto Hero</div>
+            </div>
+            <FileUploadField name="hero_banner_asset_id" label="Ganti foto banner (JPG, PNG, atau WebP)" scopeKind="organization" category="public-site-banner" accept="image/jpeg,image/png,image/webp" onUploaded={(assetId) => patchHero({ imageAssetId: assetId })} />
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <Field label="Path/URL foto cadangan" value={settings.hero.imageUrl} onChange={(imageUrl) => patchHero({ imageUrl, imageAssetId: "" })} maxLength={500} placeholder="/images/hero-pemanen.jpg" />
+              <Field label="Teks alternatif foto" value={settings.hero.imageAlt} onChange={(imageAlt) => patchHero({ imageAlt })} maxLength={180} />
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 flex items-center justify-between text-[10.5px] font-semibold text-ink2"><span>Fokus horizontal</span><span className="tabular-nums text-muted">{settings.hero.imagePositionX}%</span></span>
+                <input type="range" min="0" max="100" step="1" value={settings.hero.imagePositionX} onChange={(event) => patchHero({ imagePositionX: Number(event.target.value) })} className="w-full accent-[#176b35]" />
+                <span className="flex justify-between text-[9px] text-muted2"><span>Kiri</span><span>Kanan</span></span>
+              </label>
+              <label className="block">
+                <span className="mb-1 flex items-center justify-between text-[10.5px] font-semibold text-ink2"><span>Fokus vertikal</span><span className="tabular-nums text-muted">{settings.hero.imagePositionY}%</span></span>
+                <input type="range" min="0" max="100" step="1" value={settings.hero.imagePositionY} onChange={(event) => patchHero({ imagePositionY: Number(event.target.value) })} className="w-full accent-[#176b35]" />
+                <span className="flex justify-between text-[9px] text-muted2"><span>Atas</span><span>Bawah</span></span>
+              </label>
+            </div>
+            {settings.hero.imageAssetId ? (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#cfe6d3] bg-[#f2faf3] px-3 py-2">
+                <span className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-[#17662f]"><CheckCircle2 size={13} /> Foto unggahan terpilih. Simpan pengaturan untuk menerbitkannya.</span>
+                <button type="button" onClick={() => patchHero({ imageAssetId: "" })} className="text-[10.5px] font-semibold text-[#17662f] underline">Gunakan foto cadangan</button>
+              </div>
+            ) : null}
+          </div>
           <Field label="Eyebrow" value={settings.hero.eyebrow} onChange={(eyebrow) => patchHero({ eyebrow })} maxLength={100} />
           <Field label="Judul utama" value={settings.hero.title} onChange={(title) => patchHero({ title })} maxLength={140} />
           <Field label="Subjudul" value={settings.hero.subtitle} onChange={(subtitle) => patchHero({ subtitle })} maxLength={180} />
@@ -222,6 +272,48 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
           {(Object.keys(SITE_HOME_LABELS) as SiteHomeSectionKey[]).map((key) =>
             <Toggle key={key} label={SITE_HOME_LABELS[key].label} description={SITE_HOME_LABELS[key].description} checked={settings.home[key]} onChange={(value) => setSettings((s) => ({ ...s, home: { ...s.home, [key]: value } }))} />)}
         </div>
+      </section>
+    </div> : null}
+
+    {tab === "profil" ? <div className="grid gap-4 xl:grid-cols-2">
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h2 className="text-[13px] font-bold text-ink">Profil organisasi</h2>
+        <p className="mb-4 mt-1 text-[10.5px] text-muted">Konten profil yang ditampilkan pada website publik. Data ini tidak menggantikan status hukum atau registry organisasi.</p>
+        <div className="grid gap-3">
+          <label className="block"><span className="mb-1 block text-[11px] font-semibold text-ink2">Pengantar organisasi</span>
+            <textarea value={settings.profileContent.intro} onChange={(event) => patchProfileContent({ intro: event.target.value })} maxLength={1200} rows={5} className="sb-input h-auto w-full resize-y py-2" /></label>
+          <label className="block"><span className="mb-1 block text-[11px] font-semibold text-ink2">Visi organisasi</span>
+            <textarea value={settings.profileContent.vision} onChange={(event) => patchProfileContent({ vision: event.target.value })} maxLength={1000} rows={4} className="sb-input h-auto w-full resize-y py-2" /></label>
+        </div>
+      </section>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div><h2 className="text-[13px] font-bold text-ink">Misi organisasi</h2><p className="mt-1 text-[10.5px] text-muted">Maksimal 12 butir. Urutan mengikuti susunan di sini.</p></div>
+          <button type="button" disabled={settings.profileContent.missions.length >= 12} onClick={addMission} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-line px-3 py-2 text-[11px] font-semibold text-primary-700 disabled:opacity-40"><Plus size={13} /> Tambah</button>
+        </div>
+        <div className="mt-3 space-y-2">
+          {settings.profileContent.missions.map((mission, index) => <div key={index} className="flex items-start gap-2">
+            <span className="mt-2.5 w-5 shrink-0 text-[11px] font-semibold text-muted">{index + 1}.</span>
+            <textarea aria-label={"Misi " + (index + 1)} value={mission} onChange={(event) => patchMission(index, event.target.value)} maxLength={500} rows={3} className="sb-input h-auto min-w-0 flex-1 resize-y py-2" />
+            <button type="button" onClick={() => deleteMission(index)} aria-label={"Hapus misi " + (index + 1)} className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50"><Trash2 size={14} /></button>
+          </div>)}
+          {!settings.profileContent.missions.length ? <p className="rounded-lg bg-paper px-3 py-4 text-[11px] text-muted">Belum ada misi yang dicatat.</p> : null}
+        </div>
+      </section>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h2 className="text-[13px] font-bold text-ink">Galeri & lokasi</h2>
+        <p className="mb-4 mt-1 text-[10.5px] text-muted">Pengantar galeri tetap tampil meskipun belum ada media yang disetujui untuk publikasi.</p>
+        <div className="grid gap-3">
+          <label className="block"><span className="mb-1 block text-[11px] font-semibold text-ink2">Pengantar galeri</span>
+            <textarea value={settings.profileContent.galleryIntro} onChange={(event) => patchProfileContent({ galleryIntro: event.target.value })} maxLength={600} rows={3} className="sb-input h-auto w-full resize-y py-2" /></label>
+          <Field label="URL peta (HTTPS)" type="url" value={settings.profileContent.mapUrl} onChange={(mapUrl) => patchProfileContent({ mapUrl })} maxLength={1000} placeholder="https://maps.google.com/..." />
+          <Field label="Keterangan visual hero" value={settings.profileContent.heroCredit} onChange={(heroCredit) => patchProfileContent({ heroCredit })} maxLength={180} />
+        </div>
+      </section>
+      <section className="rounded-xl border border-line bg-white p-4">
+        <h2 className="text-[13px] font-bold text-ink">Catatan sumber</h2>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted">Referensi aset lama disimpan sebagai metadata arsip. Aset tidak akan dipublikasikan sebelum file aktual, pemilik, dan izin penggunaannya diverifikasi serta terhubung ke layanan media.</p>
+        <div className="mt-3 rounded-lg bg-paper px-3 py-2 text-[10.5px] text-muted">Sumber: {settings.profileContent.source || "Belum dicatat"} · Arsip: {settings.profileContent.sourcePreservedInArchive ? "Terjaga" : "Belum dikonfirmasi"}</div>
       </section>
     </div> : null}
 

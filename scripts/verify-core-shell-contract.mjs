@@ -12,6 +12,9 @@ const pengurusLayout = read("src/app/app/(area)/pengurus/layout.tsx");
 const launcherPage = read("src/app/app/(launcher)/page.tsx");
 const appAccess = read("src/lib/app-access.ts");
 const appShellSource = read("src/components/app-shell.tsx");
+const sessionSource = read("src/lib/session.ts");
+const studioLayout = read("src/app/studio/layout.tsx");
+const studioLandingAccessCheck = read("src/app/studio/page.tsx");
 
 assert.match(coreShell, /nav=\{nav\}/, "CoreShell must preserve navigation supplied by the server layout.");
 assert.match(coreShell, /notices=\{\[\]\}/, "CoreShell must not display local demo notices.");
@@ -764,9 +767,11 @@ const publicLayoutSource = read("src/app/(public)/layout.tsx");
 const siteSettingsSchema = read("src/lib/site-settings-schema.ts");
 const publicSiteSettingsService = read("src/lib/public-site-settings.ts");
 const publicSiteSettingsAction = read("src/app/actions/public-site-settings.ts");
+const publicPoliciesAction = read("src/app/actions/public-policies.ts");
 const publicSiteSettingsEditor = read("src/components/studio/public-site-settings-editor.tsx");
 const websiteStudio = read("src/app/studio/website/page.tsx");
 const publicHome = read("src/app/(public)/page.tsx");
+const publicHomeHero = read("src/components/public-home-hero.tsx");
 const publicHelp = read("src/app/(public)/bantuan/page.tsx");
 const publicProductPage = read("src/app/(public)/produk/page.tsx");
 const publicProductDetail = read("src/app/(public)/produk/[slug]/page.tsx");
@@ -807,15 +812,28 @@ assert.ok(
 assert.ok(
   publicSiteSettingsService.includes("v9.system_settings") &&
   publicSiteSettingsService.includes("visibility = 'public'") &&
-  publicSiteSettingsService.includes("setting_key = 'public_site'"),
+  publicSiteSettingsService.includes("setting_key IN ('public_site', 'public_profile_content')") &&
+  publicSiteSettingsService.includes('row.setting_key === "public_site"') &&
+  publicSiteSettingsService.includes('row.setting_key === "public_profile_content"'),
   "Public website settings must be read from the organization-scoped public system-settings record.",
 );
+const secretaryPermissionBlock = sessionSource.match(/case "secretary":[\s\S]*?(?=case "treasurer":)/)?.[0] ?? "";
+const treasurerPermissionBlock = sessionSource.match(/case "treasurer":[\s\S]*?(?=case "field_coordinator":)/)?.[0] ?? "";
 assert.ok(
-  publicSiteSettingsAction.includes('requireRoles(["platform_admin", "organization_admin"])') &&
+  secretaryPermissionBlock.includes('"cms:publish"') &&
+  !treasurerPermissionBlock.includes('"cms:publish"') &&
+  publicSiteSettingsAction.includes('requireIdentity("cms:publish")') &&
+  publicPoliciesAction.includes('requireIdentity("cms:publish")') &&
   publicSiteSettingsAction.includes("INSERT INTO v9.system_settings") &&
   publicSiteSettingsAction.includes("INSERT INTO v9.audit_events") &&
   publicSiteSettingsAction.includes("public_site.settings.updated"),
-  "Website configuration CRUD must require authorized Studio roles and record before/after changes in the audit log.",
+  "Website configuration CRUD must require the dedicated CMS publish permission and record before/after changes in the audit log.",
+);
+assert.ok(
+  studioLayout.includes("SECRETARY_STUDIO_NAV") &&
+  studioLayout.includes('identity.roleKey === "secretary"') &&
+  studioLandingAccessCheck.includes('requireRoles(["platform_admin", "organization_admin"])'),
+  "Secretaries may enter the Website Studio only; the general Studio home remains restricted to administrators.",
 );
 assert.ok(
   publicSiteSettingsEditor.includes("savePublicSiteSettings") &&
@@ -836,9 +854,10 @@ assert.ok(
 );
 assert.ok(
   publicHome.includes("getPublicSiteSettings()") &&
-  publicHome.includes("settings.hero.description") &&
+  publicHome.includes("<PublicHomeHero settings={settings} />") &&
+  publicHomeHero.includes("hero.description") &&
   publicHome.includes("settings.home.products && settings.features.productCatalogue"),
-  "The public home page must use editable hero content and respect product/home section switches.",
+  "The public home page must render the configurable Hero component and respect product/home section switches.",
 );
 assert.ok(
   publicHelp.includes("getPublicSiteSettings()") &&

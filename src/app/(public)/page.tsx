@@ -11,7 +11,7 @@ import { loadPublicData } from "@/lib/public-data";
 import { PublicDataUnavailable } from "@/components/public-data-unavailable";
 import { formatDateFull, formatIDR } from "@/lib/format";
 import { DashboardArt } from "@/components/dashboard-art";
-import { HeroRibbon } from "@/components/hero-ribbon";
+import { PublicHomeHero } from "@/components/public-home-hero";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
 
 export const dynamic = "force-dynamic";
@@ -178,55 +178,7 @@ export default async function HomePage() {
 
   return (
     <div className="bg-white">
-      <section className="relative isolate flex min-h-[430px] flex-col overflow-hidden bg-[#0b2b18] sm:min-h-[480px] lg:min-h-[540px]">
-        <picture>
-          <source srcSet="/images/hero-pemanen.webp" type="image/webp" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/hero-pemanen.jpg"
-            alt="Ilustrasi aktivitas pertanian di lingkungan Srikandi Buana"
-            className="absolute inset-0 h-full w-full object-cover object-[68%_38%] sm:object-[64%_40%] lg:object-[62%_42%]"
-            width={1536}
-            height={1024}
-            fetchPriority="high"
-            decoding="async"
-          />
-        </picture>
-        <div className="absolute inset-0 bg-[linear-gradient(96deg,rgba(6,28,16,0.94)_0%,rgba(7,32,18,0.88)_34%,rgba(8,38,21,0.62)_52%,rgba(9,44,24,0.14)_72%,rgba(9,44,24,0)_100%)]" aria-hidden />
-        <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(to_bottom,rgba(4,20,11,0.55),rgba(4,20,11,0))]" aria-hidden />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(to_top,rgba(6,30,17,0.62),rgba(6,30,17,0))]" aria-hidden />
-
-        <div className="sb-shell relative flex min-h-[330px] flex-1 flex-col justify-center pb-10 pt-10 sm:min-h-[380px] sm:pb-12 sm:pt-12 lg:min-h-[430px] lg:pb-14 lg:pt-14">
-          <div className="max-w-[640px]" data-contrast-bg="#082617">
-            <div className="flex items-center gap-3">
-              <span className="h-px w-9 bg-[#e6c56a]" aria-hidden />
-              <span className="text-[10.5px] font-bold uppercase tracking-[0.24em] text-[#f0d79a]">
-                {settings.hero.eyebrow}
-              </span>
-            </div>
-            <h1 className="mt-4 font-display text-[38px] leading-[1.02] tracking-[-0.03em] text-white sm:text-[50px] lg:text-[60px]">
-              <span className="block">{settings.hero.title || organization?.short_name || settings.identity.siteName}</span>
-              <span className="mt-1 block text-[#f2d493]">
-                {settings.hero.subtitle}
-              </span>
-            </h1>
-            <p className="mt-5 max-w-[46ch] text-[14px] leading-relaxed text-[#e2efe4] sm:text-[15px]">
-              {settings.hero.description}
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-2.5">
-              {settings.features.membershipInterest ? (
-                <Link href={settings.hero.primaryHref} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#127e2f] px-4 py-2.5 text-[12.5px] font-bold text-white shadow-[0_16px_30px_-16px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/25 transition hover:bg-[#159a3a] sm:px-5 sm:py-3 sm:text-[13px]">
-                  {settings.hero.primaryLabel} <ArrowRight size={15} />
-                </Link>
-              ) : null}
-              <Link href={settings.hero.secondaryHref} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/35 bg-white/10 px-4 py-2.5 text-[12.5px] font-bold text-white backdrop-blur-sm transition hover:border-white/60 hover:bg-white/15 sm:px-5 sm:py-3 sm:text-[13px]">
-                {settings.hero.secondaryLabel}
-              </Link>
-            </div>
-          </div>
-        </div>
-        <HeroRibbon id="landing" />
-      </section>
+      <PublicHomeHero settings={settings} />
 
       <section hidden={!settings.home.capabilities} className="border-y border-line bg-white">
         <div className="sb-shell">

@@ -5,7 +5,7 @@ import {
   Avatar, Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireIdentity } from "@/lib/session";
+import { requireRoles } from "@/lib/session";
 import { formatDateID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Organization Studio" };
@@ -91,7 +91,7 @@ function appointmentStatus(item: AssignmentRow, today: string): {
 }
 
 export default async function OrganisasiStudio() {
-  const identity = await requireIdentity("organization:read");
+  const identity = await requireRoles(["platform_admin", "organization_admin"]);
   let organization: OrganizationRow | null = null;
   let units: UnitRow[] = [];
   let members: MemberRow[] = [];

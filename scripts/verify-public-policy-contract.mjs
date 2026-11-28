@@ -10,6 +10,7 @@ const listing = read("src/app/(public)/kebijakan/page.tsx");
 const detail = read("src/app/(public)/kebijakan/[slug]/page.tsx");
 const layout = read("src/app/(public)/layout.tsx");
 const footer = read("src/components/public-shell.tsx");
+const session = read("src/lib/session.ts");
 
 for (const slug of [
   "legalitas-identitas", "syarat-ketentuan", "privasi", "cookie",
@@ -23,7 +24,14 @@ assert.ok(
   model.includes('"draft", ['),
   "Legal identity must remain draft until registration details are verified.",
 );
-assert.ok(action.includes('requireRoles(["platform_admin", "organization_admin"])'), "Only authorized administrators may edit public policies.");
+const secretaryPermissionBlock = session.match(/case "secretary":[\s\S]*?(?=case "treasurer":)/)?.[0] ?? "";
+const treasurerPermissionBlock = session.match(/case "treasurer":[\s\S]*?(?=case "field_coordinator":)/)?.[0] ?? "";
+assert.ok(
+  action.includes('requireIdentity("cms:publish")') &&
+  secretaryPermissionBlock.includes('"cms:publish"') &&
+  !treasurerPermissionBlock.includes('"cms:publish"'),
+  "Only accounts with the dedicated CMS publishing permission may edit public policies.",
+);
 assert.ok(action.includes("'public_policies.settings.updated'") && action.includes("before_state") && action.includes("after_state"), "Policy updates must be audited with before/after state.");
 assert.ok(editor.includes('name="policies_json"') && editor.includes("Simpan dokumen kebijakan"), "Studio policy CRUD must submit persistent settings.");
 assert.ok(studio.includes("<PublicPoliciesEditor"), "Website Studio must expose the policy editor.");

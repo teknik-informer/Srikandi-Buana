@@ -5,7 +5,7 @@ import {
   Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
-import { requireIdentity } from "@/lib/session";
+import { requireRoles } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Modul & Ekstensi" };
 
@@ -25,7 +25,7 @@ function safeErrorType(reason: unknown): string {
 }
 
 export default async function ModulStudio() {
-  const identity = await requireIdentity("organization:read");
+  const identity = await requireRoles(["platform_admin", "organization_admin"]);
   let fields: FieldApplicationRow[] = [];
   let unavailable = false;
   try {

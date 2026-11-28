@@ -9,7 +9,7 @@ import { FIELDS_BY_SLUG } from "@/config/fields";
 import { AppIcon, FieldMark } from "@/components/brand";
 import { AppBanner } from "@/components/dash-kit";
 import { APP_IDENTITY } from "@/config/app-identity";
-import { Badge, Card, CardHeader, PageHeader, StatCard, StatusBadge, Notice } from "@/components/ui";
+import { Badge, Card, CardHeader, StatCard, StatusBadge, Notice } from "@/components/ui";
 import { formatDateID } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Beranda Aplikasi" };
@@ -314,7 +314,9 @@ export default async function AppHome() {
     <div className="pb-10">
       <AppBanner
         {...APP_IDENTITY.launcher}
-        heading="h2"
+        eyebrow={"Beranda Aplikasi · Selamat datang, " + identity.name.split(" ")[0]}
+        title="Apa yang perlu Anda kerjakan hari ini?"
+        lead={"Konteks aktif: " + identity.scope + ". " + identity.note}
         badge={
           <span className="rounded-full bg-[#e6c56a]/18 px-2.5 py-1 text-[10px] font-bold text-[#f2dda2] ring-1 ring-inset ring-[#e6c56a]/30">
             {identity.role + " · " + identity.scope}
@@ -326,14 +328,6 @@ export default async function AppHome() {
           ...(canAccessApp(identity, "studio") ? [{ href: "/studio", label: "Studio Pengelola" }] : []),
         ]}
       />
-
-      <div className="mt-5">
-        <PageHeader
-          eyebrow={"Selamat datang, " + identity.name.split(" ")[0]}
-          title="Apa yang perlu Anda kerjakan hari ini?"
-          description={"Konteks aktif: " + identity.scope + ". " + identity.note}
-        />
-      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {taskScope ? (

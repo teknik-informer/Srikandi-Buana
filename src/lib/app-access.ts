@@ -67,6 +67,11 @@ export function canAccessAppHref(identity: AppIdentity, href: string): boolean {
 
   if (launcherDestinations.has(path)) return true;
 
+  // Secretaries may open the Website Studio only; other Studio routes stay admin-only.
+  if (path === "/studio/website" || path.startsWith("/studio/website/")) {
+    return identity.roleKey === "secretary" || canAccessApp(identity, "studio");
+  }
+
   const app = appKeyForHref(path);
   // Unknown internal workspace paths are hidden instead of inheriting the
   // launcher's public visibility. The route's server guard remains authoritative.
