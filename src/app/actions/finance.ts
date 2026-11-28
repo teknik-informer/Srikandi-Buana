@@ -2176,9 +2176,8 @@ export async function closeFinancePeriod(formData: FormData): Promise<void> {
           closed_by = ${identity.userId},
           closed_at = now(),
           close_note = ${closeNote},
-          reopened_by = NULL,
-          reopened_at = NULL,
-          reopen_note = NULL,
+          -- Preserve the previous reopen audit metadata. The database guard
+          -- requires it to remain immutable during a subsequent close.
           updated_by = ${identity.userId},
           updated_at = now()
         FROM before_row
