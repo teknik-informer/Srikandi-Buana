@@ -135,7 +135,7 @@ export function getV9PublicInterestSql(context: { name: string; phone: string })
   return contextualSql(getRawV9Sql(), async () => ({
     authFlow: "public-interest",
     publicInterestName: context.name.trim().toLowerCase(),
-    publicInterestPhone: context.phone.replace(/\\D/g, ""),
+    publicInterestPhone: context.phone.replace(/\D/g, ""),
   }));
 }
 
