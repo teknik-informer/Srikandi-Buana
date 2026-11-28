@@ -8,10 +8,11 @@ export const metadata: Metadata = { title: "Surat Masuk & Keluar" };
 export default async function SuratPage({
   searchParams,
 }: {
-  searchParams: Promise<{ result?: string }>;
+  searchParams: Promise<{ result?: string; direction?: string }>;
 }) {
   const identity = await requireIdentity("secretariat:read");
-  const { result } = await searchParams;
+  const { result, direction: requestedDirection } = await searchParams;
+  const initialDirection = requestedDirection === "keluar" ? "keluar" : "masuk";
   const sql = getV9Sql();
   const query = await sql`
     SELECT
@@ -44,6 +45,7 @@ export default async function SuratPage({
   return (
     <SuratClient
       initialRows={rows}
+      initialDirection={initialDirection}
       actorName={identity.name}
       result={result}
       canWrite={can(identity, "secretariat:letters:write")}

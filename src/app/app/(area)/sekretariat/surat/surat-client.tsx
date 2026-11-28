@@ -18,7 +18,6 @@ import {
   SearchBox,
   SearchProvider,
   Select,
-  Segmented,
   TextInput,
   useSearch,
   match,
@@ -47,12 +46,14 @@ export interface SecretariatLetter {
 
 export function SuratClient({
   initialRows,
+  initialDirection,
   actorName,
   result,
   canWrite,
   canGenerateDocuments,
 }: {
   initialRows: SecretariatLetter[];
+  initialDirection: Direction;
   actorName: string;
   result?: string;
   canWrite: boolean;
@@ -62,6 +63,7 @@ export function SuratClient({
     <SearchProvider>
       <Inner
         initialRows={initialRows}
+        initialDirection={initialDirection}
         actorName={actorName}
         result={result}
         canWrite={canWrite}
@@ -73,19 +75,21 @@ export function SuratClient({
 
 function Inner({
   initialRows,
+  initialDirection,
   actorName,
   result,
   canWrite,
   canGenerateDocuments,
 }: {
   initialRows: SecretariatLetter[];
+  initialDirection: Direction;
   actorName: string;
   result?: string;
   canWrite: boolean;
   canGenerateDocuments: boolean;
 }) {
   const { q } = useSearch();
-  const [dir, setDir] = useState<Direction>("masuk");
+  const dir = initialDirection;
   const [open, setOpen] = useState(false);
 
   const counts = {
@@ -191,15 +195,24 @@ function Inner({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <Segmented<Direction>
-          label="Arah surat"
-          value={dir}
-          onChange={setDir}
-          options={[
-            { key: "masuk", label: "Masuk", count: counts.masuk },
-            { key: "keluar", label: "Keluar", count: counts.keluar },
-          ]}
-        />
+        <div role="tablist" aria-label="Arah surat" className="hide-scrollbar flex gap-1 overflow-x-auto rounded-full border border-line bg-paper p-1">
+          <Link
+            href="/app/sekretariat/surat?direction=masuk"
+            role="tab"
+            aria-selected={dir === "masuk"}
+            className={`inline-flex min-h-[36px] items-center whitespace-nowrap rounded-full px-3 text-[12px] font-semibold ${dir === "masuk" ? "bg-[var(--sb-primary-700)] text-white shadow-sm" : "text-muted hover:bg-surface2 hover:text-ink"}`}
+          >
+            Masuk <span className={`ml-1.5 tabular-nums ${dir === "masuk" ? "text-white/80" : "text-muted2"}`}>{counts.masuk}</span>
+          </Link>
+          <Link
+            href="/app/sekretariat/surat?direction=keluar"
+            role="tab"
+            aria-selected={dir === "keluar"}
+            className={`inline-flex min-h-[36px] items-center whitespace-nowrap rounded-full px-3 text-[12px] font-semibold ${dir === "keluar" ? "bg-[var(--sb-primary-700)] text-white shadow-sm" : "text-muted hover:bg-surface2 hover:text-ink"}`}
+          >
+            Keluar <span className={`ml-1.5 tabular-nums ${dir === "keluar" ? "text-white/80" : "text-muted2"}`}>{counts.keluar}</span>
+          </Link>
+        </div>
         <SearchBox placeholder="Cari nomor, perihal, pengirim…" className="w-full sm:w-[320px]" />
       </div>
 
@@ -279,7 +292,11 @@ function Inner({
                   <td className="whitespace-nowrap">
                     {canGenerateDocuments && letter.direction === "keluar" ? (
                       <Link
-                        href={"/app/sekretariat/template/TPL-KEL?source_letter_id=" + letter.id}
+                        href={
+                          letter.document_id
+                            ? `/app/sekretariat/dokumen/${letter.document_id}/cetak`
+                            : `/app/sekretariat/template/TPL-KEL?source_letter_id=${letter.id}`
+                        }
                         className="font-semibold text-primary-700 hover:underline"
                       >
                         {letter.document_id ? "Buka naskah" : "Susun naskah"}

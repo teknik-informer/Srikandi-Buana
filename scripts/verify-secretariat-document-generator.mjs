@@ -83,6 +83,16 @@ assert.ok(
 );
 
 assert.ok(
+  builder.includes("Setelah disimpan, aplikasi membuka naskah untuk pemeriksaan") &&
+  builder.includes('existing ? "Simpan revisi & lanjutkan" : "Simpan draf & lanjutkan"') &&
+  actions.includes("redirect(`/app/sekretariat/dokumen/${saved.id}/cetak?result=${saved.operation}`)") &&
+  printPage.includes("Langkah berikutnya") &&
+  printPage.includes("Periksa, koreksi, cetak, lalu finalkan naskah") &&
+  printPage.includes("Finalkan setelah diperiksa"),
+  "Saving a generated draft must take the user to its review page and expose the next review, print, and finalization steps."
+);
+
+assert.ok(
   printPage.includes('requireIdentity("secretariat:read")') &&
   printPage.includes("identity.organizationId") &&
   printPage.includes('document.status <> \'arsip\'') &&
@@ -92,6 +102,14 @@ assert.ok(
   printPage.includes("finalizeSecretariatDocument") &&
   printPage.includes("document.visibility !== \"publik\""),
   "The print view must enforce organization access, show generated content, and only provide revision controls for supported visibility.",
+);
+
+assert.ok(
+  printPage.includes("Perbaiki / buat revisi") &&
+  printPage.includes("Koreksi disimpan sebagai versi baru; versi sebelumnya tetap tercatat.") &&
+  printPage.includes("archiveSecretariatDocument") &&
+  printPage.includes("Pindahkan draf ke arsip"),
+  "The generated document review page must clearly expose safe correction and draft-archiving actions.",
 );
 
 assert.ok(

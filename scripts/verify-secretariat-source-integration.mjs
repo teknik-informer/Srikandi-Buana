@@ -65,6 +65,23 @@ assert.ok(
 );
 
 assert.ok(
+  letters.includes("direction?: string") &&
+  letters.includes('requestedDirection === "keluar"') &&
+  letters.includes("initialDirection={initialDirection}") &&
+  lettersClient.includes('href="/app/sekretariat/surat?direction=masuk"') &&
+  lettersClient.includes('href="/app/sekretariat/surat?direction=keluar"') &&
+  lettersClient.includes("initialDirection: Direction") &&
+  !lettersClient.includes("<Segmented<Direction>"),
+  "Incoming and outgoing letters must switch through explicit URL navigation and receive the selected direction from the server."
+);
+
+assert.ok(
+  lettersClient.includes('`/app/sekretariat/dokumen/${letter.document_id}/cetak`') &&
+  lettersClient.includes('`/app/sekretariat/template/TPL-KEL?source_letter_id=${letter.id}`') &&
+  lettersClient.includes('{letter.document_id ? "Buka naskah" : "Susun naskah"}'),
+  "An outgoing letter with a generated document must open the saved document review/print route; only letters without a document should open the generator."
+);
+assert.ok(
   meetings.includes("source_meeting_id = meeting.id") &&
   meetings.includes("TPL-UND?source_meeting_id=") &&
   minutes.includes("source_minutes_id = latest_minutes.id") &&

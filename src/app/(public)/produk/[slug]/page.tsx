@@ -29,26 +29,10 @@ async function findPublishedProduct(slug: string) {
     async () => {
       const sql = getV9Sql();
       const result = await sql`
-        SELECT
-          product.id::text AS id,
-          product.slug,
-          product.reference_no,
-          product.product_name,
-          product.category_label,
-          product.product_kind,
-          product.unit_label,
-          product.selling_price::text AS selling_price,
-          product.description,
-          product.producer_label
-        FROM v9.business_products AS product
-        INNER JOIN v9.organizations AS organization
-          ON organization.id = product.organization_id
-        WHERE organization.slug = 'srikandi-buana'
-          AND organization.status = 'active'
-          AND product.field_key = 'usaha'
-          AND product.slug = ${slug}
-          AND product.status = 'active'
-          AND product.publication_status = 'published'
+        SELECT id::text AS id, slug, reference_no, product_name,
+          category_label, product_kind, unit_label, selling_price::text AS selling_price,
+          description, producer_label
+        FROM v9.get_public_products(${slug}, NULL, NULL, 1)
         LIMIT 1
       `;
       return rowsFromResult<PublicProduct>(result)[0] ?? null;
@@ -115,20 +99,9 @@ export default async function ProductDetail({
       if (!product.category_label) return [];
       const sql = getV9Sql();
       const result = await sql`
-        SELECT id::text AS id, slug, product_name, category_label, unit_label, selling_price::text AS selling_price
-        FROM v9.business_products
-        WHERE organization_id = (
-          SELECT id FROM v9.organizations
-          WHERE slug = 'srikandi-buana' AND status = 'active'
-          LIMIT 1
-        )
-          AND field_key = 'usaha'
-          AND publication_status = 'published'
-          AND status = 'active'
-          AND category_label = ${product.category_label}
-          AND id <> ${product.id}::uuid
-        ORDER BY product_name
-        LIMIT 3
+        SELECT id::text AS id, slug, product_name,
+          category_label, unit_label, selling_price::text AS selling_price
+        FROM v9.get_public_products(NULL, ${product.category_label}, ${product.id}::uuid, 3)
       `;
       return rowsFromResult<Pick<PublicProduct, "id" | "slug" | "product_name" | "category_label" | "unit_label" | "selling_price">>(result);
     },

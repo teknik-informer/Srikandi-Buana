@@ -5,6 +5,22 @@ import {
   attachmentDisposition, fetchCloudinaryAsset, type StoredFileAsset,
 } from "@/lib/cloudinary-files";
 
+interface PublicDocumentFile {
+  organization_id: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  base64: string | null;
+  asset_id: string | null;
+  cloudinary_asset_id: string | null;
+  cloudinary_public_id: string | null;
+  cloudinary_resource_type: "image" | "video" | "raw" | null;
+  cloudinary_delivery_type: "authenticated" | null;
+  cloudinary_version: number | null;
+  cloudinary_format: string | null;
+  asset_status: "active" | "revoked" | null;
+}
+
 interface DocumentRecord {
   organization_id: string;
   status: "draft" | "final" | "arsip";
@@ -44,6 +60,63 @@ export async function GET(
 
   try {
     const sql = getV9Sql();
+
+    // Tokenless public downloads use a fixed SECURITY DEFINER projection that
+    // returns only the latest revision of a final public document.
+    let publicFile: PublicDocumentFile | undefined;
+    try {
+      const publicResult = await sql`
+        SELECT * FROM v9.get_public_document_file(${id}::uuid)
+        LIMIT 1
+      `;
+      publicFile = rowsFromResult<PublicDocumentFile>(publicResult)[0];
+    } catch {
+      // Keep internal download behavior available before the QA migration is
+      // applied; public delivery remains unavailable until the projection exists.
+    }
+
+    if (publicFile) {
+      const inlineRequested = new URL(_request.url).searchParams.get("disposition") === "inline";
+      const inline = inlineRequested && (
+        publicFile.mime_type === "application/pdf" || publicFile.mime_type.startsWith("image/")
+      );
+      const headers = {
+        "Content-Type": publicFile.mime_type,
+        "Content-Length": String(publicFile.size_bytes),
+        "Content-Disposition": attachmentDisposition(publicFile.file_name, inline),
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Cache-Control": "private, no-store",
+      };
+
+      if (publicFile.asset_id && publicFile.asset_status !== "active") return missing();
+      if (publicFile.asset_id && publicFile.cloudinary_asset_id && publicFile.cloudinary_public_id &&
+          publicFile.cloudinary_resource_type && publicFile.cloudinary_delivery_type && publicFile.cloudinary_version) {
+        const upstream = await fetchCloudinaryAsset({
+          id: publicFile.asset_id,
+          organization_id: publicFile.organization_id,
+          uploaded_by: null,
+          category: "document",
+          scope_kind: "organization",
+          scope_ref: null,
+          file_name: publicFile.file_name,
+          mime_type: publicFile.mime_type,
+          size_bytes: publicFile.size_bytes,
+          cloudinary_asset_id: publicFile.cloudinary_asset_id,
+          cloudinary_public_id: publicFile.cloudinary_public_id,
+          cloudinary_resource_type: publicFile.cloudinary_resource_type,
+          cloudinary_delivery_type: publicFile.cloudinary_delivery_type,
+          cloudinary_version: Number(publicFile.cloudinary_version),
+          cloudinary_format: publicFile.cloudinary_format,
+          status: "active",
+        });
+        return new NextResponse(upstream.body, { status: 200, headers });
+      }
+
+      if (!publicFile.base64) return missing();
+      return new NextResponse(Buffer.from(publicFile.base64, "base64"), { status: 200, headers });
+    }
+
     const metadataResult = await sql`
       SELECT
         document.organization_id::text AS organization_id,

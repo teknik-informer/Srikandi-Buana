@@ -1,0 +1,739 @@
+# V9 Tenant Isolation — QA Inventory and Policy Matrix
+
+Status: **QA implementation / evidence in progress**  
+Scope: Issue #90. This document is not a Production release approval.  
+Source baseline: `feat/v9.2-production-integration` commit `2b94f281ae834d23a8f618c28d002bcc5b65e0ea`; QA implementation is isolated on `feat/issue-90-tenant-rls-qa-20261128`.
+
+## 1. QA environment and principal evidence
+
+| Check | Observed QA evidence | Status |
+|---|---|---|
+| Neon project | `holy-night-99324539` | Verified |
+| QA database branch | `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx` | Verified |
+| Parent chain | `srikandi-v12-sanitized-qa` → `srikandi-v12-migration-qa` → production parent | Verified; QA branch is sanitized |
+| DB engine | PostgreSQL `18.7` | Verified; does **not** satisfy the PostgreSQL 16 acceptance gate yet |
+| V9 tables | 63 | Verified |
+| Table owner | `neondb_owner` on all 63 tables | Verified |
+| Runtime candidate | `v9_app` | Verified by a direct login to the QA endpoint |
+| `v9_app` attributes | `SUPERUSER=false`, `BYPASSRLS=false`, `CREATEROLE=false`, `CREATEDB=false`, `LOGIN=true` | Verified |
+| `v9_app` existing table grants | SELECT/INSERT/UPDATE/DELETE on 63/63 before RLS | Verified; RLS is the missing database enforcement layer |
+| Existing RLS before migration | 0/63 enabled; 0/63 forced; 0 tables with policies | Verified |
+| Vercel Preview variable | `V9_DATABASE_URL`, target `preview`, branch `feat/issue-90-tenant-rls-qa-20261128`; created from Neon connection string for `v9_app` on the QA branch | Metadata verified; runtime probe still required |
+| Production | No SQL write, role/owner change, RLS change, environment change or deployment performed by this QA work | Verified by operation scope |
+
+The actual connection string, password, hostname, session token, account email and password hashes are deliberately excluded from this document and CI logs.
+
+## 2. Database object inventory
+
+Read-only catalog inspection of the QA branch returned:
+
+| Object | Count | Notes |
+|---|---:|---|
+| Tables in schema `v9` | 63 | Full inventory below |
+| Foreign-key constraints | 244 | Read from `pg_constraint` |
+| Views | 0 | No V9 views found |
+| Sequences | 21 | Reference-number generation; `v9_app` has USAGE/SELECT, not UPDATE |
+| Trigger functions | 21 | Existing domain integrity and immutability functions; SECURITY INVOKER |
+| Non-internal triggers | 22 | Finance, field program/workplan, payment receipt, inventory movement, community moderation and document generation |
+| Existing RLS policies before migration | 0 | Migration adds policies; post-migration verification is a hard gate |
+
+### 63-table policy inventory
+
+| Table | Domain / parent | Scope and database policy intent | Write boundary |
+|---|---|---|---|
+| `organizations` | Organization | Current authenticated organization; active organization during login; only the active Srikandi public organization projection | No application write policy |
+| `organization_units` | Organization | Organization or assigned unit | Organization leadership only |
+| `field_applications` | Organization / field registry | Active tenant/field unit; login-only lookup for the signed-in user's unit assignment | Default deny for application writes |
+| `people` | Identity / membership | Own person, members visible within assigned organization/unit, and authors of published community content | Server action validates self-profile fields |
+| `user_accounts` | Authentication | Own account; linked person only within authorized tenant scope; narrowly selected email during pre-auth login | Own-account update only; no account creation or role assignment through runtime policy |
+| `memberships` | Membership | Organization/unit/self; published community author membership projection | Leadership membership writes; author projection SELECT only |
+| `role_assignments` | RBAC | Current user and authorized tenant/unit scope; self role lookup during login | Default deny for application writes |
+| `sessions` | Authentication | Current session token/current actor only | Current actor session create/revoke/update only |
+| `login_rate_limits` | Authentication | One pre-authentication email/IP HMAC pair, transaction-scoped | Same pair only |
+| `membership_interests` | Public intake | Leadership review queue; public duplicate-throttle check limited to same normalized name/phone in the recent window | Public INSERT only to active Srikandi organization with consent, `submitted` and `website`; review update by leadership |
+| `person_interests` | Member profile | Person and organization scope | Same tenant/self scope |
+| `audit_events` | Audit | Leadership SELECT within organization | Append-only INSERT with actor ID and organization matching verified request; no UPDATE/DELETE |
+| `bootstrap_state` | Bootstrap | No runtime tenant read | Default deny; bootstrap principal only |
+| `schema_migrations` | Deployment metadata | No runtime tenant read | Default deny; migration principal only |
+| `outbox_events` | Event/outbox | No application read; tenant insert only | Authenticated tenant INSERT; narrow public intake event INSERT; worker principal not yet inventoried as a separate runtime |
+| `system_settings` | Settings / public website | Tenant settings; public website/profile keys only when explicitly public | Leadership write only |
+| `field_workplans` | Field programs | Organization/field scope and creator scope | Same tenant/field scope; state transition trigger retained |
+| `field_programs` | Field programs | Organization/field scope and creator scope | Same tenant/field scope; status/workplan linkage triggers retained |
+| `field_program_indicators` | Field programs | Organization/field scope | Same tenant/field scope |
+| `field_activities` | Field programs | Organization/field scope | Same tenant/field scope; program child-link trigger retained |
+| `field_tasks` | Field programs | Assigned user or creator within organization/field | Same tenant/field scope; program child-link trigger retained |
+| `field_team_assignments` | Field teams | Organization/field, membership and creator scope | Same tenant/field scope |
+| `agriculture_plots` | Agriculture | Organization/field; member-owned plot membership | Same tenant/field/member scope |
+| `agriculture_cycles` | Agriculture | Organization/field and linked plot | Same tenant/field or linked plot scope |
+| `agriculture_harvests` | Agriculture | Organization/field plus linked plot/cycle | Same tenant/field or linked parent scope |
+| `agriculture_visits` | Agriculture | Organization/field plus linked plot/cycle | Same tenant/field or linked parent scope |
+| `training_sessions` | Training | Organization/field and creator scope | Same tenant/field scope |
+| `training_enrollments` | Training | Organization/field, participant membership and recorder scope | Same tenant/field/member scope |
+| `training_assessments` | Training | Organization/field, assessor and linked enrollment | Same tenant/field or linked enrollment scope |
+| `training_certificates` | Training | Organization/field, issuer and linked enrollment | Same tenant/field or linked enrollment scope |
+| `business_partners` | Business / partnerships | Organization/field and creator scope | Same tenant/field scope |
+| `business_opportunities` | Business / CRM | Organization/field and creator scope | Same tenant/field scope |
+| `business_agreements` | Business / CRM | Organization/field and creator scope | Same tenant/field scope |
+| `business_milestones` | Business / CRM | Organization/field and creator scope | Same tenant/field scope |
+| `business_customers` | Business / sales | Organization/field and creator scope | Same tenant/field scope |
+| `business_products` | Business / catalog | Organization/field and creator scope | Same tenant/field scope |
+| `business_warehouses` | Business / inventory | Organization/field and creator scope | Same tenant/field scope |
+| `business_product_stock` | Business / inventory | Organization/field and last updater | Same tenant/field scope |
+| `business_inventory_movements` | Business / inventory | Organization/field and recorder | INSERT/SELECT scope; existing trigger rejects UPDATE/DELETE |
+| `business_orders` | Business / sales | Organization/field and creator | Same tenant/field scope |
+| `business_order_items` | Business / sales | Parent order organization/field | Same tenant/field scope |
+| `business_order_payments` | Business / sales / finance | Organization/field and receipt recorder | Same tenant/field scope; existing payment integrity trigger retained |
+| `finance_accounts` | Finance | Organization and creator | Same tenant; server-side finance permission remains required |
+| `finance_cash_accounts` | Finance | Organization and creator | Same tenant; cashier/teller access remains governed by server permission and UAT |
+| `finance_journals` | Finance | Organization and creator | Same tenant; double-entry and journal state triggers retained |
+| `finance_journal_lines` | Finance | Parent organization | Same tenant; journal/period triggers retained |
+| `finance_periods` | Finance | Organization and creator | Same tenant; period close guard retained |
+| `finance_budgets` | Finance | Organization and creator | Same tenant; approval and immutability triggers retained |
+| `finance_budget_lines` | Finance | Parent organization | Same tenant; budget-line guard retained |
+| `finance_contribution_allocations` | Finance / membership | Organization, member allocation and creator | Same tenant/member scope; integrity trigger retained |
+| `member_community_topics` | Member community | Own content plus published topics visible to active members in the same organization | Author/self changes and moderation state transitions remain server/trigger controlled |
+| `member_community_replies` | Member community | Own content plus published replies on published topics visible to active members in the same organization | Author/self changes and moderation state transitions remain server/trigger controlled |
+| `member_community_reports` | Member community | Reporter self-scope and moderator organization scope | Reporter INSERT; moderator resolve/dismiss; trigger validates reporter and target |
+| `secretariat_letters` | Secretariat | Organization and creator scope | Same tenant; server-side Secretariat permission remains required |
+| `secretariat_meetings` | Secretariat | Organization or assigned unit/creator | Same tenant/unit scope |
+| `secretariat_minutes` | Secretariat | Parent meeting scope | Same parent meeting scope |
+| `secretariat_meeting_attendance` | Secretariat | Parent meeting or own membership/person scope | Same meeting/self scope |
+| `secretariat_meeting_decisions` | Secretariat | Parent minutes → meeting scope | Same parent scope |
+| `secretariat_documents` | Secretariat / archive | Organization, source field and creator scope; final public documents only through a valid share grant | Same tenant/field scope; document lifecycle remains server-controlled |
+| `secretariat_document_files` | Secretariat / files | Parent document scope; current final public revision via one valid token | Same parent document scope; file metadata/storage retention rules remain |
+| `secretariat_document_generations` | Secretariat / generator | Parent document scope | Same parent document scope; immutable generation trigger retained |
+| `file_assets` | Shared file service | Self/field/organization scope; explicit public banner projection; explicit one-token file-share projection | Same tenant/scope only; status/revocation remains server-controlled |
+| `file_share_links` | Shared file service | Tenant/creator scope; token-scoped public SELECT/UPDATE for download counter only | Tenant link create/revoke; public share can only consume the matching nonexpired, nonrevoked token within its download limit |
+
+### Non-table objects
+
+| Object class | Inventory | Policy / test concern |
+|---|---|---|
+| Views | None in schema `v9` | Re-run catalog check after every migration |
+| Sequences | 21 named reference sequences | `v9_app` has USAGE/SELECT; sequence privileges are not protected by table RLS |
+| Existing trigger functions | 21, owned by `neondb_owner`, SECURITY INVOKER | Their internal SELECT/UPDATE queries become subject to RLS when called by `v9_app`; integrity regression is mandatory |
+| Existing non-internal triggers | 22 | Finance journal/period, cash accounts, budgets, payments, inventory, field workplan/program, community moderation, document generation |
+| RLS helper functions in migration | SECURITY DEFINER with pinned `search_path = pg_catalog, v9` | Owner is migration principal; EXECUTE is explicitly granted to `v9_app`; no browser-supplied tenant ID is trusted |
+
+## 3. Server query/action coverage (source-level mapping)
+
+| Application surface | Server source paths | Primary tables touched | Required scope |
+|---|---|---|---|
+| Login / session | `src/app/actions/auth.ts`, `src/lib/session.ts`, `src/app/keluar/route.ts` | `user_accounts`, `role_assignments`, `organizations`, `field_applications`, `sessions`, `login_rate_limits` | Email/IP HMAC before auth; then password-verified user ID; then session hash |
+| Account/profile | `src/app/actions/account-settings.ts`, `src/app/actions/member-profile.ts`, `src/lib/self-profile.ts` | `user_accounts`, `people`, `person_interests`, `sessions`, `audit_events` | Self only; server permission and field validation |
+| Membership | `src/app/actions/forms.ts`, `membership.ts`, `membership-management.ts`, `membership-management.ts`, `membership-management.ts` | `membership_interests`, `memberships`, `people`, `organizations`, `audit_events`, `outbox_events` | Public intake narrowly constrained; review/activation requires organization permission |
+| Secretariat | `src/app/actions/secretariat-letters.ts`, `secretariat-meetings.ts`, `secretariat-documents.ts` | Secretariat register, minutes, attendance/decisions, files/generations, source field records, audit | Organization/unit/parent document scope |
+| Shared files | `src/app/api/files/route.ts`, `src/app/api/files/[id]/route.ts`, `src/app/api/files/[id]/share/route.ts`, `src/app/api/files/share/[token]/route.ts`, `src/app/api/secretariat/documents/[id]/file/route.ts`, `src/app/api/public-site/banner/[id]/route.ts` | `file_assets`, `file_share_links`, document/file links, public website settings, audit | Self/field/org; public banner only exact configured asset; share only exact hashed token and eligible final public revision |
+| Field operations | `src/app/actions/field-operations.ts`, `field-team.ts`, `workplan-approvals.ts`, `management-tasks.ts` | Workplans, programs, indicators, activities, tasks, team assignments, memberships, audit | Field-key/unit scope; approval permission checked server-side |
+| Agriculture | `src/app/actions/agriculture.ts` | Plots, cycles, visits, harvests, memberships, people, field applications, audit | Field/organization and linked plot/cycle/member scope |
+| Training | `src/app/actions/training.ts`, `member-training.ts` | Sessions, enrollments, assessments, certificates, memberships, audit | Field/organization plus participant/member scope |
+| Business / inventory / POS | `src/app/actions/business.ts`, `business-catalog.ts`, `business-inventory.ts`, `business-orders.ts`, `src/app/app/(area)/pos/page.tsx` | Partners, opportunities, agreements, milestones, products, customers, warehouses, stock, inventory movements, orders/items/payments, finance cash accounts, audit | Organization/field; payment and stock trigger constraints |
+| Finance | `src/app/actions/finance.ts`, `src/lib/finance.ts`, `src/lib/ledger.ts` | Accounts, cash accounts, journals/lines, periods, budgets/lines, contribution allocations, payment links, audit | Organization scope; role permission checks and ledger triggers remain required |
+| Member community | `src/app/actions/member-community.ts` | Topics, replies, reports, memberships, people, accounts, audit | Self writes; published same-organization reads for active members; moderator scope |
+| Studio / public settings | `src/app/actions/design-theme.ts`, `public-site-settings.ts`, `public-policies.ts`, `login-page-content.ts`, `src/lib/public-site-settings.ts`, `src/lib/login-page-content.ts` | `system_settings`, `file_assets`, `audit_events` | Tenant reads; public setting keys only if visibility=public; leadership writes |
+| Search / public data | `src/app/api/search/route.ts`, `src/lib/search.ts`, `src/lib/operational-search.ts`, public page loaders | Domain-specific joined tables, public settings, approved public product/activity/document data | Must inherit row policy of every joined relation; exact route-level export/search regressions remain in UAT |
+
+This is a first source-level map. The CI contract checks known server query helpers and migration inventory, but it is **not** proof that every query/route, trigger side effect or export has passed PostgreSQL integration testing. The dedicated QA query audit and operational UAT must close those gaps.
+
+## 4. Role × access principle
+
+Application permission checks in `src/lib/session.ts` remain mandatory. RLS is a second, database-level boundary; it does not replace action-level authorization.
+
+| Effective role | App permission family | RLS scope rule |
+|---|---|---|
+| `platform_admin` | `*` | Current resolved organization only unless a separately reviewed platform/global scope is introduced |
+| `organization_admin` | `*` | Assigned organization |
+| `chair` | `*` | Assigned organization |
+| `secretary` | Secretariat/docs/files, membership activation, read-only finance, read-only fields and moderation | Assigned organization; document and meeting parent scope |
+| `treasurer` | `finance:*`, limited file and organization reads | Assigned organization; no implicit external data share |
+| `field_coordinator` | Field-key wildcard, approval submit, file and finance request permissions | Assigned field/unit; no access to other fields |
+| `field_staff` | Field read, activity write, limited files | Assigned field/unit and explicitly assigned tasks |
+| `cashier` | POS sell, catalog read and limited files | Assigned organization/field; finance journal remains permission-gated |
+| `member` | Own profile/tasks/training/community, limited files | Self; published community projection for active same-organization members |
+| `government_viewer` | Portal read only | **Denied from operational tenant tables** until grant registry exists |
+| `ngo_viewer` | Portal read only | **Denied from operational tenant tables** until grant registry exists |
+| `partner_viewer` | Portal read only | **Denied from operational tenant tables** until grant registry exists |
+
+External roles may still receive an explicitly public website/banner projection or a valid file-share link. That is not a dataset grant. The portal remains closed until a grant model exists with recipient, purpose, dataset/field selection, expiration, revocation and audit.
+
+## 5. Transaction-bound request context
+
+- `getV9Sql()` hashes the opaque server cookie and attaches context using transaction-local `set_config(..., true)` before each query through `sql.transaction([contextQuery, query])`.
+- No session-level `SET ROLE`, `SET SESSION`, or connection-persistent tenant GUC is used.
+- Login lookup has a separate pre-auth email/IP HMAC context. Only after password verification does the code create an account-bound login context.
+- Public interest submission has a dedicated context that is restricted to one organization, one submission status/source and one normalized name/phone duplicate-throttle pair.
+- Public file download has a dedicated context carrying only the SHA-256 hash of one opaque share token.
+- Public banner reads are restricted to the configured public-site image asset.
+- PostgreSQL HTTP pooling/concurrency tests are still required before this context is accepted for Production.
+
+## 6. QA release gates still open
+
+1. Latest exact-head CI must pass after the most recent migration/policy changes.
+2. Preview deployment must use this branch and the branch-scoped QA `V9_DATABASE_URL`; authenticated runtime probe must show `current_user=session_user=v9_app`, non-superuser, non-BYPASSRLS, non-owner and correct Neon branch ID.
+3. Apply migration `0044_tenant_row_level_security.sql` to QA only, then verify RLS and FORCE RLS on all 63 tables, all policy counts, no ownership transfer, no runtime DDL rights and default deny for bootstrap/schema_migrations.
+4. PostgreSQL 16 integration suite is still outstanding; current Neon QA is PostgreSQL 18.7.
+5. Two-organization positive/negative tests, unit/self-scope tests, audit/trigger side effects, public intake/share/banner and transaction concurrency/pooling tests are still outstanding.
+6. Test auth/session, member/profile, secretariat/generator/files, field/agriculture, training, business/inventory/POS, finance, reporting/export/search, public settings and portal denial on Preview.
+7. UAT must use legitimately provisioned users/roles only. Do not create fake Treasurer/member/external operational accounts to green the test.
+8. Independent security review, idempotent migration/rollback procedure and a separate explicit Production approval remain required.
+
+Issue #90 remains open until these gates have evidence. Issue #66 remains the parent capability gap matrix and is not to be closed while any capability gap or evidence item is outstanding.
+
+
+## 7. Public website data under database RLS
+
+Public website routes no longer SELECT operational tables directly. The following `SECURITY DEFINER` projections were added to migration `0044_tenant_row_level_security.sql`; each pins `search_path = pg_catalog, v9`, is revoked from `PUBLIC`, and is granted to `v9_app` only:
+
+| Projection | Public output | Source predicate / boundary |
+|---|---|---|
+| `get_public_fields()` | Field key, names, mandate and active unit name | Active Srikandi organization, enabled field applications, active unit join |
+| `get_public_products(text,text,uuid,integer)` | Public catalogue columns only | Active organization, `field_key='usaha'`, `status='active'`, `publication_status='published'`; capped limit and optional slug/category/exclusion |
+| `get_public_activities(text,boolean,integer)` | Event title, date/time, field label, location and description | `open_to_public=true`, enabled field application, allowed upcoming/completed states, active Srikandi organization |
+| `get_public_training_sessions(boolean,integer)` | Session schedule and aggregate registered/present counts | Only registration-open upcoming sessions or completed sessions; no participant identity or enrollment rows returned |
+| `get_public_documents(text,integer)` | Public archive metadata and latest file name/size | Final document, `visibility='publik'`, active Srikandi organization; inactive/missing Cloudinary asset excluded |
+| `get_public_document_file(uuid)` | Latest public file bytes/asset delivery metadata | Exact document ID must resolve to an active organization document, final/public classification and latest active file revision |
+
+Public loaders updated to use these functions:
+- Home, activity listing, organization profile and training listing
+- Product catalogue, product details and related products
+- Public document listing
+- Tokenless download of final/public documents
+
+The public download API retains the authenticated internal-document path for authorized Secretariat users. Anonymous access only succeeds through `get_public_document_file`; an internal, limited, draft or archived document does not qualify.
+
+**Important distinction:** the projections preserve the fields the existing public site intentionally displays. They do not create a general row-level grant on `business_products`, `training_enrollments`, `secretariat_documents`, `secretariat_document_files` or `file_assets`. Direct base-table reads remain default-deny for anonymous `v9_app`.
+
+PostgreSQL 16 CI integration now includes disposable-only projection fixtures proving:
+- enabled field registry and explicitly public activity projection;
+- published products returned, draft/private products excluded;
+- training counts are aggregate-only and participant names/membership IDs are not part of the function return schema;
+- final/public documents and latest public file revision returned;
+- direct anonymous SELECT on products, training enrollments and Secretariat documents returns no rows.
+
+These are CI fixtures in a temporary PostgreSQL 16 service. They are not inserted into the Neon QA rehearsal branch or Production.
+
+## 8. Updated execution status
+
+- Current branch PR: [#92 — QA tenant RLS and transaction-bound request context](https://github.com/teknik-informer/Srikandi-Buana/pull/92), still Draft and not merged.
+- Exact-head CI on commit `8a45052079e2d0f731b9b34e742c909614a57f8c` passed: organization regression, core shell contract, tenant RLS contract, TypeScript, Next.js production build, and PostgreSQL 16 integration.
+- The Neon QA branch already contained a prior RLS v1 application. The owner-visible ledger showed checksum `sha256:tenant-row-level-security-v1`; the apparent missing ledger row from the `v9_app` read was caused by the intentional default-deny policy on `schema_migrations`.
+- QA migration v2 was applied atomically to `phase1-integration-rehearsal` (`br-snowy-forest-b46i5pqx`) after an explicit branch/database/principal/baseline preflight. The ledger now records `sha256:tenant-row-level-security-v2-transaction-context-privacy-policy-20261128`.
+- Post-migration owner and runtime-role checks are recorded in Section 11. Production remains unchanged.
+- Exact-head Vercel Preview is READY at [admin-dashboard-2gm3l2g61-teknik-informer.vercel.app](https://admin-dashboard-2gm3l2g61-teknik-informer.vercel.app), commit `8a45052079e2d0f731b9b34e742c909614a57f8c`.
+- **Still pending:** execute the admin-only Preview database diagnostics endpoint from a valid authenticated Preview admin session, verify `safeForTenantUat=true`, and run operational browser UAT. CI, migration success and Vercel READY do not replace this proof.
+
+
+## 9. Public organization identity boundary
+
+The `organizations` base table no longer has an anonymous public-row policy. Its SELECT policy is restricted to the authenticated actor's current organization or an organization proven by the password-verified login context.
+
+Public routes and settings use two fixed security-definer functions:
+- `get_public_organization()`: returns only the public identity fields required by the homepage, profile and contact pages (legal name, short name, active status, legal status and address).
+- `get_public_organization_id()`: returns the active Srikandi organization UUID for server-side public settings, public interest intake and the matching outbox event policy.
+
+The public website settings, policy and login-copy loaders no longer resolve the organization by selecting `v9.organizations` directly. The public banner endpoint relies on the precise `file_assets_public_banner_read` row policy and selects only fields needed for server-side Cloudinary delivery.
+
+PostgreSQL 16 integration additionally asserts that anonymous `v9_app` cannot directly SELECT any organization row, while `get_public_organization()` returns the approved public identity.
+
+
+## 10. Preview runtime pooling/concurrency probe
+
+The Preview-only admin diagnostic endpoint now runs two simultaneous synthetic pre-auth login contexts through the exact `getV9LoginSql()` Neon HTTP transaction wrapper. Both probes compare `current_user` and `session_user` and verify that each transaction observes only its own email, subject HMAC and IP HMAC, with no authenticated session token context injected into either pre-auth transaction. A separate normal authenticated query verifies that the actual request's cookie-derived session context is present inside its own transaction. That presence is expected and must not be interpreted as a session-level leak.
+
+The response exposes only:
+- `concurrency.transactionContextIsolation` (boolean)
+- `concurrency.requestSessionContextPresent` (boolean): confirms the authenticated cookie-derived context is present inside the current wrapped request transaction; it is expected to be true and is **not** a test for session-level context leakage.
+- previously documented non-secret current role/database/branch/privilege metadata
+
+It never returns or logs synthetic emails, HMAC values, session hashes, connection strings or credentials. `safeForTenantUat` is true only when the live deployment uses `v9_app` on the exact QA branch `br-snowy-forest-b46i5pqx`, has no owner/BYPASS/DDL privilege, does not own tenant tables, and both context probes pass.
+
+This probe has been implemented and must be executed in a signed-in Preview admin session before Issue #91 is closed. It is not replaced by PostgreSQL 16 CI or a Vercel READY status.
+
+
+
+## 11. QA migration v2 and exact-head Preview evidence — 28 November 2026
+
+### 11.1 Upgrade history and preflight
+
+The QA branch was not an untouched database. Before the v2 reconciliation, the owner-visible ledger contained `0044_tenant_row_level_security.sql` with checksum `sha256:tenant-row-level-security-v1` (applied at `2026-11-28T08:09:42.825Z`). RLS and FORCE RLS were already active on the 63 V9 tables. The legacy v1 policy set still contained broad SECURITY DEFINER helpers for account, membership and person row visibility.
+
+An early check as `v9_app` returned zero rows from `schema_migrations`; this was not evidence that the migration had not run. `schema_migrations` is intentionally default-deny for the runtime role. The migration history was verified as `neondb_owner` before proceeding.
+
+The v2 application was executed in one transaction against only Neon branch `br-snowy-forest-b46i5pqx`:
+- preflight verified `current_setting('neon.branch_id')`, database `neondb`, migration principal `neondb_owner`, 63 tables, 63 RLS flags, 63 FORCE RLS flags and the expected v1 ledger checksum;
+- the preflight required all three legacy helpers to exist before replacing them;
+- migration statements completed atomically; no Production connection or target was used.
+
+### 11.2 Post-migration database state
+
+| Check | QA result |
+|---|---:|
+| V9 tables | 63 |
+| RLS enabled | 63 / 63 |
+| FORCE RLS enabled | 63 / 63 |
+| Tables with policies | 61 |
+| Tables without policies | 2: `bootstrap_state`, `schema_migrations` |
+| Policy count | 78 |
+| Legacy broad community/account policies | 0 |
+| Legacy SECURITY DEFINER helpers | 0 |
+| Safe `get_member_community_author_name(uuid)` projection | Present |
+| Existing triggers / trigger functions | 22 / 21 |
+| Sequences / views | 21 / 0 |
+| QA audit-event row count | 1; unchanged by migration |
+
+The ledger now records `sha256:tenant-row-level-security-v2-transaction-context-privacy-policy-20261128`, applied at `2026-11-28T09:52:20.199Z`.
+
+The new community author projection is SECURITY DEFINER with pinned `search_path`, owned by `neondb_owner`, executable by `v9_app` only and not executable by `PUBLIC`. It resolves only a name display value, requires an active membership in the actor's organization, and limits ordinary member visibility to authors of published content. Moderators can resolve same-tenant authors of content/reports they are authorized to moderate. Raw `people`, `memberships` or `user_accounts` rows are not made visible to other members for display convenience.
+
+### 11.3 Runtime principal and least privilege (direct Neon QA connection)
+
+| Check | Result |
+|---|---|
+| `current_user` | `v9_app` |
+| `session_user` | `v9_app` |
+| Database / Neon branch | `neondb` / `br-snowy-forest-b46i5pqx` |
+| PostgreSQL | 18.7 on Neon QA |
+| SUPERUSER / BYPASSRLS | false / false |
+| CREATEROLE / CREATEDB | false / false |
+| Member of `neondb_owner` / can SET that role | false / false |
+| CREATE on schema `v9` / CREATE on database | false / false |
+| Owns V9 tenant tables | false |
+
+This direct Neon connection check verifies the QA database principal and privilege map. The Preview-only route `/api/studio/diagnostics/database` also performs the same runtime check through the deployed application and includes concurrent transaction-context isolation probes. That route has **not yet been executed in a signed-in Preview admin session**, so the Vercel request path remains a separate acceptance gate.
+
+### 11.4 CI and Preview evidence
+
+- PR #92 remains Draft and unmerged.
+- Exact-head commit at this checkpoint: `7cca12a9b0d782eb3479f6156a5dd07707c63a28`.
+- GitHub Actions run #965: success, including PostgreSQL 16 tenant RLS integration, organization regression, core shell contract, TypeScript validation and Next.js production build.
+- The PostgreSQL 16 runner deliberately creates the legacy v1 helper/policy state, upgrades it to v2, runs migration a second time to verify idempotence, and then asserts the policy inventory and cross-tenant tests.
+- Vercel deployment `dpl_BZT23Nsp97EdveRfbghCJKwGQogu` is READY and maps to the exact branch and SHA above. Build events contain `Deployment completed` and `Build Completed`.
+- Vercel Preview runtime log query for the deployment returned no log records in the last 30 minutes and no error/fatal records in its query window. This means no logs were returned, not that authenticated feature flows were tested.
+
+### 11.5 Remaining Issue #90 gates
+
+1. A valid authorized administrator must sign in to the exact Preview URL and request `/api/studio/diagnostics/database`; require `safeForTenantUat=true`, `current_user=session_user=v9_app`, exact QA branch ID and successful concurrency probes.
+2. Perform browser UAT on Preview, with legitimate provisioned accounts only, for login/logout/session revocation, profile/account self-service, membership, Secretariat, file upload/download/share, public banner and public projections, field/agriculture, training, inventory/POS, Finance, search, reporting and exports.
+3. Test actual application request paths and trigger side effects after RLS on QA. The PostgreSQL 16 CI suite is a strong database regression gate but does not replace end-to-end UAT against Neon/Preview.
+4. Independent security review must inspect helper functions, grants, role ownership, report/export queries, operational search and the full table/query/action inventory.
+5. Update this document and Issue #66 with each domain's evidence. Keep Issue #90 open until the authenticated Preview probe and required UAT/security review gates are complete.
+
+No Production SQL, role, grant, RLS, schema, environment, SSO, domain, alias or deployment operation was performed.
+
+### 11.6 Follow-up to the authenticated Preview diagnostic — 28 November 2026
+
+The first user-submitted authenticated Preview response confirmed the expected runtime principal and QA target (`v9_app` on `br-snowy-forest-b46i5pqx`) and all reported least-privilege flags were false. It returned `transactionContextIsolation=false` and `sessionContextPresent=true`.
+
+Source inspection found a deterministic defect in the diagnostic itself: the second concurrent query (`probeB`) did not select `session_user`, although the comparison required `contextB.session_user === 'v9_app'`. This forced the isolation boolean to false regardless of otherwise-correct context values. The `sessionContextPresent=true` value represented the authenticated request's cookie-derived context inside the wrapped request transaction; it did not establish session-level leakage. The response field has therefore been renamed `requestSessionContextPresent` to make its meaning explicit.
+
+The fix adds `session_user` to the second probe and a source-contract assertion that both concurrent probes compare this identity. Exact-head GitHub Actions run #965 passed on `7cca12a9b0d782eb3479f6156a5dd07707c63a28`, including PostgreSQL 16 integration, core shell contracts, TypeScript and production build.
+
+A new Vercel Preview deployment was then created from that exact commit: `dpl_7djs6LSUfbWvENH7kPfQcptf786V` (`admin-dashboard-o5nnxtvo1-teknik-informer.vercel.app`). Its final READY state and a fresh authenticated diagnostic response are still required. The earlier user-submitted JSON remains evidence for the previous deployment only.
+
+### 11.7 Authenticated runtime proof and Preview environment binding — 28 November 2026
+
+The user returned the authenticated diagnostic response from the exact READY Preview deployment after sign-in. The response reports `environment=preview`; `current_user=session_user=v9_app`; database `neondb`; PostgreSQL 18.7; Neon branch `br-snowy-forest-b46i5pqx`; and endpoint `ep-icy-scene-b4f8rk0x`. All elevated capability flags are false: SUPERUSER, BYPASSRLS, CREATEROLE, CREATEDB, tenant table ownership, membership in `neondb_owner`, ability to SET `neondb_owner`, CREATE on schema `v9`, and CREATE on database.
+
+The corrected live probes return `transactionContextIsolation=true` and `requestSessionContextPresent=true`, with `safeForTenantUat=true`. This confirms two concurrent pre-auth contexts observe isolated transaction-local values and the authenticated request has its own cookie-derived context inside its query transaction.
+
+Read-only Vercel project environment metadata was inspected with decryption disabled. The `V9_DATABASE_URL` variable pinned to Preview branch `feat/issue-90-tenant-rls-qa-20261128` has a non-secret configuration comment identifying the dedicated `v9_app` credential and Neon QA branch `br-snowy-forest-b46i5pqx`. A separate `V9_DATABASE_URL` entry targets Production. No environment variable values were decrypted or displayed. The Preview runtime's returned Neon branch ID independently confirms the connection actually used by the request.
+
+Source file `src/lib/db.ts` reads only `process.env.V9_DATABASE_URL`, throws when it is absent, and does not fall back to `DATABASE_URL` or `PREVIEW_DATABASE_URL`. The static contract now explicitly asserts this fail-closed/no-fallback behavior.
+
+Exact source-contract commit `23dfc5b1f52ee7d4ea7cab7a04fa95294437cb11` passed GitHub Actions run #969: PostgreSQL 16 RLS integration, organization regressions, core workspace/tenant RLS contract checks, TypeScript validation, and Next.js production build. The deployed application code remains commit `7cca12a9b0d782eb3479f6156a5dd07707c63a28` in Vercel deployment `dpl_7djs6LSUfbWvENH7kPfQcptf786V`, state READY. The later commit added only source contract assertions/documentation; no runtime code changed after deployment.
+
+Issue #91's narrow runtime-principal/Preview-target proof is complete. This does not close Issue #90: the comprehensive query/action inventory, all negative cross-tenant operation and side-effect tests, operational domain regressions, authenticated Preview UAT across legitimate personas, and independent security review remain open.
+## 12. Source-level server action and route relation sweep — 28 November 2026
+
+A source scan was run against the exact PR branch tree at commit `385ab790498315ebf6e7a1952ad95f7114c70a4d`. It enumerated 27 files under `src/app/actions`, the file/share/public APIs, the operational search loader, and the POS page. The following is a **relation-reference inventory**: table names were extracted from SQL clauses and normalized against the audited 63-table inventory. It is useful for finding query families, but it is not yet a complete query AST, route-caller, trigger-side-effect or authorization proof.
+
+| Server action file | V9 relations referenced by SQL | Primary operation family |
+|---|---|---|
+| `account-settings.ts` | `user_accounts`, `sessions`, `audit_events` | Self password change, session revocation, audit |
+| `auth.ts` | `organizations`, `user_accounts`, `role_assignments`, `field_applications`, `login_rate_limits`, `sessions` | Login lookup, rate limit, verified session creation and logout |
+| `agriculture.ts` | `field_applications`, `memberships`, `people`, `agriculture_plots`, `agriculture_cycles`, `agriculture_visits`, `agriculture_harvests`, `audit_events` | Plot/cycle lifecycle, visits and harvest recording |
+| `business-catalog.ts` | `field_applications`, `business_products`, `business_warehouses`, `business_product_stock`, `business_inventory_movements`, `audit_events` | Product catalog, warehouses and stock movements |
+| `business-inventory.ts` | `field_applications`, `business_products`, `business_warehouses`, `business_product_stock`, `business_inventory_movements`, `audit_events` | Inventory/catalog actions; overlapping export names need caller-path confirmation |
+| `business-orders.ts` | `field_applications`, `business_products`, `business_customers`, `business_warehouses`, `business_orders`, `business_order_items`, `business_product_stock`, `business_inventory_movements`, `business_order_payments`, `finance_cash_accounts`, `audit_events` | Order lifecycle, stock reservation/release, payment/cash-account linkage |
+| `business.ts` | `field_applications`, `business_partners`, `business_opportunities`, `business_agreements`, `business_milestones`, `audit_events` | Partners, opportunity, agreement and milestone lifecycle |
+| `finance.ts` | `finance_accounts`, `finance_cash_accounts`, `finance_journals`, `finance_journal_lines`, `finance_budgets`, `finance_budget_lines`, `finance_contribution_allocations`, `finance_periods`, `business_order_payments`, `audit_events` | COA/cash, journal draft-submit-review-post-reversal, budgets, allocations and periods |
+| `field-operations.ts` | `field_applications`, `field_workplans`, `field_programs`, `field_program_indicators`, `field_activities`, `field_tasks`, `audit_events` | Workplan/program/indicator/activity/task lifecycle and approvals |
+| `field-team.ts` | `field_applications`, `memberships`, `field_team_assignments`, `audit_events` | Field team proposal, approval and end assignment |
+| `workplan-approvals.ts` | `field_workplans`, `audit_events` | Submitted workplan approval |
+| `management-tasks.ts` | `user_accounts`, `people`, `memberships`, `field_applications`, `field_tasks`, `audit_events` | Create/reassign/status change for management tasks |
+| `member-profile.ts` | `user_accounts`, `people`, `person_interests`, `audit_events` | Self profile and interest update |
+| `member-tasks.ts` | `user_accounts`, `people`, `memberships`, `field_tasks`, `audit_events` | Member self-task status |
+| `member-training.ts` | `user_accounts`, `people`, `memberships`, `training_sessions`, `training_enrollments`, `audit_events` | Member self-enrollment |
+| `member-community.ts` | `user_accounts`, `people`, `memberships`, `member_community_topics`, `member_community_replies`, `member_community_reports`, `audit_events` | Topic/reply/report and moderation lifecycle |
+| `membership.ts` | `organizations`, `membership_interests`, `people`, `memberships`, `audit_events` | Membership-interest decision and activation |
+| `membership-management.ts` | `memberships`, `audit_events` | Membership status updates |
+| `forms.ts` | `organizations`, `membership_interests`, `outbox_events` | Public membership-interest intake and event outbox |
+| `secretariat-documents.ts` | `organizations`, `file_assets`, `secretariat_documents`, `secretariat_document_files`, `secretariat_document_generations`, `secretariat_meetings`, `secretariat_minutes`, `secretariat_letters`, `field_activities`, `field_programs`, `audit_events` | Register/update/revision/finalize/archive/generated documents |
+| `secretariat-letters.ts` | `organizations`, `secretariat_letters`, `audit_events` | Letter register and disposition transitions |
+| `secretariat-meetings.ts` | `organizations`, `organization_units`, `secretariat_meetings`, `secretariat_minutes`, `secretariat_meeting_decisions`, `secretariat_meeting_attendance`, `memberships`, `people`, `audit_events` | Meeting, minutes, revision, decisions and attendance |
+| `training.ts` | `field_applications`, `field_programs`, `training_sessions`, `training_enrollments`, `training_assessments`, `training_certificates`, `memberships`, `people`, `audit_events` | Sessions, enrollment, attendance, assessment, certificate issue/revoke |
+| `public-site-settings.ts` | `system_settings`, `file_assets`, `audit_events` | Public-site/profile settings and exact banner asset association |
+| `public-policies.ts` | `system_settings`, `audit_events` | Public policy content settings |
+| `login-page-content.ts` | `system_settings`, `audit_events` | Login page content settings |
+| `design-theme.ts` | `system_settings`, `audit_events` | Design/theme configuration |
+
+### 12.1 API, search and direct page query paths
+
+| Path | V9 relations / projection | Operation and boundary to verify |
+|---|---|---|
+| `src/app/api/files/route.ts` | `file_assets`, `audit_events` | Upload metadata registration and audit |
+| `src/app/api/files/[id]/route.ts` | `file_assets`, `secretariat_documents`, `secretariat_document_files` | Authenticated file lookup/download |
+| `src/app/api/files/[id]/share/route.ts` | `file_assets`, `file_share_links`, `secretariat_documents`, `secretariat_document_files`, `audit_events` | Link create/revoke/read; token, expiry, revocation, download limit and eligible final/public revision |
+| `src/app/api/files/share/[token]/route.ts` | `file_share_links`, `file_assets`, `secretariat_documents`, `secretariat_document_files` | Anonymous single-token download through `getV9PublicShareSql` |
+| `src/app/api/public-site/banner/[id]/route.ts` | `file_assets` | Exact configured active public banner projection |
+| `src/app/api/secretariat/documents/[id]/file/route.ts` | `secretariat_documents`, `secretariat_document_files`, `file_assets`, `get_public_document_file` | Internal authorized file delivery vs final/public projection |
+| `src/lib/operational-search.ts` via `src/app/api/search/route.ts` | `agriculture_plots`, `business_products`, `field_programs`, `finance_journals`, `memberships`, `people`, `secretariat_documents` | Cross-domain search; every joined relation must inherit the correct tenant and role scope |
+| `src/app/app/(area)/pos/page.tsx` | `field_applications`, `business_customers`, `business_orders`, `business_order_payments`, `business_products`, `business_warehouses`, `finance_cash_accounts`, `finance_journals` | Direct authenticated POS reads through `getV9Sql`; order/payment side effects are handled by business-order actions |
+| `src/app/api/studio/diagnostics/database/route.ts` | PostgreSQL catalog and `current_setting` metadata | Preview-only admin diagnostic; no tenant row payload |
+
+### 12.2 Coverage gaps exposed by the sweep
+
+1. **Relation sweep is not a complete query inventory.** It identifies named table references in SQL text but does not prove every conditional SQL branch, dynamically assembled query, nested CTE, view/function/trigger side effect or every caller/route-to-action mapping.
+2. **Duplicate action surface:** `business-catalog.ts` and `business-inventory.ts` expose overlapping action names and table families. Caller tracing found the active field catalog component (`field-business-catalog-section.tsx`) imports the mutations from `business-catalog.ts`; the business order component imports `business-orders.ts`, and the partner/opportunity component imports `business.ts`. No caller for `business-inventory.ts` was found in the inspected page/component set. Treat `business-inventory.ts` as an unresolved duplicate/possibly unused action surface until a full repository reference scan proves whether it is dead code; do not count it as a second active mutation path.
+3. **POS direct reads:** the POS page queries business/order/finance tables directly through `getV9Sql`; query-level permission checks, tenant predicates, row policy behavior and read consistency with the business-order mutation transaction need explicit regression evidence.
+4. **Finance downstream effects:** journal posting/reversal, cash-account linkage, contribution allocation, budget/period lock and linked business-order payment flows need explicit trigger/ledger invariant tests under the runtime role, not only general tenant-policy assertions.
+5. **Exports and documents:** the inventory still needs an enumerated mapping of each generator/report/export endpoint to its source rows, visibility rule, file revision, audit event and no-cross-tenant download result.
+6. **Operational callers/personas:** this source sweep does not prove the browser routes and all legitimate roles can complete their expected CRUD flows after QA RLS. Authenticated Preview UAT for each legitimately provisioned persona remains open.
+
+The source relation map is an incremental deliverable, not a completion claim. Issue #90 remains open until these gaps have direct test/runtime evidence and independent review.
+
+**Caller trace evidence:** `field-business-catalog-section.tsx` imports `createBusinessProduct`, `createBusinessWarehouse`, `recordBusinessInventoryMovement`, and product/warehouse update actions from `@/app/actions/business-catalog`; `field-business-orders-section.tsx` and the order composer/payment form import `@/app/actions/business-orders`; `field-business-section.tsx` imports partner actions from `@/app/actions/business`. These components also require `field:usaha:read` and derive write/approval visibility from `can()` checks. The inspected `inventory-crud.tsx` contains no direct business-action import. This narrows the duplicate risk but is not a proof that no other caller exists elsewhere in the repository.
+### 12.3 Dashboard page-level query loaders and public page data paths
+
+A separate page-loader scan examined the authenticated application route tree. The following page files import and call `getV9Sql()` directly (in addition to the action imports shown above):
+
+| Route family | Page paths with direct query helper use |
+|---|---|
+| Member | `anggota/komunitas`, `anggota/kontribusi` |
+| File center | `berkas`, `berkas/[id]` |
+| Field | `bidang/[field]/[section]` |
+| Finance | `keuangan/anggaran`, `iuran`, `kas-bank`, `laporan`, `pembayaran`, `penerimaan`, `piutang-utang` |
+| Management | `pengurus/anggota`, `bidang`, `dokumen`, `indikator`, `laporan`, dashboard `pengurus`, `pengaturan`, `persetujuan`, `program`, `rapat`, `struktur`, `tugas` |
+| POS | `pos`, `pos/penerimaan/[paymentId]` |
+| Secretariat | `sekretariat/agenda`, `anggota`, `dokumen`, `dokumen/[id]/cetak`, `ekspedisi`, `laporan`, `notulen`, dashboard `sekretariat`, `presensi`, `rapat`, `sk`, `surat`, `template/[code]` |
+
+The public route scan found database-backed data loading on homepage, document archive, activities, contact, training, product listing/detail and organization profile. These page loaders delegate failures to `loadPublicData` and route data loading through `getV9Sql` plus the public projection functions in migration 0044. Public site/profile settings are read separately from `v9.system_settings` only where `visibility='public'` and the setting key is allowlisted; public policy settings use a parallel explicit key/visibility boundary. Public pages such as help, FAQ, gallery, news, policy listings/details, join and static privacy pages do not contain direct SQL calls in their route file, although some load public-site settings.
+
+**Required verification for these page loaders:** inspect the exact SELECT projection and filters, confirm they call only the fixed public `SECURITY DEFINER` projections for operational tables, verify no direct anonymous base-table access, and test successful-empty vs unavailable fallback states. For authenticated dashboard loaders, map each query to its role permission and tenant/unit/self predicate, confirm all joined tables have compatible policies, and exercise the page under the legitimate role in Preview. Page import/call inspection alone is not evidence that the rendered page's data is tenant-safe.
+
+### 12.4 Static audit limitations and next checks
+
+- The route scan confirms more than server-action mutation calls are in scope: multiple dashboard pages independently read the database. A route can therefore render or export data without invoking the corresponding action.
+- SQL clause extraction is a mechanical inventory aid. It does not analyze interpolated SQL, query parameters, transaction boundaries across multiple statements, authorization branches, pagination correctness, download response bodies, or all UI callers.
+- The next test increment is to convert these page/query paths into domain-level read and mutation tests. Finance/ledger, POS/order-stock, Secretariat generator/file revision, public document projection, and search are first priority because they join multiple domain tables or produce downstream effects.
+### 12.5 Route-level authentication and permission gates observed
+
+The page/layout scan confirmed these server-side guard points:
+
+| Route group | Observed guard |
+|---|---|
+| `src/app/app/layout.tsx` | `requireIdentity()` is the base authentication gate for the `/app` tree |
+| `(launcher)/layout.tsx` | Resolves `getIdentity()` and redirects unauthenticated requests to `/masuk` |
+| `anggota/layout.tsx` | `requireIdentity("member:self")` |
+| `keuangan/layout.tsx` | `requireIdentity("finance:read")` |
+| `sekretariat/layout.tsx` | `requireIdentity("secretariat:read")` |
+| `pengurus/layout.tsx` | `requireIdentity("organization:read")`; finance, membership and workplan panels are additionally filtered with permission checks |
+| `pos/layout.tsx` | `requireIdentity("pos:sell")`; business and finance panel visibility also checks effective permissions |
+| `bidang/[field]/layout.tsx` | Requires dynamic `field:<field>:read` scope |
+| File-center pages | `berkas` and `berkas/[id]` each call `requireIdentity("files:read")` and apply further `files:manage` / ownership checks |
+| Field subpage | `bidang/[field]/[section]` adds a specific `field:organisasi:review` gate for organization review content/actions |
+
+The effective role permission map remains centralized in `src/lib/session.ts` and `src/lib/identity.ts`, with server identity resolved from `user_accounts`, `role_assignments`, organization, membership and field application data. The UI/layout gates are not a replacement for each server action's own permission check or database RLS. The remaining security review must verify that every mutation action validates its exact permission, active role, scope and parent-child ownership server-side, and that page-level reads do not return data before/after an unauthorized route redirect.
+
+**Coverage caution:** these checks prove guard calls exist at the listed route boundaries. They do not yet demonstrate every legitimate role can perform its allowed actions, nor that unauthorized roles are denied for every direct action endpoint. Add role-specific negative tests for each action/route family to close that gap.
+### 12.6 Server-action identity and permission guard sweep
+
+A separate import/call scan covered all 27 action modules. The source files generally import `requireIdentity`, `requireRoles` and/or `can` from `src/lib/session.ts`; the deliberate unauthenticated paths are login/logout and public membership-interest intake. The action families observed are:
+
+| Action family | Source-level guard evidence |
+|---|---|
+| Account settings | `requireIdentity()`; password/account update is designed for the current identity only |
+| Agriculture | `requireIdentity` plus `field:pertanian:manage` / `field:pertanian:activity:write` checks |
+| Business catalog/inventory | `requireIdentity` plus `field:usaha:manage` / `field:usaha:activity:write` checks |
+| Business orders | `requireIdentity`, `field:usaha:activity:write` and `can()` checks |
+| Business partners/opportunities/agreements | `requireIdentity` plus `field:usaha:manage` checks |
+| Finance | `requireIdentity("finance:read")` plus action-specific `can()` checks |
+| Field operations | `requireIdentity`, `requireRoles` and `can()` checks; action permissions vary by lifecycle transition |
+| Field team | `requireIdentity` plus `can()`-based scope checks |
+| Management tasks | `requireIdentity("organization:tasks:write")` |
+| Member profile | `requireIdentity()`; profile mutation remains self-bound |
+| Member tasks / training | `requireIdentity("member:self")` |
+| Member community | `requireIdentity("member:self")` plus moderation `can()` checks |
+| Membership management | `requireIdentity("membership:activate")` |
+| Membership-interest decision | `requireIdentity("field:organisasi:review")` |
+| Design theme | `requireRoles` restricted action path |
+| Login page content / public policies / public-site settings | `requireIdentity("cms:publish")` |
+| Secretariat documents / letters / meetings | Specific write permissions for document, letter, meeting, minutes and attendance actions |
+| Training operations | `requireIdentity`, `field:pelatihan:manage` / `field:pelatihan:activity:write`, and `can()` checks |
+| Workplan approvals | `requireIdentity("organization:read")` plus `can()` approval checks |
+| Login/logout | Purpose-specific pre-authentication and current-session revocation helpers; no pre-existing identity is expected for login |
+| Public membership-interest form | Anonymous narrow `getV9PublicInterestSql` context and fixed submit policy; does not create an account or activate membership |
+
+The effective permission catalogue is produced from the database-resolved role in `src/lib/session.ts`; `src/lib/identity.ts` evaluates exact/wildcard grants. The demo identity catalogue is empty (`DEMO_ACCOUNTS: never[]`) in this source version.
+
+This sweep establishes that guard calls exist in the action modules. It does **not** prove each individual exported function is guarded by the correct specific permission, that guard execution precedes every data read/write, or that no caller passes untrusted IDs that are not revalidated against parent/tenant scope. Remaining follow-up:
+- inspect the first executable statements of every exported action, including dynamic permission construction and role allowlists;
+- verify user/organization/unit/parent IDs are always derived from or checked against the authenticated identity, not trusted from client-supplied values;
+- add negative tests that invoke each action as an authenticated but unauthorized role, and confirm no row changes or audit/outbox/trigger side effects occur;
+- preserve the two intentional unauthenticated paths only under their narrow transaction contexts and ensure the login helper is not reusable for general application reads.
+
+### 12.7 CI cross-organization Finance boundary expansion — 28 November 2026
+
+PostgreSQL 16 integration fixtures now cover six organization-scoped finance relations without depending on `field_applications`:
+
+| Finance relation | A/B isolation assertions |
+|---|---|
+| `finance_accounts` | A sees only its two COA accounts; B account hidden; cross-tenant update affects zero rows; cross-tenant insert rejected; same-tenant update succeeds |
+| `finance_cash_accounts` | A sees only its cash register; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
+| `finance_journals` | A sees only its draft journal; cross-tenant update affects zero rows; cross-tenant insert rejected; same-tenant update succeeds |
+| `finance_journal_lines` | A sees only its own line; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
+| `finance_budgets` | A sees only its own draft budget; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
+| `finance_budget_lines` | A sees only its own line; cross-tenant update/delete affect zero rows; same-tenant update succeeds |
+
+These fixtures are inserted by the CI migration owner into disposable PostgreSQL 16. Under `SET LOCAL ROLE v9_app` with the tenant-A verified session context, the assertions test database RLS rather than application query filters. The test exercises both deny behavior and positive tenant-A mutations. It does not yet prove every lifecycle transition, finance journal post/reversal trigger, budget approval/close transition, contribution allocation, or the application/browser finance UI.
+
+Historical exact-head GitHub Actions run #987 passed on commit `5bae5db980ce39bf9c539b13825cfbb7eeddbcf7`. The finance-only fixture was revalidated on exact-head run #1001 at commit `d393e5d03b02a7076f8a11d23ab5ca1344e15dbf`.
+
+The latest exact-head run #1037 passed on commit `a7d07b52cf247b40dcbbc3c2aa91461777759f5f`. PostgreSQL 16 tenant integration, organization regression, core workspace/RLS contract, TypeScript validation and Next.js production build all completed successfully. The run includes all six finance relations, order/item/payment boundary fixtures, stock-movement isolation and immutability assertions, the tenant-scoped field-application identity migration, payment receipt guard assertions, and a real two-session concurrent-payment race test with an explicit organization-admin context assertion.
+
+For each of the six finance relations, the fixture now has an A/B visibility assertion, at least one cross-tenant UPDATE or DELETE attempt that must affect zero rows (plus the explicit finance-account and journal INSERT denials), and a positive same-tenant mutation. The assertions execute as `v9_app` with the tenant-A verified transaction context; fixture setup is done by the disposable CI migration owner.
+
+The finance lifecycle-specific database coverage is now automated in `tests/postgres16/finance-lifecycle-integration.sql`: journal submit/independent approval/post, one-time reversal and swapped-line invariants, budget submit/independent approval/close guard, member-contribution allocation cap/audited correction/immutable delete, exact posted-sale receipt linkage and rejection of mismatch/relink/unlink, plus period overlap/close blocker/close-reopen-reclose/audit retention. Exact-head CI #1060 on commit `3f0b2be22c2e08a9d62fd031dbbe01d21b454237` passed this suite and the full tenant RLS, payment concurrency, TypeScript, and Next.js build jobs. The Browser/Finance/POS UI and actual server-action CTE side effects are still not declared UAT-complete.
+
+### 12.8 Field application tenant identity and route migration
+
+Migration `0045_tenant_scope_field_application_identity.sql` is now part of this PR branch and corrects **two** global uniqueness constraints on `v9.field_applications`:
+
+- `PRIMARY KEY (field_key)` becomes `PRIMARY KEY (organization_id, field_key)`;
+- global `UNIQUE (route)` becomes `UNIQUE (organization_id, route)`.
+
+The migration preserves `UNIQUE (field_key, organization_id)` for the existing operational foreign keys. It aborts if an incoming foreign key still references only `field_key`. Read-only inspection of the live QA branch also found zero incoming foreign keys to `route`. The UI and field action paths inspected use `identity.organizationId` when loading the module row, so a shared route remains resolved inside the authenticated organization.
+
+The PostgreSQL 16 runner applies migration 0045 twice. Its two-tenant fixture now provisions the same fixed key `usaha` **and the same route** `/app/bidang/usaha` for both organizations. The inventory contract asserts the exact composite primary key, the tenant-scoped route unique constraint, absence of the former global route unique, and the expected 0045 ledger checksum. Exact-head run #1015 on commit `9a5474319e919795bc759fb46ef9f58832d20c28` passed the migration/idempotence and same-route fixture, along with both CI jobs.
+
+The live Neon QA branch `br-snowy-forest-b46i5pqx` has **not** yet applied migration 0045. Read-only catalog inspection on that branch confirms:
+- current primary key is still `PRIMARY KEY (field_key)`;
+- global `UNIQUE (route)` is still present; the existing Usaha route is `/app/bidang/usaha`;
+- required composite unique `(field_key, organization_id)` exists;
+- there are zero incoming single-column foreign keys to `field_key` and zero incoming foreign keys to `route`;
+- 17 inspected operational foreign keys to `field_applications` use the composite `(field_key, organization_id)`;
+- four current field-application rows belong to one organization;
+- `schema_migrations` has no ledger row for migration 0045.
+
+Therefore migration 0045 is CI-tested and its live-QA preconditions are satisfied, but both global uniqueness constraints remain active on the live QA branch. Until 0045 is applied there, another organization cannot install the same `usaha` module with the same shared route. This is a schema readiness gap, not evidence of a current cross-tenant data leak. No Production schema was changed.
+
+### 12.9 Business orders, payment receipts and trigger boundary review
+
+Migration `0016_business_sales_orders.sql` creates `business_customers`, `business_orders` and `business_order_items`, adds tenant/field-scoped composite foreign keys, and extends the inventory movement type check to include `sale`. **It does not define a business-order trigger.** The order and order-item lifecycle is implemented by transactional server-action CTEs in `src/app/actions/business-orders.ts`.
+
+Payment receipts are introduced later by `0031_business_order_payment_receipts.sql`. Its `business_order_payments_guard` is a BEFORE INSERT/UPDATE/DELETE trigger. Migration `0033_business_order_payment_concurrency_guard.sql` adds an organization/order-scoped transaction advisory lock before recalculating cumulative payment. The live QA catalog confirms the trigger exists and `protect_business_order_payment()` is SECURITY INVOKER, so reads it performs are still subject to the current `v9_app` RLS context.
+
+The payment guard validates a fulfilled order, an active IDR cash/bank register mapped to an active postable debit-normal asset account, no overpayment, immutable receipt details, and one-time linkage to a posted `sale` journal whose totals and cash-account debit match the receipt. The order/receipt composite foreign keys bind organization and field identity across the order, cash account and journal. The separate `business_inventory_movements_immutable` trigger rejects updates/deletes of recorded stock movements.
+
+The expanded PostgreSQL 16 fixture seeds both organizations' order items, unlinked payment receipts and stock movements. Under tenant A and tenant B runtime contexts it checks order, order-item, payment-receipt and stock-movement read isolation. Tenant A also attempts cross-tenant order/item/payment/stock-movement UPDATE/DELETE and cross-tenant order/item/stock-movement INSERT; these operations must affect zero rows or be rejected. Positive same-tenant order-item UPDATE, payment-receipt INSERT, and `sale` stock-movement INSERT are exercised. The payment insert runs through the receipt guard using a fulfilled tenant-A order and active tenant-A cash register. The fixture verifies that overpayment is rejected, receipt details are immutable after recording, receipts cannot be deleted, and persisted stock movements cannot be edited or deleted (corrections require a new movement). The 0045 schema-migration checksum is asserted.
+
+A separate `tests/postgres16/tenant-rls-payment-concurrency.sh` test runs two independent PostgreSQL sessions as `v9_app`. Before the race, the test asserts that `_request_actor()` resolves to the tenant-A `organization_admin` with organization scope and that the fulfilled race order is visible under RLS. Session A inserts an IDR 6,000 receipt for an IDR 10,000 fulfilled order and deliberately holds its transaction after the trigger returns. Session B starts before A commits and attempts another IDR 6,000 receipt for the same order. The organization/order advisory lock serializes the attempts: session A commits, session B is rejected with the expected overpayment error, and the final committed state is exactly one receipt totaling IDR 6,000. CI output records `PASS PostgreSQL 16 concurrent payment guard`. Exact-head run #1037 listed above passed.
+
+Remaining business-order gates are not inferred as complete from those database assertions:
+- application CTEs for confirm/reserve, fulfil/deduct-and-record-sale, cancel/release-reservation and POS payment need end-to-end regression/UAT with legitimate users;
+- database-level positive and negative receipt-to-posted-journal linkage is now covered by the finance lifecycle fixture; application action/browser wiring and audit/no-side-effect behavior remain to be verified end to end;
+- the application/browser Finance/POS experience, exports/downloads/share mappings and operational evidence still need explicit coverage.
+Issue #90 remains open for application lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping, independent security review, and release/rollback/observability evidence. Migration 0045 has since been applied to the QA branch; see Section 12.15.
+
+### 12.10 Migration 0045 execution readiness and recovery plan
+
+A dedicated operator runbook is now committed at `docs/security/migration-0045-qa-runbook.md`. It contains the exact QA target identity, preflight assertions, transactional apply sequence, post-migration catalog checks, acceptance conditions, rollback SQL, rollback blockers, and explicit QA/Production boundaries.
+
+The pre-migration read-only check on 28 Nov 2026 recorded the QA branch as `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx`, state `ready`, non-default and non-primary, with PostgreSQL 18.7. At that preflight moment the catalog had `PRIMARY KEY (field_key)`, `UNIQUE (route)`, the retained composite `UNIQUE (field_key, organization_id)`, no 0045 ledger row, and 17 incoming operational foreign keys, all composite. Four rows existed across one organization, with no NULL identity/route values and no duplicate tenant-scoped key or route groups.
+
+The runbook has since been executed after explicit user approval. Live QA application and postflight evidence are recorded in Section 12.15. The runbook retains the conditional rollback: it must abort if any duplicate `field_key` or `route` values across organizations exist, because the former global unique constraints could not then be restored safely. No Production operation is authorized.
+
+
+### 12.11 Finance lifecycle and reversal transaction correction
+
+The first lifecycle CI iteration exposed a genuine defect in `createFinanceReversalJournal`: the original single-command data-modifying CTE inserted a zero-total journal header, then inserted lines and updated the same header within that same SQL command. PostgreSQL did not make that same-command inserted row available to the subsequent update as the action assumed. The reversal draft therefore retained zero header totals and could not pass the journal submit guard.
+
+The branch now adds `db/migrations/0046_finance_reversal_draft_transaction.sql`, which defines `v9.create_finance_reversal_draft(...)` as a `SECURITY INVOKER` function. It checks the request actor and tenant, locks the original posted journal, enforces one reversal per original, creates the zero-total draft in a distinct statement, copies each line with debit/credit swapped, calculates totals in a subsequent statement, updates the header, and writes the audit event. The application action now calls this function using the normal four-argument form; the fifth optional journal ID parameter exists only to make CI fixtures deterministic. The function retains RLS and does not elevate execution privileges.
+
+A separate defect in `closeFinancePeriod` was fixed in the same branch: closing a reopened period no longer clears `reopened_by`, `reopened_at`, or `reopen_note`. Migration 0034 requires those reopening fields to remain intact when the period is re-closed, preserving the audit trail.
+
+The CI fixture now tests the database transitions and audit state as `v9_app` under authenticated organization-scoped actors. It includes independent writer/reviewer identities; the test data is synthetic and only created in the disposable PostgreSQL 16 service. The fixture covers journal post and reversal, budget approval and close blocking, contribution allocation and correction, receipt journal link rules, period overlap and close/reopen/re-close, and audit event completeness. It does not prove application UI/browser UAT or the business order confirm/fulfil/cancel CTE behavior.
+
+Migration 0046 is currently only part of the QA PR branch and disposable PostgreSQL 16 CI path. It has **not** been applied to the live Neon QA database. It has not been deployed to Production.
+
+### 12.12 Latest exact-head validation — run #1060
+
+GitHub Actions run #1060: [`46142219187`](https://github.com/teknik-informer/Srikandi-Buana/actions/runs/46142219187)  
+Exact tested commit: `3f0b2be22c2e08a9d62fd031dbbe01d21b454237`.
+
+Both jobs completed successfully:
+
+- `Tenant RLS PostgreSQL 16 integration`: success.
+- `Typecheck and production build`: success, including TypeScript validation and Next.js production build.
+
+The PostgreSQL 16 log explicitly records:
+- `PASS PostgreSQL 16 tenant RLS integration: 63/63 FORCE RLS`;
+- `PASS PostgreSQL 16 finance lifecycle`, including journal review/post/reversal, budget guards, contribution allocation cap/correction, exact one-time receipt journal link, period close/reopen/re-close metadata, and audit events;
+- `PASS PostgreSQL 16 concurrent payment guard`: one receipt committed, the concurrent overpayment rejected, final total IDR 6,000.
+
+The overpayment error emitted by the second concurrent session is the expected negative-test outcome; the runner confirms the committed single-receipt final state and exits successfully. This run is evidence for the exact commit above only. It does not apply any migration to live Neon QA or Production, and it is not browser UAT or an independent security review.
+
+At the time of run #1060, migration 0045 had not yet been applied to live QA; that status was superseded by the explicitly approved execution recorded in Section 12.15. PR #92 remains Draft/Open/Unmerged. Issue #90 remains Open.
+
+
+### 12.13 Business order stock lifecycle transaction and exact-head validation — run #1078
+
+The three stock-affecting business-order transitions previously implemented as large inline server-action CTEs are now routed through dedicated database transaction functions, so the application and PostgreSQL integration suite exercise the same transition logic:
+
+- `v9.confirm_business_order(order_id, actor_user_id)`: authenticates the request actor/organization, locks the order and all relevant stock rows in stable product/warehouse order, validates every item and current availability before changing stock, records the exact reservation on each order item, changes the order to confirmed, and writes one audit event. If any item is unavailable, it returns no row and makes no partial reservation.
+- `v9.fulfill_business_order(order_id, actor_user_id)`: validates the ready order and exact item reservations, locks the stock rows, deducts on-hand and reserved balances together, writes one immutable `sale` movement per tracked item with before/delta/after values, clears item reservations, marks the order fulfilled and writes the audit event. A mismatch or incomplete movement set raises and rolls back the whole transaction.
+- `v9.cancel_business_order(order_id, actor_user_id, reason)`: validates and locks existing reservations, releases each reserved balance, clears item reservations, marks the order cancelled with the supplied reason, and writes the audit event. A second cancellation returns no row and cannot release the same stock twice.
+
+Migration `0047_business_order_stock_lifecycle_transaction.sql` defines these functions as `SECURITY INVOKER`, with explicit revocation from PUBLIC and execution grants to `v9_app` only. The shared actor/organization check independently resolves `v9._request_actor()`, requires the passed actor ID to match the authenticated request, allows only the roles already permitted by the order actions, and fails closed when the tenant's `usaha` field context is not visible. The functions do not use SECURITY DEFINER, do not change table owners or privileges, and remain subject to the existing FORCE RLS policies.
+
+`src/app/actions/business-orders.ts` now invokes the functions for confirm, fulfill and cancel after its existing application permission checks. The intermediate `confirmed → processing → ready` actions retain their existing controlled status transitions and audit CTEs; payment recording retains the separate receipt guard and organization/order concurrency lock.
+
+The new disposable PostgreSQL 16 test `tests/postgres16/business-order-lifecycle-integration.sql` calls the same database functions as the application. With a synthetic, authenticated organization-admin actor under `v9_app` it asserts:
+
+1. A valid two-unit order reserves exactly two units, updates the item's reservation snapshot and emits one confirmation audit event. A repeated confirmation is a no-op.
+2. A valid ready order deducts on-hand and reserved stock exactly once, clears its reservation, marks the order fulfilled, and emits exactly one immutable `sale` movement recording the exact before/delta/after values. A repeated fulfilment is a no-op.
+3. Cancelling a separately confirmed order restores its reserved quantity without increasing on-hand and without writing a sale movement. The cancellation reason and actor are retained; a repeated cancellation is a no-op.
+4. An order exceeding available stock remains draft with no reservation or stock-register change.
+5. A multi-item order where the first product is available but the second is short remains draft; neither product receives a partial reservation.
+6. A tenant-A actor cannot change a known tenant-B order, and a caller cannot replace the authenticated actor by supplying another user's ID.
+7. Successful state transitions write the expected audit sequence; rejected reservation attempts do not emit a confirmation audit event.
+
+### 12.14 Latest complete CI evidence — exact-head run #1078
+
+GitHub Actions run **#1078**: [`46142947673`](https://github.com/teknik-informer/Srikandi-Buana/actions/runs/46142947673)  
+Exact code/test commit: `9550e3c8fc8aaab7903f9ff8c74e210e262b7745`.
+
+Both required jobs completed successfully:
+
+- `Tenant RLS PostgreSQL 16 integration`: success.
+- `Typecheck and production build`: success, including organization reporting regression checks, core workspace shell contract, TypeScript validation and Next.js production build.
+
+The PostgreSQL 16 log explicitly records all four results:
+
+- `PASS PostgreSQL 16 tenant RLS integration: 63/63 FORCE RLS`.
+- `PASS PostgreSQL 16 business order lifecycle: tenant/actor binding, serialized stock reservation, exact fulfillment sale movements, idempotent cancellation, insufficient-stock rejection, multi-item atomicity and audit events.`
+- `PASS PostgreSQL 16 finance lifecycle: journal review/post/reversal, budget guards, contribution allocation cap/correction, exact one-time receipt journal link, period close/reopen/re-close metadata, audit events.`
+- `PASS PostgreSQL 16 concurrent payment guard: one receipt committed, concurrent overpayment rejected, total IDR 6,000.`
+
+The business-order CI session token is isolated from the other test fixtures; no CI session token or test user is a production credential. The expected overpayment rejection in the concurrency log remains the deliberate negative-test result, and the runner exits successfully after checking exactly one committed receipt.
+
+Migrations 0046 and 0047 are included and exercised by the disposable CI migration sequence only. **Neither migration has been applied to live Neon QA or Production.** Migration 0045 was applied to live QA later under explicit authorization; see Section 12.15.
+
+This run validates database behavior, application compilation and build contracts. It does not substitute for legitimate-persona Preview browser UAT, a full screen-level POS/Finance/export/share/download test, independent security review, or the release/rollback/observability sign-off. PR #92 remains Draft/Open/Unmerged and Issue #90 remains Open.
+
+
+### 12.15 Live Neon QA execution of migration 0045 — 28 Nov 2026
+
+The user explicitly approved application of `db/migrations/0045_tenant_scope_field_application_identity.sql` to the exact QA branch identified in this issue. The approval did not authorize migrations 0046/0047, Production changes, deployment, or merging PR #92.
+
+**Verified target immediately before execution:**
+
+- Neon project `holy-night-99324539`.
+- Branch `phase1-integration-rehearsal-20261116`, ID `br-snowy-forest-b46i5pqx`.
+- Parent `br-mute-meadow-b4rhx1mn`; state `ready`; `default=false`; `primary=false`.
+- Database `neondb`; PostgreSQL `18.7 (3190d2f)`.
+- Migration connection identity: `neondb_owner`; this did not alter application runtime role `v9_app`.
+
+**Preflight:** the live schema still had the old primary key and global route unique; the composite operational unique was present; 17 incoming FKs were all composite with zero single-column `field_key` FKs; four rows existed across one organization; zero NULL identity/route values and zero duplicate tenant-scoped key/route pairs; no 0045 ledger row.
+
+**Recovery-point limitation:** Neon rejected a snapshot because the target is a non-root branch. Creation of a child backup branch was also rejected because the project branch limit was exceeded. No unrelated branch was deleted or changed. The operator proceeded after recording this limitation because the migration was run as one atomic transaction, the complete preflight passed, and the migration changes constraints plus its ledger row without rewriting business records. Any SQL error would have rolled back both statements. This must not be misreported as a snapshot or backup branch having been created.
+
+**Execution:** the exact committed migration DO block and migration-ledger upsert were executed together in one Neon SQL transaction against `br-snowy-forest-b46i5pqx` / `neondb`. Both statements returned successfully. Ledger timestamp: `2026-11-28T12:11:26.112Z`. Ledger checksum: `sha256:v9-tenant-scoped-field-application-identity-route-20261128`.
+
+**Postflight:** read-only catalog queries on the same branch confirmed:
+
+- Primary key: `PRIMARY KEY (organization_id, field_key)`.
+- Preserved operational unique: `UNIQUE (field_key, organization_id)`.
+- New route unique: `UNIQUE (organization_id, route)`; old global `UNIQUE (route)` absent.
+- Exact 0045 filename and checksum recorded in `v9.schema_migrations`.
+- All 17 incoming foreign keys remain; single-column `field_key` FK count remains zero.
+- Zero NULL tenant-identity/route rows and zero duplicate `(organization_id, field_key)` or `(organization_id, route)` groups.
+- Four field-application rows remain; all four existing rows and their routes (`organisasi`, `pelatihan`, `pertanian`, `usaha`) remain intact.
+- `v9.field_applications` still has `relrowsecurity=true` and `relforcerowsecurity=true`; existing `field_applications_read_scope` policy is still present.
+
+No business row was inserted, updated, or deleted by the migration. No RLS policy, role, grant, owner, Vercel variable, deployment, or Production database was changed. Migrations 0046 and 0047 remain unapplied on live QA.
+
+**Current gate status:** the live-QA schema gate for migration 0045 is complete. Issue #90 remains open for legitimate-persona Preview UAT, screen-level POS/Finance and export/share/download tests, remaining end-to-end application behavior, independent security review, and release/rollback/observability evidence. PR #92 remains Draft/Open/Unmerged.
+
+
+### 12.16 Live Neon QA execution of migrations 0046 and 0047 — 28 Nov 2026
+
+The user explicitly approved applying migrations 0046 and 0047 to the same QA branch used for 0045. This is a QA-only approval; it does not authorize Production migration, deployment, or merging PR #92.
+
+**Target:** Neon project `holy-night-99324539`; branch `phase1-integration-rehearsal-20261116` / `br-snowy-forest-b46i5pqx`; parent `br-mute-meadow-b4rhx1mn); state `ready`, `default=false`, `primary=false`; database `neondb`; PostgreSQL `18.7 (3190d2f)`. Migration/verification connection: `neondb_owner`; runtime role remains `v9_app`.
+
+**Execution:** both committed migration files were fetched from `feat/issue-90-tenant-rls-qa-20261128`. Preflight found no existing ledger records for either migration and confirmed the app actions call the corresponding new functions. Four statements from 0046 and thirteen from 0047 were applied in one Neon SQL transaction (17 statements total); every statement completed without error.
+
+- `0046_finance_reversal_draft_transaction.sql`: checksum `sha256:v9-finance-reversal-draft-transaction-20261128`; ledger timestamp `2026-11-28T12:18:46.489Z`.
+- `0047_business_order_stock_lifecycle_transaction.sql`: checksum `sha256:v9-business-order-stock-lifecycle-transaction-20261128`; ledger timestamp `2026-11-28T12:18:46.489Z`.
+
+**Postflight evidence from read-only catalog queries:**
+
+- Both exact migration filenames and checksums are present in `v9.schema_migrations`; the 0045 record remains intact.
+- Five new functions are present: `create_finance_reversal_draft`, `_business_order_actor_organization`, `confirm_business_order`, `fulfill_business_order`, and `cancel_business_order`.
+- All five are owned by `neondb_owner`, have `prosecdef=false` (`SECURITY INVOKER`), and use fixed `search_path=pg_catalog, v9`.
+- `v9_app` has EXECUTE on all five functions; PUBLIC has no EXECUTE on them.
+- `relrowsecurity=true` and `relforcerowsecurity=true` remain on all eight checked finance/business/stock/movement/audit tables.
+- Current database and migration verification identity were confirmed as `neondb` and `neondb_owner`, respectively.
+
+The two migrations install function definitions, function ACLs, and migration ledger records. They do not rewrite existing business rows; no journal, order, stock, or user data was changed by the migration transaction.
+
+**Recovery limitation:** no Neon snapshot or child backup branch exists. The earlier snapshot operation failed because this is a non-root branch, and child-branch creation failed because the project branch limit was exceeded. No unrelated branch was deleted or modified. The limitation is retained in the runbook.
+
+**Boundaries:** only QA branch `br-snowy-forest-b46i5pqx` / database `neondb` was changed. No Production SQL, data, Vercel environment, Production deployment, PR merge, table ownership, or RLS policy definition was changed. Function EXECUTE grants were scoped only to the five newly created functions.
+
+**Remaining gate status:** the migration 0046/0047 schema gate is complete on QA. Preview browser UAT with legitimate personas, full screen-level Finance/POS and export/share/download tests, broad cross-tenant side-effect tests, independent security review, and release/rollback/observability sign-off remain open. PR #92 is still Draft/Open/Unmerged; Issue #90 remains Open.
+
+
+### 12.17 Authenticated Preview runtime identity verification — 28 Nov 2026
+
+The user supplied the JSON result returned by the authenticated Preview-only database diagnostic endpoint while signed in with an existing authorized administrator account.
+
+**Runtime proof from that Preview session:**
+
+- `environment=preview`.
+- `current_user=session_user=v9_app`.
+- Database `neondb`, PostgreSQL `18.7 (3190d2f)`.
+- Branch ID `br-snowy-forest-b46i5pqx`, endpoint ID `ep-icy-scene-b4f8rk0x`.
+- `is_superuser=false`; `bypasses_rls=false`.
+- `can_create_role=false`; `can_create_database=false`.
+- `owns_tenant_tables=false`; `member_of_owner_role=false`; `can_set_owner_role=false`.
+- `can_create_in_schema=false`; `can_create_database_objects=false`.
+- `transactionContextIsolation=true`.
+- `requestSessionContextPresent=true`.
+- `safeForTenantUat=true`.
+
+The exact-target and least-privilege runtime principal acceptance gate is now complete for the authenticated Preview request. Independent read-only catalog checks on the same QA branch found 61 tenant/domain tables with RLS enabled on 61/61 and FORCE RLS enabled on 61/61. The two documented system tables remain default-deny.
+
+**Interpretation:** the runtime diagnostic proves target pinning, application-role identity, absence of elevated role/DDL privileges, and transaction-local isolation for the tested session. It is not evidence that the entire UI CRUD surface, all downloads/exports/shares, Finance/POS business workflows, or all negative cross-tenant paths passed. Those functional acceptance tests remain open.
+
+No credentials, session tokens, connection URLs, organization data, or table contents were shared in the diagnostic result. The read-only probe made no database or application data changes.
+
+
+### 12.18 Secretariat functional UAT repair — 28 Nov 2026
+
+**Observed user report:** in authenticated Preview, the Surat Masuk/Keluar tabs did not appear to change the table although the Surat Keluar indicator showed one row. The user confirmed that the registration modal opened and the Generator saved the outgoing-letter document as a draft, but the next step was not apparent.
+
+**Code repair (Preview QA branch only):**
+
+- Replaced the letter direction's client-only segmented state control with server-validated URL navigation: `/app/sekretariat/surat?direction=masuk` and `?direction=keluar`. The server page passes the validated direction to the client, and table contents, headings and labels are derived from it.
+- Changed Generator buttons to “Simpan draf & lanjutkan” / “Simpan revisi & lanjutkan” and added an explicit explanation that saving opens the review page.
+- Added a top-of-page next-step panel on generated drafts: review the naskah, print or save PDF, then finalize only after approval by an authorized person. Finalization remains an explicit action; draft status is not silently promoted.
+- Kept the existing server-side post-save redirect to `/app/sekretariat/dokumen/{id}/cetak?result=created|revised` and added static regression assertions for the redirect and next-step UI. No existing operational or test record was modified.
+
+**Evidence:** commit `bff57cc9bec71de57632af02537c71a183af0df9`; GitHub Actions run #1103 passed the PostgreSQL 16 RLS integration, regression/contract checks, TypeScript validation, and Next.js production build. Exact Preview deployment `dpl_AgS2rD7YuNCg2ru2xMtxobBAMHy5` is READY at https://admin-dashboard-o59wr0vx9-teknik-informer.vercel.app. Public-route smoke checks passed, protected module routes presented the sign-in surface without an application session, and no Preview runtime error/fatal records were returned for the latest 30-minute query.
+
+**Not yet accepted:** an authenticated user retest of tab switching and post-save continuation is still required. The deployment smoke test does not substitute for browser UAT with the user's authenticated session. No QA business data or database state was changed. Production remains untouched, and PR #92 remains Draft/Open/Unmerged pending all independent security and UAT gates.
+
+
+**Additional navigation correction:** an outgoing letter with a linked generated document now opens that document’s `/app/sekretariat/dokumen/{document_id}/cetak` review/print page from “Buka naskah”; only a letter without a linked document opens the `TPL-KEL` Generator. The source-integration contract checks this distinction.

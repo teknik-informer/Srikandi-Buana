@@ -781,11 +781,11 @@ export default async function SecretariatTemplateBuilderPage({
 
           <div className="flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[10.5px] leading-relaxed text-muted2">
-              Penyimpanan membuat draf pada Register Dokumen. Isi revisi sebelumnya tidak dihapus.
+              Setelah disimpan, aplikasi membuka naskah untuk pemeriksaan, pencetakan, dan finalisasi. Draf belum menjadi surat resmi.
             </p>
             <button type="submit" className="sb-btn sb-btn-primary shrink-0">
               {existing ? <Save size={14} /> : <FilePlus2 size={14} />}
-              {existing ? "Simpan revisi isi" : "Buat draf dokumen"}
+              {existing ? "Simpan revisi & lanjutkan" : "Simpan draf & lanjutkan"}
             </button>
           </div>
         </form>
