@@ -215,28 +215,6 @@ BEGIN
 END
 $function$;
 
-CREATE OR REPLACE FUNCTION v9._account_row_visible(p_user_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = pg_catalog, v9
-AS $function$
-DECLARE actor record;
-  linked_person uuid;
-BEGIN
-  SELECT * INTO actor FROM v9._request_actor() LIMIT 1;
-  IF actor.user_id IS NULL THEN RETURN false; END IF;
-  IF actor.user_id = p_user_id THEN RETURN true; END IF;
-
-  SELECT account.person_id INTO linked_person
-  FROM v9.user_accounts AS account
-  WHERE account.id = p_user_id;
-
-  RETURN linked_person IS NOT NULL AND v9._person_row_visible(linked_person);
-END
-$function$;
-
 CREATE OR REPLACE FUNCTION v9._login_organization_visible(p_organization_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -517,55 +495,64 @@ AS $function$
   )
 $function$;
 
-CREATE OR REPLACE FUNCTION v9._community_membership_visible(p_membership_id uuid)
-RETURNS boolean
-LANGUAGE sql
+CREATE OR REPLACE FUNCTION v9.get_member_community_author_name(p_user_id uuid)
+RETURNS text
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, v9
 AS $function$
-  SELECT EXISTS (
-    SELECT 1
-    FROM v9._request_actor() AS actor
-    INNER JOIN v9.memberships AS membership
-      ON membership.organization_id = actor.organization_id
-    WHERE membership.id = p_membership_id
-      AND (
-        EXISTS (
-          SELECT 1 FROM v9.member_community_topics AS topic
-          WHERE topic.membership_id = membership.id
-            AND topic.organization_id = membership.organization_id
-            AND topic.status = 'published'
-        )
-        OR EXISTS (
-          SELECT 1
-          FROM v9.member_community_replies AS reply
-          INNER JOIN v9.member_community_topics AS topic
-            ON topic.id = reply.topic_id
-            AND topic.organization_id = reply.organization_id
-          WHERE reply.membership_id = membership.id
-            AND reply.organization_id = membership.organization_id
-            AND reply.status = 'published'
-            AND topic.status = 'published'
-        )
-      )
-  )
-$function$;
+DECLARE actor record;
+DECLARE display_name text;
+BEGIN
+  SELECT * INTO actor FROM v9._request_actor() LIMIT 1;
+  IF actor.user_id IS NULL OR actor.organization_id IS NULL THEN
+    RETURN NULL;
+  END IF;
 
-CREATE OR REPLACE FUNCTION v9._community_person_visible(p_person_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = pg_catalog, v9
-AS $function$
-  SELECT EXISTS (
-    SELECT 1
-    FROM v9.memberships AS membership
-    WHERE membership.person_id = p_person_id
-      AND membership.organization_id = (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
-      AND v9._community_membership_visible(membership.id)
+  IF actor.user_id <> p_user_id
+     AND actor.role_key NOT IN ('platform_admin', 'organization_admin', 'chair', 'secretary')
+     AND NOT (
+       v9._active_community_member(actor.organization_id)
+       AND (
+         EXISTS (
+           SELECT 1
+           FROM v9.member_community_topics AS topic
+           WHERE topic.organization_id = actor.organization_id
+             AND topic.author_user_id = p_user_id
+             AND topic.status = 'published'
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM v9.member_community_replies AS reply
+           INNER JOIN v9.member_community_topics AS topic
+             ON topic.id = reply.topic_id
+             AND topic.organization_id = reply.organization_id
+           WHERE reply.organization_id = actor.organization_id
+             AND reply.author_user_id = p_user_id
+             AND reply.status = 'published'
+             AND topic.status = 'published'
+         )
+       )
+     )
+  THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT COALESCE(
+    NULLIF(btrim(person.preferred_name), ''),
+    NULLIF(btrim(person.full_name), ''),
+    'Anggota'
   )
+  INTO display_name
+  FROM v9.user_accounts AS account
+  LEFT JOIN v9.people AS person
+    ON person.id = account.person_id
+  WHERE account.id = p_user_id
+  LIMIT 1;
+
+  RETURN display_name;
+END
 $function$;
 
 CREATE OR REPLACE FUNCTION v9._can_review_memberships(p_organization_id uuid)
@@ -1175,17 +1162,11 @@ CREATE POLICY memberships_write_scope ON v9.memberships
   FOR ALL TO v9_app
   USING (v9._can_manage_organization(organization_id))
   WITH CHECK (v9._can_manage_organization(organization_id));
-CREATE POLICY memberships_community_author_read ON v9.memberships
-  FOR SELECT TO v9_app
-  USING (v9._community_membership_visible(id));
 
 CREATE POLICY people_scope ON v9.people
   FOR ALL TO v9_app
   USING (v9._person_row_visible(id))
   WITH CHECK (v9._person_row_visible(id));
-CREATE POLICY people_community_author_read ON v9.people
-  FOR SELECT TO v9_app
-  USING (v9._community_person_visible(id));
 
 CREATE POLICY role_assignments_read_scope ON v9.role_assignments
   FOR SELECT TO v9_app
@@ -1197,7 +1178,8 @@ CREATE POLICY role_assignments_read_scope ON v9.role_assignments
 CREATE POLICY user_accounts_read_scope ON v9.user_accounts
   FOR SELECT TO v9_app
   USING (
-    v9._account_row_visible(id)
+    id = (SELECT actor.user_id FROM v9._request_actor() AS actor LIMIT 1)
+    OR id = v9._login_user_id()
     OR lower(email) = NULLIF(current_setting('v9.login_email', true), '')
   );
 CREATE POLICY user_accounts_update_scope ON v9.user_accounts
@@ -1459,7 +1441,6 @@ BEGIN
     'v9._tenant_row_visible(uuid,text,uuid,uuid,uuid,uuid)'::regprocedure,
     'v9._can_manage_organization(uuid)'::regprocedure,
     'v9._person_row_visible(uuid)'::regprocedure,
-    'v9._account_row_visible(uuid)'::regprocedure,
     'v9._login_organization_visible(uuid)'::regprocedure,
     'v9._login_field_application_visible(uuid,uuid)'::regprocedure,
     'v9._document_row_visible(uuid)'::regprocedure,
@@ -1481,8 +1462,7 @@ BEGIN
     'v9.get_public_documents(text,integer)'::regprocedure,
     'v9.get_public_document_file(uuid)'::regprocedure,
     'v9._active_community_member(uuid)'::regprocedure,
-    'v9._community_membership_visible(uuid)'::regprocedure,
-    'v9._community_person_visible(uuid)'::regprocedure,
+    'v9.get_member_community_author_name(uuid)'::regprocedure,
     'v9._can_review_memberships(uuid)'::regprocedure
   ] LOOP
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', v_function);
