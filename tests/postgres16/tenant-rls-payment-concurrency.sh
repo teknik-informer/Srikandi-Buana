@@ -7,8 +7,22 @@ work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 
 # Reuse the actual CI tenant identity from the customer fixture instead of
-# assuming the UUID chosen by the initial migration runner.
+# assuming the UUID chosen by the initial migration runner. A separate, disposable
+# organization-admin assignment ensures the race test exercises organization scope,
+# not a field-coordinator's narrower unit scope.
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+INSERT INTO v9.role_assignments (
+  id, organization_id, user_id, role_key, scope_kind, is_active, valid_from
+) VALUES (
+  'ea000000-0000-4000-8000-00000000000a',
+  v9.get_public_organization_id(),
+  '40000000-0000-4000-8000-000000000004',
+  'organization_admin',
+  'organization',
+  true,
+  now() - interval '1 minute'
+);
+
 INSERT INTO v9.sessions (user_id, token_hash, expires_at)
 VALUES (
   '40000000-0000-4000-8000-000000000004',
