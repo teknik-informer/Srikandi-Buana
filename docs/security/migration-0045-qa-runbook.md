@@ -586,3 +586,39 @@ The migration creates/replaces functions and records migration metadata; it does
 **Scope boundaries:** only migrations 0046 and 0047 were applied to the QA branch above. No Production database/schema, Production Vercel environment, deployment, merge, table ownership, RLS policy definition, or existing business data was changed. Function EXECUTE ACLs were added only for the new functions: grant to `v9_app`, revoke from PUBLIC.
 
 **Remaining gates:** legitimate-persona Preview browser UAT, full UI-level Finance/POS and export/share/download regression, wider cross-tenant negative testing for every applicable action and side effect, independent security review, and release/rollback/observability sign-off remain open. PR #92 remains Draft/Open/Unmerged; Issue #90 remains Open.
+
+
+## 10. Authenticated Preview runtime identity verification — 28 Nov 2026
+
+The user provided the JSON result from the authenticated Preview-only database diagnostic endpoint after signing in with an existing authorized administrator account. This is an observed result from the deployed Preview session, not an inferred role or a value copied from a connection string.
+
+**Observed runtime identity:**
+
+| Assertion | Observed result |
+|---|---|
+| Environment | `preview` |
+| `current_user` | `v9_app` |
+| `session_user` | `v9_app` |
+| Database | `neondb` |
+| PostgreSQL | `18.7 (3190d2f)` |
+| Neon branch ID | `br-snowy-forest-b46i5pqx` |
+| Neon endpoint ID | `ep-icy-scene-b4f8rk0x` |
+| SUPERUSER | false |
+| BYPASSRLS | false |
+| CREATE ROLE / CREATE DATABASE | false / false |
+| Owns tenant tables | false |
+| Member of `neondb_owner` | false |
+| Can SET role to owner | false |
+| CREATE on schema `v9` | false |
+| CREATE on current database | false |
+| Transaction context isolation | true |
+| Authenticated request session context present | true |
+| `safeForTenantUat` | true |
+
+This proves the tested Preview request uses the least-privilege runtime principal `v9_app` against the intended QA branch. It also proves the two concurrent synthetic pre-auth contexts remained isolated and that the authenticated request had a transaction-bound session context. The diagnostic did not expose a connection URL, cookie, token, organization data, or table contents.
+
+**Independent read-only catalog confirmation on the same QA branch:** PostgreSQL reported 61 tenant/domain tables and 61 with RLS enabled plus FORCE RLS enabled. The two documented system tables (`bootstrap_state` and `schema_migrations`) remain default-deny and are not counted as tenant/domain tables.
+
+**Gate result:** the authenticated runtime-principal, exact QA target, no-elevated-privilege, and transaction-context-isolation gates are complete. `safeForTenantUat=true` authorizes starting tenant UAT; it does not itself prove that every UI CRUD flow, export/share/download route, finance action, or inventory side effect has passed. Those functional tests remain open and must use legitimate personas and explicitly disposable or approved QA fixtures.
+
+**Boundaries:** no runtime role, grant, owner, RLS policy, Production setting, or business row was changed during this diagnostic. PR #92 remains Draft/Open/Unmerged; Issue #90 remains Open until remaining functional, negative cross-tenant, independent review, and release gates are evidenced.
