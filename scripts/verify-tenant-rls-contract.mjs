@@ -53,5 +53,14 @@ assert.match(migration, /SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, v9
 assert.match(migration, /current_setting\('v9\.share_token_hash', true\)/, "Public share access must be token-scoped to the transaction-local hashed token.");
 assert.match(migration, /_public_banner_asset/i, "Public banner access must be narrowly scoped.");
 assert.match(migration, /_public_interest_context/i, "Public membership submissions must have a dedicated policy context.");
+assert.match(migration, /audit_events_insert_scope/, "Tenant-scoped audit inserts must remain available.");
+assert.match(migration, /audit_events_read_scope/, "Audit reads must be restricted to authorized organization leadership.");
+assert.match(migration, /file_share_links_public_token_read/, "Anonymous download counter updates need a matching token-scoped SELECT policy.");
+assert.match(migration, /member_community_topics_published_read/, "Active members must retain read access to published community topics.");
+assert.match(migration, /member_community_replies_published_read/, "Active members must retain read access to published community replies.");
+assert.match(migration, /_community_membership_visible/, "Community author membership reads must be scoped to published content.");
+assert.match(migration, /_community_person_visible/, "Community author names must be visible only for published content.");
+assert.match(migration, /source_field_key, NULL, NULL, created_by/, "Field-scoped secretariat documents must remain visible to their field.");
+
 
 console.log("PASS tenant RLS contract: 63-table inventory, transaction-bound context, login/public scopes, preview-only probe.");
