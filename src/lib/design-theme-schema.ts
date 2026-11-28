@@ -199,6 +199,15 @@ export function validateDesignTheme(theme: DesignThemeSettings): string | null {
   if (contrastRatio(theme.colors.ink, theme.colors.card) < 4.5) {
     return "Warna teks utama dan latar kartu belum memenuhi kontras 4,5:1.";
   }
+  if (contrastRatio(theme.colors.ink, theme.colors.surface) < 4.5) {
+    return "Warna teks utama dan latar sekunder belum memenuhi kontras 4,5:1.";
+  }
+  if (contrastRatio(theme.colors.muted, theme.colors.surface) < 4.5) {
+    return "Warna teks sekunder belum memenuhi kontras 4,5:1 pada latar sekunder.";
+  }
+  if (contrastRatio(theme.colors.accent, theme.colors.ink) < 4.5) {
+    return "Warna aksen dan teks pada permukaan aksen belum memenuhi kontras 4,5:1.";
+  }
   if (contrastRatio(theme.colors.muted, theme.colors.canvas) < 4.5) {
     return "Warna teks sekunder belum memenuhi kontras 4,5:1 pada latar halaman.";
   }
