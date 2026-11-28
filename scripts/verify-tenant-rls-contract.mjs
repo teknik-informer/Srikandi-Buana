@@ -83,7 +83,7 @@ assert.match(migration, /member_community_topics_published_read/, "Active member
 assert.match(migration, /member_community_replies_published_read/, "Active members must retain read access to published community replies.");
 assert.match(migration, /get_member_community_author_name/, "Community author display must use a minimal safe name projection, not broad people/account row access.");
 assert.doesNotMatch(migration, /CREATE POLICY (memberships_community_author_read|people_community_author_read)/, "Community display must not expose membership or people rows to other members.");
-assert.doesNotMatch(migration, /_account_row_visible/, "Organization admins must not read other users' password_hash rows.");
+assert.doesNotMatch(migration, /CREATE OR REPLACE FUNCTION v9\._account_row_visible|v9\._account_row_visible\(id\)/, "Organization admins must not read other users' password_hash rows.");
 assert.match(migration, /DROP FUNCTION IF EXISTS v9\._account_row_visible\(uuid\)/, "Legacy account-row SECURITY DEFINER helper must be removed.");
 assert.match(migration, /DROP FUNCTION IF EXISTS v9\._community_membership_visible\(uuid\)/, "Legacy membership-row SECURITY DEFINER helper must be removed.");
 assert.match(migration, /DROP FUNCTION IF EXISTS v9\._community_person_visible\(uuid\)/, "Legacy person-row SECURITY DEFINER helper must be removed.");
