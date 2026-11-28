@@ -103,17 +103,33 @@ SQL
 BEGIN;
 SET LOCAL ROLE v9_app;
 SELECT set_config('v9.session_token_hash', repeat('f',64), true);
-SELECT
-  current_user,
-  actor.user_id AS actor_user_id,
-  actor.organization_id AS actor_organization_id,
-  actor.role_key AS actor_role,
-  v9.get_public_organization_id() AS resolved_public_organization_id,
-  (SELECT count(*) FROM v9.business_orders
-    WHERE id = 'e7000000-0000-4000-8000-000000000007') AS visible_race_order_count,
-  (SELECT status FROM v9.business_orders
-    WHERE id = 'e7000000-0000-4000-8000-000000000007') AS visible_race_order_status
-FROM v9._request_actor() AS actor;
+DO $tenant_context$
+DECLARE
+  actor record;
+  visible_order_count integer;
+  visible_order_status text;
+BEGIN
+  SELECT * INTO actor FROM v9._request_actor() LIMIT 1;
+  IF actor.user_id IS DISTINCT FROM '40000000-0000-4000-8000-000000000004'::uuid
+    OR actor.organization_id IS DISTINCT FROM v9.get_public_organization_id()
+    OR actor.role_key IS DISTINCT FROM 'organization_admin'
+    OR actor.scope_kind IS DISTINCT FROM 'organization'
+  THEN
+    RAISE EXCEPTION 'Payment race fixture must run as the tenant-A organization administrator; resolved actor %, organization %, role %, scope %.',
+      actor.user_id, actor.organization_id, actor.role_key, actor.scope_kind;
+  END IF;
+
+  SELECT count(*)::int, max(order_row.status)
+  INTO visible_order_count, visible_order_status
+  FROM v9.business_orders AS order_row
+  WHERE order_row.id = 'e7000000-0000-4000-8000-000000000007';
+
+  IF visible_order_count <> 1 OR visible_order_status IS DISTINCT FROM 'fulfilled' THEN
+    RAISE EXCEPTION 'Tenant-A administrator must read the fulfilled concurrency fixture order; visible rows %, status %.',
+      visible_order_count, visible_order_status;
+  END IF;
+END
+$tenant_context$;
 INSERT INTO v9.business_order_payments (
   organization_id, field_key, order_id, cash_account_id,
   payment_date, amount, received_by, idempotency_key
