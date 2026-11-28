@@ -54,6 +54,9 @@ assert.match(migration, /government_viewer', 'ngo_viewer', 'partner_viewer/, "Go
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_organization_id\(\)/, "Public settings and public intake must resolve the tenant through an allowlisted organization ID helper.");
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_organization\(\)/, "Public organization identity must be returned through a fixed projection.");
 assert.match(migration, /id = \(SELECT actor\.organization_id/, "Organization base-table SELECT must be limited to an authenticated current actor or verified login context.");
+assert.doesNotMatch(migration, /OR \(slug = 'srikandi-buana' AND status = 'active'\)/, "Anonymous access to the organizations base table must remain denied.");
+assert.match(migration, /organization_id = v9\.get_public_organization_id\(\)/, "Public settings, membership intake and public events must resolve the organization through the security-definer helper.");
+
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_fields\(\)/, "Public field registry must be exposed via an allowlisted projection.");
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_products\(/, "Public product data must be projected through a fixed column allow-list.");
 assert.match(migration, /CREATE OR REPLACE FUNCTION v9\.get_public_activities\(/, "Public activity data must be limited to explicitly open events.");
