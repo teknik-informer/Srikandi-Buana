@@ -584,3 +584,49 @@ The PostgreSQL 16 log explicitly records:
 The overpayment error emitted by the second concurrent session is the expected negative-test outcome; the runner confirms the committed single-receipt final state and exits successfully. This run is evidence for the exact commit above only. It does not apply any migration to live Neon QA or Production, and it is not browser UAT or an independent security review.
 
 PR #92 remains Draft/Open/Unmerged. Issue #90 remains Open. Migration 0045 remains unapplied on live QA pending explicit authorization for the exact target branch and migration.
+
+
+### 12.13 Business order stock lifecycle transaction and exact-head validation — run #1078
+
+The three stock-affecting business-order transitions previously implemented as large inline server-action CTEs are now routed through dedicated database transaction functions, so the application and PostgreSQL integration suite exercise the same transition logic:
+
+- `v9.confirm_business_order(order_id, actor_user_id)`: authenticates the request actor/organization, locks the order and all relevant stock rows in stable product/warehouse order, validates every item and current availability before changing stock, records the exact reservation on each order item, changes the order to confirmed, and writes one audit event. If any item is unavailable, it returns no row and makes no partial reservation.
+- `v9.fulfill_business_order(order_id, actor_user_id)`: validates the ready order and exact item reservations, locks the stock rows, deducts on-hand and reserved balances together, writes one immutable `sale` movement per tracked item with before/delta/after values, clears item reservations, marks the order fulfilled and writes the audit event. A mismatch or incomplete movement set raises and rolls back the whole transaction.
+- `v9.cancel_business_order(order_id, actor_user_id, reason)`: validates and locks existing reservations, releases each reserved balance, clears item reservations, marks the order cancelled with the supplied reason, and writes the audit event. A second cancellation returns no row and cannot release the same stock twice.
+
+Migration `0047_business_order_stock_lifecycle_transaction.sql` defines these functions as `SECURITY INVOKER`, with explicit revocation from PUBLIC and execution grants to `v9_app` only. The shared actor/organization check independently resolves `v9._request_actor()`, requires the passed actor ID to match the authenticated request, allows only the roles already permitted by the order actions, and fails closed when the tenant's `usaha` field context is not visible. The functions do not use SECURITY DEFINER, do not change table owners or privileges, and remain subject to the existing FORCE RLS policies.
+
+`src/app/actions/business-orders.ts` now invokes the functions for confirm, fulfill and cancel after its existing application permission checks. The intermediate `confirmed → processing → ready` actions retain their existing controlled status transitions and audit CTEs; payment recording retains the separate receipt guard and organization/order concurrency lock.
+
+The new disposable PostgreSQL 16 test `tests/postgres16/business-order-lifecycle-integration.sql` calls the same database functions as the application. With a synthetic, authenticated organization-admin actor under `v9_app` it asserts:
+
+1. A valid two-unit order reserves exactly two units, updates the item's reservation snapshot and emits one confirmation audit event. A repeated confirmation is a no-op.
+2. A valid ready order deducts on-hand and reserved stock exactly once, clears its reservation, marks the order fulfilled, and emits exactly one immutable `sale` movement recording the exact before/delta/after values. A repeated fulfilment is a no-op.
+3. Cancelling a separately confirmed order restores its reserved quantity without increasing on-hand and without writing a sale movement. The cancellation reason and actor are retained; a repeated cancellation is a no-op.
+4. An order exceeding available stock remains draft with no reservation or stock-register change.
+5. A multi-item order where the first product is available but the second is short remains draft; neither product receives a partial reservation.
+6. A tenant-A actor cannot change a known tenant-B order, and a caller cannot replace the authenticated actor by supplying another user's ID.
+7. Successful state transitions write the expected audit sequence; rejected reservation attempts do not emit a confirmation audit event.
+
+### 12.14 Latest complete CI evidence — exact-head run #1078
+
+GitHub Actions run **#1078**: [`46142947673`](https://github.com/teknik-informer/Srikandi-Buana/actions/runs/46142947673)  
+Exact code/test commit: `9550e3c8fc8aaab7903f9ff8c74e210e262b7745`.
+
+Both required jobs completed successfully:
+
+- `Tenant RLS PostgreSQL 16 integration`: success.
+- `Typecheck and production build`: success, including organization reporting regression checks, core workspace shell contract, TypeScript validation and Next.js production build.
+
+The PostgreSQL 16 log explicitly records all four results:
+
+- `PASS PostgreSQL 16 tenant RLS integration: 63/63 FORCE RLS`.
+- `PASS PostgreSQL 16 business order lifecycle: tenant/actor binding, serialized stock reservation, exact fulfillment sale movements, idempotent cancellation, insufficient-stock rejection, multi-item atomicity and audit events.`
+- `PASS PostgreSQL 16 finance lifecycle: journal review/post/reversal, budget guards, contribution allocation cap/correction, exact one-time receipt journal link, period close/reopen/re-close metadata, audit events.`
+- `PASS PostgreSQL 16 concurrent payment guard: one receipt committed, concurrent overpayment rejected, total IDR 6,000.`
+
+The business-order CI session token is isolated from the other test fixtures; no CI session token or test user is a production credential. The expected overpayment rejection in the concurrency log remains the deliberate negative-test result, and the runner exits successfully after checking exactly one committed receipt.
+
+Migrations 0046 and 0047 are included and exercised by the disposable CI migration sequence only. **Neither migration has been applied to live Neon QA or Production.** Migration 0045 also remains unapplied on live QA; its dedicated preflight and rollback runbook is already documented in Section 12.10 and still requires separate explicit authorization naming the exact QA branch and migration.
+
+This run validates database behavior, application compilation and build contracts. It does not substitute for legitimate-persona Preview browser UAT, live-QA migration approval, a full screen-level POS/Finance/export/share/download test, independent security review, or the release/rollback/observability sign-off. PR #92 remains Draft/Open/Unmerged and Issue #90 remains Open.
