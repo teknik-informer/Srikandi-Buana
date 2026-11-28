@@ -38,10 +38,7 @@ export default async function KontakPage({
       const sql = getV9Sql();
       const result = await sql`
         SELECT legal_name, short_name, address
-        FROM v9.organizations
-        WHERE slug = 'srikandi-buana'
-          AND status = 'active'
-        LIMIT 1
+        FROM v9.get_public_organization()
       `;
       return rowsFromResult<PublicContact>(result)[0] ?? null;
     },
