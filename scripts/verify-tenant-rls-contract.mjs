@@ -55,6 +55,7 @@ assert.match(migration, /SECURITY DEFINER[\s\S]*SET search_path = pg_catalog, v9
 assert.match(migration, /current_setting\('v9\.share_token_hash', true\)/, "Public share access must be token-scoped to the transaction-local hashed token.");
 assert.match(migration, /_public_banner_asset/i, "Public banner access must be narrowly scoped.");
 assert.match(migration, /_public_interest_context/i, "Public membership submissions must have a dedicated policy context.");
+assert.match(migration, /login_page_content', 'public_policies/, "Public login copy and public policy documents must remain readable when explicitly public.");
 assert.match(migration, /audit_events_insert_scope/, "Tenant-scoped audit inserts must remain available.");
 assert.match(migration, /audit_events_read_scope/, "Audit reads must be restricted to authorized organization leadership.");
 assert.match(migration, /file_share_links_public_token_read/, "Anonymous download counter updates need a matching token-scoped SELECT policy.");
