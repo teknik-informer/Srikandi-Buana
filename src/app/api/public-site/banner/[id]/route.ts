@@ -23,12 +23,26 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const sql = getV9Sql();
     const result = await sql`
-      SELECT asset.*
+      SELECT
+        asset.id,
+        asset.organization_id,
+        asset.uploaded_by,
+        asset.category,
+        asset.scope_kind,
+        asset.scope_ref,
+        asset.file_name,
+        asset.mime_type,
+        asset.size_bytes,
+        asset.sha256,
+        asset.cloudinary_asset_id,
+        asset.cloudinary_public_id,
+        asset.cloudinary_resource_type,
+        asset.cloudinary_delivery_type,
+        asset.cloudinary_version,
+        asset.cloudinary_format,
+        asset.status
       FROM v9.file_assets AS asset
-      INNER JOIN v9.organizations AS organization ON organization.id = asset.organization_id
       WHERE asset.id = ${id}
-        AND organization.slug = 'srikandi-buana'
-        AND organization.status = 'active'
         AND asset.status = 'active'
         AND asset.scope_kind = 'organization'
         AND asset.category = 'public-site-banner'
