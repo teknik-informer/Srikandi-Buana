@@ -3,7 +3,7 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getV9Sql, rowsFromResult } from "@/lib/db";
+import { getV9AuthenticatedLoginSql, getV9LoginSql, getV9Sql, rowsFromResult } from "@/lib/db";
 import { hashPassword, isLegacyPasswordHash, verifyPasswordOrDummy } from "@/lib/password";
 import { SESSION_COOKIE } from "@/lib/identity";
 import { revokeCurrentSession } from "@/lib/session";
@@ -117,10 +117,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
       "unknown";
     const subjectHash = hmac(pepper, `email:${email}`);
     const ipHash = hmac(pepper, `ip:${forwardedIp}`);
-    const sql = getV9Sql();
+    const loginContext = { email, subjectHash, ipHash };
+    const loginSql = getV9LoginSql(loginContext);
 
     const limitRows = rowsFromResult<{ locked_until: string | null }>(
-      await sql`
+      await loginSql`
         SELECT locked_until
         FROM v9.login_rate_limits
         WHERE subject_hash = ${subjectHash}
@@ -136,7 +137,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     }
 
     const accountRows = rowsFromResult<AccountRow>(
-      await sql`
+      await loginSql`
         SELECT id, password_hash, status, email_verified_at, legacy_auth_eligible
         FROM v9.user_accounts
         WHERE lower(email) = ${email}
@@ -152,9 +153,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
       account.status !== "active" ||
       (!account.email_verified_at && !account.legacy_auth_eligible)
     ) {
-      await recordFailedAttempt(sql, subjectHash, ipHash);
+      await recordFailedAttempt(loginSql, subjectHash, ipHash);
       return { error: "Surel atau kata sandi tidak cocok, atau akun belum aktif." };
     }
+
+    const sql = getV9AuthenticatedLoginSql({ ...loginContext, userId: account.id });
 
     const roleRows = rowsFromResult<RoleRow>(
       await sql`
