@@ -42,8 +42,12 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA v9 TO v9_app;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA v9 TO v9_app;
 SQL
 
-# Apply twice to prove the policy migration is rerunnable and does not
-# duplicate or lose policy definitions.
+# Recreate the legacy v1 helper/policy state already found on the QA branch.
+# The current migration must safely replace it, remove obsolete SECURITY DEFINER
+# helpers, and reconcile the existing schema_migrations checksum.
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/postgres16/tenant-rls-legacy-v1-fixture.sql
+
+# Apply twice to prove the upgrade is safe and the v2 state remains idempotent.
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0044_tenant_row_level_security.sql
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f db/migrations/0044_tenant_row_level_security.sql
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f tests/postgres16/tenant-rls-integration.sql
