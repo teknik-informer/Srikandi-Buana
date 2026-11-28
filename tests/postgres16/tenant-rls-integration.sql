@@ -317,10 +317,39 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.business_orders (
   id, organization_id, field_key, reference_no, customer_id, customer_name_snapshot,
-  warehouse_id, status, created_by, updated_by
+  warehouse_id, order_channel, status, subtotal, delivery_fee, total_amount,
+  created_by, updated_by, confirmed_by, confirmed_at, fulfilled_by, fulfilled_at
 ) VALUES
-  ('c7000000-0000-4000-8000-000000000007', v9.get_public_organization_id(), 'usaha', 'QA-ORD-A-001', 'c5000000-0000-4000-8000-000000000005', 'QA Customer Tenant A', 'c3000000-0000-4000-8000-000000000003', 'draft', '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004'),
-  ('c8000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000002', 'usaha', 'QA-ORD-B-001', 'c6000000-0000-4000-8000-000000000006', 'QA Customer Tenant B', 'c4000000-0000-4000-8000-000000000004', 'draft', '40000000-0000-4000-8000-000000000008', '40000000-0000-4000-8000-000000000008')
+  ('c7000000-0000-4000-8000-000000000007', v9.get_public_organization_id(), 'usaha', 'QA-ORD-A-001', 'c5000000-0000-4000-8000-000000000005', 'QA Customer Tenant A', 'c3000000-0000-4000-8000-000000000003', 'pos', 'fulfilled', 10000, 0, 10000, '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004', now(), '40000000-0000-4000-8000-000000000004', now()),
+  ('c8000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000002', 'usaha', 'QA-ORD-B-001', 'c6000000-0000-4000-8000-000000000006', 'QA Customer Tenant B', 'c4000000-0000-4000-8000-000000000004', 'pos', 'fulfilled', 10000, 0, 10000, '40000000-0000-4000-8000-000000000008', '40000000-0000-4000-8000-000000000008', '40000000-0000-4000-8000-000000000008', now(), '40000000-0000-4000-8000-000000000008', now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Order items and receipts are seeded under the disposable fixture owner. The
+-- runtime checks below then exercise the same relations as v9_app.
+INSERT INTO v9.business_order_items (
+  id, organization_id, field_key, order_id, product_id,
+  sku_snapshot, product_name_snapshot, unit_snapshot,
+  quantity, unit_price, line_total, stock_reserved
+) VALUES
+  ('c9000000-0000-4000-8000-000000000009', v9.get_public_organization_id(), 'usaha', 'c7000000-0000-4000-8000-000000000007', 'c1000000-0000-4000-8000-000000000001', 'QA-BIZ-A-001', 'QA Product Tenant A', 'pcs', 1, 10000, 10000, 0),
+  ('ca000000-0000-4000-8000-00000000000a', '20000000-0000-4000-8000-000000000002', 'usaha', 'c8000000-0000-4000-8000-000000000008', 'c2000000-0000-4000-8000-000000000002', 'QA-BIZ-B-001', 'QA Product Tenant B', 'pcs', 1, 10000, 10000, 0)
+ON CONFLICT (id) DO NOTHING;
+
+-- A payment receipt is valid only for a fulfilled order and an active cash
+-- register mapped to an active, postable, debit-normal asset account.
+UPDATE v9.finance_cash_accounts
+SET status = 'active', updated_by = created_by, updated_at = now()
+WHERE id IN (
+  'b3000000-0000-4000-8000-00000000000b',
+  'b4000000-0000-4000-8000-00000000000b'
+);
+
+INSERT INTO v9.business_order_payments (
+  id, organization_id, field_key, order_id, cash_account_id,
+  amount, received_by, idempotency_key
+) VALUES
+  ('cb000000-0000-4000-8000-00000000000b', v9.get_public_organization_id(), 'usaha', 'c7000000-0000-4000-8000-000000000007', 'b3000000-0000-4000-8000-00000000000b', 5000, '40000000-0000-4000-8000-000000000004', 'd1000000-0000-4000-8000-000000000001'),
+  ('cc000000-0000-4000-8000-00000000000c', '20000000-0000-4000-8000-000000000002', 'usaha', 'c8000000-0000-4000-8000-000000000008', 'b4000000-0000-4000-8000-00000000000b', 5000, '40000000-0000-4000-8000-000000000008', 'd2000000-0000-4000-8000-000000000002')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.field_programs (
@@ -547,6 +576,12 @@ BEGIN
   SELECT count(*) INTO visible_count FROM v9.business_orders
   WHERE reference_no IN ('QA-ORD-A-001', 'QA-ORD-B-001');
   IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its order; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_order_items
+  WHERE id IN ('c9000000-0000-4000-8000-000000000009', 'ca000000-0000-4000-8000-00000000000a');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its order item; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_order_payments
+  WHERE id IN ('cb000000-0000-4000-8000-00000000000b', 'cc000000-0000-4000-8000-00000000000c');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant A should see only its payment receipt; saw %.', visible_count; END IF;
 
   UPDATE v9.business_products SET product_name = 'Unauthorized product change'
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND sku = 'QA-BIZ-B-001';
@@ -568,11 +603,62 @@ BEGIN
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND reference_no = 'QA-ORD-B-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant order UPDATE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.business_orders
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND reference_no = 'QA-ORD-B-001';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant order DELETE affected % rows.', changed_count; END IF;
+  UPDATE v9.business_order_items
+  SET quantity = 2, line_total = 20000
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002'
+    AND id = 'ca000000-0000-4000-8000-00000000000a';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant order-item UPDATE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.business_order_items
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002'
+    AND id = 'ca000000-0000-4000-8000-00000000000a';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant order-item DELETE affected % rows.', changed_count; END IF;
+  UPDATE v9.business_order_payments SET note = 'Unauthorized receipt change'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002'
+    AND id = 'cc000000-0000-4000-8000-00000000000c';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant payment UPDATE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.business_order_payments
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002'
+    AND id = 'cc000000-0000-4000-8000-00000000000c';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant payment DELETE affected % rows.', changed_count; END IF;
 
   BEGIN
     INSERT INTO v9.business_products (organization_id, field_key, sku, slug, product_name, unit_label, status, publication_status, track_stock, created_by, updated_by)
     VALUES ('20000000-0000-4000-8000-000000000002', 'usaha', 'QA-BIZ-UNAUTH', 'qa-product-unauthorized', 'Unauthorized business product', 'pcs', 'draft', 'private', true, '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004');
     RAISE EXCEPTION 'Cross-tenant business product INSERT was not rejected by RLS.';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO v9.business_orders (
+      organization_id, field_key, customer_id, customer_name_snapshot, warehouse_id,
+      order_channel, created_by, updated_by
+    ) VALUES (
+      '20000000-0000-4000-8000-000000000002', 'usaha',
+      'c6000000-0000-4000-8000-000000000006', 'QA Customer Tenant B',
+      'c4000000-0000-4000-8000-000000000004', 'pos',
+      '40000000-0000-4000-8000-000000000004', '40000000-0000-4000-8000-000000000004'
+    );
+    RAISE EXCEPTION 'Cross-tenant business order INSERT was not rejected by RLS.';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO v9.business_order_items (
+      organization_id, field_key, order_id, product_id, sku_snapshot,
+      product_name_snapshot, unit_snapshot, quantity, unit_price, line_total
+    ) VALUES (
+      '20000000-0000-4000-8000-000000000002', 'usaha',
+      'c8000000-0000-4000-8000-000000000008',
+      'c2000000-0000-4000-8000-000000000002',
+      'QA-BIZ-B-001', 'QA Product Tenant B', 'pcs', 1, 20000, 20000
+    );
+    RAISE EXCEPTION 'Cross-tenant order-item INSERT was not rejected by RLS.';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
@@ -592,6 +678,21 @@ BEGIN
   WHERE organization_id = v9.get_public_organization_id() AND reference_no = 'QA-ORD-A-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant order UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.business_order_items
+  SET quantity = 2, line_total = 20000
+  WHERE organization_id = v9.get_public_organization_id()
+    AND id = 'c9000000-0000-4000-8000-000000000009';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant order-item UPDATE should affect one row; affected %.', changed_count; END IF;
+  INSERT INTO v9.business_order_payments (
+    organization_id, field_key, order_id, cash_account_id, amount, received_by, idempotency_key
+  ) VALUES (
+    v9.get_public_organization_id(), 'usaha',
+    'c7000000-0000-4000-8000-000000000007',
+    'b3000000-0000-4000-8000-00000000000b',
+    1000, '40000000-0000-4000-8000-000000000004',
+    'd3000000-0000-4000-8000-000000000003'
+  );
 
   -- Finance domain: verify organization boundary across six joined ledger/register
   -- tables using the same runtime principal, without field-app scope dependencies.
@@ -692,6 +793,12 @@ BEGIN
   IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its business product; saw %.', visible_count; END IF;
   SELECT count(*) INTO visible_count FROM v9.business_orders WHERE reference_no IN ('QA-ORD-A-001', 'QA-ORD-B-001');
   IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its order; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_order_items
+  WHERE id IN ('c9000000-0000-4000-8000-000000000009', 'ca000000-0000-4000-8000-00000000000a');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its order item; saw %.', visible_count; END IF;
+  SELECT count(*) INTO visible_count FROM v9.business_order_payments
+  WHERE id IN ('cb000000-0000-4000-8000-00000000000b', 'cc000000-0000-4000-8000-00000000000c');
+  IF visible_count <> 1 THEN RAISE EXCEPTION 'Tenant B should see only its payment receipt; saw %.', visible_count; END IF;
   UPDATE v9.business_products SET product_name = 'QA Product Tenant B Updated'
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND sku = 'QA-BIZ-B-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
