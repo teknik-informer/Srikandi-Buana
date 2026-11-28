@@ -320,6 +320,42 @@ END
 $member_scope$;
 COMMIT;
 
+-- External viewer roles have portal:read at the application layer but
+-- must remain default-deny for operational tenant tables until a dataset grant
+-- registry exists. This reuses the disposable CI account; no external account
+-- or operational persona is provisioned.
+UPDATE v9.role_assignments
+SET role_key='ngo_viewer', scope_kind='organization', scope_unit_id=NULL
+WHERE id='50000000-0000-4000-8000-000000000005';
+
+BEGIN;
+SET LOCAL ROLE v9_app;
+SELECT set_config('v9.session_token_hash', repeat('a', 64), true);
+DO $external_scope$
+DECLARE
+  private_settings integer;
+  programs integer;
+  memberships integer;
+BEGIN
+  SELECT count(*) INTO private_settings
+  FROM v9.system_settings WHERE setting_key='qa_private';
+  IF private_settings <> 0 THEN
+    RAISE EXCEPTION 'NGO viewer must not read private organization settings.';
+  END IF;
+
+  SELECT count(*) INTO programs FROM v9.field_programs;
+  IF programs <> 0 THEN
+    RAISE EXCEPTION 'NGO viewer must not read operational field programs.';
+  END IF;
+
+  SELECT count(*) INTO memberships FROM v9.memberships;
+  IF memberships <> 0 THEN
+    RAISE EXCEPTION 'NGO viewer must not read operational member records.';
+  END IF;
+END
+$external_scope$;
+COMMIT;
+
 -- Unit scope: the same disposable CI principal is narrowed to one field.
 UPDATE v9.role_assignments
 SET role_key='field_coordinator',
