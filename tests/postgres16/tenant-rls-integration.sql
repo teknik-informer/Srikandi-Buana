@@ -87,6 +87,12 @@ BEGIN
       trigger_function_count, trigger_count;
   END IF;
 
+  IF to_regprocedure('v9._account_row_visible(uuid)') IS NOT NULL
+     OR to_regprocedure('v9._community_membership_visible(uuid)') IS NOT NULL
+     OR to_regprocedure('v9._community_person_visible(uuid)') IS NOT NULL THEN
+    RAISE EXCEPTION 'Legacy broad-row SECURITY DEFINER helpers must be removed.';
+  END IF;
+
   IF owned_by_runtime <> 0 OR runtime_superuser OR runtime_bypass
      OR runtime_create_role OR runtime_create_db OR owner_member THEN
     RAISE EXCEPTION 'Runtime role has owner/privilege escalation capability.';
