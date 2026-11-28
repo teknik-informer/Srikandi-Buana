@@ -123,6 +123,15 @@ BEGIN
     RAISE EXCEPTION 'The V9 RLS migration ledger checksum was not upgraded; found %.', migration_checksum;
   END IF;
 
+  SELECT checksum INTO migration_checksum
+  FROM v9.schema_migrations
+  WHERE name = '0045_tenant_scope_field_application_identity.sql';
+
+  IF migration_checksum IS DISTINCT FROM
+     'sha256:v9-tenant-scoped-field-application-identity-route-20261128' THEN
+    RAISE EXCEPTION 'Tenant-scoped field application identity migration checksum is missing or unexpected; found %.', migration_checksum;
+  END IF;
+
   IF to_regprocedure('v9._account_row_visible(uuid)') IS NOT NULL
      OR to_regprocedure('v9._community_membership_visible(uuid)') IS NOT NULL
      OR to_regprocedure('v9._community_person_visible(uuid)') IS NOT NULL THEN
@@ -719,6 +728,44 @@ BEGIN
     1000, '40000000-0000-4000-8000-000000000004',
     'd3000000-0000-4000-8000-000000000003'
   );
+
+  BEGIN
+    INSERT INTO v9.business_order_payments (
+      organization_id, field_key, order_id, cash_account_id, amount, received_by, idempotency_key
+    ) VALUES (
+      v9.get_public_organization_id(), 'usaha',
+      'c7000000-0000-4000-8000-000000000007',
+      'b3000000-0000-4000-8000-00000000000b',
+      5000, '40000000-0000-4000-8000-000000000004',
+      'd4000000-0000-4000-8000-000000000004'
+    );
+    RAISE EXCEPTION 'Overpayment guard did not reject a receipt above the remaining order balance.';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'Total received payment cannot exceed the order total.' THEN
+      RAISE;
+    END IF;
+  END;
+
+  BEGIN
+    UPDATE v9.business_order_payments
+    SET note = 'Unauthorized post-recording edit'
+    WHERE id = 'cb000000-0000-4000-8000-00000000000b';
+    RAISE EXCEPTION 'Payment receipt immutability guard did not reject an update.';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'Payment receipt details are immutable after recording.' THEN
+      RAISE;
+    END IF;
+  END;
+
+  BEGIN
+    DELETE FROM v9.business_order_payments
+    WHERE id = 'cb000000-0000-4000-8000-00000000000b';
+    RAISE EXCEPTION 'Payment receipt retention guard did not reject a delete.';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'Business payment receipts are retained for audit and cannot be deleted.' THEN
+      RAISE;
+    END IF;
+  END;
 
   -- Finance domain: verify organization boundary across six joined ledger/register
   -- tables using the same runtime principal, without field-app scope dependencies.
