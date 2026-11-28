@@ -219,7 +219,7 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
             <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-ink2"><ImageIcon size={14} /> Foto banner</div>
             <div className="relative mb-3 aspect-[16/5] overflow-hidden rounded-lg bg-[#12351f]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={settings.hero.imageAssetId ? `/api/files/${settings.hero.imageAssetId}?disposition=inline` : settings.hero.imageUrl} alt={settings.hero.imageAlt} className="h-full w-full object-cover" />
+              <img src={settings.hero.imageAssetId ? `/api/files/${settings.hero.imageAssetId}?disposition=inline` : settings.hero.imageUrl} alt={settings.hero.imageAlt} className="h-full w-full object-cover" style={{ objectPosition: settings.hero.imagePositionX + "% " + settings.hero.imagePositionY + "%" }} />
               <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
               <div className="absolute bottom-2 left-3 text-[10px] font-semibold text-white">Pratinjau foto Hero</div>
             </div>
@@ -227,6 +227,18 @@ export function PublicSiteSettingsEditor({ initialSettings }: { initialSettings:
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <Field label="Path/URL foto cadangan" value={settings.hero.imageUrl} onChange={(imageUrl) => patchHero({ imageUrl, imageAssetId: "" })} maxLength={500} placeholder="/images/hero-pemanen.jpg" />
               <Field label="Teks alternatif foto" value={settings.hero.imageAlt} onChange={(imageAlt) => patchHero({ imageAlt })} maxLength={180} />
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 flex items-center justify-between text-[10.5px] font-semibold text-ink2"><span>Fokus horizontal</span><span className="tabular-nums text-muted">{settings.hero.imagePositionX}%</span></span>
+                <input type="range" min="0" max="100" step="1" value={settings.hero.imagePositionX} onChange={(event) => patchHero({ imagePositionX: Number(event.target.value) })} className="w-full accent-[#176b35]" />
+                <span className="flex justify-between text-[9px] text-muted2"><span>Kiri</span><span>Kanan</span></span>
+              </label>
+              <label className="block">
+                <span className="mb-1 flex items-center justify-between text-[10.5px] font-semibold text-ink2"><span>Fokus vertikal</span><span className="tabular-nums text-muted">{settings.hero.imagePositionY}%</span></span>
+                <input type="range" min="0" max="100" step="1" value={settings.hero.imagePositionY} onChange={(event) => patchHero({ imagePositionY: Number(event.target.value) })} className="w-full accent-[#176b35]" />
+                <span className="flex justify-between text-[9px] text-muted2"><span>Atas</span><span>Bawah</span></span>
+              </label>
             </div>
             {settings.hero.imageAssetId ? (
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#cfe6d3] bg-[#f2faf3] px-3 py-2">
