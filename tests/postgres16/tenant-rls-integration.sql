@@ -230,7 +230,6 @@ INSERT INTO v9.finance_journal_lines (
   ('bc000000-0000-4000-8000-00000000000b', '20000000-0000-4000-8000-000000000002', 'ba000000-0000-4000-8000-00000000000b', 'b2000000-0000-4000-8000-00000000000b', 1, 'QA line B', 100, 0)
 ON CONFLICT (id) DO NOTHING;
 
-ON CONFLICT (organization_id, setting_key) DO NOTHING;
 INSERT INTO v9.organization_units (
   id, organization_id, unit_key, name, unit_type, mandate
 ) VALUES
