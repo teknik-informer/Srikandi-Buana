@@ -643,3 +643,6 @@ The user reported two Preview UAT issues after signing in with an authorized QA 
 - Unauthenticated smoke checks returned the expected public Home / Sign-in pages; both protected letter-list directions and the generated-document route resolved to the sign-in surface when no application session was supplied. No Preview runtime error/fatal records were returned for the most recent 30-minute query.
 
 **Acceptance still pending:** the user must retest the two URL-driven tab links and the post-save generated-draft page in their own authenticated Preview browser session. This remote verification does not have access to the user's local application cookie/session and therefore cannot claim an authenticated browser UAT pass. No QA business row was inserted or changed by this repair. No QA or Production database schema/data, Production environment, Production deployment, alias, or active release was changed. PR #92 remains Draft/Open/Unmerged; Issue #90 remains Open.
+
+
+**Additional navigation correction:** the outgoing-letter table’s “Buka naskah” action now opens the saved document’s `/app/sekretariat/dokumen/{document_id}/cetak` review/print route directly. Only when no generated document exists does the action open the `TPL-KEL` Generator. This avoids sending a user back into the Generator after a draft has already been saved.
