@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, FileText, Settings2, Users } from "lucide-react";
 import {
-  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, StatusBadge,
+  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, StatusBadge, ComingSoonBadge,
 } from "@/components/ui";
 import type { FieldDef } from "@/config/fields";
 import { formatDateID, formatIDR } from "@/lib/format";
@@ -284,14 +284,21 @@ export async function FieldSectionView({ field, section }: { field: FieldDef; se
             : section === "data"
               ? "Daftar keanggotaan aktif dan pengajuan yang menunggu verifikasi dari basis data organisasi."
               : section === "formulir"
-              ? "Akses pendataan melalui modul operasional yang sudah terhubung ke penyimpanan organisasi."
+              ? "Akses pendataan melalui modul operasional yang sudah terhubung ke penyimpanan organisasi. Form Builder generik belum tersedia."
               : section === "dokumen"
                 ? "Dokumen organisasi dikelola pada arsip Sekretariat; relasi dokumen ke masing-masing bidang belum tersedia."
                 : section === "anggaran"
-                  ? "Daftar nilai usulan program dari modul bidang. Nilai ini bukan plafon anggaran yang telah disetujui."
+                  ? "Daftar nilai usulan program dari modul bidang. Ini belum menjadi anggaran disahkan atau realisasi pada buku besar."
                   : section === "laporan"
                     ? "Ringkasan capaian dari rencana kerja, program, indikator, kegiatan, dan tugas yang tersimpan."
                     : "Informasi status aplikasi bidang. Pengaturan struktural dan akses dikelola melalui proses organisasi."
+        }
+        actions={
+          section === "formulir" ? <ComingSoonBadge label="Form Builder" /> :
+          section === "dokumen" ? <ComingSoonBadge label="Relasi dokumen bidang" /> :
+          section === "anggaran" ? <ComingSoonBadge label="Anggaran formal & realisasi" /> :
+          section === "pengaturan" ? <ComingSoonBadge label="Editor pengaturan bidang" /> :
+          undefined
         }
       />
 
