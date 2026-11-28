@@ -669,6 +669,21 @@ CREATE POLICY membership_interests_public_insert ON v9.membership_interests
     AND source = 'website'
     AND consented_at IS NOT NULL
   );
+CREATE POLICY membership_interests_public_rate_limit_read ON v9.membership_interests
+  FOR SELECT TO v9_app
+  USING (
+    v9._public_interest_context()
+    AND organization_id = (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana' AND status = 'active' LIMIT 1)
+    AND lower(btrim(applicant_name)) = NULLIF(current_setting('v9.public_interest_name', true), '')
+    AND CASE
+      WHEN regexp_replace(phone, '[^0-9]', '', 'g') LIKE '0%'
+        THEN '62' || substring(regexp_replace(phone, '[^0-9]', '', 'g') FROM 2)
+      WHEN regexp_replace(phone, '[^0-9]', '', 'g') LIKE '8%'
+        THEN '62' || regexp_replace(phone, '[^0-9]', '', 'g')
+      ELSE regexp_replace(phone, '[^0-9]', '', 'g')
+    END = NULLIF(current_setting('v9.public_interest_phone', true), '')
+    AND created_at >= now() - interval '15 minutes'
+  );
 
 -- Organization settings are readable by their authorized audience; only
 -- organization leadership/secretariat can write settings. Public reads are
