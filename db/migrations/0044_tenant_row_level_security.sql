@@ -108,6 +108,12 @@ BEGIN
     RETURN false;
   END IF;
 
+  -- External viewers have no database access to operational tenant tables
+  -- until an explicit dataset/field/purpose/expiry/revocation grant exists.
+  IF actor.role_key IN ('government_viewer', 'ngo_viewer', 'partner_viewer') THEN
+    RETURN false;
+  END IF;
+
   IF actor.scope_kind = 'organization' THEN
     RETURN true;
   ELSIF actor.scope_kind = 'unit' THEN
@@ -632,6 +638,8 @@ CREATE POLICY audit_events_insert_scope ON v9.audit_events
   WITH CHECK (
     organization_id = (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
     AND actor_user_id = (SELECT actor.user_id FROM v9._request_actor() AS actor LIMIT 1)
+    AND (SELECT actor.role_key FROM v9._request_actor() AS actor LIMIT 1)
+      NOT IN ('government_viewer', 'ngo_viewer', 'partner_viewer')
   );
 CREATE POLICY audit_events_read_scope ON v9.audit_events
   FOR SELECT TO v9_app
