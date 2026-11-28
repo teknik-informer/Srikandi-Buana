@@ -9,6 +9,7 @@ import {
   Notice,
   PageHeader,
   StatCard,
+  ComingSoonBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, requireIdentity } from "@/lib/session";
@@ -185,7 +186,7 @@ export default async function KasBankPage({
         eyebrow="Keuangan Native"
         title="Kas & bank"
         description="Kelola pemetaan rekening kas, bank, dan dompet digital ke akun buku besar. Saldo hanya dihitung dari jurnal yang sudah terposting."
-        actions={<Badge tone="success">Terhubung ke buku besar</Badge>}
+        actions={<div className="flex flex-wrap items-center gap-2"><Badge tone="success">Terhubung ke buku besar</Badge><ComingSoonBadge label="Rekonsiliasi bank" /></div>}
       />
 
       {notice ? (
