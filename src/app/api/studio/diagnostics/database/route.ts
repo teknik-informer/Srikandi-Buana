@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 interface RuntimeContextProbe {
   current_user: string;
+  session_user: string;
   database_name: string;
   neon_branch_id: string | null;
   login_email: string;
@@ -27,6 +28,10 @@ interface RuntimeDatabaseRow {
   can_create_role: boolean;
   can_create_database: boolean;
   owns_tenant_tables: boolean;
+  member_of_owner_role: boolean;
+  can_set_owner_role: boolean;
+  can_create_in_schema: boolean;
+  can_create_database_objects: boolean;
 }
 
 /**
@@ -62,6 +67,7 @@ export async function GET() {
     const [contextAResult, contextBResult, sessionContextResult] = await Promise.all([
       probeA`
         SELECT current_user::text AS current_user,
+          session_user::text AS session_user,
           current_database()::text AS database_name,
           NULLIF(current_setting('neon.branch_id', true), '') AS neon_branch_id,
           current_setting('v9.login_email', true) AS login_email,
@@ -91,6 +97,8 @@ export async function GET() {
       contextB &&
       contextA.current_user === contextB.current_user &&
       contextA.current_user === "v9_app" &&
+      contextA.session_user === contextB.session_user &&
+      contextA.session_user === "v9_app" &&
       contextA.database_name === contextB.database_name &&
       contextA.neon_branch_id === contextB.neon_branch_id &&
       contextA.login_email === "tenant-context-a@invalid.example" &&
@@ -122,7 +130,11 @@ export async function GET() {
           WHERE namespace.nspname = 'v9'
             AND relation.relkind IN ('r', 'p')
             AND relation.relowner = role.oid
-        ) AS owns_tenant_tables
+        ) AS owns_tenant_tables,
+        pg_has_role(current_user, 'neondb_owner', 'MEMBER') AS member_of_owner_role,
+        pg_has_role(current_user, 'neondb_owner', 'SET') AS can_set_owner_role,
+        has_schema_privilege(current_user, 'v9', 'CREATE') AS can_create_in_schema,
+        has_database_privilege(current_user, current_database(), 'CREATE') AS can_create_database_objects
       FROM pg_roles AS role
       WHERE role.rolname = current_user
       LIMIT 1
@@ -142,15 +154,18 @@ export async function GET() {
         safeForTenantUat:
           concurrencyProbePassed &&
           sessionContext?.session_context_present === true &&
+          row.current_user === "v9_app" &&
+          row.session_user === "v9_app" &&
           row.neon_branch_id === "br-snowy-forest-b46i5pqx" &&
-          row.current_user !== "neondb_owner" &&
-          row.session_user !== "neondb_owner" &&
           !row.is_superuser &&
           !row.bypasses_rls &&
           !row.can_create_role &&
           !row.can_create_database &&
           !row.owns_tenant_tables &&
-          !!row.neon_branch_id,
+          !row.member_of_owner_role &&
+          !row.can_set_owner_role &&
+          !row.can_create_in_schema &&
+          !row.can_create_database_objects,
       },
       { headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } },
     );
