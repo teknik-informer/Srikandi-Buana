@@ -238,11 +238,11 @@ PostgreSQL 16 integration additionally asserts that anonymous `v9_app` cannot di
 
 ## 10. Preview runtime pooling/concurrency probe
 
-The Preview-only admin diagnostic endpoint now runs two simultaneous synthetic pre-auth login contexts through the exact `getV9LoginSql()` Neon HTTP transaction wrapper. It verifies that each transaction observes only its own email, subject HMAC and IP HMAC, that no session token context leaks into pre-authentication, and that the actual request's session context is present.
+The Preview-only admin diagnostic endpoint now runs two simultaneous synthetic pre-auth login contexts through the exact `getV9LoginSql()` Neon HTTP transaction wrapper. Both probes compare `current_user` and `session_user` and verify that each transaction observes only its own email, subject HMAC and IP HMAC, with no authenticated session token context injected into either pre-auth transaction. A separate normal authenticated query verifies that the actual request's cookie-derived session context is present inside its own transaction. That presence is expected and must not be interpreted as a session-level leak.
 
 The response exposes only:
 - `concurrency.transactionContextIsolation` (boolean)
-- `concurrency.sessionContextPresent` (boolean)
+- `concurrency.requestSessionContextPresent` (boolean): confirms the authenticated cookie-derived context is present inside the current wrapped request transaction; it is expected to be true and is **not** a test for session-level context leakage.
 - previously documented non-secret current role/database/branch/privilege metadata
 
 It never returns or logs synthetic emails, HMAC values, session hashes, connection strings or credentials. `safeForTenantUat` is true only when the live deployment uses `v9_app` on the exact QA branch `br-snowy-forest-b46i5pqx`, has no owner/BYPASS/DDL privilege, does not own tenant tables, and both context probes pass.
@@ -304,8 +304,8 @@ This direct Neon connection check verifies the QA database principal and privile
 ### 11.4 CI and Preview evidence
 
 - PR #92 remains Draft and unmerged.
-- Exact-head commit: `8a45052079e2d0f731b9b34e742c909614a57f8c`.
-- GitHub Actions run #957: success, including PostgreSQL 16 tenant RLS integration and TypeScript/production build.
+- Exact-head commit at this checkpoint: `7cca12a9b0d782eb3479f6156a5dd07707c63a28`.
+- GitHub Actions run #965: success, including PostgreSQL 16 tenant RLS integration, organization regression, core shell contract, TypeScript validation and Next.js production build.
 - The PostgreSQL 16 runner deliberately creates the legacy v1 helper/policy state, upgrades it to v2, runs migration a second time to verify idempotence, and then asserts the policy inventory and cross-tenant tests.
 - Vercel deployment `dpl_BZT23Nsp97EdveRfbghCJKwGQogu` is READY and maps to the exact branch and SHA above. Build events contain `Deployment completed` and `Build Completed`.
 - Vercel Preview runtime log query for the deployment returned no log records in the last 30 minutes and no error/fatal records in its query window. This means no logs were returned, not that authenticated feature flows were tested.
@@ -319,3 +319,13 @@ This direct Neon connection check verifies the QA database principal and privile
 5. Update this document and Issue #66 with each domain's evidence. Keep Issue #90 open until the authenticated Preview probe and required UAT/security review gates are complete.
 
 No Production SQL, role, grant, RLS, schema, environment, SSO, domain, alias or deployment operation was performed.
+
+### 11.6 Follow-up to the authenticated Preview diagnostic — 28 November 2026
+
+The first user-submitted authenticated Preview response confirmed the expected runtime principal and QA target (`v9_app` on `br-snowy-forest-b46i5pqx`) and all reported least-privilege flags were false. It returned `transactionContextIsolation=false` and `sessionContextPresent=true`.
+
+Source inspection found a deterministic defect in the diagnostic itself: the second concurrent query (`probeB`) did not select `session_user`, although the comparison required `contextB.session_user === 'v9_app'`. This forced the isolation boolean to false regardless of otherwise-correct context values. The `sessionContextPresent=true` value represented the authenticated request's cookie-derived context inside the wrapped request transaction; it did not establish session-level leakage. The response field has therefore been renamed `requestSessionContextPresent` to make its meaning explicit.
+
+The fix adds `session_user` to the second probe and a source-contract assertion that both concurrent probes compare this identity. Exact-head GitHub Actions run #965 passed on `7cca12a9b0d782eb3479f6156a5dd07707c63a28`, including PostgreSQL 16 integration, core shell contracts, TypeScript and production build.
+
+A new Vercel Preview deployment was then created from that exact commit: `dpl_7djs6LSUfbWvENH7kPfQcptf786V` (`admin-dashboard-o5nnxtvo1-teknik-informer.vercel.app`). Its final READY state and a fresh authenticated diagnostic response are still required. The earlier user-submitted JSON remains evidence for the previous deployment only.
