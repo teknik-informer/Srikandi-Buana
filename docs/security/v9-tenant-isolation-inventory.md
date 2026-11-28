@@ -232,3 +232,17 @@ Public routes and settings use two fixed security-definer functions:
 The public website settings, policy and login-copy loaders no longer resolve the organization by selecting `v9.organizations` directly. The public banner endpoint relies on the precise `file_assets_public_banner_read` row policy and selects only fields needed for server-side Cloudinary delivery.
 
 PostgreSQL 16 integration additionally asserts that anonymous `v9_app` cannot directly SELECT any organization row, while `get_public_organization()` returns the approved public identity.
+
+
+## 10. Preview runtime pooling/concurrency probe
+
+The Preview-only admin diagnostic endpoint now runs two simultaneous synthetic pre-auth login contexts through the exact `getV9LoginSql()` Neon HTTP transaction wrapper. It verifies that each transaction observes only its own email, subject HMAC and IP HMAC, that no session token context leaks into pre-authentication, and that the actual request's session context is present.
+
+The response exposes only:
+- `concurrency.transactionContextIsolation` (boolean)
+- `concurrency.sessionContextPresent` (boolean)
+- previously documented non-secret current role/database/branch/privilege metadata
+
+It never returns or logs synthetic emails, HMAC values, session hashes, connection strings or credentials. `safeForTenantUat` is true only when the live deployment uses `v9_app` on the exact QA branch `br-snowy-forest-b46i5pqx`, has no owner/BYPASS/DDL privilege, does not own tenant tables, and both context probes pass.
+
+This probe has been implemented and must be executed in a signed-in Preview admin session before Issue #91 is closed. It is not replaced by PostgreSQL 16 CI or a Vercel READY status.
