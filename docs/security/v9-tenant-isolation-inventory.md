@@ -497,24 +497,33 @@ PostgreSQL 16 integration fixtures now cover six organization-scoped finance rel
 
 These fixtures are inserted by the CI migration owner into disposable PostgreSQL 16. Under `SET LOCAL ROLE v9_app` with the tenant-A verified session context, the assertions test database RLS rather than application query filters. The test exercises both deny behavior and positive tenant-A mutations. It does not yet prove every lifecycle transition, finance journal post/reversal trigger, budget approval/close transition, contribution allocation, or the application/browser finance UI.
 
-Historical exact-head GitHub Actions run #987 passed on commit `5bae5db980ce39bf9c539b13825cfbb7eeddbcf7`. The finance-only fixture was revalidated on exact-head run #1001 at commit `d393e5d03b02a7076f8a11d23ab5ca1344e15dbf`; both PostgreSQL 16 integration and TypeScript/production build jobs passed.
+Historical exact-head GitHub Actions run #987 passed on commit `5bae5db980ce39bf9c539b13825cfbb7eeddbcf7`. The finance-only fixture was revalidated on exact-head run #1001 at commit `d393e5d03b02a7076f8a11d23ab5ca1344e15dbf`.
+
+The latest exact-head run #1009 passed on commit `4e13344399464eeb3c36cc1b22d1b0b68c5c9273`. PostgreSQL 16 tenant integration, organization regression, core workspace/RLS contract, TypeScript validation and Next.js production build all completed successfully. The same run includes the extended business order/item/payment fixtures and the revised tenant-scoped field-application identity migration.
 
 The finance boundary assertions remain deliberately narrower than a full finance lifecycle test: cross-tenant row visibility and selected UPDATE/DELETE/INSERT paths are denied, while same-tenant account, journal and budget-line updates succeed. Posting/reversal, period close/reopen, budget approval/close, contribution allocation and payment-journal linkage remain separate lifecycle gates.
 
-### 12.8 Field application tenant identity migration and live QA status
+### 12.8 Field application tenant identity and route migration
 
-Migration `0045_tenant_scope_field_application_identity.sql` is now part of this PR branch. It changes the `field_applications` primary key from `PRIMARY KEY (field_key)` to `PRIMARY KEY (organization_id, field_key)`, while retaining the composite unique key `(field_key, organization_id)` required by existing operational foreign keys. It aborts if any incoming foreign key still references only `field_key`; it does not rewrite or delete tenant rows.
+Migration `0045_tenant_scope_field_application_identity.sql` is now part of this PR branch and corrects **two** global uniqueness constraints on `v9.field_applications`:
 
-The PostgreSQL 16 runner applies migration 0045 twice before the integration fixtures. Exact-head run #1003 on commit `f72e9a2ccf23b3dcefa74ac1c57f49f15d7c5ece` passed, including this migration/idempotence path and the two-tenant fixtures that install the same `usaha` field key for both organizations.
+- `PRIMARY KEY (field_key)` becomes `PRIMARY KEY (organization_id, field_key)`;
+- global `UNIQUE (route)` becomes `UNIQUE (organization_id, route)`.
+
+The migration preserves `UNIQUE (field_key, organization_id)` for the existing operational foreign keys. It aborts if an incoming foreign key still references only `field_key`. Read-only inspection of the live QA branch also found zero incoming foreign keys to `route`. The UI and field action paths inspected use `identity.organizationId` when loading the module row, so a shared route remains resolved inside the authenticated organization.
+
+The PostgreSQL 16 runner applies migration 0045 twice. Its two-tenant fixture now provisions the same fixed key `usaha` **and the same route** `/app/bidang/usaha` for both organizations. The inventory contract asserts the composite primary key, the tenant-scoped route unique constraint, and absence of the former global route unique. Exact-head run #1009 on commit `4e13344399464eeb3c36cc1b22d1b0b68c5c9273` passed this migration/idempotence and same-route fixture, along with both CI jobs.
 
 The live Neon QA branch `br-snowy-forest-b46i5pqx` has **not** yet applied migration 0045. Read-only catalog inspection on that branch confirms:
 - current primary key is still `PRIMARY KEY (field_key)`;
+- global `UNIQUE (route)` is still present; the existing Usaha route is `/app/bidang/usaha`;
 - required composite unique `(field_key, organization_id)` exists;
-- there are zero incoming single-column foreign keys to `field_key`; all inspected incoming operational foreign keys are composite;
+- there are zero incoming single-column foreign keys to `field_key` and zero incoming foreign keys to `route`;
+- 17 inspected operational foreign keys to `field_applications` use the composite `(field_key, organization_id)`;
 - four current field-application rows belong to one organization;
 - `schema_migrations` has no ledger row for migration 0045.
 
-Therefore the migration is CI-tested and its live-QA preconditions are satisfied, but the same field key still cannot be provisioned for a second organization on the live QA branch until 0045 is applied there. This is a schema readiness gap, not evidence of a current cross-tenant data leak. No Production schema was changed.
+Therefore migration 0045 is CI-tested and its live-QA preconditions are satisfied, but both global uniqueness constraints remain active on the live QA branch. Until 0045 is applied there, another organization cannot install the same `usaha` module with the same shared route. This is a schema readiness gap, not evidence of a current cross-tenant data leak. No Production schema was changed.
 
 ### 12.9 Business orders, payment receipts and trigger boundary review
 
@@ -524,12 +533,11 @@ Payment receipts are introduced later by `0031_business_order_payment_receipts.s
 
 The payment guard validates a fulfilled order, an active IDR cash/bank register mapped to an active postable debit-normal asset account, no overpayment, immutable receipt details, and one-time linkage to a posted `sale` journal whose totals and cash-account debit match the receipt. The order/receipt composite foreign keys bind organization and field identity across the order, cash account and journal. The separate `business_inventory_movements_immutable` trigger rejects updates/deletes of recorded stock movements.
 
-The expanded PostgreSQL 16 fixture now seeds both organizations' order items and unlinked payment receipts. Under tenant A and tenant B runtime contexts it checks order-item and payment-receipt read isolation. Tenant A also attempts cross-tenant order/item/payment UPDATE/DELETE and cross-tenant order/item INSERT; these operations must affect zero rows or be rejected. Positive same-tenant order-item UPDATE and payment-receipt INSERT are exercised; the latter runs through the payment guard using a fulfilled tenant-A order and active tenant-A cash register. Exact-head run #1003 passed both PostgreSQL 16 and TypeScript/production build jobs.
+The expanded PostgreSQL 16 fixture seeds both organizations' order items and unlinked payment receipts. Under tenant A and tenant B runtime contexts it checks order, order-item and payment-receipt read isolation. Tenant A also attempts cross-tenant order/item/payment UPDATE/DELETE and cross-tenant order/item INSERT; these operations must affect zero rows or be rejected. Positive same-tenant order-item UPDATE and payment-receipt INSERT are exercised; the latter runs through the payment guard using a fulfilled tenant-A order and active tenant-A cash register. The exact-head run #1009 listed above passed.
 
 Remaining business-order gates are not inferred as complete from those database assertions:
 - the application CTEs for confirm/reserve, fulfil/deduct-and-record-sale, cancel/release-reservation and POS payment need end-to-end regression/UAT with legitimate users;
 - concurrent receipt submissions must be tested against the advisory-lock/overpayment guard, not only sequential inserts;
 - the one-time receipt-to-posted-journal linkage branch and matching journal-line invariants need a positive and negative integration test;
 - stock movement immutability and audit/no-side-effect expectations need explicit coverage.
-
 Issue #90 remains open for the live-QA migration 0045 application gate, remaining finance and business lifecycle/side-effect tests, legitimate-persona Preview UAT, full export/share/download mapping and independent security review.
