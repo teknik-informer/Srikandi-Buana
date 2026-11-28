@@ -288,7 +288,8 @@ const notificationClient = read("src/app/app/(launcher)/notifikasi/notifikasi-cl
 assert.ok(
   externalPortal.includes("requireRoles") &&
   externalPortal.includes("await requireRoles") &&
-  externalPortal.includes("Belum ada dataset berbagi yang diaktifkan") &&
+  externalPortal.includes("Dataset eksternal masih terkunci") &&
+  externalPortal.includes("Registri grant berbagi data") &&
   !externalPortal.includes("@/data/operations") &&
   !externalPortal.includes("@/data/organization") &&
   !externalPortal.includes("Grant data-sharing") &&
