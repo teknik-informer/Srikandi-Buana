@@ -365,6 +365,10 @@ INSERT INTO v9.people (id, full_name, status)
 VALUES ('35000000-0000-4000-8000-000000000035', 'CI-only Other Member', 'active')
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO v9.people (id, full_name, status)
+VALUES ('43000000-0000-4000-8000-000000000043', 'CI-only Other Tenant Person', 'active')
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO v9.user_accounts (
   id, person_id, email, password_hash, status, email_verified_at,
   must_change_password, legacy_auth_eligible
@@ -379,10 +383,6 @@ INSERT INTO v9.user_accounts (
    'other-tenant-author@invalid.example',
    'ci-only-unused-credential',
    'active', now(), false, false)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO v9.people (id, full_name, status)
-VALUES ('43000000-0000-4000-8000-000000000043', 'CI-only Other Tenant Person', 'active')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.memberships (
