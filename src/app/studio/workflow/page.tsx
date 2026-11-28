@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, ClipboardCheck, FileCheck2, ShoppingBag } from "lucide-react";
 import {
-  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard,
+  Badge, Card, CardHeader, EmptyState, Notice, PageHeader, StatCard, ComingSoonBadge,
 } from "@/components/ui";
 import { getV9Sql, rowsFromResult } from "@/lib/db";
 import { can, requireRoles } from "@/lib/session";
@@ -132,7 +132,7 @@ export default async function WorkflowStudio() {
         eyebrow="Workflow Builder"
         title="Alur operasional yang terpasang"
         description="Pemantauan antrean dan status dari modul domain. Transisi status dijalankan oleh server action masing-masing; konfigurasi workflow generik belum tersimpan pada registry."
-        actions={<Badge tone="neutral">Baca-saja</Badge>}
+        actions={<div className="flex flex-wrap items-center gap-2"><Badge tone="success">Antrean aktif</Badge><ComingSoonBadge label="Workflow Builder" /></div>}
       />
 
       {unavailable ? (
@@ -252,7 +252,7 @@ export default async function WorkflowStudio() {
       ) : null}
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <Notice tone="warning" title="Konfigurasi workflow generik belum tersedia">
+        <Notice tone="warning" title={<span className="inline-flex flex-wrap items-center gap-2"><ComingSoonBadge label="Workflow Builder" /> Konfigurasi workflow generik belum tersedia</span>}>
           Role approver, urutan tahapan, SLA, delegasi, ambang nilai, dan notifikasi per workflow belum memiliki registry konfigurasi khusus. Status di atas berasal dari aturan pada server action dan skema domain.
         </Notice>
         <Notice tone="info" title="Pemisahan tanggung jawab">
