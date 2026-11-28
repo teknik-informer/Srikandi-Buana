@@ -492,7 +492,6 @@ AS $function$
     INNER JOIN v9.memberships AS membership
       ON membership.organization_id = actor.organization_id
     WHERE membership.id = p_membership_id
-      AND membership.status = 'active'
       AND (
         EXISTS (
           SELECT 1 FROM v9.member_community_topics AS topic
@@ -652,7 +651,7 @@ CREATE POLICY member_community_replies_published_read ON v9.member_community_rep
       SELECT 1
       FROM v9.member_community_topics AS topic
       WHERE topic.id = topic_id
-        AND topic.organization_id = organization_id
+        AND topic.organization_id = member_community_replies.organization_id
         AND topic.status = 'published'
     )
   );
