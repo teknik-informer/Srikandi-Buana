@@ -185,7 +185,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, v9
 AS $function$
 DECLARE actor record;
-DECLARE linked_person uuid;
+  linked_person uuid;
 BEGIN
   SELECT * INTO actor FROM v9._request_actor() LIMIT 1;
   IF actor.user_id IS NULL THEN RETURN false; END IF;
@@ -374,6 +374,21 @@ AS $function$
       AND link.expires_at > now()
       AND (link.max_downloads IS NULL OR link.download_count < link.max_downloads)
       AND asset.status = 'active'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM v9.secretariat_document_files AS file
+        INNER JOIN v9.secretariat_documents AS document ON document.id = file.document_id
+        WHERE file.asset_id = asset.id
+          AND (
+            document.status <> 'final'
+            OR document.visibility <> 'publik'
+            OR file.revision_no <> (
+              SELECT max(latest.revision_no)
+              FROM v9.secretariat_document_files AS latest
+              WHERE latest.document_id = file.document_id
+            )
+          )
+      )
   )
 $function$;
 
