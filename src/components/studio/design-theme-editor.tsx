@@ -12,7 +12,7 @@ import {
   type DesignThemeRadius,
   type DesignThemeSettings,
 } from "@/lib/design-theme-schema";
-import type { DesignThemeHistoryItem } from "@/lib/design-theme";
+import type { DesignThemeHistoryItem } from "@/lib/design-theme-schema";
 
 const EMPTY_RESULT: SaveDesignThemeState = { ok: false, message: "" };
 
