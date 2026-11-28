@@ -757,18 +757,38 @@ BEGIN
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND account_code = '920-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant finance account UPDATE affected % rows.', changed_count; END IF;
+  UPDATE v9.finance_cash_accounts SET display_name = 'Intrusion'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'b4000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant cash register UPDATE affected % rows.', changed_count; END IF;
   UPDATE v9.finance_journals SET description = 'Intrusion'
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND reference_no = 'QA-FIN-B-001';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant finance journal UPDATE affected % rows.', changed_count; END IF;
+  UPDATE v9.finance_budgets SET title = 'Intrusion'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND budget_code = 'QA-BUD-B';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant finance budget UPDATE affected % rows.', changed_count; END IF;
+  DELETE FROM v9.finance_budgets
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND budget_code = 'QA-BUD-B';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant finance budget DELETE affected % rows.', changed_count; END IF;
   DELETE FROM v9.finance_cash_accounts
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'b4000000-0000-4000-8000-00000000000b';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant cash register DELETE affected % rows.', changed_count; END IF;
+  UPDATE v9.finance_budget_lines SET planned_amount = 999999
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'b8000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant budget-line UPDATE affected % rows.', changed_count; END IF;
   DELETE FROM v9.finance_budget_lines
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'b8000000-0000-4000-8000-00000000000b';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant budget-line DELETE affected % rows.', changed_count; END IF;
+  UPDATE v9.finance_journal_lines SET memo = 'Intrusion'
+  WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'bc000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN RAISE EXCEPTION 'Cross-tenant journal-line UPDATE affected % rows.', changed_count; END IF;
   DELETE FROM v9.finance_journal_lines
   WHERE organization_id = '20000000-0000-4000-8000-000000000002' AND id = 'bc000000-0000-4000-8000-00000000000b';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
@@ -799,6 +819,18 @@ BEGIN
   WHERE organization_id = v9.get_public_organization_id() AND id = 'b7000000-0000-4000-8000-00000000000b';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance budget-line UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.finance_cash_accounts SET display_name = 'Kas QA Tenant A Updated'
+  WHERE organization_id = v9.get_public_organization_id() AND id = 'b3000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant cash register UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.finance_budgets SET title = 'QA Budget Tenant A Updated'
+  WHERE organization_id = v9.get_public_organization_id() AND budget_code = 'QA-BUD-A';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance budget UPDATE should affect one row; affected %.', changed_count; END IF;
+  UPDATE v9.finance_journal_lines SET memo = 'QA line A updated'
+  WHERE organization_id = v9.get_public_organization_id() AND id = 'bb000000-0000-4000-8000-00000000000b';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 1 THEN RAISE EXCEPTION 'Same-tenant finance journal-line UPDATE should affect one row; affected %.', changed_count; END IF;
 END
 $organization_scope$;
 COMMIT;
