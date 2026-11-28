@@ -11,7 +11,8 @@ const migration = read("../db/migrations/0044_tenant_row_level_security.sql");
 
 assert.match(db, /target\.transaction\(\[contextQuery, query\]\)/, "Every tagged query must share a transaction with its request context.");
 assert.match(db, /set_config\('v9\.session_token_hash',[\s\S]*?, true\)/, "Session context must use transaction-local set_config.");
-assert.match(db, /createHash\("sha256"\)[\s\S]*SESSION_COOKIE/, "The opaque cookie must be hashed in the server runtime.");
+assert.match(db, /createHash\("sha256"\)/, "The session token must be hashed in the server runtime.");
+assert.match(db, /jar\.get\(SESSION_COOKIE\)/, "The request context must read the existing opaque session cookie.");
 assert.doesNotMatch(db, /\b(?:SET|RESET)\s+(?:ROLE|SESSION|search_path)\b/i, "Session-level SET/RESET is not permitted.");
 assert.match(db, /getV9AuthenticatedLoginSql/, "Login writes must use the post-password-verification context.");
 assert.match(auth, /getV9LoginSql\(loginContext\)/, "Credential lookup must use the isolated login scope.");
