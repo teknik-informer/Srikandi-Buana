@@ -7,16 +7,13 @@ import {
   DEFAULT_DESIGN_THEME,
   normalizeDesignTheme,
   type DesignThemeSettings,
+  type DesignThemeHistoryItem,
 } from "@/lib/design-theme-schema";
 
 interface ThemeSettingRow {
   setting_value: unknown;
 }
 
-export interface DesignThemeHistoryItem {
-  changedAt: string;
-  presetName: string;
-}
 
 export async function getDesignThemeSettings(organizationId: string): Promise<DesignThemeSettings> {
   try {
@@ -31,8 +28,9 @@ export async function getDesignThemeSettings(organizationId: string): Promise<De
     `;
     const row = rowsFromResult<ThemeSettingRow>(result)[0];
     return row ? normalizeDesignTheme(row.setting_value) : DEFAULT_DESIGN_THEME;
-  } catch {
-    return DEFAULT_DESIGN_THEME;
+  } catch (error) {
+    console.error("[design-theme] Settings read failed", error instanceof Error ? error.name : "UnknownError");
+    throw new Error("Pengaturan tema organisasi tidak dapat dibaca.");
   }
 }
 
