@@ -60,7 +60,8 @@ assert.match(migration, /member_community_topics_published_read/, "Active member
 assert.match(migration, /member_community_replies_published_read/, "Active members must retain read access to published community replies.");
 assert.match(migration, /_community_membership_visible/, "Community author membership reads must be scoped to published content.");
 assert.match(migration, /_community_person_visible/, "Community author names must be visible only for published content.");
-assert.match(migration, /source_field_key, NULL, NULL, created_by/, "Field-scoped secretariat documents must remain visible to their field.");
+assert.match(migration, /row_value\.source_field_key/, "Field-scoped secretariat document child access must retain the source field key.");
+assert.match(migration, /_tenant_row_visible\(organization_id, source_field_key, NULL, created_by/, "Field-scoped secretariat document reads and writes must remain visible to their field.");
 
 
 console.log("PASS tenant RLS contract: 63-table inventory, transaction-bound context, login/public scopes, preview-only probe.");
