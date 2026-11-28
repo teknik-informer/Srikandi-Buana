@@ -58,32 +58,10 @@ export default async function DokumenPage({
     async () => {
       const sql = getV9Sql();
       const result = await sql`
-        SELECT
-          document.id::text AS id,
-          document.reference_no,
-          document.number,
-          document.title,
-          document.category,
-          document.document_date::text AS document_date,
-          document.owner_label,
-          latest_file.file_name,
-          latest_file.size_bytes
-        FROM v9.secretariat_documents AS document
-        INNER JOIN LATERAL (
-          SELECT file.file_name, file.size_bytes
-          FROM v9.secretariat_document_files AS file
-          WHERE file.document_id = document.id
-          ORDER BY file.revision_no DESC
-          LIMIT 1
-        ) AS latest_file ON true
-        WHERE document.status = 'final'
-          AND document.visibility = 'publik'
-          AND (
-            ${selectedCategory} = ''
-            OR lower(document.category) = ${selectedCategory}
-          )
-        ORDER BY document.document_date DESC, document.created_at DESC
-        LIMIT 200
+        SELECT document_id::text AS id, reference_no, number, title,
+          category, document_date::text AS document_date, owner_label,
+          file_name, size_bytes
+        FROM v9.get_public_documents(NULLIF(${selectedCategory}, ''), 200)
       `;
       return rowsFromResult<PublicDocument>(result);
     },
