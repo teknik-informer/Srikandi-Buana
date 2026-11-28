@@ -622,3 +622,24 @@ This proves the tested Preview request uses the least-privilege runtime principa
 **Gate result:** the authenticated runtime-principal, exact QA target, no-elevated-privilege, and transaction-context-isolation gates are complete. `safeForTenantUat=true` authorizes starting tenant UAT; it does not itself prove that every UI CRUD flow, export/share/download route, finance action, or inventory side effect has passed. Those functional tests remain open and must use legitimate personas and explicitly disposable or approved QA fixtures.
 
 **Boundaries:** no runtime role, grant, owner, RLS policy, Production setting, or business row was changed during this diagnostic. PR #92 remains Draft/Open/Unmerged; Issue #90 remains Open until remaining functional, negative cross-tenant, independent review, and release gates are evidenced.
+
+
+## 11. Secretariat functional UAT repair — 28 Nov 2026
+
+The user reported two Preview UAT issues after signing in with an authorized QA administrator: (1) the Masuk/Keluar tabs appeared not to change the list, despite a Surat Keluar count of one; and (2) saving a generated outgoing-letter draft did not make the next review step apparent. The user confirmed that the registration button opened the form and that the Generator had saved a draft. No screenshot or user credentials were required for this follow-up.
+
+**QA-only code changes on branch `feat/issue-90-tenant-rls-qa-20261128`:**
+
+- The Surat Masuk/Keluar selector is now URL-driven using `?direction=masuk` and `?direction=keluar`. The server page validates the requested direction and passes it to the client component; the selected tab is a real Next.js link rather than a local-only state toggle. The list, heading, count badge and table column label now derive from the selected URL direction.
+- The Generator submit actions now explicitly read “Simpan draf & lanjutkan” / “Simpan revisi & lanjutkan”. The form explains that a successful save opens the document review page.
+- The generated-document page now surfaces a “Langkah berikutnya” panel at the top of the draft view, explaining review → print/PDF → authorized finalization and exposing the finalization control before the user reaches the bottom of a long document. The draft remains a draft until the authorized finalization action is taken.
+- The existing server action already redirected a successful save to `/app/sekretariat/dokumen/{id}/cetak?result=created|revised`; this destination and its organization-scoped query remain in place. The repair clarifies the user-facing continuation and verifies the redirect as part of the regression contract. No existing draft or source letter was edited.
+
+**Verification:**
+
+- Commit: `bff57cc9bec71de57632af02537c71a183af0df9`.
+- GitHub Actions quality gate run #1103: passed. PostgreSQL 16 tenant RLS integration, organization regression, core shell / Secretariat contracts, TypeScript validation and Next.js production build all succeeded.
+- Vercel Preview deployment: `dpl_AgS2rD7YuNCg2ru2xMtxobBAMHy5`, state READY, exact code SHA above. Preview URL: https://admin-dashboard-o59wr0vx9-teknik-informer.vercel.app.
+- Unauthenticated smoke checks returned the expected public Home / Sign-in pages; both protected letter-list directions and the generated-document route resolved to the sign-in surface when no application session was supplied. No Preview runtime error/fatal records were returned for the most recent 30-minute query.
+
+**Acceptance still pending:** the user must retest the two URL-driven tab links and the post-save generated-draft page in their own authenticated Preview browser session. This remote verification does not have access to the user's local application cookie/session and therefore cannot claim an authenticated browser UAT pass. No QA business row was inserted or changed by this repair. No QA or Production database schema/data, Production environment, Production deployment, alias, or active release was changed. PR #92 remains Draft/Open/Unmerged; Issue #90 remains Open.
