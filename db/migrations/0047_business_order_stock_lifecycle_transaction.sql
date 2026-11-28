@@ -21,20 +21,21 @@ BEGIN
   IF actor.user_id IS NULL
     OR actor.user_id IS DISTINCT FROM p_actor_user_id
     OR actor.organization_id IS NULL
+    OR actor.role_key IS NULL
     OR actor.role_key NOT IN (
       'platform_admin',
       'organization_admin',
       'chair',
       'field_coordinator'
     )
-    OR NOT v9._tenant_row_visible(
+    OR v9._tenant_row_visible(
       actor.organization_id,
       'usaha',
       NULL,
       NULL,
       NULL,
       NULL
-    )
+    ) IS DISTINCT FROM true
   THEN
     RETURN NULL;
   END IF;
