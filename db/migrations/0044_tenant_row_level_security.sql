@@ -254,12 +254,12 @@ SET search_path = pg_catalog, v9
 AS $function$
 DECLARE row_value record;
 BEGIN
-  SELECT document.organization_id, document.created_by
+  SELECT document.organization_id, document.created_by, document.source_field_key
     INTO row_value
   FROM v9.secretariat_documents AS document
   WHERE document.id = p_document_id;
   IF NOT FOUND THEN RETURN false; END IF;
-  RETURN v9._tenant_row_visible(row_value.organization_id, NULL, NULL, row_value.created_by, NULL, NULL);
+  RETURN v9._tenant_row_visible(row_value.organization_id, row_value.source_field_key, NULL, row_value.created_by, NULL, NULL);
 END
 $function$;
 
@@ -464,6 +464,73 @@ AS $function$
   SELECT current_setting('v9.auth_flow', true) = 'public-interest'
 $function$;
 
+CREATE OR REPLACE FUNCTION v9._active_community_member(p_organization_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM v9._request_actor() AS actor
+    WHERE actor.organization_id = p_organization_id
+      AND actor.membership_id IS NOT NULL
+  )
+$function$;
+
+CREATE OR REPLACE FUNCTION v9._community_membership_visible(p_membership_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM v9._request_actor() AS actor
+    INNER JOIN v9.memberships AS membership
+      ON membership.organization_id = actor.organization_id
+    WHERE membership.id = p_membership_id
+      AND membership.status = 'active'
+      AND (
+        EXISTS (
+          SELECT 1 FROM v9.member_community_topics AS topic
+          WHERE topic.membership_id = membership.id
+            AND topic.organization_id = membership.organization_id
+            AND topic.status = 'published'
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM v9.member_community_replies AS reply
+          INNER JOIN v9.member_community_topics AS topic
+            ON topic.id = reply.topic_id
+            AND topic.organization_id = reply.organization_id
+          WHERE reply.membership_id = membership.id
+            AND reply.organization_id = membership.organization_id
+            AND reply.status = 'published'
+            AND topic.status = 'published'
+        )
+      )
+  )
+$function$;
+
+CREATE OR REPLACE FUNCTION v9._community_person_visible(p_person_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM v9.memberships AS membership
+    WHERE membership.person_id = p_person_id
+      AND membership.organization_id = (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
+      AND v9._community_membership_visible(membership.id)
+  )
+$function$;
+
 CREATE OR REPLACE FUNCTION v9._can_review_memberships(p_organization_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -559,6 +626,37 @@ BEGIN
 END
 $policies$;
 
+-- Audit events are append-only for the application. The actor and tenant must
+-- match the verified request context; only organization leadership can read.
+CREATE POLICY audit_events_insert_scope ON v9.audit_events
+  FOR INSERT TO v9_app
+  WITH CHECK (
+    organization_id = (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
+    AND actor_user_id = (SELECT actor.user_id FROM v9._request_actor() AS actor LIMIT 1)
+  );
+CREATE POLICY audit_events_read_scope ON v9.audit_events
+  FOR SELECT TO v9_app
+  USING (v9._can_manage_organization(organization_id));
+
+-- Published community content is readable to active members of the same
+-- organization; writes remain constrained by the author/self policy above.
+CREATE POLICY member_community_topics_published_read ON v9.member_community_topics
+  FOR SELECT TO v9_app
+  USING (status = 'published' AND v9._active_community_member(organization_id));
+CREATE POLICY member_community_replies_published_read ON v9.member_community_replies
+  FOR SELECT TO v9_app
+  USING (
+    status = 'published'
+    AND v9._active_community_member(organization_id)
+    AND EXISTS (
+      SELECT 1
+      FROM v9.member_community_topics AS topic
+      WHERE topic.id = topic_id
+        AND topic.organization_id = organization_id
+        AND topic.status = 'published'
+    )
+  );
+
 -- Agriculture cycles and plots have related-row scope rather than owner columns
 -- on every child table.
 CREATE POLICY tenant_scope_agriculture_plots ON v9.agriculture_plots
@@ -602,11 +700,17 @@ CREATE POLICY memberships_write_scope ON v9.memberships
   FOR ALL TO v9_app
   USING (v9._can_manage_organization(organization_id))
   WITH CHECK (v9._can_manage_organization(organization_id));
+CREATE POLICY memberships_community_author_read ON v9.memberships
+  FOR SELECT TO v9_app
+  USING (v9._community_membership_visible(id));
 
 CREATE POLICY people_scope ON v9.people
   FOR ALL TO v9_app
   USING (v9._person_row_visible(id))
   WITH CHECK (v9._person_row_visible(id));
+CREATE POLICY people_community_author_read ON v9.people
+  FOR SELECT TO v9_app
+  USING (v9._community_person_visible(id));
 
 CREATE POLICY role_assignments_read_scope ON v9.role_assignments
   FOR SELECT TO v9_app
@@ -738,6 +842,15 @@ CREATE POLICY file_share_links_tenant_scope ON v9.file_share_links
   FOR ALL TO v9_app
   USING (v9._tenant_row_visible(organization_id, NULL, NULL, created_by, NULL, NULL))
   WITH CHECK (v9._tenant_row_visible(organization_id, NULL, NULL, created_by, NULL, NULL));
+CREATE POLICY file_share_links_public_token_read ON v9.file_share_links
+  FOR SELECT TO v9_app
+  USING (
+    token_hash = NULLIF(current_setting('v9.share_token_hash', true), '')
+    AND revoked_at IS NULL
+    AND expires_at > now()
+    AND (max_downloads IS NULL OR download_count < max_downloads)
+  );
+
 CREATE POLICY file_share_links_public_token_update ON v9.file_share_links
   FOR UPDATE TO v9_app
   USING (
@@ -755,8 +868,8 @@ CREATE POLICY file_share_links_public_token_update ON v9.file_share_links
 
 CREATE POLICY secretariat_documents_tenant_scope ON v9.secretariat_documents
   FOR ALL TO v9_app
-  USING (v9._tenant_row_visible(organization_id, NULL, NULL, created_by, NULL, NULL))
-  WITH CHECK (v9._tenant_row_visible(organization_id, NULL, NULL, created_by, NULL, NULL));
+  USING (v9._tenant_row_visible(organization_id, source_field_key, NULL, created_by, NULL, NULL))
+  WITH CHECK (v9._tenant_row_visible(organization_id, source_field_key, NULL, created_by, NULL, NULL));
 CREATE POLICY secretariat_documents_public_share_read ON v9.secretariat_documents
   FOR SELECT TO v9_app
   USING (status = 'final' AND visibility = 'publik' AND v9._share_document_allowed(id));
@@ -883,6 +996,9 @@ BEGIN
     'v9._share_document_allowed(uuid)'::regprocedure,
     'v9._public_banner_asset(uuid)'::regprocedure,
     'v9._public_interest_context()'::regprocedure,
+    'v9._active_community_member(uuid)'::regprocedure,
+    'v9._community_membership_visible(uuid)'::regprocedure,
+    'v9._community_person_visible(uuid)'::regprocedure,
     'v9._can_review_memberships(uuid)'::regprocedure
   ] LOOP
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', v_function);
