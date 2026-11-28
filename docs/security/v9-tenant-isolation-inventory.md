@@ -424,3 +424,23 @@ The public route scan found database-backed data loading on homepage, document a
 - The route scan confirms more than server-action mutation calls are in scope: multiple dashboard pages independently read the database. A route can therefore render or export data without invoking the corresponding action.
 - SQL clause extraction is a mechanical inventory aid. It does not analyze interpolated SQL, query parameters, transaction boundaries across multiple statements, authorization branches, pagination correctness, download response bodies, or all UI callers.
 - The next test increment is to convert these page/query paths into domain-level read and mutation tests. Finance/ledger, POS/order-stock, Secretariat generator/file revision, public document projection, and search are first priority because they join multiple domain tables or produce downstream effects.
+### 12.5 Route-level authentication and permission gates observed
+
+The page/layout scan confirmed these server-side guard points:
+
+| Route group | Observed guard |
+|---|---|
+| `src/app/app/layout.tsx` | `requireIdentity()` is the base authentication gate for the `/app` tree |
+| `(launcher)/layout.tsx` | Resolves `getIdentity()` and redirects unauthenticated requests to `/masuk` |
+| `anggota/layout.tsx` | `requireIdentity("member:self")` |
+| `keuangan/layout.tsx` | `requireIdentity("finance:read")` |
+| `sekretariat/layout.tsx` | `requireIdentity("secretariat:read")` |
+| `pengurus/layout.tsx` | `requireIdentity("organization:read")`; finance, membership and workplan panels are additionally filtered with permission checks |
+| `pos/layout.tsx` | `requireIdentity("pos:sell")`; business and finance panel visibility also checks effective permissions |
+| `bidang/[field]/layout.tsx` | Requires dynamic `field:<field>:read` scope |
+| File-center pages | `berkas` and `berkas/[id]` each call `requireIdentity("files:read")` and apply further `files:manage` / ownership checks |
+| Field subpage | `bidang/[field]/[section]` adds a specific `field:organisasi:review` gate for organization review content/actions |
+
+The effective role permission map remains centralized in `src/lib/session.ts` and `src/lib/identity.ts`, with server identity resolved from `user_accounts`, `role_assignments`, organization, membership and field application data. The UI/layout gates are not a replacement for each server action's own permission check or database RLS. The remaining security review must verify that every mutation action validates its exact permission, active role, scope and parent-child ownership server-side, and that page-level reads do not return data before/after an unauthorized route redirect.
+
+**Coverage caution:** these checks prove guard calls exist at the listed route boundaries. They do not yet demonstrate every legitimate role can perform its allowed actions, nor that unauthorized roles are denied for every direct action endpoint. Add role-specific negative tests for each action/route family to close that gap.
