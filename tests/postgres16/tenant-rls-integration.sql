@@ -84,7 +84,7 @@ $inventory$;
 INSERT INTO v9.organizations (
   id, slug, legal_name, short_name, status
 ) VALUES
-  ('10000000-0000-4000-8000-000000000001', 'srikandi-buana', 'Srikandi Buana CI Tenant', 'Srikandi CI', 'active'),
+  ((SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'srikandi-buana', 'Srikandi Buana CI Tenant', 'Srikandi CI', 'active'),
   ('20000000-0000-4000-8000-000000000002', 'qa-other-tenant', 'Other Tenant CI', 'Other CI', 'active')
 ON CONFLICT (slug) DO NOTHING;
 
@@ -109,7 +109,7 @@ INSERT INTO v9.role_assignments (
   id, organization_id, user_id, role_key, scope_kind, is_active, valid_from
 ) VALUES (
   '50000000-0000-4000-8000-000000000005',
-  '10000000-0000-4000-8000-000000000001',
+  (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
   '40000000-0000-4000-8000-000000000004',
   'organization_admin',
   'organization',
@@ -131,36 +131,36 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO v9.system_settings (
   organization_id, setting_key, setting_value, visibility, updated_by
 ) VALUES
-  ('10000000-0000-4000-8000-000000000001', 'qa_private', '{"tenant":"A"}'::jsonb, 'private', '40000000-0000-4000-8000-000000000004'),
+  ((SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'qa_private', '{"tenant":"A"}'::jsonb, 'private', '40000000-0000-4000-8000-000000000004'),
   ('20000000-0000-4000-8000-000000000002', 'qa_private', '{"tenant":"B"}'::jsonb, 'private', NULL)
 ON CONFLICT (organization_id, setting_key) DO NOTHING;
 
 INSERT INTO v9.organization_units (
   id, organization_id, unit_key, name, unit_type, mandate
 ) VALUES
-  ('70000000-0000-4000-8000-000000000007', '10000000-0000-4000-8000-000000000001', 'pertanian', 'Bidang Pertanian CI', 'field', 'CI fixture only'),
-  ('80000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000001', 'usaha', 'Bidang Usaha CI', 'field', 'CI fixture only')
+  ('70000000-0000-4000-8000-000000000007', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'pertanian', 'Bidang Pertanian CI', 'field', 'CI fixture only'),
+  ('80000000-0000-4000-8000-000000000008', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'usaha', 'Bidang Usaha CI', 'field', 'CI fixture only')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.field_applications (
   field_key, organization_id, unit_id, name, short_name, route, mandate, display_order
 ) VALUES
-  ('pertanian', '10000000-0000-4000-8000-000000000001', '70000000-0000-4000-8000-000000000007', 'Pertanian CI', 'Pertanian', '/ci/pertanian', 'CI fixture only', 1),
-  ('usaha', '10000000-0000-4000-8000-000000000001', '80000000-0000-4000-8000-000000000008', 'Usaha CI', 'Usaha', '/ci/usaha', 'CI fixture only', 2)
+  ('pertanian', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), '70000000-0000-4000-8000-000000000007', 'Pertanian CI', 'Pertanian', '/ci/pertanian', 'CI fixture only', 1),
+  ('usaha', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), '80000000-0000-4000-8000-000000000008', 'Usaha CI', 'Usaha', '/ci/usaha', 'CI fixture only', 2)
 ON CONFLICT (field_key) DO NOTHING;
 
 INSERT INTO v9.field_programs (
   id, organization_id, field_key, reference_no, title, objective,
   period_start, period_end, status, created_by
 ) VALUES
-  ('90000000-0000-4000-8000-000000000009', '10000000-0000-4000-8000-000000000001', 'pertanian', 'CI-PROG-001', 'Program Pertanian QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004'),
-  ('a0000000-0000-4000-8000-00000000000a', '10000000-0000-4000-8000-000000000001', 'usaha', 'CI-PROG-002', 'Program Usaha QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004')
+  ('90000000-0000-4000-8000-000000000009', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'pertanian', 'CI-PROG-001', 'Program Pertanian QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004'),
+  ('a0000000-0000-4000-8000-00000000000a', (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'usaha', 'CI-PROG-002', 'Program Usaha QA', 'Scope test', current_date, current_date + 30, 'planned', '40000000-0000-4000-8000-000000000004')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO v9.audit_events (
   organization_id, actor_user_id, action, entity_type, entity_id
 ) VALUES (
-  '10000000-0000-4000-8000-000000000001',
+  (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
   '40000000-0000-4000-8000-000000000004',
   'qa.seed',
   'qa_fixture',
@@ -226,13 +226,13 @@ BEGIN
   INSERT INTO v9.system_settings (
     organization_id, setting_key, setting_value, visibility, updated_by
   ) VALUES (
-    '10000000-0000-4000-8000-000000000001', 'qa_allowed_insert', '{"ok":true}', 'private',
+    (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'qa_allowed_insert', '{"ok":true}', 'private',
     '40000000-0000-4000-8000-000000000004'
   );
 
   UPDATE v9.system_settings
   SET setting_value='{"updated":true}'::jsonb
-  WHERE organization_id='10000000-0000-4000-8000-000000000001'
+  WHERE organization_id=(SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana')
     AND setting_key='qa_private';
   GET DIAGNOSTICS changed_count = ROW_COUNT;
   IF changed_count <> 1 THEN
@@ -242,7 +242,7 @@ BEGIN
   INSERT INTO v9.audit_events (
     organization_id, actor_user_id, action, entity_type, entity_id
   ) VALUES (
-    '10000000-0000-4000-8000-000000000001',
+    (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
     '40000000-0000-4000-8000-000000000004',
     'qa.test',
     'qa_fixture',
@@ -301,7 +301,7 @@ BEGIN
       organization_id, field_key, reference_no, title,
       period_start, period_end, status, created_by
     ) VALUES (
-      '10000000-0000-4000-8000-000000000001', 'usaha', 'CI-PROG-003',
+      (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'), 'usaha', 'CI-PROG-003',
       'Unauthorized cross-field program', current_date, current_date+1,
       'planned', '40000000-0000-4000-8000-000000000004'
     );
@@ -328,7 +328,7 @@ BEGIN
     organization_id, applicant_name, phone, address, interest_area,
     experience_level, status, consent_version, consented_at, source
   ) VALUES (
-    '10000000-0000-4000-8000-000000000001',
+    (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
     'CI Applicant',
     '08123456789',
     'Alamat QA khusus pengujian',
@@ -343,7 +343,7 @@ BEGIN
   INSERT INTO v9.outbox_events (
     organization_id, event_type, dedupe_key, payload
   ) VALUES (
-    '10000000-0000-4000-8000-000000000001',
+    (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
     'membership.interest.submitted',
     'membership-interest:ci-qa',
     '{"source":"ci"}'::jsonb
@@ -392,7 +392,7 @@ INSERT INTO v9.secretariat_documents (
   owner_label, visibility, status, created_by, finalized_by, finalized_at
 ) VALUES (
   'b0000000-0000-4000-8000-00000000000b',
-  '10000000-0000-4000-8000-000000000001',
+  (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
   'CI-DOC-PUBLIC-01',
   'Dokumen publik CI',
   'Publikasi',
@@ -411,7 +411,7 @@ INSERT INTO v9.file_assets (
   cloudinary_resource_type, cloudinary_delivery_type, cloudinary_version, status
 ) VALUES (
   'c0000000-0000-4000-8000-00000000000c',
-  '10000000-0000-4000-8000-000000000001',
+  (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
   '40000000-0000-4000-8000-000000000004',
   'secretariat-document',
   'organization',
@@ -449,7 +449,7 @@ INSERT INTO v9.file_share_links (
 ) VALUES (
   'e0000000-0000-4000-8000-00000000000e',
   'c0000000-0000-4000-8000-00000000000c',
-  '10000000-0000-4000-8000-000000000001',
+  (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
   '40000000-0000-4000-8000-000000000004',
   repeat('b',64),
   now() + interval '1 day',
@@ -508,7 +508,7 @@ INSERT INTO v9.file_assets (
   cloudinary_resource_type, cloudinary_delivery_type, cloudinary_version, status
 ) VALUES (
   'f0000000-0000-4000-8000-00000000000f',
-  '10000000-0000-4000-8000-000000000001',
+  (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
   '40000000-0000-4000-8000-000000000004',
   'public-site-banner',
   'organization',
@@ -527,7 +527,7 @@ INSERT INTO v9.file_assets (
 INSERT INTO v9.system_settings (
   organization_id, setting_key, setting_value, visibility, updated_by
 ) VALUES (
-  '10000000-0000-4000-8000-000000000001',
+  (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
   'public_site',
   jsonb_build_object('hero', jsonb_build_object('imageAssetId','f0000000-0000-4000-8000-00000000000f')),
   'public',
