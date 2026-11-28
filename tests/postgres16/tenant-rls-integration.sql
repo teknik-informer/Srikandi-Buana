@@ -267,8 +267,60 @@ END
 $organization_scope$;
 COMMIT;
 
--- Unit scope: the same disposable CI principal is narrowed to one field. No
--- Treasurer, member or external persona is provisioned for this test.
+-- Member role regression: the legacy role import sets scope_kind='organization'
+-- even for members. Database RLS must still enforce self scope.
+INSERT INTO v9.people (id, full_name, status)
+VALUES ('35000000-0000-4000-8000-000000000035', 'CI-only Other Member', 'active')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO v9.memberships (
+  id, organization_id, person_id, member_number, status, valid_from
+) VALUES
+  ('36000000-0000-4000-8000-000000000036',
+   (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
+   '30000000-0000-4000-8000-000000000003',
+   'CI-MEMBER-001', 'active', current_date),
+  ('37000000-0000-4000-8000-000000000037',
+   (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana'),
+   '35000000-0000-4000-8000-000000000035',
+   'CI-MEMBER-002', 'active', current_date)
+ON CONFLICT (id) DO NOTHING;
+
+UPDATE v9.role_assignments
+SET role_key='member', scope_kind='organization', scope_unit_id=NULL
+WHERE id='50000000-0000-4000-8000-000000000005';
+
+BEGIN;
+SET LOCAL ROLE v9_app;
+SELECT set_config('v9.session_token_hash', repeat('a', 64), true);
+DO $member_scope$
+DECLARE
+  membership_count integer;
+  person_count integer;
+  changed_count integer;
+BEGIN
+  SELECT count(*) INTO membership_count FROM v9.memberships;
+  IF membership_count <> 1 THEN
+    RAISE EXCEPTION 'A member with legacy organization scope must see only own membership; saw %.', membership_count;
+  END IF;
+
+  SELECT count(*) INTO person_count FROM v9.people;
+  IF person_count <> 1 THEN
+    RAISE EXCEPTION 'A member must not read another member personal record; saw % people.', person_count;
+  END IF;
+
+  UPDATE v9.memberships
+  SET position_title='Unauthorized edit'
+  WHERE id='37000000-0000-4000-8000-000000000037';
+  GET DIAGNOSTICS changed_count = ROW_COUNT;
+  IF changed_count <> 0 THEN
+    RAISE EXCEPTION 'A member modified another member record.';
+  END IF;
+END
+$member_scope$;
+COMMIT;
+
+-- Unit scope: the same disposable CI principal is narrowed to one field.
 UPDATE v9.role_assignments
 SET role_key='field_coordinator',
     scope_kind='unit',
