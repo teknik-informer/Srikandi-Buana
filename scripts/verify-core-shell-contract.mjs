@@ -771,6 +771,7 @@ const publicPoliciesAction = read("src/app/actions/public-policies.ts");
 const publicSiteSettingsEditor = read("src/components/studio/public-site-settings-editor.tsx");
 const websiteStudio = read("src/app/studio/website/page.tsx");
 const publicHome = read("src/app/(public)/page.tsx");
+const publicHomeHero = read("src/components/public-home-hero.tsx");
 const publicHelp = read("src/app/(public)/bantuan/page.tsx");
 const publicProductPage = read("src/app/(public)/produk/page.tsx");
 const publicProductDetail = read("src/app/(public)/produk/[slug]/page.tsx");
@@ -853,9 +854,10 @@ assert.ok(
 );
 assert.ok(
   publicHome.includes("getPublicSiteSettings()") &&
-  publicHome.includes("settings.hero.description") &&
+  publicHome.includes("<PublicHomeHero settings={settings} />") &&
+  publicHomeHero.includes("hero.description") &&
   publicHome.includes("settings.home.products && settings.features.productCatalogue"),
-  "The public home page must use editable hero content and respect product/home section switches.",
+  "The public home page must render the configurable Hero component and respect product/home section switches.",
 );
 assert.ok(
   publicHelp.includes("getPublicSiteSettings()") &&
