@@ -92,23 +92,24 @@ SELECT set_config('v9.session_token_hash', repeat('f',64), true);
 INSERT INTO v9.business_order_payments (
   organization_id, field_key, order_id, cash_account_id,
   payment_date, amount, received_by, idempotency_key
-)
-SELECT
-  order_row.organization_id,
+) VALUES (
+  v9.get_public_organization_id(),
   'usaha',
-  order_row.id,
-  cash.id,
+  'e7000000-0000-4000-8000-000000000007',
+  'b3000000-0000-4000-8000-00000000000b',
   current_date,
   6000,
   '40000000-0000-4000-8000-000000000004',
   'e8000000-0000-4000-8000-000000000008'
-FROM v9.business_orders AS order_row
-INNER JOIN v9.finance_cash_accounts AS cash
-  ON cash.organization_id = order_row.organization_id
-  AND cash.id = 'b3000000-0000-4000-8000-00000000000b'
-WHERE order_row.id = 'e7000000-0000-4000-8000-000000000007'
+)
 RETURNING id;
-\echo FIRST_RECEIPT_INSERTED
+SELECT CASE
+  WHEN EXISTS (
+    SELECT 1 FROM v9.business_order_payments
+    WHERE order_id = 'e7000000-0000-4000-8000-000000000007'
+  ) THEN 'FIRST_RECEIPT_INSERTED'
+  ELSE 'FIRST_RECEIPT_MISSING'
+END;
 SELECT pg_sleep(3);
 COMMIT;
 SQL
@@ -145,21 +146,16 @@ SELECT set_config('v9.session_token_hash', repeat('f',64), true);
 INSERT INTO v9.business_order_payments (
   organization_id, field_key, order_id, cash_account_id,
   payment_date, amount, received_by, idempotency_key
-)
-SELECT
-  order_row.organization_id,
+) VALUES (
+  v9.get_public_organization_id(),
   'usaha',
-  order_row.id,
-  cash.id,
+  'e7000000-0000-4000-8000-000000000007',
+  'b3000000-0000-4000-8000-00000000000b',
   current_date,
   6000,
   '40000000-0000-4000-8000-000000000004',
   'e9000000-0000-4000-8000-000000000009'
-FROM v9.business_orders AS order_row
-INNER JOIN v9.finance_cash_accounts AS cash
-  ON cash.organization_id = order_row.organization_id
-  AND cash.id = 'b3000000-0000-4000-8000-00000000000b'
-WHERE order_row.id = 'e7000000-0000-4000-8000-000000000007'
+)
 RETURNING id;
 COMMIT;
 SQL
