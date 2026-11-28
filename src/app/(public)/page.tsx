@@ -92,10 +92,7 @@ export default async function HomePage() {
       const [organizationResult, fieldsResult, productsResult, activitiesResult] = await Promise.all([
         sql`
           SELECT legal_name, short_name, legal_status, address
-          FROM v9.organizations
-          WHERE slug = 'srikandi-buana'
-            AND status = 'active'
-          LIMIT 1
+          FROM v9.get_public_organization()
         `,
         sql`
           SELECT field_key, name, short_name, mandate
