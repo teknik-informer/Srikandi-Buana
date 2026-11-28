@@ -6,6 +6,8 @@ import type { AppIdentity } from "@/lib/identity";
 export interface SelfProfileRecord {
   personId: string;
   legalName: string;
+  email: string;
+  lastLoginAt: string | null;
   preferredName: string;
   phone: string;
   village: string;
@@ -26,6 +28,8 @@ export async function loadSelfProfile(identity: AppIdentity): Promise<SelfProfil
   const rows = rowsFromResult<{
     person_id: string;
     full_name: string;
+    email: string;
+    last_login_at: string | null;
     preferred_name: string | null;
     phone: string | null;
     village: string | null;
@@ -36,6 +40,8 @@ export async function loadSelfProfile(identity: AppIdentity): Promise<SelfProfil
     SELECT
       person.id::text AS person_id,
       person.full_name,
+      account.email,
+      to_char(account.last_login_at, 'YYYY-MM-DD HH24:MI:SS') AS last_login_at,
       person.preferred_name,
       person.phone,
       person.village,
@@ -83,6 +89,8 @@ export async function loadSelfProfile(identity: AppIdentity): Promise<SelfProfil
   return {
     personId: row.person_id,
     legalName: row.full_name,
+    email: row.email,
+    lastLoginAt: row.last_login_at,
     preferredName: row.preferred_name ?? "",
     phone: row.phone ?? "",
     village: row.village ?? "",
