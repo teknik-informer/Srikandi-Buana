@@ -144,7 +144,7 @@ export function normalizePublicSiteSettings(input: unknown, profileContentInput?
   const value = (isRecord(input) ? input : {}) as Partial<PublicSiteSettings>;
   const base = DEFAULT_PUBLIC_SITE_SETTINGS;
   const identity = { ...base.identity, ...(isRecord(value.identity) ? value.identity : {}) };
-  const rawHero = isRecord(value.hero) ? value.hero : {};
+  const rawHero: Record<string, unknown> = isRecord(value.hero) ? value.hero as Record<string, unknown> : {};
   const allowedHeroVariants = new Set(["cinematic", "split", "editorial", "minimal"]);
   const hero = {
     ...base.hero,
