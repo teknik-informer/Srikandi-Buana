@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { TONE_STYLES, toneForStatus, type Tone } from "@/lib/tone";
+import { LockKeyhole } from "lucide-react";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`sb-card ${className}`}>{children}</div>;
@@ -36,6 +37,21 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
 
 export function StatusBadge({ status }: { status: string }) {
   return <Badge tone={toneForStatus(status)}>{status}</Badge>;
+}
+
+/** Clear, non-interactive marker for an unfinished capability. */
+export function ComingSoonBadge({ label = "Segera Hadir" }: { label?: string }) {
+  return (
+    <span
+      role="status"
+      aria-label={label === "Segera Hadir" ? label + ", fitur masih terkunci" : label + ", segera hadir, fitur masih terkunci"}
+      title={label === "Segera Hadir" ? "Fitur ini belum tersedia" : label + " belum tersedia"}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#d9dee5] bg-[#f3f5f7] px-2.5 py-1 text-[10px] font-semibold leading-none text-[#566273]"
+    >
+      <LockKeyhole size={11} strokeWidth={2} aria-hidden />
+      <span>{label === "Segera Hadir" ? label : label + " · Segera Hadir"}</span>
+    </span>
+  );
 }
 
 export function StatCard({
