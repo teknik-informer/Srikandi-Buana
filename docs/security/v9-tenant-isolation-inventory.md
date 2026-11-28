@@ -401,3 +401,26 @@ A source scan was run against the exact PR branch tree at commit `385ab790498315
 6. **Operational callers/personas:** this source sweep does not prove the browser routes and all legitimate roles can complete their expected CRUD flows after QA RLS. Authenticated Preview UAT for each legitimately provisioned persona remains open.
 
 The source relation map is an incremental deliverable, not a completion claim. Issue #90 remains open until these gaps have direct test/runtime evidence and independent review.
+### 12.3 Dashboard page-level query loaders and public page data paths
+
+A separate page-loader scan examined the authenticated application route tree. The following page files import and call `getV9Sql()` directly (in addition to the action imports shown above):
+
+| Route family | Page paths with direct query helper use |
+|---|---|
+| Member | `anggota/komunitas`, `anggota/kontribusi` |
+| File center | `berkas`, `berkas/[id]` |
+| Field | `bidang/[field]/[section]` |
+| Finance | `keuangan/anggaran`, `iuran`, `kas-bank`, `laporan`, `pembayaran`, `penerimaan`, `piutang-utang` |
+| Management | `pengurus/anggota`, `bidang`, `dokumen`, `indikator`, `laporan`, dashboard `pengurus`, `pengaturan`, `persetujuan`, `program`, `rapat`, `struktur`, `tugas` |
+| POS | `pos`, `pos/penerimaan/[paymentId]` |
+| Secretariat | `sekretariat/agenda`, `anggota`, `dokumen`, `dokumen/[id]/cetak`, `ekspedisi`, `laporan`, `notulen`, dashboard `sekretariat`, `presensi`, `rapat`, `sk`, `surat`, `template/[code]` |
+
+The public route scan found database-backed data loading on homepage, document archive, activities, contact, training, product listing/detail and organization profile. These page loaders delegate failures to `loadPublicData` and route data loading through `getV9Sql` plus the public projection functions in migration 0044. Public site/profile settings are read separately from `v9.system_settings` only where `visibility='public'` and the setting key is allowlisted; public policy settings use a parallel explicit key/visibility boundary. Public pages such as help, FAQ, gallery, news, policy listings/details, join and static privacy pages do not contain direct SQL calls in their route file, although some load public-site settings.
+
+**Required verification for these page loaders:** inspect the exact SELECT projection and filters, confirm they call only the fixed public `SECURITY DEFINER` projections for operational tables, verify no direct anonymous base-table access, and test successful-empty vs unavailable fallback states. For authenticated dashboard loaders, map each query to its role permission and tenant/unit/self predicate, confirm all joined tables have compatible policies, and exercise the page under the legitimate role in Preview. Page import/call inspection alone is not evidence that the rendered page's data is tenant-safe.
+
+### 12.4 Static audit limitations and next checks
+
+- The route scan confirms more than server-action mutation calls are in scope: multiple dashboard pages independently read the database. A route can therefore render or export data without invoking the corresponding action.
+- SQL clause extraction is a mechanical inventory aid. It does not analyze interpolated SQL, query parameters, transaction boundaries across multiple statements, authorization branches, pagination correctness, download response bodies, or all UI callers.
+- The next test increment is to convert these page/query paths into domain-level read and mutation tests. Finance/ledger, POS/order-stock, Secretariat generator/file revision, public document projection, and search are first priority because they join multiple domain tables or produce downstream effects.
