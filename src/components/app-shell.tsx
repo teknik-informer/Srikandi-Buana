@@ -236,7 +236,7 @@ export function AppShell({
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex h-[calc(100dvh-68px)] min-h-0 overflow-hidden">
         {/* ── SIDEBAR — the app's own navigation. Deliberately carries NO second
                logo: the brand lives once, in the topbar. This panel opens by
                saying which application you are in. ── */}
@@ -396,10 +396,10 @@ export function AppShell({
             <div className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted2">Profil & keanggotaan</div>
             <div className="mt-1.5 text-[12px] font-semibold text-ink">Kelola informasi pribadi</div>
             <p className="mt-1 text-[10.5px] leading-relaxed text-muted">
-              Periksa dan perbarui informasi profil melalui ruang anggota. Data kelengkapan akan ditampilkan setelah terhubung ke sumber data profil.
+              Perbarui nama tampilan, kontak, desa, minat, serta keamanan akun. Identitas dan status resmi tetap dikelola organisasi.
             </p>
             <Link href="/app/profil" className="mt-2 inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[10.5px] font-semibold text-ink2 hover:border-primary-300 hover:text-primary-800">
-              Lihat Profil <ArrowRight size={11} />
+              Kelola Akun <ArrowRight size={11} />
             </Link>
           </div>
 
@@ -431,11 +431,11 @@ export function AppShell({
 
         {/* ── MAIN ── one container, shared with the topbar, so the content
                column lines up with the brand mark above it at every width. */}
-        <main className="min-w-0 flex-1">
-          <div className="sb-main-col py-5 sm:py-6">{children}</div>
+        <main className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="sb-main-col min-h-0 flex-1 overflow-y-auto overscroll-contain py-5 sm:py-6">{children}</div>
 
-          {/* status bar — the reference closes the page with an honest stamp */}
-          <div className="sb-main-col pb-6">
+          {/* Workspace footer is pinned outside the scrolling content pane. */}
+          <div className="sb-main-col shrink-0 bg-[#f7f9fc] pb-3 pt-2">
             <div className="flex flex-col gap-2 rounded-[12px] border border-line bg-white px-4 py-2.5 text-[11px] text-muted sm:flex-row sm:items-center sm:justify-between">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#22a34a] shadow-[0_0_0_3px_rgba(34,163,74,0.16)]" />
