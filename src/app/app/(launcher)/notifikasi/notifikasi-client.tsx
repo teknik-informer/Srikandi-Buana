@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BellRing, CheckCheck, LockKeyhole, ShieldCheck } from "lucide-react";
+import { CheckCheck, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Card, CardHeader, Notice, PageHeader, ComingSoonBadge } from "@/components/ui";
 
 interface NotificationShortcut {
