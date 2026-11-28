@@ -561,6 +561,45 @@ AS $function$
   )
 $function$;
 
+CREATE OR REPLACE FUNCTION v9.get_public_organization_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT organization.id
+  FROM v9.organizations AS organization
+  WHERE organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+  LIMIT 1
+$function$;
+
+CREATE OR REPLACE FUNCTION v9.get_public_organization()
+RETURNS TABLE (
+  legal_name text,
+  short_name text,
+  status text,
+  legal_status text,
+  address text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, v9
+AS $function$
+  SELECT
+    organization.legal_name,
+    organization.short_name,
+    organization.status,
+    organization.legal_status,
+    organization.address
+  FROM v9.organizations AS organization
+  WHERE organization.slug = 'srikandi-buana'
+    AND organization.status = 'active'
+  LIMIT 1
+$function$;
+
 -- Explicit public projections. These SECURITY DEFINER functions are the
 -- only tokenless read path for operational data shown on the public website.
 -- They return a fixed column allow-list and never expose member, cost, inventory,
@@ -1019,7 +1058,6 @@ CREATE POLICY organizations_read_scope ON v9.organizations
   USING (
     id = (SELECT actor.organization_id FROM v9._request_actor() AS actor LIMIT 1)
     OR v9._login_organization_visible(id)
-    OR (slug = 'srikandi-buana' AND status = 'active')
   );
 
 CREATE POLICY organization_units_read_scope ON v9.organization_units
@@ -1113,7 +1151,7 @@ CREATE POLICY membership_interests_public_insert ON v9.membership_interests
   FOR INSERT TO v9_app
   WITH CHECK (
     v9._public_interest_context()
-    AND organization_id = (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana' AND status = 'active' LIMIT 1)
+    AND organization_id = v9.get_public_organization_id()
     AND status = 'submitted'
     AND source = 'website'
     AND consented_at IS NOT NULL
@@ -1122,7 +1160,7 @@ CREATE POLICY membership_interests_public_rate_limit_read ON v9.membership_inter
   FOR SELECT TO v9_app
   USING (
     v9._public_interest_context()
-    AND organization_id = (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana' AND status = 'active' LIMIT 1)
+    AND organization_id = v9.get_public_organization_id()
     AND lower(btrim(applicant_name)) = NULLIF(current_setting('v9.public_interest_name', true), '')
     AND CASE
       WHEN regexp_replace(phone, '[^0-9]', '', 'g') LIKE '0%'
@@ -1145,7 +1183,7 @@ CREATE POLICY system_settings_public_read ON v9.system_settings
   USING (
     setting_key IN ('public_site', 'public_profile_content', 'login_page_content', 'public_policies')
     AND visibility = 'public'
-    AND organization_id = (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana' AND status = 'active' LIMIT 1)
+    AND organization_id = v9.get_public_organization_id()
   );
 CREATE POLICY system_settings_write_scope ON v9.system_settings
   FOR ALL TO v9_app
@@ -1308,7 +1346,7 @@ CREATE POLICY outbox_events_insert_scope ON v9.outbox_events
     v9._tenant_row_visible(organization_id, NULL, NULL, NULL, NULL, NULL)
     OR (
       v9._public_interest_context()
-      AND organization_id = (SELECT id FROM v9.organizations WHERE slug = 'srikandi-buana' AND status = 'active' LIMIT 1)
+      AND organization_id = v9.get_public_organization_id()
       AND event_type = 'membership.interest.submitted'
       AND dedupe_key LIKE 'membership-interest:%'
     )
@@ -1341,6 +1379,8 @@ BEGIN
     'v9._share_document_allowed(uuid)'::regprocedure,
     'v9._public_banner_asset(uuid)'::regprocedure,
     'v9._public_interest_context()'::regprocedure,
+    'v9.get_public_organization_id()'::regprocedure,
+    'v9.get_public_organization()'::regprocedure,
     'v9.get_public_fields()'::regprocedure,
     'v9.get_public_products(text,text,uuid,integer)'::regprocedure,
     'v9.get_public_activities(text,boolean,integer)'::regprocedure,
